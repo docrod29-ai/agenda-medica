@@ -24,6 +24,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { REGLAS, caducado } from '@/lib/ops/retencion'
 import { registrarLatido } from '@/lib/ops/latido'
+import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -41,6 +42,9 @@ const PAGINA = 400
 const TOPE = 5000
 
 export async function GET(req: NextRequest) {
+  /* REG-566 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+     fondo no nace de un navegador, así que no acepta la que le manden. */
+  const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')
   // Mismo candado fail-closed que los otros crons: un endpoint que BORRA no
   // puede quedar abierto.
@@ -114,6 +118,7 @@ export async function GET(req: NextRequest) {
     }
 
     await registrarLatido('retencion', {
+      correlacion,
       ok: true, duracionMs: Date.now() - arranque,
       detalle: {
         borrados: Object.values(informe).reduce((a, r) => a + r.borrados, 0),
@@ -125,6 +130,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     safeLog.error('[cron/retencion]', e)
     await registrarLatido('retencion', {
+      correlacion,
       ok: false, duracionMs: Date.now() - arranque,
       error: e instanceof Error ? e.message : 'error',
     })

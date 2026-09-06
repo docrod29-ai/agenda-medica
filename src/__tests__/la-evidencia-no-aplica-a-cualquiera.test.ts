@@ -177,7 +177,18 @@ describe('lo que no sabe leer, lo declara — no lo interpreta', () => {
   })
 
   it('`dimensionDe` devuelve null en vez de adivinar', () => {
-    expect(dimensionDe('Pacientes con neumonía adquirida en la comunidad')).toBeNull()
+    /**
+     * REG-575 — este caso pedía `null` para «Pacientes con neumonía adquirida en
+     * la comunidad», y era cierto mientras el motor no sabía leer comorbilidades.
+     * Ahora las lee, y ésa ES la lectura correcta: el criterio nombra una
+     * condición del paciente. Se cambia la aserción, no el patrón.
+     *
+     * Lo que este caso sigue vigilando —que no se adivine— se comprueba abajo con
+     * frases que NO nombran ninguna dimensión.
+     */
+    expect(dimensionDe('Pacientes con neumonía adquirida en la comunidad')).toBe('comorbilidad')
+    expect(dimensionDe('El estudio se realizó entre 2019 y 2022')).toBeNull()
+    expect(dimensionDe('Consentimiento informado firmado')).toBeNull()
     expect(dimensionDe('mayores de 65 años')).toBe('edad')
     expect(dimensionDe('excluidas embarazadas')).toBe('embarazo')
     expect(dimensionDe('depuración de creatinina menor de 30')).toBe('funcion_renal')

@@ -42,13 +42,22 @@ const firestore = leer('src', 'lib', 'hospital', 'firestore.ts')
 const page = leer('src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx')
 
 describe('el motor ya existía y ahora CORRE', () => {
+  /**
+   * Por SÍMBOLO y no por la línea de import entera: estas dos aserciones se
+   * rompieron el día que el mismo módulo importó un segundo símbolo (REG-570),
+   * sin que nada de lo que vigilan hubiera cambiado. Un guardián que se rompe al
+   * añadir un import no vigila lo que dice vigilar.
+   */
+  const importaDe = (mod: string, simbolo: string) =>
+    new RegExp(`import \\{[^}]*\\b${simbolo}\\b[^}]*\\} from '@/lib/tareas-clinicas/${mod}'`).test(firestore)
+
   it('`cargarResultadosLab` llama a `tareaDeResultado`', () => {
-    expect(firestore).toContain("import { tareaDeResultado } from '@/lib/tareas-clinicas/derivar'")
+    expect(importaDe('derivar', 'tareaDeResultado')).toBe(true)
     expect(firestore).toContain('tareaDeResultado({')
   })
 
   it('y las persiste', () => {
-    expect(firestore).toContain("import { crearTareas } from '@/lib/tareas-clinicas/firestore'")
+    expect(importaDe('firestore', 'crearTareas')).toBe(true)
     expect(firestore).toMatch(/await crearTareas\(clinicId, aCrear\)/)
   })
 

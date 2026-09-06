@@ -6,7 +6,7 @@ import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
 import { listarPacientesCompat, getAppointments, TECHO_COMPAT_PACIENTES } from '@/lib/firestore'
-import { where, getDocs, collection } from 'firebase/firestore'
+import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Patient, Appointment } from '@/types'
 import { pacientesParaReactivar, desgloseDeReactivacion, msgReactivacion, msgReferido, msgSeguimiento, diasEntre, type CandidatoReactivacion } from '@/lib/reactivacion'
@@ -50,11 +50,11 @@ export default function ReactivacionPage() {
     let falloFuturas = false
     Promise.all([
       listarPacientesCompat(clinicId),
-      getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]),
+      getAppointments(clinicId, { desde: desde + ' 00:00' }),
       // Bajas de WhatsApp: NO reactivar a quien pidió BAJA (cumplimiento).
       getDocs(collection(db, 'clinics', clinicId, 'whatsapp_optout')).catch(() => null),   // null = NO SE PUDO LEER (≠ nadie de baja)
       // Citas FUTURAS: no ofrecer "¿desea agendar?" a quien ya tiene lugar reservado.
-      getAppointments(clinicId, [where('fechaHora', '>=', hoyStr + ' 00:00')])
+      getAppointments(clinicId, { desde: hoyStr + ' 00:00' })
         .catch(() => { falloFuturas = true; return [] as Appointment[] }),
     ]).then(([ps, cits, optSnap, futuras]) => {
       setPacientes(ps.pacientes)

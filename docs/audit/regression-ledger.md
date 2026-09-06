@@ -21175,3 +21175,3747 @@ borrador», «Leer resumen» y «Descartar», a 1440 y a 390.
 Y el recorrido entero queda como arnés (`npm run arnes:dia-del-medico`).
 
 **Qué NO cubre.** Sólo Chromium: **no prueba iPhone**.
+
+---
+
+## REG-560 — la transacción protege la aritmética, no la identidad
+
+**QUÉ SE PEDÍA.** `WS-04.idempotencia`, con la cuenta a mano: «Falta el resto del
+inventario de addDoc (25 sitios): tareas clínicas, fotos clínicas, farmacia, ARCO
+y bloques de agenda siguen sin clave de intención».
+
+### El defecto que la lista a mano no nombraba
+
+`registrarMovimiento` ya corría dentro de `runTransaction`, y su comentario
+explicaba bien por qué: *«dos salidas concurrentes partían del mismo valor viejo
+→ last-write-wins descuadraba el stock»*. Eso estaba resuelto.
+
+Lo que la transacción **no** resuelve es ejecutar la MISMA salida dos veces. El
+movimiento se escribía con `tx.set(doc(COL_MOV(clinicId)), …)`, y `doc()` sin id
+fabrica un nombre aleatorio nuevo en cada llamada — lo que el propio
+`idempotencia.ts` advierte en su primera línea. Si el commit sale y la respuesta
+se pierde, el reintento **descuenta el medicamento otra vez**, con otro nombre, y
+los dos movimientos quedan en los libros.
+
+No es el doble clic —eso lo cubre el botón— sino el caso que provoca la red sola.
+Con controlados, es la diferencia entre la existencia real y la que dice el sistema.
+
+Y era invisible por partida doble: la transacción **hace parecer seguro** lo que
+envuelve, y el censo decía «farmacia» refiriéndose al catálogo de items, que es lo
+operativo.
+
+### La causa raíz: la lista estaba escrita a mano
+
+Una lista de veinticinco sitios en un campo de texto envejece sola. El `addDoc`
+número veintiséis no la actualiza, y nadie se entera hasta que un paciente tiene
+dos dispensaciones del mismo fármaco. Es la familia «depende de recordar», y la
+respuesta que este árbol ya usó en REG-394 para las lecturas sin cota: un
+inventario que se mide y un techo que sólo baja.
+
+Al medirlo, la lista a mano resultó equivocada en las dos direcciones:
+
+- **tareas clínicas** ya estaba protegida (`idDerivado`);
+- **bloques de agenda** no es un riesgo clínico: un bloque duplicado se ve en la
+  agenda y se borra;
+- y **no nombraba cuatro** que sí lo son — los signos vitales del hospital (dos
+  sitios), la solicitud de laboratorio y la observación de UCI. Los signos
+  alimentan NEWS2: un duplicado altera una escala de gravedad.
+
+### Cuatro defectos del propio instrumento, encontrados al medir
+
+Ninguno fallaba: todos daban un número plausible.
+
+1. **Adivinaba el nombre de la variable** (`fotosCol`, `labCol`) y dejaba ocho de
+   veintidós sin clasificar, porque este árbol las llama `COL`, `PLANES_COL` o
+   `col`. Se resuelve la RUTA de Firestore, que es la verdad y la misma que lee
+   `firestore.rules`.
+2. **Partía los argumentos por la primera coma**, así que
+   `addDoc(collection(db, 'clinics', …), …)` le llegaba cortado como
+   `collection(db` y atribuía a `notas` una escritura que va a `versions`.
+3. **Sólo miraba `addDoc`**, y por eso daba por buena la escritura más peligrosa
+   —la de farmacia, con `doc()` sin id dentro de una transacción—.
+4. Al añadir `doc(`, **aplicó la regla del SDK modular al Admin**: ahí `.doc(uid)`
+   NOMBRA el documento y sólo `.doc()` vacío es aleatorio. Marcó trece falsos
+   positivos de golpe. Un inventario que exagera manda a rehacer lo que ya estaba
+   bien y le quita crédito a los huecos reales (REG-394, otra vez).
+
+### El universo no lo elijo yo
+
+Las colecciones que entran salen del **manifiesto del respaldo**
+(`clinica/respaldo.ts`), que la regla de aislamiento ya obliga a mantener. Una
+colección nueva entra sola, y entra como `sin_clasificar` —en rojo— hasta que
+alguien escriba qué cuesta duplicarla. Lo que queda fuera es infraestructura que
+no es dato del consultorio: tokens de Google, estados de OAuth, el buzón de errores.
+
+### La regla
+
+La clave la acuña quien **abre el modal**, no quien confirma: acuñarla al
+confirmar haría que cada reintento trajera una clave nueva, o sea el defecto
+entero con más pasos y con aspecto de resuelto.
+
+Y al converger se devuelve **la cantidad que se aplicó entonces**, no la que se
+pidió ahora: si aquella salida se recortó por falta de existencias, el reintento
+tiene que enterarse del recorte y no del deseo.
+
+### Qué NO cubre
+
+- Sin clave se comporta como antes, a propósito: un llamador que todavía no la
+  pase no puede quedarse sin registrar el movimiento.
+- No deduplica entre pestañas distintas: dos personas dispensando a la vez son dos
+  intenciones y dos movimientos, que es lo correcto. Colapsarlas perdería una
+  salida real, y eso es peor — el sistema diría que hay medicamento que no está.
+- Quedan **cinco** escrituras clínicas con nombre aleatorio: ARCO, fotos, signos
+  del hospital (×2), laboratorio y observación de UCI. Cinco de ellas son del
+  carril Hospital/UCI (ALPHA) y las otras dos necesitan que su pantalla acuñe la
+  clave, no sólo que la función la acepte. Las vigila el trinquete, con su techo.
+- El inventario es ESTÁTICO: no sabe si una ruta de servidor deduplica por su
+  cuenta, y ver una clave en la función no prueba que el llamador la pase — eso lo
+  prueba el golden de cada unidad.
+
+**Pruebas.** `src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts` (10 casos)
+y `src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts` (9 casos).
+
+## REG-561 — un derecho ejercido una vez, y una foto que es la misma foto
+
+**QUÉ SE PEDÍA.** Cerrar las dos escrituras clínicas de Practice que el
+inventario de REG-560 dejó nombradas: la solicitud ARCO y la foto clínica. Las
+dos con `addDoc`, o sea con nombre aleatorio.
+
+### Los dos defectos
+
+**ARCO.** El formulario del portal es público y lo llena una persona desde su
+teléfono, con la conexión que tenga. Si el commit sale y la respuesta se pierde,
+ve un error, vuelve a pulsar «Enviar», y quedan **dos solicitudes del mismo
+derecho**: dos folios, dos plazos legales de respuesta (Art. 32 LFPDPPP) y dos
+procesos que el consultorio tiene que contestar por separado.
+
+**Fotos.** Una foto duplicada entra al expediente y sale en el informe.
+
+### La diferencia entre las dos, que es lo que costó pensar
+
+En ARCO la clave se acuña al **abrir** el formulario, como en la dispensación de
+farmacia: existe un momento anterior al envío donde la intención ya existe.
+
+En fotos **no lo hay**. El flujo entero —leer el archivo, subirlo a Storage,
+escribir el documento— ocurre dentro de un solo manejador que arranca al elegir
+el archivo. Cuando la escritura falla, el usuario vuelve a elegir **el mismo
+archivo**: para la interfaz eso es un intento nuevo, y una clave acuñada ahí sería
+nueva también. La protección habría sido decorativa.
+
+Así que ahí la identidad sale del **archivo**: nombre, tamaño, fecha de
+modificación, paciente y región. Dos subidas del mismo archivo a la misma región
+del mismo paciente son la misma foto. Dos fotos distintas de la misma herida son
+dos archivos distintos —otros bytes, otra marca de tiempo— y no colapsan.
+
+Elegir mal tiene coste en las dos direcciones: una clave por intento no protege
+de nada, y una demasiado amplia —paciente + región, sin el archivo— **borraría la
+segunda foto de una evolución**, y el expediente diría que sólo se fotografió una
+vez.
+
+### La regla común
+
+Si el documento ya existe, **no se pisa**. La solicitud anterior lleva su
+`fechaSolicitud` —el día desde el que corren los 20 días hábiles— y la foto lleva
+su `fecha`, que es dato clínico. Reescribirlas para «actualizar» perdería justo el
+dato que hay que conservar. Es el mismo criterio que REG-395 dejó para la adenda.
+
+### Lo que la prueba tumbó
+
+La comprobación de que la clave se acuña con `useState(claveDeIntento)` —forma
+perezosa, una vez— y no con `useState(claveDeIntento())` —en cada render— buscaba
+la forma equivocada en TODO el archivo, y la encontraba: en el comentario de al
+lado, que la cita para explicarla. Se mira la línea de la declaración.
+
+### Dónde queda el techo
+
+`sinIntencion` baja de 8 a **4**, y las cuatro son del carril Hospital/UCI —ALPHA,
+que se usa y no se vende—: signos vitales (alta y corrección), solicitud de
+laboratorio y observación de UCI. **Del lado de Practice no queda ninguna**, y el
+trinquete lo comprueba por ruta de archivo, no de palabra.
+
+Ninguna de las cuatro está bloqueada por nada externo: lo que piden es que cada
+modal de esa pantalla acuñe su clave al abrirse, el mismo trabajo hecho tres veces
+ya. No se hizo aquí para no meter cuatro cambios de estado a la vez en una
+pantalla de 1 600 líneas que no se puede ejercitar desde este entorno.
+
+### Qué NO cubre
+
+- **El objeto huérfano en Storage.** El segundo intento de una foto ya subió el
+  archivo antes de llegar a la escritura: converge el expediente, no el bucket.
+- Sin clave, las dos se comportan como antes: perder el ejercicio de un derecho es
+  peor que duplicarlo.
+- Dos personas rellenando el mismo formulario a la vez son dos intenciones y dos
+  solicitudes, que es lo correcto.
+
+**Prueba.** `src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts` (12 casos).
+
+## REG-562 — la degradación se comprobaba leyendo el código, no ejecutándola
+
+**QUÉ SE PEDÍA.** `WS-04.inyeccion-de-fallos`, que ya estaba corregido a PARTIAL
+por REG-389 y dejaba dicho lo que faltaba: «la degradación de la CONSULTA se
+comprueba hoy por substring y no por comportamiento».
+
+### El defecto
+
+La política se cumplía: cuando la IA o la evidencia fallan, la consulta detiene el
+trabajo secundario y **no toca el contenido clínico**. Lo que no existía era una
+forma de comprobarlo que no fuera leer el archivo de la pantalla.
+
+`consultorio-degradacion-segura` recortaba la rama de error del fuente y
+comprobaba que ese trozo no contuviera `setDiagnosticos([])`. Eso vigila la FORMA
+del código, no la propiedad:
+
+- pasa a verde si alguien mueve el borrado dos líneas más abajo del corte;
+- se pone rojo si alguien reformatea sin cambiar nada — el corte se hacía con una
+  cadena que llevaba un salto de línea y dos niveles de sangría **dentro**, así
+  que un `if` reindentado lo rompía;
+- y no dice nada de las ramas de error que se escriban mañana.
+
+Es «una prueba que no puede fallar por la razón correcta»: se pone roja por
+formato y verde por descuido.
+
+### La causa raíz
+
+La decisión vivía dentro de un componente de 7 000 líneas, mezclada con el
+`toast` que la anuncia. Una decisión que no se puede llamar sólo se puede leer.
+
+### La regla
+
+`que-sobrevive-a-un-fallo.ts` responde a una pregunta: **ante este fallo, qué se
+detiene y qué se conserva**. Con eso la propiedad se prueba ejecutándola, para las
+cuatro clases y sin excepción, en vez de mirando cómo está escrito el manejador.
+
+`conserva` es **la misma lista para todas las clases**, y eso no es pereza: la
+respuesta correcta a «¿qué contenido clínico puede borrar un fallo técnico?» es
+NINGUNO, y no depende de qué haya fallado. Si algún día una clase necesitara
+conservar menos, tendría que escribirse ahí y explicarse — que es la conversación
+que hay que tener antes, no después.
+
+La lista incluye además `signos` y `alergias`, que el guardián viejo nunca miró.
+
+### El matiz del mensaje, que ahora se puede probar
+
+«Tu nota NO se modificó» aparece **sólo** en el fallo de respuesta ilegible, y es
+deliberado: ése es el único que ocurre DESPUÉS de que la petición saliera con la
+nota dentro, así que es el único donde el médico puede temer que le hayan tocado
+el texto. Repetirlo en los otros tres sembraría una duda que nadie tenía. Antes
+eso era una cadena en un archivo; ahora es un caso.
+
+### Lo que se conserva del guardián viejo
+
+El cerco estrecho sobre las ramas que hoy existen: que no llamen a un `set…`
+clínico. No sustituye a la prueba de comportamiento — la complementa, porque el
+módulo no puede impedir que alguien escriba un borrado FUERA de él.
+
+Y una segunda comprobación fijaba el bloque `catch` letra por letra, con su
+sangría dentro de la cadena. Se cambió por lo que quería decir.
+
+### Qué NO cubre
+
+- **No prueba que la pantalla haga lo que la decisión dice.** Comprueba que la
+  llama —las cuatro ramas— y que no quedan mensajes escritos a mano. Ejecutar el
+  componente exige un navegador, y eso sigue abierto.
+- **No cubre WhatsApp ni Evidence** en la inyección de fallos, que es la otra
+  mitad que el censo nombra.
+- No añade clases de fallo nuevas: son las cuatro que la consulta ya distinguía.
+
+**Prueba.** `src/__tests__/consultorio-degradacion-segura.test.ts` (14 casos, 8 de ellos nuevos y de comportamiento).
+
+## REG-563 — nada impedía leer la agenda entera
+
+**QUÉ SE PEDÍA.** `WS-03.lecturas-sin-cota`, que REG-394 dejó con los dos peores
+nombrados y sin cerrar. El primero: «`getAppointments(clinicId, [])` descarga
+todas las citas que el consultorio haya tenido nunca».
+
+### La corrección al censo, que cambia el arreglo
+
+Al mirarlo, **ninguno de los cinco llamadores lo hace**: los cinco pasan un
+`where('fechaHora', '>=', …)`. No era una lectura cara en producción — era la
+puerta abierta para que la siguiente lo fuera.
+
+La distinción no es cosmética: «se lee la agenda entera» y «nada impide leerla
+entera» se arreglan distinto, y sólo el segundo existía. El primero pediría
+arreglar cinco llamadas; el segundo pide cerrar la firma, y entonces las cinco ya
+estaban bien.
+
+### Por qué no se arregla con un `limit`
+
+La consulta ordena por `fechaHora` **ascendente**, así que `limit(N)` se queda con
+las N citas MÁS ANTIGUAS del consultorio y tira las de esta semana. En una agenda,
+recortar por el extremo equivocado no es una lectura barata: es perder citas en
+silencio, y eso es peor que la lectura cara.
+
+Es lo que `lecturas-sin-cota.mjs` ya lleva escrito en su cabecera —«exigirles un
+tope sólo enseñaría a poner `limit(1000)` por costumbre, que es peor que no
+tenerlo: parece protegido y no lo está»— aplicado a la colección donde más se nota.
+
+### La regla
+
+Lo que acota una agenda es el TIEMPO. La ventana pasa de ser un valor por omisión
+vacío a ser el **segundo argumento obligatorio**, con `desde` requerido y `hasta`
+opcional — la asimetría correcta, porque una agenda se lee «desde tal día en
+adelante» muchas veces y casi nunca «hasta tal día desde el principio de los
+tiempos».
+
+Con eso, leer la agenda entera deja de ser la ruta más corta: ya no basta con no
+pensarlo.
+
+### Sigue contando en el inventario, y es correcto
+
+El instrumento sólo reconoce `limit`, y una ventana acota por fecha, no por
+número: `{ desde: '2020-01-01 00:00' }` es válida y descarga cinco años. Lo que se
+cerró es que se lea sin NINGUNA. El techo no baja.
+
+### Dos guardianes anclados a lo que no debían
+
+`las-lecturas-sin-cota-solo-bajan` localizaba esta lectura por **número de línea**
+(`linea < 80`). Documentar la función la empujó hacia abajo y el caso se cayó sin
+que nada de lo que vigila hubiera cambiado: un guardián anclado a un número de
+línea vigila el tamaño del archivo.
+
+Y su comprobación negativa —que la firma vieja ya no existe— buscaba la forma
+prohibida en TODO el archivo, y la encontraba en la cabecera que la cita para
+explicar por qué se quitó. Es la tercera vez en esta tanda que pasa lo mismo
+(REG-410, REG-561 y ésta): una comprobación negativa sobre un fichero entero choca
+con el comentario que explica lo prohibido. Se mira la firma.
+
+### Qué NO cubre
+
+- **La ventana sigue pudiendo ser enorme.** Elegirla bien es de cada pantalla; lo
+  que cambia es que ahora está a la vista en la llamada, no escondida en un valor
+  por omisión.
+- **No toca `useAppointments`**, el `onSnapshot` cuya ventana sólo crece: navegar
+  el calendario a hace un año deja el resto de la sesión recibiendo en vivo todas
+  las citas desde entonces. Eso es rediseñar la ventana de la agenda, y la regla
+  de diseño dice que una interfaz no se aprueba leyendo el código.
+- **No mide.** Cuánto cuesta la lectura con N citas sigue sin medirse en el
+  emulador, como sí se midieron lista, búsqueda e historial (REG-383).
+
+**Prueba.** `src/__tests__/la-agenda-no-se-lee-entera.test.ts` (7 casos).
+
+## REG-564 — el tablero decía que el estado sale del código, y estaba escrito a mano
+
+**QUÉ SE PEDÍA.** `WS-01.tablero`: «El tablero se quedó en REG-362 mientras el
+árbol iba por REG-381. Reconciliarlo tras cada tanda».
+
+### El defecto
+
+`docs/product/AUSCULTA-MASTER-BOARD.md` es el tablero que lee una persona, y su
+propia cabecera lo dice:
+
+> el estado sale del **código leído hoy**, no de la documentación ni de un
+> checkpoint anterior.
+
+Y el estado estaba escrito a mano. Al mirarlo, la ficha decía SHA `ba9d7a2f` y
+fecha 29-ago con el árbol **quince REG por delante**, mientras `requisitos.ts`
+—el censo, que sí es máquina— decía otra cosa.
+
+Dos respuestas a «¿en qué estado está WS-04?»: la del censo y la de la prosa. Es
+el invariante de arquitectura del producto —una fuente de verdad por entidad—
+incumplido sobre el propio programa.
+
+### La causa raíz ya estaba escrita, y con nombre
+
+`el-tablero-del-loop-no-miente` nació en REG-241 porque `MASTER_STATE.json` se
+quedó viejo **tres veces**, y su encabezado lleva el diagnóstico:
+
+> La causa no es descuido: es que actualizarlo depende de que yo me acuerde.
+> Mientras no lo derive un script, va a volver a pasar.
+
+Se derivó aquella memoria y se dejó ésta a mano, al lado. Volvió a pasar, como
+estaba escrito que pasaría. «Reconciliarlo tras cada tanda» —lo que pedía el
+censo— es el arreglo que garantiza la próxima recaída: es depender de recordar,
+otra vez, con una frase más.
+
+### La regla, que es la misma línea de REG-241
+
+Se deriva el **estado**: cuántos requisitos hay en cada uno, cuáles siguen
+internamente accionables, y qué desbloquea a los bloqueados fuera. Sale de
+`requisitos.ts`, entre marcas, y su guardián falla si está viejo.
+
+No se deriva el **criterio**: qué se hace a continuación, por qué un bloqueo es
+aceptable, qué decide el dueño. Eso se sigue escribiendo a mano porque no sale de
+un `grep` — y el guardián comprueba que el bloque derivado **no recomienda**, sólo
+cuenta y nombra. Un generador que además dijera «lo siguiente es…» estaría
+inventando criterio con aspecto de dato.
+
+### El SHA y la fecha: no se generan, se borran
+
+La otra mitad tentadora era generar también la ficha de cabecera. No se hizo:
+`agent-state/MASTER_STATE.json` **ya** lleva SHA, versión, última REG y conteo de
+pruebas, derivados y con guardián. Escribirlos otra vez en el tablero habría sido
+crear la segunda fuente de verdad justo mientras se cierra una. Ahora la ficha
+apunta a dónde vive el dato.
+
+### Qué NO cubre
+
+- **No comprueba que la prosa de cada WS sea cierta.** Las secciones narrativas
+  siguen a mano y pueden envejecer; lo que ya no puede envejecer es el estado.
+- **No reconcilia con `agent-state/BACKLOG.json`**, que la otra mitad del censo
+  pide: V9/V10/V15 arrastran requisitos propios y hoy viven en otro archivo.
+- No añade requisitos ni cambia ninguno: sólo cambia de dónde sale lo que se lee.
+
+**Prueba.** `src/__tests__/el-tablero-del-loop-no-miente.test.ts` (23 casos, 4 nuevos).
+
+## REG-565 — dos percentiles sobre el mismo libro dan dos verdades
+
+**QUÉ SE PEDÍA.** `WS-12.p99`: «cost-ledger.ts calcula p50 y p95 de las llamadas
+de IA. No hay p99 en ningún sitio del repositorio salvo el acta del arnés de
+carga, ni latencia/error por ruta».
+
+### Lo primero: el censo estaba equivocado, y le hice caso
+
+**Era falso.** `src/lib/observabilidad/latencias.ts` calcula p50, p95, **p99**,
+máximo, fallos y tasa de fallo, agrupados **por feature y por modelo**, sobre los
+asientos del mismo libro de costos. Lleva ahí desde antes, con su encabezado
+explicando por qué percentiles y no promedio.
+
+Empecé añadiendo p99 y un `porFuncion` a `cost-ledger.ts` **fiándome del censo en
+vez de buscar en el árbol** — justo lo que la política del repositorio prohíbe:
+no crear implementaciones paralelas cuando ya existe una canónica. Lo escrito se
+retiró.
+
+Un censo es una lista escrita a mano, con la misma caducidad que cualquier otra.
+Creerle sin comprobar es la forma más limpia de duplicar algo. (Es la tercera vez
+en esta tanda que el `queFalta` de un requisito resulta inexacto al mirarlo:
+REG-560 y REG-563 fueron las otras dos.)
+
+### El defecto de verdad, que apareció al buscar
+
+Hay **dos implementaciones de percentil** sobre los mismos datos:
+
+- `cost-ledger.percentil` — por **rango más cercano**: devuelve siempre una
+  muestra que ocurrió;
+- `latencias.percentil` — por **interpolación lineal**.
+
+Con veinte muestras de 100 a 290 ms: p50 190 / 195, p95 280 / 280,5, p99 290 /
+288,1.
+
+Dos tableros del mismo periodo enseñan cifras distintas y **las dos parecen
+ciertas**. Es el invariante de arquitectura del producto —una fuente de verdad por
+entidad— incumplido sobre la latencia. Esto no lo pedía el censo: estaba debajo.
+
+### Por qué NO se unificó, y por qué eso no es una excusa
+
+Se intentó. El libro pasó a usar el percentil de observabilidad y lo tumbó una
+prueba que ya existía: `finanzas-cost-ledger` fija `latenciaP95` en **9 000**, que
+es una llamada real. Al mirar la otra, `latencias.test.ts` fija
+`percentil([0, 10], 0.5) === 5`, que es un valor que **nunca ocurrió**.
+
+O sea: los dos métodos están elegidos a conciencia y probados. Aquí, porque «con
+pocas muestras interpolar sugiere una precisión que no hay» y porque un p95 que
+señala una llamada real es más fácil de defender ante el médico que la sufrió.
+Allí, porque interpola suave y se lee mejor con dos muestras.
+
+Y la cifra sale en el tablero de costos **que mira el dueño**. Elegir método
+cambia números que él ya ha visto: es una decisión de **qué se reporta**, no de
+cómo se programa. Un agente que pasaba por aquí para otra cosa no la toma.
+
+### Lo que sí se cerró
+
+Que ninguno de los dos se edite sin ver al otro. Los dos archivos se citan, con
+las cifras de la divergencia dentro —una nota que dice «difieren» sin decir cuánto
+no deja juzgar si importa— y el guardián comprueba que las dos notas siguen ahí.
+
+Sin eso, el siguiente que toque uno no sabrá que existe el otro, que es
+exactamente cómo aparecieron los dos.
+
+Y en el resumen del libro de costos, que sólo daba p50 y p95: se añaden
+`latenciaP99`, `muestrasDeLatencia` —un percentil sin `n` al lado no se puede
+leer— y `fallos`/`tasaDeFallo`. Esto último tenía su propio olvido: `EventoCosto.fallo`
+se registra desde que existe el libro —«un fallo cuesta tokens igual»— y el
+resumen no lo miraba.
+
+### Qué NO cubre
+
+- **La decisión de método sigue abierta**, y es del dueño. Queda anotada en los
+  dos archivos y en el censo.
+- **Sólo cubre lo que deja asiento en el libro**: las llamadas a un proveedor de
+  IA. Una ruta HTTP que no llama a un modelo no tiene aquí latencia ni error, y
+  medirlas todas exige instrumentar el borde.
+- **No unifica el percentil del arnés de carga**, que tiene el suyo: corre en Node
+  fuera de la app, sobre otra población y sin acceso a `src/`.
+- No fija umbrales: `latencias.ts` ya declara que «no hay un número honesto que
+  separe rápido de lento para todas las funciones».
+
+**Prueba.** `src/__tests__/un-solo-percentil-en-el-arbol.test.ts` (12 casos).
+
+## REG-566 — el hilo llegaba del navegador y se paraba en los dos extremos
+
+**QUÉ SE PEDÍA.** `WS-13.correlation-id`, con las dos mitades nombradas: «Faltan
+los trabajos de fondo —un cron no nace de un navegador y su traza tendría que
+acuñarse al arrancar— y mandarla al proveedor como cabecera».
+
+### Los dos defectos
+
+REG-388 cosió el hilo del navegador al asiento del libro de costos, en las 16
+rutas de IA. Se paraba en los dos extremos:
+
+**Antes.** Los cinco crons no acuñaban ninguna. «El recordatorio de las 8:00 no
+llegó» se podía seguir hasta la colección donde acabó, y **no hasta la corrida que
+lo intentó**: el latido decía que el cron corrió y los mensajes decían que
+fallaron, sin nada que uniera las dos cosas cuando hay dos corridas en la misma
+hora.
+
+**Después.** La petición al proveedor salía sin traza. Cuando el proveedor dice
+«esa petición nos llegó rara», no había forma de señalar cuál: nuestro
+identificador no existía en su lado y el suyo no existía en el nuestro.
+
+### Por qué un trabajo NO usa `correlacionDe(req)`
+
+Un cron llega por HTTP, así que reutilizarla parece gratis: no traería cabecera y
+acuñaría una nueva igual. Pero el endpoint es una URL, y **quien tenga el secreto
+del cron puede mandarle una cabecera**. Con `correlacionDe`, quien llama elige la
+traza: dos ejecuciones podrían compartirla, o una podría fijarse a la de otra cosa
+a propósito.
+
+Un trabajo de fondo no nace de un navegador: nace del reloj. Por eso es una
+función distinta y no un parámetro — un `correlacionDe(req, { confiar: false })`
+habría dejado la decisión en cada llamador, que es como se pierden.
+
+### Por qué al proveedor va en cabecera y no en el cuerpo
+
+El cuerpo lleva PHI minimizada y es lo que el proveedor procesa; una cabecera
+opaca es inerte. Va **la misma** que se escribe en el asiento, no una nueva: una
+traza que cambia al cruzar la frontera no correlaciona nada. Y va validada —lo
+que no tenga la forma no sale— porque una cabecera es un sitio donde podría
+colarse PHI si se copiara sin mirar.
+
+Sin traza no se manda cabecera vacía: `x-correlacion: ` en blanco es peor que
+ausente, porque parece una traza y del otro lado se registra como cadena vacía.
+
+### Qué NO cubre
+
+- **No prueba que el proveedor la registre.** Es una cabecera propia; quien no la
+  conozca la ignora, que es el comportamiento correcto. Comprobar que aparece en
+  SU panel exige mirar su panel.
+- **No la mete en los mensajes que un cron manda**, sólo en el latido de la
+  ejecución. Coser la traza hasta cada mensaje del outbox es la rebanada
+  siguiente y queda nombrada.
+- **No la escribe en `safeLog`**: el latido es el registro durable, y una línea de
+  log se pierde con el despliegue.
+
+**Prueba.** `src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts` (12 casos).
+
+## REG-567 — las doce escrituras clínicas del árbol, con nombre propio
+
+**QUÉ SE PEDÍA.** Cerrar las cuatro que REG-560 y REG-561 dejaron nombradas, todas
+del carril de Hospital y UCI. Con esto el trinquete de escrituras sin clave de
+intención llega a **cero**.
+
+### Lo que se cierra
+
+- **Signos vitales**, alta y corrección. De estos documentos salen NEWS2 y las
+  tendencias: dos tomas idénticas a la misma hora inclinan una escala de gravedad
+  y disparan —o callan— una alerta de deterioro. No es una molestia de inventario,
+  es una cifra clínica movida por un fallo de red.
+- **Solicitud de laboratorio.** Un duplicado se le TOMA DOS VECES al paciente: dos
+  punciones, dos tubos, dos resultados que reconciliar.
+- **Observación de UCI.** Alimenta escalas y tendencias, igual que los signos.
+
+La **corrección** de signos merece mención aparte: es un llamador distinto del
+alta, y una corrección duplicada deja dos enmiendas del mismo original —un acto
+medicolegal repetido—. Arreglar sólo el alta habría sido la forma en que este
+árbol pierde reparaciones (REG-410, REG-411).
+
+### Tres sitios, tres formas de acuñar la clave
+
+No hay receta única, y forzarla habría dejado protecciones decorativas:
+
+1. **Signos y laboratorio** — hay modal, así que la clave nace al ABRIRLO.
+   Acuñarla al pulsar Guardar haría que cada reintento trajera una nueva.
+2. **Observación de UCI** — no hay modal ni reintento automático: el fallo guarda
+   en local y avisa. No existe un «momento anterior» del que colgar la intención,
+   así que la identidad sale de la TOMA: su instante medido.
+3. Y en REG-561, las fotos: la identidad sale del archivo, porque el usuario
+   vuelve a elegir el mismo y para la interfaz es un intento nuevo.
+
+### Qué protege la de UCI, y qué no
+
+Protege el caso caro —commit hecho, respuesta perdida, y el aviso diciendo «no se
+pudo enviar» siendo mentira— y cualquier reenvío futuro de las lecturas locales,
+que queda idempotente por construcción.
+
+No protege dos pulsaciones separadas por segundos: son dos instantes y por tanto
+dos tomas. Colapsarlas exigiría comparar valores, y **dos tomas iguales seguidas
+son posibles en una UCI**. Está escrito en el propio llamador, porque una
+protección cuyo alcance no consta se lee como total.
+
+### El cero, y por qué lleva su propio guardián
+
+Un cero no significa «no puede volver a pasar»: significa «la próxima vez se ve».
+Y un cero puede ser falso — si el inventario dejara de reconocer las escrituras,
+`sinIntencion` daría cero por no mirar, indistinguible de cero por estar bien. Por
+eso el trinquete comprueba además que sigue contando **doce** clínicas y **cero**
+sin clasificar.
+
+### Un guardián roto por documentar
+
+`icu-observaciones-persistencia` buscaba el `.catch(` dentro de una ventana de 900
+caracteres desde la llamada. El comentario que explica el alcance de la clave lo
+empujó fuera y el caso cayó sin que el cableado hubiera cambiado: una ventana fija
+vigila cuánto se ha comentado. Ahora se ancla al final de la cadena.
+
+### Qué NO cubre
+
+- El inventario es estático: ver una clave en la función no prueba que el llamador
+  la pase, y por eso el golden comprueba los llamadores uno a uno.
+- No deduplica entre dispositivos: dos personas registrando signos a la vez son
+  dos intenciones y dos tomas, que es lo correcto.
+
+**Prueba.** `src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts` (14 casos).
+
+## REG-568 — lo que revienta en el navegador tampoco gritaba
+
+**QUÉ SE PEDÍA.** `WS-13.alertas`. Y antes de construir nada, una corrección: el
+censo decía que faltaba avisar de «la caída de WhatsApp (REG-391 hizo que el
+outbox pause en vez de morir, pero esa pausa no llega a ningún aviso)». **Ya está
+hecho desde REG-397**, y el vigilante lo lleva escrito. Es la cuarta entrada de
+esta tanda cuyo `queFalta` estaba viejo (REG-560, REG-563, REG-565 fueron las
+otras). Comprobar antes de construir evitó reescribirlo.
+
+### El defecto que sí quedaba
+
+`/api/errores` recoge lo que falla en el cliente —mensaje, traza, ruta, quién— y
+lo escribe en la colección `errores`. Está bien hecho: acepta **sin sesión**
+—porque si exigiera una, el boundary global y los fallos de login serían justo lo
+único no reportable— y redacta el texto antes de guardarlo, ya que esa colección
+es de nivel raíz.
+
+Y ahí se quedaba. Para enterarse había que **abrir el panel del dueño**: sospechar
+la avería antes de saber que existe. Es la misma forma que REG-396 cerró para los
+incidentes de IA, en la colección de al lado.
+
+### Por qué no hay umbral, y sin embargo no avisa de todo
+
+Avisar de cada error convierte el canal en ruido y se aprende a ignorarlo. Pero
+«avisar a partir de N por hora» es inventarse un número: ¿por qué cinco y no tres?
+
+Hay una frontera que **no es una cifra elegida**, y es cualitativa:
+
+- **un usuario** con un error puede ser su navegador, su red, su extensión o su
+  sesión caducada — es un reporte;
+- **dos usuarios distintos con el MISMO error** ya no es de ninguno de los dos: es
+  del producto.
+
+Lo que cae del lado del reporte **no desaparece**: sigue en la colección y en el
+panel. Lo único que no hace es despertar a nadie a las tres de la mañana.
+
+### Los anónimos, que son los que más importan
+
+Un error sin sesión no trae `uid`. Contar todos los anónimos como «un solo
+usuario» escondería la caída que impide entrar: **si el login revienta, nadie
+puede identificarse para demostrarlo**. Se cuentan aparte y su repetición basta.
+
+### La firma, sin la cual el aviso no saltaría nunca
+
+Se agrupa por mensaje normalizado y ruta. Las cifras del mensaje se sustituyen:
+«falló tras 3 intentos» y «falló tras 5 intentos» son el mismo fallo, y sin
+normalizar cada aparición parecería única — ninguna llegaría a dos personas y el
+aviso no saltaría jamás.
+
+Las rutas NO se juntan: el mismo mensaje en dos pantallas son dos averías y se
+arreglan en sitios distintos.
+
+### Qué NO cubre
+
+- **El canal sigue sin destino.** `OPS_ALERTA_WEBHOOK` es acción del dueño; sin él
+  `enviarAlertaOps` lo declara y **no se marca nada como visto**, que es lo
+  correcto: una alerta que no salió no puede darse por entregada.
+- **No cubre los 5xx del servidor ni las anomalías de autorización**, que el censo
+  también nombra: hoy no se escriben en ninguna colección, así que no hay nada que
+  leer. Eso es instrumentar antes que avisar, y es otra unidad.
+- **No agrupa por traza**, sólo por mensaje y ruta: dos fallos distintos con el
+  mismo mensaje en la misma ruta se cuentan juntos. Señala de menos.
+- **No mide gravedad**: todas salen como `grave`, porque una avería que afecta a
+  varias personas lo es.
+
+**Prueba.** `src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts` (19 casos).
+
+---
+
+## REG-569 — lo que el médico descartó salía impreso como el motivo de la receta
+
+**QUÉ SE PEDÍA.** `WS-10.pantalla-de-certeza` seguía `PARTIAL` con este pendiente:
+llevar el selector de tipo de REG-407 «a las otras superficies que muestran
+diagnósticos (expediente, UCI/hospital)».
+
+### Lo que decía el censo no se sostenía contra el árbol
+
+Es la quinta entrada de esta tanda cuyo `queFalta` estaba equivocado (REG-560,
+REG-563, REG-565 y REG-568 fueron las otras), y aquí lo estaba dos veces:
+
+- **Hospital y UCI no tienen `Diagnostico[]`.** Tienen `diagnosticoIngreso`: una
+  **cadena libre** en `Internamiento`, sin `tipo` y sin `tipoOrigen`. No hay
+  certeza que elegir porque no hay campo donde ponerla.
+- **El expediente enseña notas ya firmadas.** Un selector ahí sería una segunda
+  puerta de escritura sobre una nota firmada — exactamente lo que la firma existe
+  para impedir, y lo que la arquitectura prohíbe.
+
+Construir lo que pedía el censo habría construido el defecto, con el censo dando
+la orden. Es la misma forma que REG-403.
+
+### El defecto que apareció al buscar quién LEE diagnósticos
+
+Cinco lectores. Dos de ellos no los leían: **los imprimían**.
+
+La receta y la orden de estudios rellenan su campo «diagnóstico» —el que sale en
+el papel— con un principal sacado de la nota, y las dos lo elegían con la misma
+línea, copiada de una a otra:
+
+```ts
+const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+```
+
+El respaldo **no mira `tipo`**. Cuando ningún diagnóstico es `definitivo` —el caso
+corriente, porque `presuntivo` es el valor de fábrica— coge el primero de la lista
+tal como venga del dictado. Medido antes de tocar nada:
+
+```
+dx: [{ Embarazo, descartado }, { Cefalea tensional, presuntivo }]
+→ receta y orden imprimen: «Embarazo»
+```
+
+«Embarazo descartado» es como se documenta una prueba negativa, y el sistema lo
+escribe solo: `corregirCertezaPorNegacion` reclasifica a `descartado` en cuanto oye
+la negación. No hace falta que el médico se equivoque en nada — basta con que diga
+«descartamos embarazo» y que ése sea el primer diagnóstico que nombró. El resultado
+salía por la impresora, con cédula profesional debajo.
+
+El comentario de la receta lo delataba: decía «primero activo de tipo definitivo»
+y el código no miraba `estado` en ningún sitio. Describía un filtro que no existía.
+
+### La causa raíz
+
+La de REG-364, en los consumidores a los que aquel arreglo no llegó. `estaVigente`
+lleva escrito, exportado y probado desde entonces, y estas dos pantallas resolvían
+la misma pregunta con un criterio propio y más flojo. Familia «el sistema se
+contradice a sí mismo», y es la tercera vez esta tanda que una reparación llega a
+unos consumidores y no a los demás (REG-410, REG-411).
+
+### La regla: enseñar la lista y elegir uno no son el mismo gesto
+
+- Donde se enseña la **lista entera** —la nota, el expediente, la carta de
+  referencia— **no se filtra nada**: un descarte documentado es información
+  medicolegal, y al médico que recibe la carta le sirve saber qué se descartó. Pero
+  cada renglón va **diciendo lo que es**, con `nombreConCerteza`, que ya era la
+  definición única y a la que estos tres lectores no llamaban.
+- Donde se elige **uno** para que represente la visita —receta, orden— lo que no es
+  un problema del paciente no puede representarla. Decide `estaVigente`, y si nada
+  califica **no se rellena nada**.
+
+### Por qué `null` y no un respaldo
+
+Porque **el respaldo era el defecto**. El campo es editable en las dos pantallas
+—el golden lo comprueba, porque sin eso el arreglo sería peor que el fallo—, así
+que un campo vacío le cuesta al médico escribir una línea. El respaldo le costaba
+no darse cuenta: rellenar de menos se ve, rellenar mal no.
+
+### Un guardián que se rompía al añadir un import
+
+`el-expediente-resume-el-estado.test.ts` fijaba la **línea de import entera**, así
+que importar un tercer símbolo del mismo módulo lo ponía en rojo sin que cambiara
+nada de lo que dice vigilar. Reescrito por símbolo, y comprobado al revés.
+
+### Qué NO cubre
+
+- **No comprueba la impresión.** Comprueba qué diagnóstico se elige y con qué
+  nombre se pinta; que el PDF lo lleve es otra frontera —«el dato tiene que
+  LLEGAR»— y se mira en navegador.
+- **No decide si `presuntivo` debe etiquetarse** ahora que REG-407 dejó al médico
+  elegir el tipo. La cabecera de `nombreConCerteza` predijo este día y dijo que
+  distinguir el `presuntivo` elegido del de fábrica con `tipoOrigen` es un cambio
+  de modelo. Sigue callándolo a propósito.
+- **No le da certeza a hospital ni a UCI.** Su `diagnosticoIngreso` es una cadena
+  libre; que deba dejar de serlo es una decisión de modelo y queda dicha en el
+  censo.
+- **No ordena por importancia clínica.** Descarta lo que no puede ser el motivo y
+  conserva la preferencia por `definitivo` que ya había.
+
+**Prueba.** `src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts` (15 casos).
+
+---
+
+## REG-570 — una interconsulta pedida y no contestada era invisible
+
+**QUÉ SE PEDÍA.** `WS-11.interconsultas-imagen`, `NOT_STARTED`, con el
+diagnóstico ya afinado y **el trabajo revertido a propósito** en la sesión de
+REG-560.
+
+### La fuga
+
+Una interconsulta vivía sólo dentro de `Internamiento.interconsultas`, un array
+embebido en el documento del episodio. El motor del ciclo cerrado lee otra cosa:
+`tareasVivas`, `cabosDelPaciente` y `estadoDeAccion` trabajan sobre la colección
+`tareas_clinicas`.
+
+Así que pedirle una interconsulta a cardiología y que nadie contestara **no
+aparecía en ningún worklist**, ni en los cabos sueltos del paciente, ni en nada
+que la reclamara. Para enterarse había que abrir esa pestaña de ese episodio y
+acordarse de mirar — que es exactamente lo que no ocurre en una guardia.
+
+Es la misma fuga que REG-252 cerró para los resultados de laboratorio, con la
+misma forma: la entidad existe, el motor existe, y nadie los une.
+
+### Por qué estaba revertido, y qué lo desbloqueó
+
+La sesión anterior construyó el modelo —`origenId`, el tipo nuevo— y lo revirtió
+al no poder conectarlo: dejar algo escrito y sin conectar es lo que REG-406
+enseñó a no hacer, y tres guardianes de este árbol lo rechazan con razón. La
+razón que dio fue que la tarea tenía que crearse dentro de la mutación de
+servidor, «y eso no se puede verificar de punta a punta aquí».
+
+Al mirar **por qué** no se podía conectar apareció la causa real: el id lo
+acuñaba el servidor con `randomUUID()` dentro de la transacción y no salía de
+ella —`agregarInterconsulta` devolvía cadena vacía—, así que **nadie sabía a qué
+interconsulta colgarle la tarea**. No era una frontera imposible de probar: era
+un identificador que no volvía.
+
+Acuñarlo del lado del que pide lo resuelve, y no es un rodeo: es la puerta que
+este árbol ya usa para las escrituras clínicas (`claveDeIntento` +
+`idIdempotente`), con forma cerrada y validable, y con respaldo donde no haya
+WebCrypto — `crypto.randomUUID` **lanza** fuera de un contexto seguro, y esto
+corre en tabletas de hospital.
+
+### El defecto de propina, que ya estaba
+
+Con el id del servidor, un reintento —doble clic, o una red que se corta
+**después** de escribir— acuñaba un id nuevo y dejaba la interconsulta duplicada
+en el episodio. Nada lo impedía. Ahora el servidor reconoce el reintento y
+devuelve el array intacto.
+
+### Dónde se crea la tarea, y por qué no en la pantalla
+
+En `agregarInterconsulta`, que es la única puerta por la que se pide una. Si la
+creación viviera en la pantalla, la segunda pantalla que alguien escriba nacería
+con la fuga. Es literalmente la lección de REG-252 dicha otra vez.
+
+### Contestar es «completada», no «cerrada»
+
+El censo pedía «cerrarla en `interconsulta_responder`». **El modelo no lo
+permite, y tiene razón**: `completada` es que el trabajo se hizo; `cerrada` es
+que alguien LO MIRÓ y decidió. Una interconsulta es el caso de libro — el
+cardiólogo contesta, y si el que la pidió no lee la respuesta no ha pasado nada
+por mucho que el episodio diga «respondida».
+
+Contestar la deja `completada` y viva en «Necesita revisión». Cerrarla, con la
+decisión escrita, es del que la pidió. `solicitada` no salta a `completada`, así
+que se recorren los dos pasos y los dos quedan en el registro de transiciones; si
+el segundo falla, la tarea queda `aceptada` — **sigue viva y sigue viéndose**,
+que es el lado seguro por el que fallar.
+
+### El id de una tarea de origen no lleva el título, y el de una nota sí
+
+Una NOTA produce muchas tareas —tres estudios, un seguimiento, una receta— y sin
+el título todas colapsarían en un documento. Un `origenId` es el hecho mismo: una
+interconsulta, una tarea.
+
+Y no es cosmético: con el título dentro, el id sólo se puede reconstruir
+conociendo la especialidad, y **quien contesta sólo tiene el `icId`**. La tarea se
+crearía y nadie volvería a encontrarla: contestar no cerraría nada, en silencio.
+
+Lo escribí mal la primera vez y el golden lo dejó pasar — comprobaba
+`idDeTareaDeOrigen` a solas, o sea UN extremo, no que los dos coincidan. La
+aserción que vale es `idDerivado(tarea) === idDeTareaDeOrigen(origen, origenId)`.
+«El dato tiene que LLEGAR», en su forma más pequeña.
+
+### Tres desenlaces al contestar, no dos
+
+`sin_tarea` no comparte cubeta con `no_se_pudo`. Una interconsulta anterior a
+esto nunca tuvo tarea; tratarla como error haría saltar un aviso en cada
+respuesta a una interconsulta vieja, y un aviso que sale siempre deja de leerse
+justo el día que significa algo.
+
+### Qué NO cubre
+
+- **El PLAZO sigue sin decidir** — `NEEDS_CLINICAL_REVIEW`. Depende de
+  especialidad, urgencia y acuerdo del hospital. Por eso la tarea nace **sin
+  `venceEn`** y `estaVencida` no opina. Inventar «48 h» metería en rojo pendientes
+  que quizá no lo están, y un grupo «Vencidos» que miente deja de leerse.
+- **Su grupo del worklist tampoco.** Cae en `otros` («Otros pendientes»):
+  `esperando_resultado` la etiquetaría mal —se espera a un colega, no a una
+  máquina— y una categoría nueva es la clase de modelo sin información que
+  REG-404 evitó. `otros` es honesto y consigue lo que importaba: que **se vea**.
+- **REFERENCIA e IMAGEN siguen fuera.** La referencia es sólo un impreso; la
+  imagen no tiene entidad propia (modalidad, lateralidad, informe, comparación con
+  previos). El ORDEN de imagen ya entraba, porque `estudio_pendiente` cubre
+  gabinete.
+- **No se probó contra Firestore.** Se prueba la identidad, la forma de la tarea,
+  la idempotencia del servidor y el recorrido de estados; que el documento quede
+  escrito es la otra frontera y se mira en navegador.
+- Carril **Hospital: ALPHA, se usa y no se vende.**
+
+### Otro guardián roto por añadir un import
+
+`un-resultado-genera-tarea` fijaba la línea de import entera y se puso en rojo al
+importar un segundo símbolo del mismo módulo. Reescrito por símbolo y comprobado
+al revés — es el segundo de esta tanda (el otro, en REG-569).
+
+**Prueba.** `src/__tests__/una-interconsulta-pedida-no-entraba-al-bucle.test.ts` (22 casos).
+
+---
+
+## REG-571 — reunir lo declarado como riesgo, sin inventar el catálogo
+
+**QUÉ SE PEDÍA.** `WS-10.banderas-y-respuesta`, `NOT_STARTED`: banderas de
+riesgo, respuesta al tratamiento y compromisos de seguimiento.
+
+### Lo que no se podía hacer, y llevaba razón
+
+El censo ya lo decía: **el catálogo de qué condición cuenta como bandera es
+política clínica y no está decidido**, y fijarlo está prohibido. Lo que sí se
+podía era reunir lo que **ya está declarado**, con su procedencia: no es un
+criterio nuevo, son juicios que ya hizo una persona.
+
+### La pata que no existe
+
+El censo nombraba tres fuentes. Una no se puede llenar:
+
+```
+PatientTag          13 valores declarados en types/index.ts
+PATIENT_TAG_CONFIG  su etiqueta y su color, para cada uno
+patient.tags        CERO escritores y CERO lectores en todo el árbol
+```
+
+Ninguna pantalla pone una etiqueta y ninguna la enseña. `patient.tags` es siempre
+`undefined`. Recogerla habría sido recoger un campo siempre vacío — y eso es
+**peor** que no recogerla: el eje diría «sin banderas» y quien lo leyera
+entendería «sin riesgo declarado», cuando la verdad es que una de sus tres
+fuentes no se puede llenar.
+
+Se declara en `LO_QUE_NO_SE_VIGILA` y no se recoge. Conectar las etiquetas es
+otra unidad: primero hace falta la pantalla que las escriba.
+
+### El defecto que apareció al escribirlo
+
+La primera versión sacaba la severidad sólo de `peorSeveridadRegistrada`, que
+mira **los sellos de las notas firmadas**. Una alergia escrita en la consulta de
+hoy no tiene sello todavía: `registros` viene vacío.
+
+O sea: **una anafilaxia apuntada hoy no era bandera hasta que se firmara la
+nota** — justo cuando más falta hace. Se descubrió al notar que la rama «la lista
+de alergias de hoy» del propio código era inalcanzable. Ahora entra también por
+la lista de hoy, que es **la misma** que recibió `estadoDeAlergias`, no otra
+lectura; y cuando hay las dos manda el sello, que es la asimetría que la
+proyección de alergias ya tiene.
+
+### La regla que lo hace seguro
+
+**Este eje nunca tranquiliza.** Sin banderas no escribe «Sin banderas»: escribe
+*«Nadie ha declarado alergias graves ni problemas crónicos en este expediente»* —
+qué se miró, no que no haya nada.
+
+Y `LO_QUE_NO_SE_VIGILA` es una exportación, no un comentario, porque tiene que
+**pintarse al lado de la lista**: una lista vacía junto a nada se lee como «este
+paciente no tiene riesgos». Regla 4 (ausencia de dato no es dato de ausencia) y
+regla 5 (el vocabulario es vocabulario, no criterio; lo que falta no se vigila, y
+se declara).
+
+Tampoco infiere: que la diabetes suela ser crónica no autoriza a decir que ÉSTA
+lo es si el médico no lo marcó. Y `desde: null` no se rellena con la fecha de hoy
+— diría «desde agosto de 2026» de algo que quizá lleva veinte años escrito.
+
+### No hay un cuarto recorrido del expediente
+
+Se arma con las dos proyecciones que la pantalla **ya calculó**
+—`estadoDeAlergias` y `problemasActivos`—, no con una lectura propia. Un
+recorrido más daría, tarde o temprano, un número distinto para el mismo paciente.
+
+### Dónde se ve
+
+En el expediente, sobre el aviso de alergias. En gris y plegable, no en rojo: lo
+que sí es una alerta —una alergia sellada que la compuerta de hoy no está
+mirando— tiene su recuadro rojo justo debajo, y dos rojos seguidos no dejan ver
+cuál urge.
+
+### Qué NO cubre
+
+- **No decide qué condición es una bandera.** Sigue siendo del médico.
+- **No conecta las etiquetas del paciente.** Falta la pantalla que las escriba.
+- **No cubre «respuesta al tratamiento»**: el dato no existe — nada del
+  expediente liga un fármaco con el desenlace del problema que trata, y
+  `Medicamento.indicacion` es texto libre; casarlo con un diagnóstico por
+  parecido sería inventar el vínculo.
+- **No cubre «compromisos»**: choca con el esquema de la nota, congelado por el
+  sello (`WS-10.sello-v4`).
+- **No puntúa riesgo ni ordena por gravedad clínica.**
+- **No se comprobó en navegador** que el bloque se vea: ésa es la otra frontera.
+
+**SUPERSEDIDO al fusionar con `main` (6-sep-2026).** La otra rama construyó el
+mismo eje de riesgos, en producción antes que éste, con
+`src/lib/expediente/banderas-de-riesgo.ts`. Dos motores de banderas en la misma
+pantalla contradicen el invariante del charter —«nunca duplicar la fuente de
+verdad de una entidad clínica»—, así que **gana el de `main`, que es el que el
+médico ya usa**, y este módulo y su prueba se retiran.
+
+El defecto que esta entrada describe **sigue cerrado**, por el otro motor: una
+lista de banderas vacía no dice «sin riesgo». Lo que se pierde es esta
+implementación, no la defensa.
+
+---
+
+## REG-572 — el documento decía que estaba topado y no lo estaba
+
+**QUÉ SE PEDÍA.** `WS-03.documentos-que-crecen`: ningún documento crece sin
+techo. Su `queFalta` nombraba el hueco exacto — «queda `internamientos/{id}`
+(seis arrays en un documento, administraciones sin tope)» — y lo daba por fuera
+de carril por ser Hospital. Es trabajo interno accionable y su consecuencia es de
+las peores del árbol.
+
+### El tope estaba en la prosa, no en el código
+
+`registro-durable.ts` lleva escrito desde E0-09:
+
+> «Los arrays del doc de internamiento (`balanceHidrico`, `escalas`, `sbar` y
+> `indicaciones[].administraciones[]`) son solo CACHÉ DE DISPLAY: **están topados
+> por el límite de 1 MB por documento Firestore**.»
+
+Tres lo estaban de verdad: `balanceHidrico` y `escalas` a 100, `sbar` a 50.
+**`administraciones` no.** Se anexaba sin tope, dosis tras dosis.
+
+### Por qué no es una degradación, es un paro
+
+Firestore rechaza escribir un documento que pase de 1 MB, y **todas** las
+mutaciones del episodio son un solo `tx.update` sobre ese documento. Al rebasarlo
+no falla lo último que se añadió: **falla todo**. No se puede registrar una
+administración, ni suspender una orden, ni **egresar al paciente**.
+
+Una UCI de veinte días con ocho fármacos cada seis horas son ~2 500 objetos de
+administración en un documento. No es un caso raro: es una estancia larga.
+
+El «límite de 1 MB» que la cabecera citaba como techo no era un techo: era el
+punto donde el episodio deja de funcionar.
+
+### La causa raíz
+
+Un tope declarado en prosa y no en código. Familia «el sistema se contradice a sí
+mismo»: leer la cabecera daba por revisado lo que no lo estaba, y eso es lo que
+mantuvo el defecto invisible durante todo E0-09.
+
+### Sólo se puede topar uno, y ésa es la regla
+
+**Topar un array sólo es seguro si el hecho vive en otro sitio.** Aquí no todos
+viven en otro sitio, así que el módulo no reparte topes: reparte los arrays en
+los que se pueden topar y los que no, con la razón de cada uno.
+
+- `administraciones` **sí**: `administrar` está en `ACCIONES_CON_EVENTO_DURABLE` y
+  cada dosis queda entera en la subcolección append-only `registros`. El recorte
+  pierde la copia de display, no el hecho.
+- `movimientos` **no**: `registro-durable.ts` declara que `trasladar` no emite
+  evento **precisamente porque** queda ahí. Es la única copia; toparlo borraría
+  traslados.
+- `indicaciones` e `interconsultas` **no**: son la orden y la interconsulta
+  mismas, no un registro de que ocurrieron. Recortarlas haría desaparecer órdenes
+  vivas del MAR.
+- `medicamentosCasa` **no hace falta**: la conciliación reemplaza la lista entera,
+  no le anexa. Su tamaño es el de la medicación del paciente, no el de la
+  estancia.
+
+Los que no se pueden topar quedan como riesgo **nombrado**. Un riesgo declarado
+se puede vigilar; uno que vive en la forma de un documento, no.
+
+### Se recorta por el principio, y eso se prueba contra el motor
+
+Al revés perdería la última dosis dada, que es el ancla del atraso del MAR:
+convertiría a un paciente al día en uno «nunca administrado». El golden corre
+`lineaMar` con la lista entera y con la recortada y exige el mismo estado, la
+misma `ultima` y las mismas horas.
+
+### El tope no es una cifra clínica
+
+100 no dice nada de medicina: dice cuánto cabe en un documento sin acercarse al
+límite. Está muy por encima de lo que lee cualquiera — la pantalla enseña
+`slice(-6)` y el motor ancla en la última dosis.
+
+### La partición no deja huecos
+
+Como `ACCIONES_CON_EVENTO_DURABLE`/`ACCIONES_SIN_EVENTO_DURABLE`: un array nuevo
+en `Internamiento` que nadie clasifique rompe el CI a propósito, para que nadie
+añada algo que crece a un documento sin decidir si se topa.
+
+### Qué NO cubre
+
+- **No acota `movimientos`, `indicaciones` ni `interconsultas`.** Siguen creciendo
+  sin techo, ahora dicho en voz alta. Acotarlas de verdad exige sacarlas a
+  subcolección, que es otra unidad y toca las reglas de Firestore.
+- **No mide bytes.** Cuenta elementos, que es lo que se puede contar sin
+  serializar el documento en cada escritura. Un `sbar` con un texto enorme pesa
+  más que cien administraciones — por eso su tope es menor, pero es una
+  aproximación y se dice.
+- **No se probó contra Firestore.** Se prueba la partición, los topes y por qué
+  extremo se recorta; que el documento quede por debajo de 1 MB en producción es
+  la otra frontera.
+- Carril **Hospital: ALPHA, se usa y no se vende.**
+
+**Prueba.** `src/__tests__/un-episodio-largo-no-puede-dejar-de-escribirse.test.ts` (11 casos).
+
+---
+
+## REG-573 — «verificado por lectura» no es una garantía, es una foto
+
+**QUÉ SE PEDÍA.** `WS-06.sin-scraping`: ninguna fuente se obtiene saltándose su
+licencia. Su `queFalta` era honesto y corto: «Verificado por lectura: no hay
+puppeteer, ni credenciales compartidas, ni corpus copiado; `no-configurado.ts` no
+conoce ninguna URL. **Falta un guardián que lo mantenga así.**»
+
+### Se comprobó, y era cierto
+
+Recorrido el camino entero antes de escribir nada, los hosts externos son ocho y
+ninguno es la página de un editor:
+
+```
+se baja       eutils.ncbi.nlm.nih.gov    API oficial de NCBI
+se baja       api.fda.gov                API pública de openFDA
+se baja       api.anthropic.com          el modelo, no una fuente
+sólo enlace   pubmed.ncbi.nlm.nih.gov    el registro, para abrirlo
+sólo enlace   www.accessdata.fda.gov     el buscador de la propia FDA
+sólo enlace   www.google.com             búsqueda de la GPC del CENETEC
+sólo enlace   www.ncbi.nlm.nih.gov       en un comentario, sobre la llave
+no resuelve   example.invalid            el adaptador sintético
+```
+
+Lo que faltaba no era encontrar un defecto: era que no pudiera entrar uno.
+
+### La distinción que esto existe para sostener
+
+**Enlazar no es recuperar, y es casi lo contrario.**
+
+Un `href` manda al médico al sitio del editor, donde el editor le enseña lo que
+quiera bajo sus términos: su muro de pago, su registro, su licencia. Bajar esa
+misma URL desde el servidor y quedarse con el HTML es tomar el material **sin
+pasar por donde el editor pone sus condiciones**.
+
+La URL es la misma y el acto es el contrario, así que la clasificación no puede
+salir de la cadena de texto: la dice una persona y queda escrita.
+
+### Por qué el escáner no adivina
+
+Lo natural sería mirar si el host está dentro de un `fetch(`. Sería frágil: la URL
+se arma en una constante, se pasa por un ayudante con regulador de velocidad, se
+compone con plantillas. Un analizador que acierte el 90 % da una lista que
+**parece** completa, que es peor que no tenerla.
+
+Así que el instrumento lista **todo host que aparece** y el guardián exige que
+cada uno esté clasificado. Misma forma que
+`ACCIONES_CON_EVENTO_DURABLE`/`ACCIONES_SIN_EVENTO_DURABLE`: una partición que
+obliga a decidir, no un detector que opina.
+
+### Tres guardianes rechazaron la primera versión, y tenían razón de más
+
+La declaración nacía consumida sólo por el generador del documento y por su
+propia prueba, así que `modulos-sin-conectar`, `el-camino-del-medico-llega-entero`
+y `evidence-runtime-consultor` la marcaron como isla.
+
+El motivo va más allá del lint: **una comprobación en CI no cierra un `fetch`**.
+Es la misma regla que ya dice la política de seguridad de esta casa — esconder un
+botón no cierra una ruta HTTP.
+
+Así que `exigeQueSeBaje` corre **en el momento de pedir**, en las dos únicas
+puertas por las que este producto baja evidencia (`ncbiFetch` y el `pedir` de
+openFDA). Cuesta una búsqueda en un conjunto y **falla cerrado**: una URL cuyo
+host no esté declarado como `se_baja` lanza antes de salir a la red — y una URL
+que ni siquiera se puede leer tampoco pasa, porque si no se sabe a qué host va no
+se sabe si está permitido.
+
+El caso que lo vuelve ejecutable: **la misma URL que es legítima como enlace es
+ilegítima como petición**. `exigeQueSeBaje('https://pubmed.ncbi.nlm.nih.gov/12345/')`
+lanza, y ése es exactamente el punto.
+
+### Dónde se ve
+
+En `docs/evidence/MATRIZ-CALIFICACION-PROVEEDORES.md`, que ya se genera desde el
+catálogo. Va ahí y no en otro documento porque es la otra mitad de la misma
+pregunta: la tabla de arriba dice qué permite la licencia de cada proveedor, y
+ésta por qué vía se llega a él. Una sin la otra deja al dueño decidiendo un gasto
+sin saber cómo entra el material.
+
+`generarMatriz` recibe los hosts como parámetro **obligatorio**: opcional, un
+llamador que lo olvidara generaría el documento sin la sección y el guardián de
+sincronía lo daría por bueno — la tabla desaparecería sin que nada se pusiera rojo.
+
+### Qué NO cubre
+
+- **Una puerta tercera** que alguien añada sin llamar a `exigeQueSeBaje`: el host
+  nuevo lo caza la partición, pero la petición ya habría salido una vez.
+- **Un host de sólo-enlace bajado desde una constante.** La comprobación estática
+  mira que no aparezca en la misma línea que un `fetch`; se le escapa si alguien
+  guarda la URL arriba y la baja tres líneas más abajo. Lo que sí impide es el
+  cambio inadvertido — mover un host de columna hay que hacerlo a mano, con su
+  base legal.
+- **El resto del producto.** WhatsApp, Stripe y el correo tienen sus propios hosts
+  y no son fuentes que se citen. El alcance está declarado en
+  `CAMINO_DE_EVIDENCIA` y ampliarlo es una decisión.
+- **Si la licencia permite lo que se hace con el material una vez traído.** Eso es
+  `catalogo.ts` y su matriz, y es otro eje.
+
+**Prueba.** `src/__tests__/una-lectura-no-es-un-guardian.test.ts` (17 casos).
+
+---
+
+## REG-574 — el tablero custodiaba un programa de tres, y nadie podía notarlo
+
+**QUÉ SE PEDÍA.** `WS-01.tablero`, cuya propia entrada lo decía: «falta
+reconciliar con `agent-state/BACKLOG.json`: V9/V10/V15 arrastran requisitos
+propios que hoy viven en otro archivo y no entran en este censo.»
+
+### El defecto, y por qué es el mismo de siempre un nivel más arriba
+
+El censo de Ausculta está bien vigilado: 78 requisitos, sello, y un guardián que
+impide que un dominio canónico se quede sin fila. Pero custodia **un programa de
+tres**.
+
+En `agent-state/` viven otros dos —V9 (experiencia del paciente y diseño) y V10
+(excelencia visual)— y el tablero no los mencionaba. Así que «quedan 8
+accionables» era **cierto del censo y falso del producto**, y no había forma de
+notarlo leyendo el tablero.
+
+Es el defecto que este censo existe para impedir, un piso más arriba: *ningún
+documento derivado puede notar la ausencia de algo que no está en su fuente*.
+Antes se evaporó un dominio; aquí, un programa entero.
+
+Lo encontró el dueño, no el sistema. Ésa es la medida del fallo.
+
+### El segundo defecto: el contrato no sobrevivía a la sesión
+
+`AUSCULTA_MASTER_LOOP.md` tenía **33 líneas**, apuntaba a una rama que ya no
+existe, y **no contenía el directivo**: sus 26 apartados vivían sólo en el
+mensaje del dueño.
+
+Un loop cuyo contrato se pierde al cerrar la sesión se reinterpreta en la
+siguiente — y eso es exactamente lo que pasó. Ahora el directivo íntegro vive en
+`agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md`, con guardián que exige los 27
+encabezados (§0–§26), las ocho condiciones del §25 y la regla del §26.
+
+### Lo que se midió de V9, uno por uno contra el árbol
+
+No contra el archivo:
+
+```
+EVAL-003           trinquete de voz en CI    → YA ESTABA HECHO
+PATIENT-TELE-002   token de videoconsulta    → YA ESTABA HECHO (7 casos sellados)
+PATIENT-I18N-001   i18n sin consumidor       → YA ESTABA HECHO (lo importa el portal)
+DESIGN-MIGRAR-001  nadie usa las nx-         → HECHO EN PARTE (3 páginas)
+PATIENT-PREVIO-001 dónde se pinta el previo  → COMPROBADO (page.tsx:453)
+SAFE-003           dosis sin referencia      → ABIERTO DE VERDAD
+DESIGN-TABLAS-001  tablas a 375 px           → necesita navegador
+NAV-NAVEGADOR-001  seis comprobaciones       → necesita navegador
+EVAL-001           gold de 6000 audios       → bloqueado: la voz es biométrica
+UX-002             contraste en oscuro       → medido y falso el 6-ago
+```
+
+**Cinco de diez ya estaban hechos y nadie los había marcado**, y el archivo
+llevaba tres semanas sin tocarse. Un backlog que exagera el trabajo pendiente se
+abandona igual que uno que lo esconde. El conteo bajó de 10 a 5 **y no por
+decreto**: cada fila lleva ahora la evidencia de qué se comprobó.
+
+`SAFE-003` sigue abierto de verdad: `dosis-desconocida-declarada.test.ts` no
+tiene **ni un caso pediátrico**.
+
+`UX-002` se conserva aunque esté refutado. Un hallazgo medido y falso es
+información: evita que alguien lo vuelva a levantar.
+
+### Se cuentan, no se fusionan
+
+**V10 es el carril de Product Excellence.** El §20 del directivo prohíbe rehacer
+su trabajo y el §18, invadir sus cambios visuales. Absorber sus 27 items al censo
+de Master sería justo esa invasión.
+
+Contar sin ejecutar es la única postura que no miente en ninguna de las dos
+direcciones: ni promete trabajo ajeno, ni finge que no existe.
+
+Estado real, ahora en `docs/product/PROGRAMAS-EN-VUELO.md` y generado:
+
+| Programa | Carril | Requisitos | Abiertos |
+|---|---|---|---|
+| Ausculta | master | 80 | 34 |
+| V9 | compartido | 25 | 5 |
+| V10 | product-excellence | 39 | 27 |
+
+### Detalles que sostienen el guardián
+
+- `generarInforme` exige el conteo del censo como parámetro **obligatorio**: si
+  fuera opcional, un llamador que lo olvidara publicaría un documento donde
+  Ausculta sale con un guion — y el único programa invisible sería el que sí
+  custodiamos.
+- «Abierto» es *todo lo que no dice CERRADO/RESUELTO/desbloqueado*, así que
+  `parcialmente-cerrado` cuenta como abierto. **Señala de más a propósito**: en un
+  conteo de custodia, equivocarse hacia arriba es lo seguro.
+- Si un backlog cambiara de nombre, `contarBacklog` devolvería `null` y el
+  documento pondría un guion; el guardián lo caza como cero falso.
+
+### Qué NO cubre
+
+- **No verifica que un item marcado CERRADO lo esté.** Compara conteos. Verificar
+  el contenido de cada item es trabajo de su propio carril.
+- **No fusiona los estados**: V9 y V10 usan cadenas libres y Master una unión
+  tipada. Normalizarlas exigiría reescribir dos programas ajenos.
+- **No cubre Nexus OS ni V15**, que tienen estado en `docs/roadmap/` y
+  `agent-state/V15_*` y siguen sin reconciliar. Queda dicho, que es lo que faltaba.
+- **La prosa de cada WS sigue a mano** y puede envejecer. Lo que ya no puede es el
+  estado ni el conteo de los tres programas.
+
+**Prueba.** `src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts` (14 casos).
+
+---
+
+## REG-575 — el motor de aplicabilidad leía cuatro dimensiones y le llegaban dos
+
+**QUÉ SE PEDÍA.** `WS-09.motor`: el censo pedía «las otras diez dimensiones» de
+aplicabilidad. Al mirar el sitio de la llamada **antes** de añadir ninguna
+apareció algo peor.
+
+### Dos de las cuatro que ya existían estaban muertas
+
+`aplicabilidad.ts` sabe leer edad, embarazo, función renal y alergia. La renal
+incluso trae la vigencia de REG-375 —«un número viejo no es un número»— en un
+campo `tfg: { valor, vigente }` diseñado para eso.
+
+El único sitio que lo llama construía esto:
+
+```ts
+const estadoDelPaciente = {
+  ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
+  ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias } : {}),
+}
+```
+
+**`embarazo` y `tfg` no se rellenaban nunca.** No era inseguro —sin el dato el
+motor responde `datos_insuficientes`, que es lo correcto— pero significaba que un
+ensayo que excluye embarazadas **jamás llegaba a decir nada** sobre una paciente
+embarazada del expediente, teniendo el dato a un campo de distancia: la pantalla
+ya calculaba la creatinina y su vigencia.
+
+Es «el dato tiene que LLEGAR» en su forma más limpia: el contrato estaba bien
+escrito por los dos lados y nadie los unió. Añadir diez dimensiones encima habría
+sido construir más motor sin combustible.
+
+### La lectura del embarazo se mudó, y ahí apareció una discrepancia
+
+Vivía dentro de `copiloto.ts` sin exportar. Escribirla otra vez habría creado dos
+formas de leer los mismos diagnósticos, así que se mudó a un módulo propio — y al
+mudarla se vio que **el comentario del copiloto y su código no coinciden**:
+
+> «Un `presuntivo` o un `diferencial` **sí** cuentan para AVISAR»
+
+```ts
+dxGestacional.some(d => d.tipo !== 'descartado' && d.tipo !== 'diferencial')
+```
+
+El `diferencial` está excluido. Lleva así desde que se escribieron.
+
+**Se conservó la conducta del código, no la del comentario**, y el golden lo fija
+con una prueba que cae si alguien lo «arregla»: cambiarlo mueve un aviso de
+seguridad de medicamentos en embarazo, y si un embarazo listado como diferencial
+debe dispararlo es una decisión del médico. Queda declarada con sus dos opciones
+en `LA_DISCREPANCIA_DEL_DIFERENCIAL`.
+
+### Una lectura, dos preguntas distintas
+
+Por eso el módulo devuelve el estado **con los tipos que lo sostienen**, no un
+booleano:
+
+- el copiloto **avisa**, y para avisar la duda cuenta;
+- la aplicabilidad **afirma**, y para afirmar la duda no basta.
+
+Una sospecha de embarazo viaja como **ausencia**, no como `false`: mandar `false`
+haría que un estudio que excluye embarazadas se declarara aplicable a una
+paciente que quizá lo está. Aplanarlo a un booleano habría obligado a elegir una
+de las dos lecturas, y la elegida habría estado mal para el otro consumidor.
+
+Y «embarazo» + «embarazo descartado» a la vez es **conflicto, no resolución**: se
+devuelve `posible`. Quedarse con la nota más reciente sería inventar una regla
+clínica que nadie escribió.
+
+### Sólo dos dimensiones nuevas, de las diez que pedía el censo
+
+**comorbilidad** y **terapia previa**: las dos únicas cuyo dato del paciente
+existe hoy en el árbol (`problemasActivos` y la lista de medicamentos). Las otras
+ocho —organismo, susceptibilidad, sitio, dispositivo, interacción, severidad,
+entorno de atención, jurisdicción— **falta el dato, no el patrón**, y un campo que
+nadie llena es una promesa del modelo: se intentó y se descartó en REG-370/371.
+
+Ninguna de las dos trae vocabulario clínico propio: el motor no sabe qué es una
+comorbilidad, sabe que el criterio dice «pacientes con X» y mira si X está en la
+lista del paciente. Un catálogo aquí sería criterio inventado, y lo que le
+faltara no se vigilaría sin que nadie lo supiera.
+
+### Un defecto que se vio al escribir el caso, no después
+
+`previously treated with rituximab were excluded` capturaba **«rituximab were
+excluded»**, que no casa con «Rituximab 375 mg/m²» por contención: el paciente sí
+lo tomaba y el motor decía que no. Se añadió el recorte en la primera palabra que
+no puede ser parte del nombre, y una segunda pasada por palabra con mínimo de
+cuatro letras — sin ese mínimo, partículas como «con» o «de» casarían con
+cualquier cosa.
+
+### Un guardián que pedía una ceguera que ya no queremos
+
+`la-evidencia-no-aplica-a-cualquiera` exigía `null` para «Pacientes con neumonía
+adquirida en la comunidad». Era cierto mientras el motor no leía comorbilidades;
+ahora ésa **es** la lectura correcta. Se cambió la aserción, no el patrón, y se
+añadieron dos frases que de verdad no nombran ninguna dimensión.
+
+### Qué NO cubre
+
+- **Las otras ocho dimensiones del §9.** Falta el dato del paciente.
+- **No distingue «tratamiento previo con X» de «en tratamiento con X»**: en un
+  resumen se escriben igual y separarlas exigiría leer el tiempo verbal.
+- **No unifica las tres copias de la cadena de CKD-EPI del copiloto.**
+  `tfgPorCkdEpi` existe y tiene un consumidor; migrar el copiloto es su unidad.
+- **Sigue sin existir el veredicto «aplica».** El máximo es `nada_lo_excluye`.
+- **No se comprobó en navegador** que el contexto viaje: se comprueba que la
+  pantalla lo construya y que la ruta lo acepte.
+
+**Prueba.** `src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts` (17 casos).
+
+---
+
+## REG-576 — la cabecera decía que se borraba al cerrar sesión, y no se borraba
+
+**QUÉ SE PEDÍA.** `WS-11.sobrevive-a-la-navegacion`, una de las cinco unidades
+que el dueño nombró a mano y la única que se había saltado. Su censo decía «el
+cierre de sesión lo limpia (lleva PHI)». Se fue a comprobar eso antes de
+construir nada.
+
+### No lo limpiaba
+
+`no-se-abrieron.ts` guarda los pendientes clínicos que no se pudieron crear
+(REG-411). Su cabecera aseguraba:
+
+> «se borra al cerrar sesión como el resto de PHI local»
+
+`limpiarBorradoresLocales` purga por prefijo:
+
+```ts
+PREFIJOS_PHI = ['nx.consulta.bkp.', 'nx.uci.']
+```
+
+y el cajón se llama `nexusmed.pendientes-no-abiertos`. **No casa con ninguno.**
+
+### Lo que eso significa
+
+Cada entrada es un `TareaClinica`: lleva `patientId`, **`patientNombre`**, el
+título —«Revisar resultado de…»— y el detalle. Hasta cincuenta, en el
+`localStorage` de un equipo de consultorio, que se comparte, **sobreviviendo al
+cierre de sesión indefinidamente**.
+
+La regla de datos de esta casa manda limpiar el disco al cerrar sesión
+precisamente porque el equipo es compartido. Aquí no se limpiaba, y el comentario
+aseguraba que sí.
+
+Es la segunda vez en esta tanda que una garantía vive en la prosa y no en el
+código; REG-572 fue la otra, con el tope del documento del episodio. Un
+comentario que describe una limpieza que no ocurre es peor que no tenerlo: da por
+revisado lo que no lo está.
+
+### Por qué se drena y no se borra
+
+Añadir la clave a la lista de purga habría cerrado la fuga **y perdido los
+pendientes en silencio**, que es exactamente lo que REG-411 existe para impedir.
+
+Se hace lo que este mismo cierre de sesión ya hace con la cola de auditoría: **se
+manda mientras el token todavía sirve**. Lo que entra desaparece del disco porque
+ya vive en el servidor; lo que no entra se queda, igual que el borrador, porque
+borrarlo «por seguridad» convertiría un problema de red en un pendiente clínico
+perdido.
+
+Y no contradice a REG-390 —«una operación no puede aparecer como completada si
+sólo quedó encolada»—: **aquí nada se marca completado**. O la tarea queda escrita
+en Firestore, o sigue en el cajón.
+
+Corre **antes del `signOut`**, por el mismo motivo que `drenarCola`: después,
+`crearTareas` no tendría con qué autenticar y el cajón no se vaciaría nunca. Y va
+en `try/catch`: la sesión se cierra igual, que eso sí es seguridad.
+
+### Un defecto de mi propia implementación, encontrado por el caso
+
+La primera versión emparejaba lo que no entró **por identidad de referencia**.
+Funciona hoy —`crearTareas` devuelve los mismos objetos que recibió— y ata este
+drenaje a un detalle interno de otro módulo: una tarea que saliera de
+`JSON.parse` y volviera por otro camino dejaría de reconocerse, y el cajón se
+vaciaría **dando por escritas tareas que no lo están**. Justo la mentira que este
+módulo existe para no repetir. Se empareja por contenido.
+
+### Aislamiento entre consultorios
+
+El drenaje agrupa por `clinicId` antes de llamar. `crearTareas` escribe bajo UN
+consultorio; mandar juntos los de dos escribiría los de uno en el otro — una fuga
+entre inquilinos por la puerta de atrás. El golden lo fija.
+
+### Qué NO cubre
+
+- **Sigue sin cruzar de dispositivo.** Un pendiente perdido en el consultorio no
+  aparece en el teléfono, y eso no se arregla aquí: exige escribir en Firestore
+  justo cuando se acaba de demostrar que no se puede escribir.
+- **Puede quedar PHI local**: la que no se pudo salvar. La diferencia es que ahora
+  está dicho, y sólo queda lo que el servidor rechazó — no lo que nadie recogió.
+- **No avisa de lo que quedó sin drenar.** El cierre de sesión no es sitio para un
+  cartel más; `/pendientes` sigue siendo quien lo ofrece.
+- **No se probó en navegador**: se comprueba el drenaje y su orden respecto al
+  `signOut`, no el ciclo real de una pestaña cerrándose.
+
+**Prueba.** `src/__tests__/el-cajon-de-pendientes-no-se-borraba-al-cerrar-sesion.test.ts` (10 casos).
+
+---
+
+## REG-577 — la cita estaba anclada, era literal, y decía lo contrario
+
+**QUÉ SE PEDÍA.** `WS-12.entailment` nombraba dos comprobaciones deterministas
+pendientes: **POLARIDAD** («no redujo la mortalidad» citado como «redujo») y
+**MATIZ** («podría reducir» citado como «reduce»).
+
+### El hueco
+
+El anclaje pregunta si el pasaje **existe**, no si dice lo mismo. Así que una
+cita perfectamente anclada que afirma lo contrario del artículo pasaba **sin una
+sola marca** — y es peor que una sin anclar, porque la sin anclar ya se marca.
+
+### Dos defectos que se vieron midiendo, no leyendo
+
+Se corrió el módulo contra frases reales antes de escribir la prueba:
+
+1. **«redujo» no contiene «reduc».** El pretérito español de *reducir* es
+   irregular —c→j— y lo mismo *prevenir*→*previno*. Sin las dos raíces, **la
+   frase exacta que esto existe para cazar** no se leía. La versión inglesa sí
+   funcionaba, así que el defecto era invisible en la prueba obvia — y el español
+   es el idioma del producto.
+2. **`super` casaba con «supervivencia»**, que es un sustantivo y sale en casi
+   todo resumen de mortalidad. Con esa raíz, «no aumentó la supervivencia» contra
+   «mejoró la supervivencia» daba una inversión sobre un verbo que no era un
+   verbo. Se quitó: una raíz que casa con una palabra común no añade cobertura,
+   añade ruido — y el ruido en una marca de seguridad se paga con que dejen de
+   leerse.
+
+### La regla: señalar de menos, nunca de más
+
+Un detector que dispare con cualquier «no» marcaría media literatura. Se exigen
+**tres cosas a la vez**:
+
+1. el pasaje casa con un patrón de resultado negado, de lista cerrada;
+2. la afirmación trae **el MISMO verbo** en afirmativo;
+3. la afirmación no trae negación propia.
+
+Más la ventana cortada en el punto: lo de la oración anterior no cuenta. Por eso
+*«reduced mortality in patients who did not receive statins»* no se marca, y
+*«No benefit was seen. The drug improved survival»* tampoco.
+
+### Por qué es un tercer aviso y no se mezcla con los otros dos
+
+- **Sin respaldo** = no se encontró el texto.
+- **Fuera de los hallazgos** = el texto sale de una parte que no demuestra nada.
+- **Desajuste** = el texto está, es literal, y dice otra cosa.
+
+Se comprueban distinto: los dos primeros piden **buscar** el respaldo; éste pide
+**releer** el que ya está. Meterlo en el saco de «sin respaldo» perdería la
+distinción que hace accionable cada marca.
+
+### Qué NO cubre
+
+- **No es un evaluador de entailment y no se declara como tal.** No juzga si la
+  afirmación se sigue del pasaje: detecta dos desajustes nombrados. El resto sigue
+  necesitando un modelo, su conjunto de referencia y un umbral del médico, que es
+  lo que `WS-12.entailment` deja abierto.
+- **No cubre los verbos fuera de `VERBOS_DE_RESULTADO`.** Lo que no está, no se
+  vigila, y no por eso está bien.
+- **No mira la magnitud**: «redujo un 2 %» citado como «redujo» no es inversión ni
+  atenuación, y puede ser igual de engañoso.
+- **No alcanza una negación repartida entre dos oraciones** del pasaje.
+- **No filtra ni reordena**: anota. Quitar una afirmación porque un patrón casó
+  sería peor que no tener el patrón.
+
+**SUPERSEDIDO en parte al fusionar con `main` (6-sep-2026).** La otra rama
+construyó `la-cita-dice-lo-contrario.ts`, ya en producción, para la POLARIDAD
+invertida. Esa mitad queda cubierta por su motor y este módulo se retira.
+
+La otra mitad **no la cubre nadie hoy, y no se calla**: el pasaje que dice lo
+mismo pero CON RESERVAS que la frase quitó («podría reducir» citado como
+«reduce»). No es polaridad invertida —es una afirmación más fuerte que su
+fuente— y por eso el detector de main la deja pasar. Queda declarada con nombre
+en `LO_QUE_LA_POLARIDAD_NO_CAZA`, dentro de `verificar-la-cita.ts`, para que la
+ausencia de marca no se lea como respaldo.
+
+---
+
+## REG-578 — una denegación no es una anomalía; el mismo usuario en dos consultorios, sí
+
+**QUÉ SE PEDÍA.** `WS-13.alertas`: «las anomalías de autorización siguen sin
+instrumentar, y hasta que no se escriban en algún sitio no hay nada que leer».
+
+### El hueco
+
+`verificar.ts` deniega correctamente y lo apunta con `safeLog.warn`. **Un log de
+servidor no es una señal**: hay que ir a buscarlo, en el sitio correcto, el día
+correcto, y sospechando ya lo que se busca. Es el mismo defecto que REG-396 cerró
+para los incidentes de IA y REG-568 para los errores del navegador.
+
+### La frontera, y no es un número inventado
+
+**Una denegación es el sistema funcionando.** Alguien pulsó algo que su rol no
+puede. Avisar de cada una convierte el canal en ruido, y un canal ruidoso deja de
+leerse justo el día que importa.
+
+Dos patrones no son ruido:
+
+1. **Un mismo usuario denegado en DOS consultorios distintos.** Un miembro de un
+   consultorio no tiene por qué tocar otro; que le rebote la puerta de dos
+   inquilinos no es un rol mal configurado, es alguien probando dónde entra. Es la
+   «anomalía de aislamiento entre inquilinos» que el charter nombra, y **bastan
+   dos** porque el segundo ya no tiene explicación inocente — cualitativo, como en
+   REG-568, no una cifra elegida.
+2. **Insistencia sobre la misma capacidad.** Un rol mal puesto da una denegación y
+   el usuario pide permiso. Aquí sí hace falta un número, y se declara como lo que
+   es: una cota operativa, no una cifra clínica.
+
+La insistencia se cuenta **por capacidad, no en total**. Diez denegaciones
+repartidas entre diez capacidades es alguien perdido por la aplicación; diez
+contra la misma es otra cosa. Contar en total habría convertido lo primero en una
+alarma.
+
+Y el sondeo **manda sobre la insistencia**: un mismo hecho no sale dos veces con
+dos nombres, o el conteo del aviso dejaría de significar algo.
+
+### Lo que no se anota
+
+Nada del paciente. Una anomalía de autorización se investiga con **quién y
+dónde**, nunca con sobre qué expediente. Por eso la ruta va sin parámetros:
+`/api/expediente/abc123xyz789` llevaría un identificador de paciente dentro.
+
+### La colección, declarada en los tres sitios
+
+`platform_authz_denegadas`, cerrada al cliente **por las dos puntas** — quien
+sondea no debe poder leer el registro de su propio sondeo. En `firestore.rules`,
+en la matriz de acceso, y fuera del respaldo del consultorio por el comodín
+`platform_*`, que ya declara que lo de la plataforma no va en el archivo que el
+médico descarga.
+
+No se metió en `platform_admin_log` a propósito: ésa es la bitácora de lo que hace
+el dueño, y mezclarla con quién fue denegado conflaría dos cosas distintas.
+
+### El vigilante NO las marca como vistas
+
+Al revés que los errores del navegador. Una denegación es un registro de
+seguridad: sacarla del radar por haber avisado una vez perdería la serie, que es
+justo lo que hace visible un patrón. La ventana las deja de contar sola.
+
+### Qué NO cubre
+
+- **Los 5xx del servidor**, la otra mitad que el censo nombra. Medir el error de
+  TODA ruta HTTP exige instrumentar el borde y decidir dónde viven esas métricas —
+  **la misma infraestructura que `WS-12.p99` deja abierta**. Son el mismo bloqueo
+  y conviene tratarlos juntos.
+- **Las denegaciones sin actor** (401 sin token): sin uid no hay patrón que seguir,
+  y escribirlas llenaría la colección de filas que no dicen nada.
+- **El canal sigue sin destino**: `OPS_ALERTA_WEBHOOK` es acción del dueño. Sin él
+  `enviarAlertaOps` lo declara y no da nada por avisado.
+- **`firestore.rules` no se despliega aquí**: publicar las reglas es acción del
+  dueño. La escritura funciona igual porque va por Admin SDK; lo que espera al
+  despliegue es el cierre de la lectura desde el cliente.
+
+**Prueba.** `src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts` (20 casos).
+
+---
+
+## REG-579 — el sobre llegaba a la puerta y se tiraba al abrirlo
+
+**QUÉ SE PEDÍA.** `WS-10.problemas-medicacion-alergias`: «falta que la pantalla
+PINTE el recorte: hoy el dato le llega y no lo enseña».
+
+### El defecto, y cabía en una línea
+
+REG-405 le dio a problemas y a medicación el mismo sobre que las alergias ya
+tenían desde REG-363: `asOf`, `version` y **`historialRecortado`**. El sobre
+llegaba entero a las dos pantallas y las dos lo tiraban:
+
+- la **consulta** se quedaba sólo con `.vigentes` y `.problemas`;
+- el **expediente** lo devolvía del `useMemo`… y la desestructuración lo dejaba
+  fuera:
+
+```ts
+const { problemas, vigentes } = useMemo(() => {
+  …
+  return { problemas: p.problemas, vigentes: m.vigentes, proyeccionRecortada: p.historialRecortado }
+})
+```
+
+Calculado, devuelto, y descartado al abrirlo.
+
+### Por qué importa
+
+Las dos pantallas escriben debajo de la lista *«de lo último que se dijo de cada
+problema en sus notas firmadas»* — una afirmación sobre el expediente **entero**.
+Sobre una ventana es falsa, y el médico no tiene forma de saberlo mirando.
+
+Y no es cosmético: sobre un historial recortado un fármaco anterior al techo
+desaparece de la lista vigente y, con ella, **de la comprobación de
+interacciones**.
+
+### La causa raíz
+
+«El dato tiene que LLEGAR» en su último tramo: el productor lo calculó bien, el
+transporte lo trajo entero, y el consumidor lo descartó. Es el mismo tramo que
+falló en REG-575 —el motor leía cuatro dimensiones y la ruta le pasaba dos— con
+la diferencia de que aquí no hubo que tocar al productor.
+
+### Una frase, no cinco
+
+La misma oración estaba escrita **a mano tres veces** en dos pantallas, para las
+alergias. Dos copias más habrían sido la forma habitual de que la próxima diga
+algo distinto sin que nadie lo note. Ahora hay una definición y las cinco pasan
+por ella.
+
+`avisoDeHistorialRecortado(false)` devuelve cadena vacía a propósito: quien la
+pinta no tiene que acordarse de comprobar el booleano antes de usarla.
+
+Y dice **«puede haber más»**, no «hay más»: el productor sabe que truncó, no
+cuánto se quedó fuera. Afirmar lo segundo sería inventar.
+
+### Qué NO cubre
+
+- **No persiste la proyección**, y sigue sin hacerse a propósito: guardar un caché
+  sin decidir quién manda cuando discrepa de las notas crea la segunda fuente de
+  verdad que `WS-10.proyeccion-no-es-segunda-verdad` prohíbe. El sobre era su
+  precondición, no su sustituto.
+- **No cambia el techo de lectura** ni lo hace configurable.
+- **No dice cuánto se quedó fuera**, porque no se sabe.
+- **No se comprobó en navegador** que la frase se vea: se comprueba que el dato
+  llegue al componente, que vaya pegado a la frase que sin él es falsa, y que las
+  cinco copias pasen por una sola definición.
+
+**Prueba.** `src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts` (10 casos).
+
+---
+
+## REG-580 — el aviso decía cuántos mensajes se rindieron, y con un número no se hace nada
+
+**QUÉ SE PEDÍA.** `TR-WHATSAPP.entrega`: «un aviso dice CUÁNTAS hay, no deja
+verlas, ni reintentarlas, ni saber de qué paciente eran. Cerrar esto es la
+pantalla del dead-letter».
+
+### El hueco
+
+REG-397 puso el instrumento: el vigilante cuenta las entradas muertas del outbox y
+las distingue de las pausadas —una pausa se arregla sola cuando el proveedor
+vuelve; una muerta ya no se reintenta nunca—.
+
+Pero el outbox sólo tenía `contarMuertas`. **Contar es el primer paso y no es el
+trabajo**: con un número no se ve de qué paciente era el mensaje, ni qué decía, ni
+por qué murió, ni se puede volver a intentar. Un recordatorio de cita que murió es
+un paciente que no sabe que tiene cita, y hasta hoy eso sólo se sabía en plural.
+
+### Por qué revivir es un acto y no un reintento automático
+
+Una entrada muerta agotó sus reintentos, y **desde la cola no se distinguen dos
+casos opuestos**: que el mensaje no llegara nunca —y entonces revivirlo es lo
+correcto— o que llegara y se perdiera el acuse.
+
+Reintentar a ciegas duplicaría el mensaje al paciente. Así que no se reintenta
+solo: lo revive una persona que **ve** el mensaje, y la pantalla se lo dice antes
+de que pulse, no después. El golden fija que el aviso esté **antes** del botón.
+
+Al revivir, los intentos se ponen a cero —si no, nacería agotada y volvería a
+morir en el primer fallo— pero **las pausas se conservan**: cuentan otra cosa
+—cuántas veces no estaba el proveedor— y borrarlas escondería que el problema era
+él. Y queda escrito quién la revivió: una muerta que vuelve ya falló una vez.
+
+### Un criterio de autorización que me inventé, y se corrigió
+
+La primera versión de la ruta distinguía dos puertas —ver con membresía, revivir
+con `clinico.escribir`— y sonaba razonable. **No es el modelo del árbol**: aquí la
+mensajería es UNA capacidad (`mensajeria.enviar`, la misma que
+`/api/whatsapp/entregas`), y la cola lleva teléfonos y textos de pacientes, así
+que verla no es más inocente que usarla.
+
+Dos partes decidiendo lo mismo con reglas distintas es exactamente lo que este
+repositorio persigue por todas partes. Se alineó con la que ya existía.
+
+También se marcó de más al declararla: `activacionPendiente` habría dicho que la
+puerta está declarada y **no puesta**, que es lo contrario de lo que hace la ruta.
+
+### Una cola ilegible no es una cola vacía
+
+`listarMuertas` lanza en vez de devolver `[]`, la ruta responde 503, y la pantalla
+distingue las dos. «No se pudo leer» y «no hay ninguno» tienen consecuencias
+opuestas para el médico — es el defecto que el sobre de recuperación de evidencia
+existe para no repetir.
+
+### Qué NO cubre
+
+- **El mensaje REACTIVO del bot sigue fuera.** No pasa por el outbox: si el
+  proveedor está caído cuando el paciente escribe, esa respuesta se pierde y no
+  queda en ninguna cola. Sigue abierto.
+- **No deduplica.** Revivir puede duplicar, y la única defensa es que lo decida una
+  persona informada. Una clave de idempotencia de punta a punta con el proveedor
+  sería la defensa real, y no existe.
+- **No borra ni archiva** lo que el médico decida no reintentar.
+- **No se probó en navegador**: se comprueba la lógica de la cola, la puerta de
+  autorización y que la pantalla avise del riesgo antes del botón.
+
+**Prueba.** `src/__tests__/un-numero-de-mensajes-muertos-no-deja-hacer-nada.test.ts` (13 casos).
+
+---
+
+## REG-581 — el DOI llegaba a la pantalla y se pintaba «título · revista año»
+
+**Eje.** WS-07 · identidad de revista. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió
+
+Leyendo el `queFalta` del censo **contra el árbol** antes de construir nada, que es
+lo que este bucle hace desde que seis entradas resultaron estar desfasadas.
+
+El censo decía «falta pintarlo: la pantalla todavía no enseña el DOI». Es cierto.
+Lo que no decía —y se vio al buscar por qué— es que **el dato ya estaba en el
+cliente**. No faltaba traerlo. `/api/expediente/evidencia` devuelve los artículos
+enteros, con su `doi` y su `revistaAbrev` dentro, y `/api/consultor-evidencia`
+compone un `articulosMin` con `doi`, `revistaAbrev`, `pmcid`, `accesoAbierto` y
+`tipoSalvedad`.
+
+Los dos tipos de pantalla declaraban cinco campos cada uno. Un campo que el tipo
+no declara no existe para el render: los datos cruzaban la red y se tiraban en la
+puerta.
+
+### Causa raíz
+
+`.claude/rules/el-dato-tiene-que-llegar.md`, literal: *«una prueba de contrato
+comprueba que el código **diga** lo acordado. No comprueba que el destinatario lo
+**acepte**»*. Un `interface` de pantalla es un destinatario que rechaza en
+silencio, y TypeScript no avisa de un campo de más en el objeto que recibe.
+
+### El caso caro apareció de rebote
+
+Grepeando `tipoSalvedad`: dos apariciones en la ruta, **una en un test que
+comprueba la ruta**, ninguna en una pantalla.
+
+Es la salvedad de REG-401 —«PubMed no lo declaró aleatorizado: puede ser de un
+solo brazo o de fase temprana»—, escrita precisamente porque «Ensayo clínico» a
+secas es correcto y aun así el lector da por hecha una aleatorización que nadie
+declaró. Su prueba comprobaba que la ruta la mandara. Nadie comprobó que llegara
+a unos ojos, y no llegaba. Es la segunda mitad de REG-401, cerrada aquí.
+
+### Las tres reglas nuevas
+
+- **Un DOI mal formado se enseña sin enlace.** Un `doi.org` con un DOI roto
+  *parece* verificable y no lleva a ninguna parte; el médico que lo pulsa aprende
+  que las referencias de este producto no van a ningún sitio. Se retira la
+  promesa de que resuelve, no el dato.
+- **Existir y poder reproducirse no son lo mismo.** «Sólo hay resumen» y «hay
+  texto completo en PMC y su licencia no deja copiarlo aquí» llevan al médico a
+  cosas distintas: en el segundo puede ir a leerlo. `licencia-pmc.ts` ya
+  distinguía las dos y la distinción se perdía antes de la pantalla.
+- **Los alias de revista se observan, no se inventan.** El censo pedía un catálogo
+  nombre ↔ abreviatura. Un catálogo NLM completo son decenas de miles de entradas
+  y escribirlo de memoria es la regla 1 aplicada a la bibliografía. No hace falta:
+  cada registro de PubMed trae **las dos formas a la vez**, y desde REG-398 las
+  dos se conservan. Lo que nunca se vio emparejado sale `undefined`, no `false` —
+  «Am J Med» y «Am J Med Sci» son dos revistas y un emparejamiento por parecido
+  las fundiría.
+
+### Un guardián que pasó al probarlo al revés
+
+De las cuatro mitades, tres cayeron al meterles el defecto. **La cuarta no.** La
+aserción era `/\{a\.tipoSalvedad\}/` y casaba con `title={a.tipoSalvedad}`, o sea
+con el tooltip del badge. Quitar la línea visible la dejaba verde.
+
+Un aviso que sólo existe al pasar el ratón no llega, y en un móvil no existe. Se
+exigió texto visible (`>{a.tipoSalvedad}</div>`) y entonces sí cayó.
+
+### Un host que llevaba dos años sin declarar
+
+Declarar `doi.org` en `de-donde-se-baja.ts` hizo falta porque el módulo nuevo vive
+en `src/lib/evidencia`, que es lo que el escáner mira. Las dos pantallas llevaban
+enlazando `doi.org` **desde REG-398 sin declararlo**, porque `CAMINO_DE_EVIDENCIA`
+no incluye `src/app/(dashboard)`. Ampliarlo arrastraría todos los hosts de todas
+las pantallas: queda declarado como límite del guardián, no arreglado de paso.
+
+### Qué NO cubre
+
+- **No valida el DOI contra Crossref.** Comprueba su **forma**; uno bien formado
+  puede no existir. Necesita red y declarar el host.
+- **No sabe si hay texto completo fuera de PMC.** Un artículo abierto en el sitio
+  de su editorial sale `no_consta`, que es «no se miró», nunca «no hay».
+- **No construye el catálogo NLM.**
+- **No es una prueba de navegador**: comprueba el tipo y el render en el fuente.
+
+**Prueba.** `src/__tests__/el-doi-llegaba-a-la-pantalla-y-no-se-pintaba.test.ts` (20 casos).
+
+---
+
+## REG-582 — NCBI contestaba 200 con basura y el médico leía «no hay literatura»
+
+**Eje.** WS-04 · inyección de fallos. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió, y una corrección del censo
+
+El `queFalta` decía que la inyección de fallos de WhatsApp y de Evidence «sigue
+sin medirse». **Es falso, y es la séptima entrada del censo que resulta estar
+desfasada al comprobarla contra el árbol.** Existen
+`una-caida-de-whatsapp-no-mata-la-cola` (21 casos: 5xx, tiempo agotado, credencial
+caducada, 429, teléfono mal escrito, plantilla no aprobada, circuito por
+consultorio, dead-letter, presupuesto del mensaje) y
+`una-fuente-caida-no-cuelga-la-consulta` (14: 5xx, tiempo agotado, 429, circuito
+por fuente, testigo). Ninguna de las dos estaba listada en `pruebas`.
+
+Lo que sí faltaba apareció comparando **clase por clase** contra las que sí tiene
+el gateway de IA. De sus seis —404, 429, red caída, llave revocada, salida
+ilegible, créditos devueltos— la **salida ilegible** no estaba en Evidence.
+
+Y se confirmó ejecutándolo, no leyéndolo: con NCBI contestando 200 y basura,
+`buscarEvidencia` devolvía `0 artículos · testigo.fallo: false`.
+
+### Causa raíz
+
+`pubmed.ts` marcaba el testigo en tres sitios —circuito abierto, respuesta no
+`ok`, `fetch` que lanza—. Los tres miran el **transporte**. Un cuerpo ilegible
+llega con el transporte impecable:
+
+- `esearch` devuelve `{"esearchresult":{"ERROR":"Invalid db name"}}` con 200. Es
+  JSON válido, `r.json()` no lanza, y `?? []` lo convertía en cero resultados.
+- `efetch` devuelve una página de error HTML o un XML cortado. `r.text()`
+  **nunca lanza** sobre eso, y el `split` daba cero bloques.
+
+Las dos son conductas reales de E-utilities bajo carga.
+
+### Lo que costaba
+
+La ruta ya tenía las dos frases escritas, y bien escritas: *«NO SE PUDO CONSULTAR
+PubMed […] no digas que no existe evidencia»* frente a *«PubMed no devolvió
+artículos para estos términos»*. Con el testigo en `false` salía la segunda.
+
+El médico —y el modelo que le redacta el análisis, que recibe la misma frase en
+su prompt— leían **«no hay literatura sobre esto»** de una búsqueda que nunca
+obtuvo respuesta. Regla 4 al revés, en el sitio donde el producto se juega su
+credibilidad. El aparato para decirlo bien existía entero; sólo no se disparaba.
+
+### Señalar de menos, nunca de más
+
+Una búsqueda legítimamente **sin resultados** es un dato clínico:
+`{"esearchresult":{"count":"0","idlist":[]}}` es una respuesta que dice cero.
+Marcarla como caída sería este mismo defecto con el signo cambiado, y le quitaría
+al médico una respuesta que sí tiene. Por eso se exige la **forma** de la
+respuesta —que `idlist` sea una lista— y no que traiga algo. Ese caso se probó al
+revés: haciendo que una lista vacía cuente como caída, caen dos casos.
+
+### Qué NO cubre
+
+- **Las respuestas parciales de `efetch`**: tres de cinco pasan. Distinguir un
+  truncamiento de un registro que NCBI retiró exige mirar cuáles faltan, y marcar
+  de más convertiría cualquier respuesta incompleta en una caída.
+- **No mira si el contenido es correcto.** Un XML bien formado con datos
+  equivocados pasa, y debe pasar.
+- **No cubre openFDA**, que tiene otra forma de contestar. Declarado, no hecho.
+- **No abre el circuito.** Un cuerpo ilegible marca el testigo; no cuenta como
+  «el proveedor no está», porque contestó. Si debe abrirlo es otra decisión.
+- **No prueba la pantalla.** Que el médico LEA la frase es de navegador.
+
+**Prueba.** `src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts` (16 casos).
+
+---
+
+## REG-583 — el interruptor lo derrotaba un 200 con basura
+
+**Eje.** WS-04 · inyección de fallos. **Fecha.** 31-ago-2026.
+
+### Cómo se descubrió
+
+Yendo a cerrar la salida ilegible de **openFDA**, que REG-582 dejó declarada como
+lo que faltaba. Buscando dónde ponerla resultó que openFDA ya devuelve `null`
+para todo, y su cabecera lo argumenta bien: quien llama trata la ausencia de
+etiqueta como «no hay dosis oficial», y el prompt manda verificar en el Cuadro
+Básico sin inventar cifras. **El defecto que iba a arreglar no estaba ahí.**
+
+El que sí estaba era otro, y en las **dos** fuentes.
+
+### Qué fallaba
+
+Los dos clientes anotaban el éxito del interruptor así:
+
+```ts
+anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuesta(r.status))
+```
+
+`'contesto'` en la máquina de estados es `return CERRADO`: **cierra el circuito y
+olvida los fallos anteriores**. Un proveedor degradado que contesta `200` con una
+página de error —lo que hace un balanceador o una CDN cuando el origen se cae—
+reseteaba su propio interruptor en cada intento y no llegaba nunca a los tres
+fallos seguidos que hacen falta para abrir.
+
+Medido antes de tocar nada:
+
+| Fuente | Fallo | Peticiones | Circuito |
+|---|---|---:|---|
+| openFDA | `503` | 3 de 40 | abierto |
+| openFDA | `200` + HTML | **40 de 40** | ninguno |
+| PubMed | `200` + HTML | **16 de 16** | ninguno |
+
+El interruptor de REG-391 estaba derrotado por el **orden de dos líneas**.
+
+### Causa raíz
+
+Anotar el éxito al ver el código de estado es afirmar que el proveedor está bien
+porque contestó **algo**. La función que lo anotaba no había visto el cuerpo: en
+PubMed ni siquiera podía, porque `ncbiFetch` devuelve la `Response` y quien
+parsea es otro.
+
+Es «ausencia de dato no es dato de ausencia» del lado contrario: **presencia de
+respuesta no es presencia de respuesta útil.**
+
+Había además un camino ciego: en `esearch`, `await r.json()` sobre HTML lanzaba y
+lo comía un `catch` que no anotaba nada, porque `ncbiFetch` ya había devuelto y
+su propio `catch` no lo veía. El parseo pasa ahora a su propio `try`.
+
+### El arreglo, y por qué la primera mitad es una RESTA
+
+1. **No se anota el éxito hasta que alguien ha leído el cuerpo y le sirve.** Eso
+   no añade un fallo: quita un éxito que nadie había comprobado.
+2. Un cuerpo inservible sí cuenta como fallo, **y por eso distingue de quién es**:
+   - **del proveedor** — el cuerpo no es de este protocolo: HTML donde iba JSON,
+     un XML cortado, un objeto sin la forma de la API. Cuenta.
+   - **de quien llama** — el cuerpo *sí* es la respuesta de la API y trae un
+     error nuestro dentro: `{"esearchresult":{"ERROR":"Invalid db name"}}`. **No
+     cuenta**: apagaría la evidencia de todos los médicos por un defecto propio
+     y, siendo constante, el circuito no volvería a cerrarse nunca. Es la misma
+     razón por la que un 401 no abre el circuito de WhatsApp.
+
+Después del arreglo, los tres casos medidos se comportan igual que un `503`
+honesto: 3 peticiones y circuito abierto. Un `ERROR` nuestro sigue haciendo las
+16 sin abrir nada, y dos respuestas rotas seguidas de respuestas sanas no dejan
+ningún circuito abierto.
+
+### Qué NO cubre
+
+- **Sólo PubMed y openFDA.** El gateway de IA y WhatsApp anotan su éxito en otro
+  sitio y con otra forma; no se tocaron, y si tienen el mismo orden es otra
+  unidad.
+- **No mide el tiempo ahorrado**, sólo cuántas peticiones se hacen.
+- **Un cuerpo válido con contenido equivocado** cuenta como proveedor sano, y debe.
+- **No se prueba contra la red real**: el proveedor está simulado; lo que se
+  prueba es la máquina de estados y el orden de las anotaciones.
+
+**Prueba.** `src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts` (10 casos).
+
+---
+
+## REG-584 — el router podía servir Haiku para una nota «no escatimar», sin avisar
+
+**Eje.** WS-12 · router. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+El censo pedía «probar el respaldo del router ante caída de proveedor, y que no
+degrade calidad clínica en silencio».
+
+El respaldo ante **caída** está bien, y se confirmó: si `/v1/models` no contesta
+se usa `candidatos[0]` —el modelo de arriba— y si no existe, el 404 redescubre.
+Eso no degrada nada.
+
+Lo que sí degradaba, en silencio, era la elección cuando la lista **sí** llega:
+
+```ts
+candidatos.find(c => ids.includes(c))
+  ?? ids.find(id => id.includes('sonnet'))
+  ?? ids[0]
+```
+
+El último ramal se queda con **el primer modelo que la cuenta tenga**. Para el
+perfil `premium` —la nota que el dueño decidió que usa el razonamiento máximo,
+«no escatimar»— eso puede ser Haiku. El modelo viajaba al cliente como
+procedencia y **nadie lo comparaba con lo que se había pedido**: el médico veía
+un identificador que no puede evaluar.
+
+Y peor: `modeloResuelto` se cacheaba por instancia y sólo se limpiaba con un 404.
+Una elección de último recurso hecha durante una caída parcial quedaba
+**clavada** toda la vida de la instancia caliente — todas las notas de todos los
+médicos de esa instancia, con el modelo equivocado y sin aviso.
+
+### Causa raíz
+
+La elección vivía **dentro de la función que hace la petición**, así que no se
+podía probar sin red y no había dónde poner la pregunta «¿esto es peor de lo que
+se pidió?». Ahora la decisión vive en un módulo puro.
+
+### Hermano de un defecto que ya costó semanas
+
+REG-167: una petición que el proveedor rechazaba y que, «al venir junto a una
+lista de modelos, **degradaba el motor al modelo viejo sin error ni aviso**.
+Semanas así». Mismo ramal, mismo silencio.
+
+### Lo que NO se cambió, a propósito
+
+**El modelo elegido es el mismo en todos los casos**, medido antes y después:
+cambiar a qué modelo se cae es una decisión de producto, no una limpieza. Lo que
+cambia es que ahora se sabe, se dice, y **no se recuerda**.
+
+Tampoco se **bloquea** la nota. Negarse a generarla cuando el modelo previsto no
+está es política clínica, y está declarada en `LA_PREGUNTA_PARA_EL_DUENO` con sus
+tres opciones. Hoy rige «generar y marcar» por conservación, no por decisión —
+negarse dejaría al médico sin nota en una consulta real.
+
+### Señalar de menos
+
+Caer a otro `sonnet` cuando el perfil **ya pedía** sonnet (que es todo el perfil
+`pro`) **no** se marca: es el respaldo previsto, no «lo que haya», y marcarlo
+enseñaría a ignorar la marca. Se probó al revés: marcándolo, cae un caso.
+
+Y se distingue `null` (el descubrimiento no contestó) de `[]` (contestó y la
+cuenta no tiene nada) — consecuencias opuestas, y pintarlas igual es el defecto
+que REG-582 acaba de cerrar en otra fuente.
+
+### El aviso llega
+
+La ruta devuelve `_modeloDegradado` y `_avisoModelo`; la pantalla los recibe y
+pinta un banner con la misma forma que el de modo económico, encima de él,
+porque es la misma clase de hecho: **la nota no se generó como el médico creía**.
+Se comprueba el texto visible, no un `title=` — la lección de REG-581.
+
+### Qué NO cubre
+
+- **No comprueba que el modelo elegido SE COMPORTE como el pedido.** Compara
+  identificadores, no calidad.
+- **Sólo el router de la NOTA.** El consultor, el copiloto de UCI y la
+  transcripción eligen su modelo por su cuenta.
+- **No prueba el navegador.**
+- **No cubre el 404 ni los reintentos**, que ya tienen su camino.
+
+**Prueba.** `src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts` (19 casos).
+
+---
+
+## REG-585 — «agendada» era una declaración, no un hecho del calendario
+
+**Eje.** WS-11 · estados del cierre. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-404 añadió `agendada` como estado VIVO y arregló algo grave: antes el
+pendiente de seguimiento se **cerraba** al crear la cita, así que agendar contaba
+como haber visto al paciente y un no-show no reabría nada.
+
+Quedaba la otra mitad, y el censo la nombraba: **`agendada` es lo que alguien
+declaró, no lo que el calendario dice.** `TareaClinica` no tenía un solo campo
+que apuntara a la cita — el botón decía «Ya quedó agendada» y guardaba una
+palabra. `grep citaId src/lib/tareas-clinicas` no devolvía nada.
+
+Consecuencia: si esa cita se cancela, se reagenda, o el paciente no viene, el
+pendiente se queda en `agendada` —el worklist lo agrupa en `esperando_paciente`—
+**para siempre**. No hay a quién esperar. El seguimiento se evapora en silencio,
+que es lo contrario de lo que promete este eje.
+
+### Por qué hacía falta un campo, y no sólo un cruce
+
+Sin `citaId` no hay cruce posible. Casar por paciente y fecha sería **adivinar**
+cuál de sus citas es, y un paciente con dos controles el mismo mes tendría dos
+candidatas indistinguibles. Es el patrón de REG-570: el identificador lo acuña
+quien hace la acción y viaja con ella, en su propio campo — meterlo en `origenId`
+sería un campo haciendo dos trabajos, que es REG-566.
+
+### Las tres piezas
+
+1. **`citaId` en el modelo**, y `cambiarEstado` lo **exige** al pasar a
+   `agendada`. Sólo en la transición nueva: inventarle una cita a las tareas que
+   ya están ahí sería fabricar el dato que esto existe para tener de verdad.
+2. **El botón dejó de declarar**: abre un elegidor con las citas futuras de ese
+   paciente. Si no tiene ninguna, se dice — y ahí está el hallazgo: se iba a
+   marcar «agendada» sin que existiera una cita a la que apuntar.
+3. **La tarjeta dice qué pasó**: la cita se canceló o se movió, el paciente no
+   vino, o el paciente ya vino. Sólo cuando hay algo que decir; el caso normal
+   calla, porque decirlo en cada tarjeta sería ruido.
+
+La lectura del calendario va **por identificador y con tope**: una ventana futura
+perdería justo los casos que importan —no-asistió, atendida ya pasaron— y una
+lectura sin cota en la pantalla más visitada es lo que WS-03 persigue.
+
+### Ausencia de dato no es dato de ausencia
+
+Una tarea sin `citaId`, una cita que no se pudo leer, o una cita distinta de la
+que la tarea nombra: las tres salen `no_consta` y **no pintan nada**. Nunca «la
+cita ya no está». Se probó al revés: haciendo que una cita ilegible cuente como
+cancelada, cae el caso.
+
+### Lo que NO se hizo
+
+**La tarea no se mueve sola.** Qué hacer cuando el paciente no vino —cuánto se
+espera, si escala, a quién— es política clínica del médico, queda en
+`LA_PREGUNTA_PARA_EL_DUENO`, y moverla por nuestra cuenta sería el defecto que
+REG-404 cerró con el signo cambiado. Sin ese plazo no se puede poner `venceEn`.
+
+### Dos guardianes del propio repositorio dispararon, y tenían razón
+
+- **El trinquete de conexión** subió las huérfanas de 39 a 40: `pidenAtencion`,
+  un ayudante que **escribí y que nadie llamaba**. Es exactamente la familia que
+  este bucle lleva toda la semana cerrando, cometida por mí. Se borró.
+- **El guardián de REG-361** casaba con el ternario literal del botón, que aquí
+  se partió en una cadena de `if` porque `agendada` también dejó de ser un
+  movimiento directo. Se actualizó a la forma nueva **sin debilitarlo**: ahora
+  comprueba además que `cerrada` no llegue nunca a `onMover`, y se probó al
+  revés.
+- El trinquete de diseño cazó un `fontSize: 12.5` fuera de escala. Se arregló el
+  cambio, no el techo.
+
+### Qué NO cubre
+
+- **Si una cita `reagendada` tiene otra NUEVA detrás.** Se sabe que la que el
+  pendiente nombraba dejó de existir; que exista otra no lo dice este dato.
+- **Los pendientes que no son de seguimiento.**
+- **No es una prueba de navegador**: se comprueba la lógica, la puerta y que la
+  pantalla lo pida y lo pinte en el fuente. Que el modal atrape el foco y que el
+  elegidor se vea bien en móvil está sin comprobar y se declara.
+
+**Prueba.** `src/__tests__/agendada-era-una-declaracion-no-un-hecho.test.ts` (21 casos).
+
+---
+
+## REG-586 — los fallos del bot: un escritor y cero lectores
+
+**Eje.** TR-WHATSAPP · entrega. **Fecha.** 31-ago-2026.
+
+### Corrección del censo, la octava de este bucle
+
+El `queFalta` decía que «el mensaje REACTIVO del bot no pasa por el outbox — esa
+respuesta se pierde y **no queda en ninguna cola**».
+
+La primera mitad es cierta y es una **decisión**, no un hueco: `no-entregados.ts`
+la argumenta —reintentar fuera de la ventana de 24 h exige una plantilla aprobada
+en Meta, trámite del dueño, y encolar mensajes que no se van a poder mandar sería
+fabricar una cola que crece y no entrega—.
+
+La segunda mitad era **falsa**: sí queda constancia. `registrarNoEntregado`
+escribe desde el helper `send()` del bot, que cubre sus 36 llamadas.
+
+### El defecto real, que era peor
+
+```
+grep whatsapp_no_entregados → firestore.rules
+                            → matriz-acceso.ts
+                            → respaldo.ts
+                            → el módulo que ESCRIBE
+                            → ningún lector
+```
+
+**Un escritor y cero lectores.** La colección estaba declarada en los tres sitios
+que exige la regla de inquilinos, respaldada, cerrada al cliente por las dos
+puntas… e invisible. Y la cabecera del propio módulo prometía, con estas
+palabras, que «un fallo registrado se puede **VER**, contar y arreglar a mano —
+una llamada de teléfono».
+
+Peor todavía: REG-580 había construido una pantalla llamada **«No entregados»**.
+Un médico que la abriera con la cola limpia y el bot fallando leía «ningún
+mensaje se ha rendido» — una afirmación falsa sobre exactamente lo que venía a
+comprobar.
+
+El caso concreto: el paciente agenda por WhatsApp, la confirmación falla, la cita
+queda creada y él no se entera. Se registraba. Nadie podía leerlo.
+
+### Causa raíz — y ya van tres
+
+La misma de REG-572 y REG-576: **cuanto mejor explicada está una garantía, menos
+probable es que alguien vaya a comprobar si el código la cumple.** Aquí la
+garantía estaba escrita en la cabecera del módulo que la incumplía.
+
+### Dos listas, una puerta, y ningún botón
+
+Van por la **misma ruta y la misma capacidad** (`mensajeria.enviar`), porque es
+la misma pregunta —«¿qué no llegó?»— y separarlas sería el criterio paralelo que
+ya se corrigió una vez en esta misma ruta.
+
+Van en **campos distintos** porque son hechos distintos: los de la cola agotaron
+sus reintentos y se pueden devolver a ella, con el riesgo de duplicar; los del
+bot nunca estuvieron en una cola y **no se pueden reintentar**.
+
+Por eso los del bot van **sin botón**. Uno que no puede cumplir sería peor que
+ninguno: el médico creería que el mensaje va a salir y dejaría de llamar por
+teléfono, que es lo único que hoy sí funciona. Se probó al revés poniéndoselo.
+
+Y «ningún mensaje se ha rendido» ahora exige que las **dos** estén vacías.
+
+### PHI
+
+El registro nace minimizado —últimos cuatro dígitos y 120 caracteres— y se pasa
+tal cual. Ampliarlo para «reconocer mejor» el mensaje sería meter PHI donde se
+decidió que no la hubiera.
+
+### Qué NO cubre
+
+- **No los encola ni los reintenta.** Sigue haciendo falta la plantilla aprobada.
+- **No dice a qué paciente**, por diseño.
+- **No archiva ni descarta** lo que el médico ya resolvió por teléfono. Sigue
+  abierto en el eje.
+- **No es una prueba de navegador.**
+
+**Prueba.** `src/__tests__/los-fallos-del-bot-tenian-un-escritor-y-cero-lectores.test.ts` (13 casos).
+
+---
+
+## REG-587 — la segunda clase, y tres formas de decir «me duele el pecho» que no se detectaban
+
+**Eje.** WS-12 · las doce preguntas. **Fecha.** 31-ago-2026.
+
+### Qué faltaba
+
+REG-362 creó la puerta del §7 y su fixture. El censo dejó apuntado lo que
+quedaba: **de las cinco clases del §2, sólo una tenía clasificador** — la
+urgencia. Y el §2 no admite huecos: *«toda respuesta se clasifica ANTES de
+redactarse, y la clase se guarda con la respuesta. Una respuesta sin clase es un
+defecto, no un caso raro»*.
+
+Sin la segunda clase, ocho de los doce casos salían sólo como `no_urgente`, que
+dice lo que un mensaje **no** es. «¿Puedo tomarme el doble?» y «no puedo ver los
+horarios en la página» eran indistinguibles.
+
+### Por qué ésta y no otra
+
+De las cuatro que faltaban, `ESCALATE_TO_CLINICIAN` es la única decidible sin el
+paquete aprobado y sin un umbral del médico — y es la que el §3 exige que viva en
+el servidor: *«si una ruta lo permite y sólo el prompt lo impide, está mal
+construida»*.
+
+`ADMINISTRATIVE_ACTION` se podría intentar y **no se intenta**: el error caro va
+en una sola dirección. Tomar una pregunta administrativa por clínica cuesta que
+la vea una persona; tomar una clínica por administrativa la saca del camino que
+la protege.
+
+### El suelo, que no es un invento
+
+Lo que no se sabe clasificar **escala**. Eso es el §1 —«si un dato no se sostiene
+en un nivel 1-8, no hay respuesta: hay escalación»— y el §3 —«la escalación es el
+producto, no el fallo»—, dichos en código. Devolver «sin clase» sería el defecto
+que el §2 nombra; contestar por defecto dejaría que el silencio del clasificador
+autorice una respuesta que nadie aprobó.
+
+### El bot escala de verdad
+
+Hasta hoy, «cámbiame la receta» caía en la máquina de estados de citas: menú,
+FAQ, agendar. **Nadie escalaba.** Ahora el webhook escala, después de la urgencia
+(§6: gana a todo lo demás), avisa al consultorio y cierra la sesión.
+
+Usa las reglas **nombradas** del §3, no el suelo: el suelo escala todo lo no
+clasificado y mandaría al médico un «agéndame para mañana», dejando el producto
+muerto. Declarado en `POR_QUE_EL_BOT_NO_USA_EL_SUELO`.
+
+Y el mensaje al paciente dice lo único que hace falta y nada más: **«mientras
+tanto, no cambie nada de su tratamiento por su cuenta»**. Alguien que pregunta si
+puede tomarse el doble y no recibe respuesta puede tomárselo igual.
+
+### Lo que el fixture destapó, que es lo caro
+
+Al probar el clasificador al revés, invertir el orden urgencia/escalación **no
+tiraba ninguna prueba**: no había un solo caso que casara con las dos cosas, así
+que el orden del §6 no estaba vigilado. Añadí dos que cruzan —«ya dejé de tomarlo
+y ahora no puedo respirar», «me tomé el doble y me empezó a doler el pecho»— y el
+segundo **falló**.
+
+No por el orden. Por el detector de urgencia:
+
+```
+dolor|duele|dolia   ← lo que había
+```
+
+**Tres formas completamente normales de decirlo en español no disparaban la
+urgencia**, medidas una por una:
+
+| Frase | Antes |
+|---|---|
+| «Me empezó a **doler** el pecho.» | no urgente |
+| «Me está **doliendo** el pecho.» | no urgente |
+| «Se me **apretó** el pecho.» | no urgente |
+
+Un detector de seguridad que cubre el presente y no el pretérito cubre la mitad
+de lo que la gente escribe. Las tres quedan como regresión permanente.
+
+`molestia` **no** se añadió: es demasiado inespecífico y es justo el ruido contra
+el que advierte el §6. Declarado en `LO_QUE_NO_SE_VIGILA`.
+
+### Y el lado contrario, para que el arreglo no se pase de frenada
+
+`adolescente` contiene `dol`. Si el arreglo se hubiera hecho con la raíz suelta
+en vez de con las flexiones nombradas, «mi hijo adolescente se golpeó el pecho
+jugando» habría salido como dolor torácico. Ese caso está en el fixture y cae si
+alguien lo intenta — probado.
+
+### Qué NO cubre
+
+- **Las otras tres clases**, declaradas con qué les falta a cada una.
+- **El idioma**: las reglas son para el español de México; otro idioma cae al
+  suelo, que escala.
+- **La gravedad**: esto dice que hay que mirar ya, no cuánto ni con qué
+  prioridad.
+- **No es una prueba de navegador ni de conversación real.**
+
+**Prueba.** `src/__tests__/las-doce-preguntas-del-paciente.test.ts` (44 casos, 24 en el fixture).
+
+---
+
+## REG-588 — 50 000 pacientes con exactamente tres notas cada uno no es una consulta
+
+**Eje.** TR-HISTORIA · práctica longitudinal. **Fecha.** 31-ago-2026.
+
+### Qué faltaba
+
+REG-383 siembra 50 000 pacientes con tres notas firmadas cada uno. El censo dejó
+apuntado lo que quedaba: **la distribución**. El generador daba a todos los
+pacientes el mismo número exacto de encuentros y nada más — ni medicamentos, ni
+laboratorios, ni órdenes.
+
+Un fixture uniforme mide un caso que no existe y **esconde justo el que duele**:
+con todos iguales, el percentil 99 de una consulta es la mediana, así que la
+corrida no puede encontrar el problema que va a encontrar el primer paciente con
+quince años de historia.
+
+Y la mitad del coste real de navegar un expediente está en lo que **no** tiene
+nada: un fixture donde todos los encuentros traen laboratorios no ejercita el
+camino vacío, que es el más común.
+
+### Lo que no se puede inventar, y aquí es sutil
+
+Los pesos **no son epidemiología**. Nadie los ha medido contra una práctica real.
+Son una forma de carga elegida para que el fixture tenga cola larga, y el módulo
+lo dice con esas palabras.
+
+Escribir «el 45 % de los pacientes acude una sola vez» sin fuente sería la regla
+1 aplicada a un arnés: no rompe nada, no falla ninguna prueba, y alguien lo cita
+en un documento comercial seis meses después.
+
+Por lo mismo, los laboratorios **no llevan analito ni valor** y los medicamentos
+**no llevan nombre de fármaco**: aquí se cuenta el documento, y una cifra de
+laboratorio sintética con aspecto de resultado es justo lo que no puede existir
+sin fuente.
+
+### El defecto que apareció al escribir esto
+
+La primera versión de los pesos daba una media ponderada de **1.178**. Quien
+pidiera «50 000 pacientes × 3 encuentros» habría obtenido 177 000 documentos en
+vez de 150 000, **sin que nada lo dijera**. Un arnés que miente sobre su propia
+carga mide otra cosa y la llama lo pedido.
+
+La normalización se comprueba ahora **en el código** —el módulo lanza al cargarse
+si se desbalancea— y no en un comentario: una aritmética escrita en prosa
+envejece el día que alguien mueve un peso. Probado al revés.
+
+El sesgo del redondeo (`Math.max(1, …)` empuja el tramo corto hacia arriba) se
+**mide y se declara**, no se corrige ni se esconde: un arnés que dice 150 000 y
+entrega 155 000 sigue mintiendo, aunque poco.
+
+### Un generador derivado por paciente
+
+Los campos nuevos no pueden consumir del generador principal: cada llamada de más
+desplaza la secuencia de todos los pacientes siguientes. Derivándolo de
+`(semilla, ordinal)`, añadir un campo mañana no mueve a nadie más.
+
+El esquema sube a **v2** de todas formas, porque la distribución sí cambia el
+fixture: fingir que una corrida v2 se compara con una v1 sería peor que decirlo.
+
+### El golden se cazó a sí mismo, dos veces
+
+1. Los primeros casos probaban `historiaDe` y `cuantosMedicamentos` **por
+   separado**. Al probarlos al revés —desconectando la distribución del generador
+   y dejándolo plano— **ninguno cayó**: probaban el módulo, no que corriera. Es
+   la familia «escrito, probado y sin conectar» montada dentro de su propio
+   golden. Se añadieron cinco casos que miran la **salida**.
+2. Los guardianes de «no traen analito ni valor» inspeccionaban el fuente entero
+   y caían sobre **los propios comentarios que explican por qué no están**. Ahora
+   inspeccionan sólo las líneas de código.
+
+### Qué NO cubre
+
+- **No valida los pesos contra una práctica real.**
+- **No genera contenido clínico**: ni analitos, ni valores, ni fármacos.
+- **No corre el arnés**: comprueba la forma de lo que genera, no el
+  comportamiento del producto bajo esa carga.
+
+**Prueba.** `src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts` (21 casos).
+
+---
+
+## REG-589 — la sección titulada «no citadas de memoria» citaba de memoria
+
+**Eje.** WS-01 · custodia del tablero. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-564 derivó el estado por requisito; REG-574 añadió el conteo de los tres
+programas. El censo dejó apuntado lo que quedaba: *«la prosa de cada WS sigue a
+mano y puede envejecer»*.
+
+Al medirlo contra el árbol, la prosa que había envejecido era **justo la que
+promete no envejecer**. La sección se titula, literal:
+
+```
+## Compuertas medidas en este SHA — no citadas de memoria
+```
+
+y citaba, escritos a mano:
+
+| Lo que decía | Lo que era |
+|---|---|
+| trinquete de lint **96** | **95**, desde hacía días |
+| **10 844** casos, 788 archivos | **12 019**, 860 archivos |
+| «medido el 29-ago, tras REG-348…REG-362» | el ledger iba por REG-588 |
+
+### Causa raíz, por cuarta vez este mes
+
+Con REG-572, REG-576 y REG-586 son cuatro: **cuanto mejor explicada está una
+garantía, menos probable es que alguien vaya a comprobar si el código la
+cumple.** Un título que promete no citar de memoria no impide citar de memoria.
+Un guardián sí.
+
+### La línea entre lo derivado y lo escrito a mano, razonada
+
+Se derivan los **techos** y los conteos que se leen de un archivo:
+`lint-techo.json`, `techos-de-diseno.json`, `MASTER_STATE.json`,
+`invariantes-clinicos.json`. Los cuatro existían ya y los cuatro tienen su propio
+guardián; lo único que faltaba era que el tablero los **leyera** en vez de
+repetirlos.
+
+**No se deriva el resultado de correr la suite.** Exige correrla, y meter una
+corrida de tres minutos dentro de un generador de documentación lo convierte en
+algo que nadie ejecuta — y un generador que nadie ejecuta deja el documento
+igual de viejo, con la ceremonia añadida.
+
+Así que ese número sigue siendo una **foto**: ahora se llama así, lleva fecha, y
+dice que si no cuadra con lo de hoy **gana lo de hoy**.
+
+### Qué NO cubre
+
+- **La prosa de cada WS sigue a mano**, y debe: es criterio, no un `grep`. Lo que
+  ya no puede envejecer son las cifras.
+- **No comprueba que la foto sea reciente**, que exigiría correr la suite desde
+  el guardián — lo que se decidió no hacer.
+- **No vigila los tableros de GitHub** (#296, #310, #314).
+
+**Prueba.** `src/__tests__/el-tablero-citaba-de-memoria-en-la-seccion-que-promete-no-hacerlo.test.ts` (9 casos).
+
+---
+
+## REG-590 — «un riesgo declarado se puede vigilar», y nadie lo vigilaba
+
+**Eje.** WS-03 · documentos que crecen. **Fecha.** 31-ago-2026.
+
+### Qué fallaba
+
+REG-572 topó `administraciones` y dejó tres arrays sin tope —`movimientos`,
+`indicaciones`, `interconsultas`— con la razón bien argumentada: el documento del
+episodio es su **única copia**, y recortarlas borraría traslados u órdenes vivas.
+
+Y terminaba así, con estas palabras: *«Quedan como riesgo NOMBRADO en vez de uno
+que nadie ha mirado. Un riesgo declarado **se puede vigilar**; uno que vive en la
+forma de un documento, no.»*
+
+**Nadie lo vigilaba.** No había un solo medidor. El riesgo estaba nombrado,
+clasificado, con guardián de CI para que no aparezcan arrays nuevos sin
+clasificar… y sin nadie que mirara cuánto ocupa un episodio real.
+
+### Por qué aquí importa más que en ninguna parte
+
+Todas las mutaciones del episodio son un solo `tx.update` sobre el mismo
+documento. Al pasar de 1 MB, Firestore rechaza la escritura entera: no falla lo
+último que se añadió, **falla egresar al paciente**. Un aviso que llega después
+de eso no es un aviso.
+
+### Causa raíz, por quinta vez este mes
+
+Con REG-572, REG-576, REG-586 y REG-589 son cinco: **cuanto mejor explicada está
+una garantía, menos probable es que alguien vaya a comprobar si el código la
+cumple.** Aquí la promesa estaba escrita en el módulo que la incumplía, dos
+párrafos por encima del código.
+
+### Lo que se hizo, y lo que se decidió NO hacer
+
+Se mide **en la transacción del gateway**, que ya tiene el documento en la mano
+—no cuesta ni una lectura más— y sobre el documento que se va a **escribir**, que
+es el que puede ser rechazado. El aviso dice **qué campo lo llena**: sin eso no
+es accionable.
+
+**Sacarlas a subcolección no se hizo**, y no por falta de ganas: es una migración
+de modelo que toca `firestore.rules`, y desplegarlas es del dueño. Una migración
+a medias —el código nuevo con las reglas viejas— rompería producción el día del
+despliegue. Queda declarado como lo que cierra el riesgo de verdad.
+
+**No bloquea.** Frenar una mutación clínica por un umbral de tamaño sería peor
+que el riesgo que evita. Probado al revés poniéndole el bloqueo.
+
+**No se devuelve al médico.** Se pensó pintarlo en la pantalla del episodio y se
+descartó: no puede hacer nada con «tu episodio ocupa el 82 %» en mitad de una
+mutación clínica, y lo que lo arregla no está en su mano. Además los quince
+llamadores del gateway descartan la respuesta, así que el campo habría viajado
+hasta el navegador para que nadie lo leyera — la familia, añadida a sabiendas.
+Va al registro del servidor y, cuando es crítico, al canal de operaciones.
+
+### Los umbrales no son cifras clínicas
+
+`LIMITE_FIRESTORE` es un hecho del proveedor: 1 MiB por documento. Las dos
+fracciones son **margen de operación** — cuánto se quiere para reaccionar. Se
+vigila al 60 % y no al 90 % porque a estos tres arrays les crecen elementos
+grandes de golpe y del 90 % al 100 % puede haber una sola escritura.
+
+Y la medida se queda **corta a propósito**: cuenta el JSON en UTF-8, mientras
+Firestore cobra además los nombres de campo, los índices y una sobrecarga por
+documento. El aviso llega antes — nunca después, que es el error que importaría.
+
+### Tercera vez que un guardián mío casa con su propia explicación
+
+El comentario de la alerta dice «sin PHI: ni paciente, ni cama, ni servicio» y
+contiene las tres palabras que el guardián busca. Con REG-585 (el `title=`) y
+REG-588 (los comentarios del arnés) van tres: **un guardián de fuente tiene que
+mirar código, no prosa.**
+
+**Prueba.** `src/__tests__/nadie-vigilaba-el-riesgo-nombrado.test.ts` (15 casos).
+
+---
+
+## REG-591 — las dos primeras decisiones del dueño, tomadas
+
+**Ejes.** WS-09 (aplicabilidad) y WS-12.router. **Fecha.** 31-ago-2026.
+
+Esto no repara un defecto: **cierra dos preguntas** que llevaban rigiendo por
+conservación. Se anota en el ledger porque una de las dos cambia un aviso de
+seguridad clínica, y porque la pregunta que se le hizo al dueño estaba mal
+formulada — y eso también hay que dejarlo escrito.
+
+### D-036 · el embarazo como diferencial cuenta para avisar
+
+REG-575 encontró que **el comentario del copiloto y su código llevaban años
+contradiciéndose**: el comentario decía que un presuntivo o un diferencial «sí
+cuentan para AVISAR» y el código excluía el diferencial. Se conservó la conducta
+del código y se dejó la pregunta declarada. **El dueño decidió que cuenta.** Ahora
+el comentario es cierto.
+
+**El alcance de la pregunta estaba mal, y era mío.** `LA_DISCREPANCIA_DEL_DIFERENCIAL`
+decía que esto movía «el aviso de fármaco CONTRAINDICADO en embarazo». Falso, y se
+vio midiendo el copiloto antes de preguntar:
+
+| Rama | Fármacos | ¿Depende de la decisión? |
+|---|---|---|
+| `contraindicado` | IECA/ARA II, warfarina, ACOD, isotretinoína, valproato, metotrexato, agonistas GLP-1 | **No.** Avisan siempre, en cualquier mujer en edad fértil |
+| `evitar` | estatinas, tetraciclinas y doxiciclina, quinolonas, AINE | **Sí.** Sólo avisan si se trata como embarazada |
+
+Preguntar con el alcance equivocado habría sido pedirle una decisión sobre algo
+que no estaba decidiendo. El texto queda corregido en el módulo y en el copiloto.
+
+**El coste estaba escrito en el código y se aceptó a sabiendas.**
+`riesgoGestacional` dice que los `evitar` piden confirmación *«sin esto se
+metería ruido en toda mujer en edad fértil»*. Lo que lo hace aceptable, y es lo
+que se le planteó: son cuatro fármacos, y el aviso no salta en toda mujer en edad
+fértil sino sólo cuando **alguien escribió un embarazo en el cuadro** — un acto
+del médico, no una suposición del sistema.
+
+Medido después del cambio:
+
+```
+doxiciclina + embarazo diferencial  → acción: «evítalo en el embarazo»   ← nuevo
+doxiciclina, sin dx gestacional     → nada
+doxiciclina + embarazo descartado   → nada
+warfarina, sin dx gestacional       → crítico: contraindicado            ← igual
+varón / fuera de 12-50 años         → nada                               ← igual
+```
+
+Probado al revés en las dos direcciones: devolviendo la conducta vieja caen tres
+casos, y haciendo que avise sin diagnóstico gestacional —que sería pasarse de
+frenada— caen otros tres.
+
+### D-037 · el modelo caído: generar y marcar
+
+La conducta **no cambia**: se confirma la que había, opción A. Lo que cambia es
+su estatus, y no es lo mismo aunque el código sea idéntico: **un valor por
+omisión que nadie eligió acaba pareciendo elegido.** Se descartaron negarse sólo
+en `premium` y negarse siempre; las dos quedan escritas, porque una decisión sin
+sus alternativas no se puede revisar dentro de seis meses.
+
+Sigue sin decidirse, y queda aparte para no confundirlo con lo decidido: si el
+modelo elegido **se comporta** como el pedido. Eso es calidad y no
+identificadores, y necesita los conjuntos y umbrales de
+`WS-12.contratos-de-evaluacion`.
+
+### Qué NO cubre
+
+- **La lactancia**, que es otra lista y otro mecanismo.
+- **El puerperio**, que sigue sin contar como embarazo y debe (icu-013).
+- **Los vocabularios**: un embarazo escrito con una palabra que
+  `diagnosticosGestacionales` no reconoce no se ve.
+- **Que el aviso se LEA**: eso es pantalla.
+
+**Prueba.** `src/__tests__/el-diferencial-de-embarazo-ahora-avisa.test.ts` (11 casos).
+
+---
+
+## REG-592 — la tercera y la cuarta decisión, y un requisito que se cierra
+
+**Eje.** WS-10.pantalla-de-certeza. **Fecha.** 31-ago-2026.
+
+Como REG-591: no repara un defecto, cierra dos preguntas. **Ninguna de las dos
+cambia comportamiento** — una confirma lo que hay y la otra difiere. Con las dos,
+`WS-10.pantalla-de-certeza` pasa de `PARTIAL` a `PROVEN`.
+
+### D-038 · firmar avisa, y no bloquea
+
+Se le plantearon tres opciones: avisar sin obligar, bloquear la firma, o bloquear
+sólo el diagnóstico que va a imprimirse. Eligió la primera, que es la que ya
+regía **por conservación** —obligar era fijar política clínica y eso es del
+médico—.
+
+Su razón: firmar es un acto medicolegal suyo, y bloquearlo por un campo que el
+sistema rellenó solo lo deja rehén del clasificador. En una consulta con prisa,
+un bloqueo se aprende a esquivar.
+
+**Lo que sí se añadió es el guardián.** El aviso ya tenía sus casos; lo que no
+tenía era uno que fijara que **no bloquea**. Ahora hay dos:
+
+- el bloque del aviso es un `nx-meta` —texto, no compuerta— y no contiene
+  `disabled`;
+- y `tipoOrigen` no aparece en ninguna condición que deshabilite nada en toda la
+  pantalla. Esta segunda es la que de verdad lo prueba: alguien podría bloquear
+  la firma en otro sitio.
+
+Probado al revés: convertir el aviso en bloqueo tira tres casos; quitar el aviso,
+uno.
+
+### D-039 · el diagnóstico de ingreso de hospital sigue siendo cadena libre
+
+**Diferido.** Convertirlo en un diagnóstico con tipo es un cambio de modelo con
+migración de los episodios existentes, y toca el documento del episodio — que es
+justo el que crece sin techo (WS-03, REG-590). Hospital y UCI están en ALPHA y no
+a la venta, así que el retorno hoy es bajo y el riesgo no.
+
+Se reabre cuando Hospital se prepare para venderse.
+
+### Por qué se anota una decisión que no cambia nada
+
+Porque el estatus no es cosmético. Un valor por omisión que nadie eligió acaba
+pareciendo elegido, y entonces ya nadie lo revisa. Lo que antes decía «rige por
+conservación» ahora dice quién lo decidió, cuándo, y **qué se descartó** — una
+decisión sin sus alternativas no se puede revisar dentro de seis meses.
+
+**Prueba.** `src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts` (13 casos).
+
+---
+
+## REG-593 — «avisado» no decía a quién ni por qué vía
+
+**Eje.** WS-11.laboratorio. **Fecha.** 31-ago-2026.
+
+Dos decisiones más del dueño. Con ellas `WS-11.laboratorio` pasa de `PARTIAL` a
+`PROVEN`.
+
+### D-040 · un crítico no vence
+
+Se le ofrecieron 1 h, 4 h, 24 h y «que no venza nunca». Eligió el último, que es
+lo que ya regía. Así que `venceEn` no se pone y `estaVencida` no opina sobre un
+crítico — igual que antes, ahora por decisión.
+
+Lo que queda en pie, y este golden lo fija: **sin plazo, la pregunta al cerrar es
+la única defensa**. Si alguien la quitara, un crítico podría cerrarse sin que
+conste nada y sin que nada venciera nunca — «lo vi» y «localicé a alguien»
+otra vez indistinguibles, que es lo que hace crítico a un valor crítico.
+
+### D-041 · las cuatro vías cuentan
+
+Hablar con el paciente, hablar con un cuidador autorizado, entregárselo a otro
+médico tratante **y un mensaje enviado**. Con sus palabras: «al que sea».
+
+**Se le advirtió** de que un mensaje puede morir sin acuse —no es una suposición:
+este repositorio lo mide desde REG-580 y REG-586, con una pantalla de mensajes
+que se rindieron y otra de respuestas del bot que no salieron— y eligió que
+cuente igual. Cuenta.
+
+Lo que se construyó es la otra mitad: **se guarda cuál de las cuatro fue**, para
+que quien lea el expediente dentro de un año distinga «hablé con él» de «le mandé
+un mensaje».
+
+### Un campo, una pregunta
+
+Tres de las cuatro opciones son *a quién* y la cuarta es *por qué vía*.
+Guardarlas en un campo llamado `destinatario` habría sido un campo haciendo dos
+trabajos — REG-566, el defecto que este repositorio lleva cazando desde entonces.
+El campo pregunta una sola cosa: **de qué manera consta**.
+
+Es opcional, como `avisoAlPaciente` y por la misma razón: exigirlo convierte el
+cierre en un formulario, y un worklist que cuesta se abandona. Sin valor con
+`avisado` significa lo mismo que significaba antes de que el campo existiera.
+
+### Y el trinquete de conexión me cazó otra vez
+
+`constaQueLoRecibieron` quedó exportado **sin un solo llamador** — cuarta vez en
+esta serie, con REG-585, REG-588 y REG-590. La decisión del dueño se habría
+guardado en un campo que nadie mira.
+
+Se conectó donde el médico ya lee el progreso del resultado: la etapa cambia de
+nombre a «Aviso al paciente (hablado)» o «(por mensaje)». **El estado no cambia**
+—las cuatro cuentan como hechas, que es lo que él decidió—; lo que cambia es cómo
+se llama.
+
+### Qué NO cubre
+
+- **No obliga**, ni el aviso ni su detalle.
+- **No verifica nada**: marcar «hablé con el paciente» no prueba que se hablara.
+  Registra lo que el médico declara, como todo el cierre.
+- **No cruza con el outbox**: marcar «mandé un mensaje» no comprueba que ese
+  mensaje saliera ni que no muriera en la cola. Sería lo siguiente, y necesita
+  atar el cierre a un identificador de mensaje que hoy no existe.
+- **No es una prueba de navegador.**
+
+**Prueba.** `src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts` (16 casos).
+
+---
+
+## REG-604 — la cabecera dice de qué muestra es, y nadie la estaba leyendo
+
+**Eje.** Laboratorio · §27.3 de D-045 · regla 4 de seguridad clínica.
+**Fecha.** 5-sep-2026.
+**Prueba.** `src/__tests__/la-muestra-viene-de-la-cabecera.test.ts` (15 casos).
+
+### El hueco que REG-601 dejó declarado
+
+REG-601 decidió la muestra sobre el **nombre del renglón** y dejó escrito, con
+todas las letras, lo que esa regla no podía resolver:
+
+> Una hoja que pone «Examen general de orina» en la cabecera y luego escribe
+> «Glucosa» a secas sigue cayendo en la serie de suero.
+
+No es un caso raro: **es el caso normal.** Un examen general de orina y un
+líquido cefalorraquídeo llaman a sus renglones igual que una química sanguínea
+—glucosa, proteínas, leucocitos, creatinina—. Lo que los distingue está arriba,
+en la cabecera, y hasta hoy la extracción no lo miraba.
+
+### Medido antes de tocar nada — las ocho filas de las dos hojas mudas
+
+| Renglón de la hoja | Sin el campo | Con el campo |
+|---|---|---|
+| «Glucosa» 250 mg/dL (orina) | `glucosa` · **suero** | `glucosaUrinaria` |
+| «Creatinina» 85 mg/dL (orina) | `creatinina` · **suero** | `creatinina_orina` |
+| «Glucosa» 35 mg/dL (LCR) | `glucosa` · **suero** | `lcrGlucosa` |
+| «Leucocitos» 320 células/µL (LCR) | `leucocitos` · **suero** | `lcrLeucocitos` |
+| «Proteína» 120 mg/dL (orina) | **perdida** | `proteinaUrinaria` |
+| «Densidad» 1,025 (orina) | **perdida** | `densidadUrinaria` |
+| «pH» 6,0 (orina) | **perdida** | `phUrinario` |
+| «Proteínas» 180 mg/dL (LCR) | **perdida** | `lcrProteinas` |
+
+Cuatro archivadas en la serie equivocada, cuatro perdidas. Las dos primeras son
+las que duelen:
+
+- Una **glucosuria de 250** archivada como glucemia es una urgencia diabética
+  que nadie tuvo, con una cifra perfectamente plausible en suero.
+- Una **glucosa de LCR de 35** —hipoglucorraquia, meningitis bacteriana—
+  archivada como glucemia es una cifra baja sin importancia.
+
+Ninguna de las dos la caza un rango de plausibilidad, porque **ambas son
+plausibles en suero**. Es el mismo patrón de REG-599: el rango compara
+magnitudes; lo que dice qué significa la magnitud está fuera del número.
+
+### La regla que hace seguro el campo nuevo
+
+El campo **sólo rellena el hueco. Nunca contradice.**
+
+Si el nombre del renglón nombra una muestra —«glucosa urinaria», «LCR
+proteínas»—, ésa manda y el campo no puede cambiarla. El campo decide sólo
+cuando el nombre calla.
+
+Es monótono a propósito: puede **añadir** información donde no había, nunca
+quitarla ni darle la vuelta. Un campo capaz de contradecir al nombre convertiría
+un error de lectura del modelo en una glucosa urinaria archivada como glucemia
+—o sea, reabriría por la puerta de atrás justo el defecto que REG-601 cerró—.
+
+Además la muestra pasa por **lista blanca cerrada** (`suero`, `orina`, `lcr`,
+`liquido`): cualquier otra cosa que devuelva el modelo se trata como si no
+hubiera venido.
+
+### Y no rompe el foso de «sólo transcribe»
+
+La muestra está **impresa** en el documento, igual que la unidad o la fecha.
+Pedirla es transcribir. Lo que el prompt prohíbe con todas las letras es
+**deducirla**:
+
+> NO lo deduzcas del nombre del estudio, ni del valor, ni de las unidades. Una
+> glucosa no es de orina por ser alta.
+
+Si no está escrita, se devuelve vacía y manda el nombre del renglón, como antes.
+
+### La cautela mal puesta que esto destapó
+
+`patronPelado` descartaba los nombres de menos de **tres** caracteres, para no
+crear un patrón que enganchara medio mundo. Con eso, `pH` no podía existir como
+renglón pelado y el pH urinario se perdía.
+
+La cautela estaba mal colocada: el patrón pelado **sólo se consulta después del
+filtro de espécimen**, entre los doce analitos de orina, donde «ph» no es
+ambiguo. Baja a dos caracteres. El guardián que lo prueba al revés vuelve a
+poner el corte de tres y comprueba que el pH se pierde otra vez.
+
+### El resultado sobre el corpus
+
+| | REG-603 | REG-604 |
+|---|---|---|
+| Hojas · filas | 8 · 46 | **10 · 54** |
+| Filas que llegan al panel | 46/46 | **54/54** |
+| Filas que entran a la gráfica | 45 | **53** |
+
+La única que sigue fuera es la PCR de 840 mg/L, y por el motivo ya nombrado en
+REG-603: nuestro rango llega a 600 y el del catálogo del dueño a 1000. Sigue
+pendiente de su decisión, atada a dejar de graficar la hoja muda.
+
+### Probado al revés cinco veces
+
+El campo gana al nombre (vuelve el defecto de REG-601) · se acepta una muestra
+cruda sin lista blanca · el prompt deja de prohibir deducir · el campo sale del
+prompt · vuelve el corte de tres caracteres.
+
+### Lo que esta unidad **NO** cierra
+
+- **No comprueba que el modelo lea bien la cabecera.** Comprueba que el prompt
+  la pida como transcripción y que el código trate la respuesta con
+  desconfianza. Lo otro necesita imágenes y llamadas de API.
+- **No hay campo de confianza** (§32): «la hoja no lo dijo» y «el modelo no lo
+  leyó» llegan igual, como muestra vacía.
+- **La muestra es por renglón, no por hoja.** Una hoja mixta —química y orina en
+  el mismo papel— depende de que cada renglón traiga la suya.
+- **LOINC/UCUM sigue abierto** (§27.2, §35): 218 conceptos sin código. No se
+  asignan de memoria.
+
+## REG-603 — los factores de conversión se calculan, no se teclean
+
+**Eje.** Laboratorio · regla 1 de seguridad clínica. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-factor-no-se-teclea-se-calcula.test.ts`.
+
+### El problema que llevaba cuatro unidades sin resolverse
+
+La regla 1 nombra las **equivalencias** entre las cifras que no se inventan: «o
+salen de una fuente citada, o no existen». REG-599 puso sólo las dos
+conversiones que el documento del médico dueño sostenía y dejó fuera la de la
+glucosa —el caso que había abierto todo— aunque 18,0182 se sepa de memoria.
+
+Saberse un número no es tener una fuente. Y pedírselo al médico tampoco era la
+mejor respuesta: **un factor mmol/L → mg/dL no es una decisión clínica, es
+aritmética.**
+
+### La salida: no usar ningún número tecleado
+
+Aquí ya no hay factores. Hay fórmulas moleculares y pesos atómicos de la IUPAC, y
+el factor se calcula. Tres mecanismos, los tres comprobables:
+
+| | Ejemplo | De dónde sale |
+|---|---|---|
+| **Escala** | PCR mg/dL → mg/L, ×10 | prefijos del SI, sin química |
+| **Masa molar** | glucosa mmol/L → mg/dL, ×18,0156 | C₆H₁₂O₆ + pesos atómicos IUPAC |
+| **Equivalentes** | Na mmol/L → mEq/L, ×1 | `mEq = mmol × \|z\|`, la definición |
+
+### Los dos testigos, que son la parte que importa
+
+El documento del dueño trae dos cifras trabajadas. La derivación las **reproduce
+sin usarlas**:
+
+| Su documento | Derivado |
+|---|---|
+| §27.1 · creatinina 140 µmol/L → **1,58** mg/dL | **1,5837** ✔ |
+| §6 · vitamina D ng/mL × **2,496** ≈ nmol/L | **2,4960** ✔ |
+
+No son la fuente del factor: son la prueba de que el método es correcto. Dos
+cifras independientes, de dos moléculas distintas, que él dio antes de que este
+módulo existiera. Un peso atómico mal escrito rompe seis pruebas.
+
+### El fallo que la medición cazó antes de conectarlo
+
+La primera versión de la escala era una tabla escrita a mano con un factor por
+unidad. Medida antes de conectarla:
+
+> **ferritina µg/L → ng/mL = 0,0001**
+
+Son la misma unidad. Ese factor habría dividido una ferritina entre diez mil, en
+silencio: una de 200 000 en un HLH habría entrado al expediente como **20**.
+
+La causa fue hacerme una tabla propia en vez de usar la aritmética que ya estaba
+—masa partida por volumen—. Es el medidor casero de REG-598 otra vez, en otra
+capa. Ahora la escala se calcula con las mismas tablas que la molar: no hay dos
+maneras de contar lo mismo.
+
+### El hueco que el corpus no veía
+
+Los electrolitos. Casi todos los laboratorios los reportan en **mmol/L** y la
+unidad canónica de este producto es **mEq/L**, así que la química sanguínea más
+común del mundo salía marcada «verificar» entera desde REG-599 — y no se veía
+porque mis ocho hojas sintéticas usaban mEq/L. Para un ion monovalente los dos
+números son el mismo, y eso es la definición de equivalente, no una cifra.
+
+### Lo que NO se deriva, y no es un olvido
+
+- **Triglicéridos**: no son una molécula sola. El laboratorio usa una masa molar
+  **convencional** (la de la trioleína) elegida por acuerdo, no medida.
+  Convertir con ella sería inventar una equivalencia con aspecto de cálculo.
+- **Unidades de actividad** (IU/mL, U/mL): no son masa. No hay masa molar que
+  convierta una unidad internacional, y el factor depende del ensayo.
+- **Calcio, magnesio, fósforo**: sí serían derivables, pero **no hay testigo** del
+  dueño que lo compruebe. Se añaden cuando haya con qué comprobarlas.
+
+### El resultado sobre el corpus
+
+| | REG-599 | REG-603 |
+|---|---|---|
+| Filas que llegan al panel | 46/46 | 46/46 |
+| **Filas que entran a la gráfica** | 44 | **45** |
+
+La que queda es la PCR: se convierte **bien** (84 mg/dL son 840 mg/L) y aun así
+cae fuera del rango de este producto, 0–600. Y aquí está lo incómodo: **ese rango
+es nuestro y no tiene fuente citada**; el del catálogo del dueño llega a 1000.
+Bajo la regla 1, el suyo es el que tiene respaldo.
+
+No se adopta todavía, y el motivo sigue siendo el de REG-602: con la hoja muda,
+un rango ancho acepta en silencio un valor que venía en otra unidad —una glucosa
+de 7,2 sin unidad pasaría como 7,2 mg/dL si el rango empezara en 1—. El rango
+estrecho está haciendo el trabajo de `MISSING_UNIT`, y quitarlo antes de que la
+hoja muda deje de graficarse pierde una defensa. Ése es el precio, y ahora se
+puede nombrar exactamente.
+
+### Probado al revés cinco veces
+
+Un peso atómico mal (rompe seis) · volver a la tabla de escala casera (vuelve la
+ferritina entre diez mil) · teclear el factor de la glucosa · derivar los
+triglicéridos con la convención · convertir equivalentes sin la valencia.
+
+## REG-602 — la hoja que no dijo la unidad dejaba constancia de haberla dicho
+
+**Eje.** Laboratorio · §27.1 y §33 de D-045. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/la-hoja-muda-no-inventa-su-unidad.test.ts`.
+
+### Qué fallaba
+
+Un renglón sin unidad se guardaba así:
+
+```
+Glucosa 92  →  valor: 92 · unidad: 'mg/dL' · unidadOriginal: 'mg/dL'
+```
+
+Y la hoja **no había dicho nada**. El campo que existe precisamente para
+conservar lo que imprimió el laboratorio —el §27.1 del catálogo del dueño:
+«nunca eliminar la unidad original»— estaba diciendo lo que habíamos asumido
+nosotros.
+
+El resultado era **indistinguible** de una hoja que sí declaró mg/dL. Nadie
+podía saber, mirando el expediente, si la unidad venía del laboratorio o de una
+suposición del software.
+
+Es la regla 4 de seguridad clínica en su forma más pura: **ausencia de dato no es
+dato de ausencia**. Y la regla 3: una suposición es una edición al dato, y una
+edición que no se puede ver es una que alguien le hizo al expediente sin decirlo.
+
+### Lo que cambió, y lo que NO
+
+| | Antes | Ahora |
+|---|---|---|
+| Se asume la unidad convencional | sí | **sí** |
+| La fila entra a la gráfica | sí | **sí** |
+| Un pánico sin unidad marca crítico | sí | **sí** |
+| `unidadOriginal` | se rellenaba con la canónica | **vacía** |
+| Se distingue de una hoja que sí la dijo | no | **sí** (`MISSING_UNIT`) |
+| El médico lo ve | no | **sí**, con su propio texto |
+
+**No dejar de graficarlas es deliberado.** Casi todas las hojas mudas están en la
+unidad de siempre, y no graficarlas vaciaría las series de medio consultorio por
+una marca de cautela — el mismo pasarse de frenada que el médico descartó al
+fijar el 5 % de la voz. Lo que se gana es que la suposición **se vea**, no que se
+deje de suponer.
+
+Y por lo mismo `MISSING_UNIT` **no pinta el ámbar «verificar»**: es cautela
+declarada, no un defecto que revisar. Si pintara, media hoja saldría en ámbar y
+el aviso dejaría de significar algo — justo lo que REG-599 consiguió que
+significara.
+
+### Con las dos cosas en duda, se dicen las dos
+
+Un sodio de 1400 **sin unidad** podría ser un decimal corrido (140) o una unidad
+distinta. Se sigue ofreciendo el candidato del §29, pero el texto dice que es
+sólo una de las explicaciones. Ofrecer únicamente el decimal sería dar por
+resuelto lo que no se sabe — el error de REG-600 en su forma más ambigua.
+
+### Lo que esto NO desbloquea
+
+Los rangos anchos del catálogo **siguen sin adoptarse**, y ahora se puede decir
+exactamente por qué: con la hoja muda, un rango ancho aceptaría en silencio un
+valor que venía en otra unidad —la glucosa de 7,2 mmol/L pasaría como 7,2 mg/dL
+si el rango empezara en 1—. Lo que lo desbloquearía es **dejar de graficar lo
+mudo**, y ésa es una decisión del médico dueño, no mía.
+
+### Probado al revés cinco veces
+
+Volver a rellenar `unidadOriginal` con la canónica · dejar de graficar la hoja
+muda · encender el ámbar con `MISSING_UNIT` · quitar el aviso de la pantalla ·
+hablar sólo del decimal cuando la unidad también está en duda.
+
+### Lo que sigue sin cubrirse
+
+**No se distingue «la hoja no lo dijo» de «la IA no lo leyó».** Las dos llegan
+aquí como unidad vacía, y son cosas distintas: la primera es una hoja parca, la
+segunda un fallo de lectura. Separarlas pide un grado de confianza de extracción
+desde la lectura de la hoja, que es el §32 del catálogo y no está.
+
+## REG-601 — el catálogo entero, y el defecto vivo que apareció al cargarlo
+
+**Eje.** Laboratorio · D-045 §26 y §27.3. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts`.
+
+### Lo que iba a hacer, y lo que encontré
+
+Iba a cargar los ~200 analitos del catálogo del dueño. Al medir cómo se
+comportaba el de 32 apareció esto, **funcionando en producción**:
+
+| El renglón dice | Acababa en |
+|---|---|
+| Glucosa urinaria | serie de glucosa **sérica** |
+| LCR glucosa | serie de glucosa **sérica** |
+| Sodio urinario | serie de sodio **sérico** |
+| LCR leucocitos | serie de leucocitos en **sangre** |
+| Creatinina urinaria | serie de creatinina **sérica** |
+
+El último **pese a que su patrón ya excluía «orina»**: la exclusión no cubría
+«urinaria». Una defensa escrita a mano, analito por analito, con un hueco.
+
+Un sodio urinario de 20 dibujado como sodio sérico se lee como una hiponatremia
+mortal. Una glucosuria de 500, como una urgencia diabética. Y **no se ve**: la
+cifra es real, el analito se llama igual y la gráfica es continua.
+
+### La regla que lo cierra
+
+La muestra se decide **una vez, sobre el nombre del renglón**, no con una
+exclusión por analito. Un renglón de orina sólo puede casar con analitos de
+orina; si no hay ninguno, no casa con nada — mejor sin reconocer que en la serie
+equivocada. Es el §26 del catálogo («no deben mezclarse estas cuatro capas») y su
+§27.3 («no mapear un analito únicamente por el nombre escrito en el PDF»).
+
+Y dentro de la muestra el nombre pelado deja de ser ambiguo, así que «Creatinina
+en orina» —que antes no casaba con nada— ahora casa.
+
+### 220 cifras que no se teclearon
+
+Un dígito cambiado en un límite de captura no rompe nada, no falla ninguna
+prueba, y convierte un límite en otro. Los números se leen por máquina del
+documento del dueño (`scripts/laboratorio/catalogo-d045.mjs` →
+`catalogo-d045.json`), y hay dos guardianes: el JSON contra el documento, y cada
+analito contra su fila. La frase «estas cifras son las suyas» es refutable.
+
+El script comprueba además que el documento **no se contradiga**: repite doce
+analitos entre secciones —la LDH está en hígado y en hemólisis— y las cifras
+coinciden en los doce. Si un día divergen, el módulo revienta al cargarse en vez
+de elegir una.
+
+Lo escrito a mano son veinte líneas: qué grupo y qué muestra tiene cada sección.
+
+### El pie de banco que me cacé, y me lo cazó una prueba de UCI
+
+Metí el nombre pelado dentro de `patron`. Hay **tres sitios que recorren
+analitos mirando `patron` a pelo sobre texto libre**, sin pasar por `analitoDe` y
+por tanto sin el filtro de muestra: con «glucosa» ahí dentro, un «glucosa»
+dictado en el pase de UCI casaba con la glucosa de LCR.
+
+Un patrón que sólo es seguro detrás de un filtro **no puede vivir donde se lee
+sin el filtro**. Vive en `patronEnSuMuestra`, y `analitoDe` lo consulta después
+de decidir la muestra.
+
+### La prosa se sigue leyendo con los 32 de siempre
+
+Buscar cifras en PROSA es otro problema y falla distinto: en una hoja, un renglón
+que dice «Ferritina» es una ferritina; en un dictado, «ratio», «bandas», «pH» o
+«s» aparecen sin ser un resultado. Meter 219 nombres en la lectura de prosa es un
+cambio que nadie pidió y que nadie midió. `ANALITOS_EN_TEXTO` lo declara: mismo
+catálogo, subconjunto para un uso cuyo modo de fallo es otro.
+
+### Media cara de E1-02-H2, cerrada de rebote
+
+Aquel hallazgo tenía dos caras y quedó registrado sin reparar. La de «creatinina
+urinaria» **se cierra aquí**, y de raíz. La de «depuración de creatinina» —que el
+patrón de `creatinina` gana por orden y la manda a la serie sérica— sigue
+abierta: las dos son de suero y el espécimen no la toca.
+
+Su golden dice ahora las dos cosas por separado. Un hallazgo medio cerrado que se
+anota como cerrado es como no haberlo anotado.
+
+### Y no se creó una segunda clave
+
+`creatinina_orina` nació en E1-02 como concepto sin analito detrás. El catálogo
+trae la creatinina urinaria de verdad — y se reusa **su** clave en vez de crear
+`creatininaUrinaria`. Dos claves para el mismo analito son dos fuentes de verdad;
+ganó la que llevaba meses escrita, con sus sinónimos y su pregunta al médico. De
+paso, el vocabulario deja de tener conceptos propios: **todos vienen de ANALITOS**.
+
+### Lo que los guardianes obligaron a declarar
+
+- `LAB_SIN_CODIGO_CONGELADO` 33 → **218**. Ninguno trae LOINC: elegirlo no es
+  mecánico y un código equivocado viaja al exterior dentro de un `Observation`.
+- El hueco de unidades no expresables, 5 → **29**. Se declara en su guardián en
+  vez de ampliar `FACTORES` de refilón.
+- Tres fixtures de «términos que el catálogo no conoce» tuvieron que mudarse
+  —ferritina, procalcitonina, haptoglobina ya se conocen—. Ahora son homocisteína
+  y aldolasa: reales, se piden en consulta, y su documento no las trae.
+
+### Probado al revés cinco veces
+
+Quitar el filtro de muestra (vuelve el defecto vivo) · devolver el pelado a
+`patron` · cambiar una cifra respecto del documento · dejar que la prosa lea el
+catálogo entero · crear una segunda clave para la creatinina de orina.
+
+### Lo que NO cubre
+
+La muestra se decide **por renglón, no por sección**: una hoja con «Química
+urinaria» en la cabecera y «Glucosa» a secas en el renglón sigue cayendo en
+suero. Cerrarlo pide el espécimen como CAMPO desde la lectura de la hoja (§27.3).
+
+## REG-600 — el decimal se sugiere, y la sugerencia verosímil que había que NO dar
+
+**Eje.** Laboratorio · §29 de D-045. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts`.
+
+### Qué faltaba
+
+REG-599 dejó el valor imposible dentro del panel, marcado y sin gráfica. Eso
+evita el daño, pero no ayuda: el médico ve «sodio 1400 mEq/L · verificar» y tiene
+que ir a la hoja a averiguar qué pasó.
+
+El §29 del catálogo del dueño dice qué hacer **y qué no**:
+
+> «Antes de marcar un valor como imposible, evaluar candidatos: ×10 ÷10 ×100 ÷100
+> ×1000 ÷1000. Ejemplo: Na = 1400 mmol/L podría ser 140 mmol/L. Pero el sistema
+> debe **sugerir revisión, no corregir automáticamente**.»
+
+### La trampa, que es la mitad del trabajo
+
+La sugerencia sólo se ofrece **cuando la unidad ya es la canónica**. No es un
+detalle de implementación:
+
+> Glucosa **7,2 mmol/L × 10 = 72**, que es una glucosa perfectamente plausible en
+> mg/dL. La sugerencia sería «¿quizá 72 mg/dL?» y estaría **mal**: 7,2 mmol/L son
+> 130 mg/dL.
+
+El decimal no se había corrido: la unidad era otra. Cuando la unidad no cuadra,
+la explicación es la unidad. Ofrecer un decimal ahí es dar una respuesta
+**verosímil a la pregunta equivocada** — la peor clase de ayuda que puede dar un
+sistema clínico, porque se acepta sin mirar.
+
+Es el mismo error de REG-197 y del «vesícula» de REG-581, en otra capa: buscar lo
+más parecido en vez de decir que no se sabe.
+
+### Cuando encajan varios, no se elige
+
+| Caso | Candidatos | Veredicto |
+|---|---|---|
+| Na 1400 | 140 | único → sugerencia fuerte |
+| K 42 | 4,2 | único |
+| Hb 134 | 13,4 | único (el g/L sin unidad) |
+| **Creatinina 120** | 12 · 1,2 · 0,12 | **varios** |
+| **Ferritina 2 000 000** | 200 000 · 20 000 · 2 000 | **varios** |
+
+Y en la creatinina el «bonito» es justo el que puede estar mal: 1,2 mg/dL es lo
+que un humano elegiría, pero si lo que pasaba es que venía en µmol/L, 120 µmol/L
+son **1,36**. Elegir por verosimilitud es exactamente cómo se cuela un dato falso.
+
+### El valor no se toca, y la pantalla pregunta
+
+`valor` sigue siendo el que imprimió el laboratorio. **No hay botón que aplique
+la sugerencia**: el campo de al lado ya es editable y la corrección la hace el
+médico, a mano y a la vista. Y el texto es una pregunta —«¿Se corrió un
+decimal?»— y no una afirmación: lo primero invita a mirar la hoja, lo segundo
+afirma algo que este código no sabe.
+
+### Probado al revés cinco veces
+
+Ofrecerlo también en otra unidad (vuelve la trampa) · aplicar la sugerencia al
+valor · quedarse con el primero de varios · sugerir también sobre valores
+plausibles · que la pantalla afirme en vez de preguntar. Las cinco ponen la
+prueba en rojo.
+
+Y por el otro lado: una hoja entera correcta no sugiere **nada**. Si cada glucosa
+normal trajera un «¿quizá 920?», el médico aprendería a cerrar el aviso sin
+leerlo, y ahí se pierde la defensa entera.
+
+### Lo que sigue sin cubrirse, dicho
+
+El error de captura que **sigue siendo plausible** —un sodio de 140 tecleado como
+145— no lo caza esto y no lo cazará. Y no se mira la serie histórica del
+paciente: un salto imposible respecto de su valor anterior sería otra señal, más
+fuerte, y no está.
+
+## REG-599 — el valor correcto en otra unidad, y el equivocado que sí era plausible
+
+**Eje.** Laboratorio · §27 y §28 de D-045. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-numero-correcto-en-otra-unidad.test.ts`.
+
+### Eran dos, y la segunda nadie la había mirado
+
+**1. El valor correcto en otra unidad desaparecía.** El validador daba una sola
+respuesta a dos preguntas: si el número no era plausible en la unidad
+convencional, la fila salía del panel. Bien para un disparate; mal para una
+glucosa de 7,2 mmol/L, que es una glucosa normal reportada en el sistema
+internacional. El paciente cuyo laboratorio reporta en SI se quedaba sin serie y
+sin aviso — y eso se ve como una gráfica corta, que es como no verse.
+
+**2. Y el peor: el valor equivocado que SÍ es plausible.** Salió en la misma
+medición, en la hoja LAB-008:
+
+> **PCR 84 mg/dL.** La unidad canónica es mg/L. 84 mg/dL son **840** mg/L.
+
+84 es un valor perfectamente plausible en mg/L —el rango es 0–600—, así que el
+límite de plausibilidad **no lo caza y no puede cazarlo**. Entraba a la serie
+temporal como un 84 al lado de valores en mg/L: **una PCR de sepsis dibujada como
+una PCR de resfriado**, en la misma gráfica, sin una marca.
+
+Un límite compara magnitudes. La unidad no es una magnitud: es lo que dice qué
+significa la magnitud. Ningún rango, por estrecho que sea, sustituye a mirarla.
+
+Yo iba a por la glucosa. La PCR salió sola.
+
+### La política, que es del dueño
+
+Su **§28** fija el orden: **normalizar la unidad primero, comprobar la
+plausibilidad después.** Al revés, un valor correcto en otra unidad parece
+imposible. Su **§1** fija la salida: fuera de rango se **acepta
+provisionalmente** y se marca; nunca truncar, nunca sustituir, nunca corregir en
+silencio. Su **§27.1**: el valor y la unidad originales no se pierden jamás.
+
+### Sólo hay DOS conversiones, y es a propósito
+
+Un factor de conversión es una **equivalencia**, y la regla 1 de seguridad
+clínica las nombra: o salen de una fuente citada, o no existen.
+
+| Analito | Desde | Factor | Fuente |
+|---|---|---|---|
+| Vitamina D | nmol/L | ÷ 2,496 | §6, literal: «ng/mL × 2.496 ≈ nmol/L» |
+| Creatinina | µmol/L | ÷ 88,4 | §27.1, del ejemplo trabajado: 140 µmol/L → 1,58 mg/dL |
+
+**La de la glucosa no está** — y es la que abrió todo esto. 18,0182 se sabe de
+memoria, y por eso mismo es la clase de cifra que la regla 1 prohíbe escribir sin
+fuente: no rompe nada, no falla ninguna prueba, y sale impresa con cédula. Se
+queda en `VERIFY_UNIT` hasta que él la dé, con su entrada en
+`CONVERSIONES_QUE_FALTAN`.
+
+### El dato tiene que LLEGAR a la pantalla
+
+Aquí casi se me escapa. El panel encendía el ámbar «⚠ verificar» sólo con
+`noEvaluable`, que se activa cuando la unidad no cuadra con la del umbral de
+criticidad. Un valor fuera de los límites de captura **en la unidad canónica**
+—una ferritina de 2 000 000 ng/mL— no lo enciende: se habría visto como una fila
+normal, sin marca, y encima ya sin gráfica. **Marcado sin avisar es lo mismo que
+no marcado.**
+
+Ahora el ámbar se enciende con el estado, y el motivo va como **texto visible**,
+no en un `title`: un aviso que sólo existe al pasar el ratón no existe en el
+teléfono (REG-581). La conversión también se dice —«Convertido de 80 umol/L»—
+porque una corrección que no se puede ver es una edición que alguien le hizo al
+dato sin decírselo (seguridad clínica §3).
+
+### El número cambió de significado, así que ahora son dos
+
+Con la fila ya no tirada, «llega al panel» y «entra a la serie» dejaron de ser lo
+mismo. El eje del médico (D-044) mide lo primero: **0 de 46**. Pero **2 llegan
+sin gráfica** —glucosa mmol/L y PCR mg/dL, las dos por falta de factor— y eso se
+cuenta aparte, con su propio trinquete. Si sólo se midiera el eje, esas dos
+desaparecerían del informe justo cuando dejaron de desaparecer del panel.
+
+| | 1-sep | 2-sep (450) | 2-sep (451) |
+|---|---|---|---|
+| Fuera del panel | 7 (15,2 %) | 1 (2,2 %) | **0** |
+| Sin gráfica | — | — | **2** |
+
+### Probado al revés siete veces
+
+Ignorar la unidad distinta (vuelve el defecto de la PCR) · convertir sin factor
+citado · truncar al límite en vez de conservar · dejar que lo no graficable entre
+a la serie · volver a tirar la fila fuera de rango · encender el ámbar sólo con
+`noEvaluable` · devolver el motivo a un tooltip. Las siete ponen la prueba en
+rojo. Y por el otro lado: una hoja entera en unidades canónicas no marca **nada**,
+porque una compuerta que avisa de todo se aprende a cerrar sin leer.
+
+## REG-598 — el rojo del laboratorio se cierra por la causa, no por el umbral
+
+**Eje.** WS-12 + laboratorio. **Fecha.** 2-sep-2026.
+**Prueba.** `src/__tests__/el-diferencial-no-es-una-sola-cosa.test.ts`.
+
+### De dónde venía
+
+REG-597 dejó la compuerta de `laboratorio-vision` en rojo: 7 de 46 filas no
+llegaban al panel, 15,2 % contra un techo del 5 %. **Seis de las siete eran
+cobertura del catálogo**, y no se pudieron arreglar ese día porque un analito
+necesita su rango plausible y un rango plausible es una cifra clínica.
+
+El médico dueño entregó al día siguiente un **catálogo maestro de plausibilidad**
+(D-045) — ~200 analitos con su unidad canónica y sus límites de captura, más las
+reglas de modelado. Vive íntegro en
+`docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`, con su autor y su fecha.
+
+**No se arregló el umbral: se arregló la causa.** 15,2 % → **2,2 %**. Verde.
+
+### El defecto que su documento evitó, y que yo iba a cometer
+
+Su **§25.2** dice algo que este código no sabía:
+
+> «Neutrófilos 75 %» y «Neutrófilos 7.5 ×10³/µL» son resultados **distintos** y
+> deben mapearse a variables diferentes.
+
+Y el nombre impreso en la hoja es **el mismo**. `analitoDe` sólo miraba el
+nombre, así que habría metido el 75 en la serie del absoluto. Eso no es un
+analito perdido —que se nota, y que se conserva como texto—: es un **valor mal
+leído**, con la forma correcta, invisible. Y ése es el eje que el propio médico
+había puesto en CERO el día anterior (D-044).
+
+Añadir el diferencial sin mirar la unidad habría cambiado un defecto declarado
+por uno silencioso. **Peor que no añadirlo.**
+
+Lo notable es que el rango plausible **no** lo habría cazado: 75 está dentro de
+0–500, porque un absoluto de 75 ×10³/µL es una leucocitosis brutal pero creíble
+(su §30 pide justamente eso). El límite no distingue; la unidad sí.
+
+Así que la unidad decide, y **sin unidad no se adivina**: `analitoDe` devuelve
+`null` y la fila se conserva como texto. Señalar de menos y declararlo.
+
+### Lo que NO se hizo, y por qué
+
+- **No se cargó el catálogo entero.** Entraron ocho de ~200. Los demás siguen sin
+  vigilarse, que no es lo mismo que estar bien.
+- **No se adoptaron sus rangos ensanchados para los analitos que ya existían.**
+  Su catálogo pone la glucosa en 1–3000 donde aquí hay 20–1500. Adoptarlo hoy,
+  **sin normalización de unidad**, haría que 7,2 mmol/L pasara como 7,2 mg/dL: un
+  valor imposible aceptado en silencio. Su propio §28 pone la normalización
+  ANTES de la plausibilidad; mientras ese paso no exista, el rango estrecho es la
+  única defensa. Hay guardián que cae si alguien lo ensancha.
+- **Ninguno de los ocho lleva banda de referencia.** Su §1: el intervalo de
+  referencia lo pone el laboratorio, con su método, sexo, edad y población.
+
+### El medidor casero, corregido por segunda vez
+
+El contador de «analitos inventados» de REG-597 volvió a fallar: ya usaba
+`analitoDe`, pero **sin la unidad**, así que en cuanto la unidad pasó a
+desambiguar, «Neutrófilos %» se contó como inventado. Misma lección que la
+primera vez: el medidor tiene que llamar al mapeo canónico **con las mismas
+entradas que usa producción**.
+
+### Probado al revés cinco veces
+
+Quitar `exigeUnidad` (el nombre manda y el 75 se va al absoluto) · adivinar
+cuando no hay unidad · cambiar uno de los ocho rangos · ponerle banda de
+referencia inventada a la vitamina D · adoptar los rangos anchos del catálogo en
+la glucosa. Las cinco ponen la prueba en rojo.
+
+## REG-597 — el umbral del laboratorio se aplica, y sale ROJO por el catálogo
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts`.
+
+### Qué faltaba
+
+`laboratorio-vision` no tenía umbral ni conjunto. El contrato decía: «No existe.
+Ninguna hoja real puede entrar sin ser sintética». Lo segundo es cierto; lo
+primero era **una tarea, no un hecho** — nadie había escrito las hojas.
+
+Se escribieron 8 hojas sintéticas como se imprimen en México (abreviaturas «Glu»
+/ «TGO» / «Hto», coma decimal, «>400», unidades del SI, analitos fuera del
+catálogo) y se midió **antes** de pedirle el número al médico.
+
+### El resultado, con su umbral puesto: rojo
+
+| | |
+|---|---|
+| Filas | 46, en 8 hojas |
+| Llegan al panel | 39 |
+| **No llegan** | **7 → 15,2 %** contra un techo del 5 % |
+| Analitos inventados | 0 |
+
+**Y la causa no es la visión.** Seis de las siete son **cobertura del catálogo**:
+ácido úrico, neutrófilos, linfocitos, VCM, vitamina D y ferritina no están en
+`analitos.ts`, que cubre 24. Una hoja de rutina trae más de 24.
+
+La séptima es distinta y es la que más enseña: **glucosa 7,2 mmol/L**. El analito
+sí está; lo tira el rango plausible, porque 7,2 no es una glucosa en mg/dL. La
+defensa hace lo correcto —mejor fuera que un punto falso en la gráfica— pero el
+paciente cuyo laboratorio reporte en unidades del SI **se queda sin serie de
+glucosa y nadie se lo dice**.
+
+### Lo que decidió el médico (D-044)
+
+| Eje | Umbral | Por qué |
+|---|---|---|
+| `valorMalLeido` | 0 | Cifra clínica falsa que no se ve al leer: tiene la forma correcta y entra a la gráfica y a los cálculos renales |
+| `unidadMalLeida` | 0 | Cambia el significado entero. Es el fallo de la auditoría de julio: valor de pánico en unidad rara archivado como normal |
+| `perdido` | 5 % | Más laxo **a propósito**: lo que falta se nota, y la fila sobrevive como texto en `noReconocidas` |
+
+### La pregunta que NO se le hizo, declarada
+
+Un **analito inventado** —una fila en el panel que no está en la hoja— no tiene
+umbral, porque no se lo pregunté. Se cuenta y se reporta; no reprueba. Que en la
+nota decidiera 0 % de alucinación (D-042) **no lo decide aquí**: son dos
+capacidades, y extender una decisión de una a otra es adivinar con papeleo. Queda
+en `LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO` con su `NEEDS_CLINICAL_REVIEW` y su
+guardián.
+
+### Lo que este conjunto NO mide, y hay que decirlo fuerte
+
+**No mide la visión.** Las filas entran como si el modelo las hubiera leído
+perfectas, así que **dos de los tres ejes salen cero por construcción** y sólo se
+ejercen al revés, inyectando el defecto. Medirlos de verdad pide imágenes y
+llamadas de API: es la mitad que el médico dejó para después.
+
+Y el 15,2 % **depende de las hojas que escribí yo**. Ocho químicas básicas
+habrían dado 0 %. Se escribieron para parecerse a las de verdad, y eso es un
+juicio mío, no una medición del producto. Queda dicho en la cabecera del golden.
+
+### Trinquete, con el patrón que el propio dueño fijó en D-043
+
+Sellado en 7 filas: sólo puede bajar. Bajarlo es añadir analitos al catálogo, y
+eso pide rango plausible con fuente — una cifra que no se inventa. Como en
+DLG-004, el trinquete **no da por bueno** el hueco: la compuerta del contrato
+sigue diciendo `reprueba`, y el motivo está escrito con nombre y apellido.
+
+### El medidor casero que medía otra cosa
+
+La primera versión comparaba a mano el nombre de la fila con la clave del
+resultado, y marcaba dos inventados que no lo eran: «Filtrado glomerular» → `tfg`
+y «c-HDL» → `hdl`. Se compara con `analitoDe`, el mismo mapeo canónico que usa
+producción. **Un medidor con su propia idea de qué es un analito mide otra cosa
+que el producto.**
+
+### Probado al revés cuatro veces
+
+Subir el techo de perdido al 50 % · hacer tolerante `valorMalLeido` · borrar la
+pregunta pendiente · quitarle al corpus su hoja de unidades del SI. Las cuatro
+ponen la prueba en rojo. Por el otro lado se comprueba que las abreviaturas NO se
+pierden (si «Glu» y «TGO» no llegaran, la serie temporal se partiría en dos), que
+la coma decimal no convierte 1,2 en 12, y que los censurados conservan su
+comparador.
+
+### Sin módulo nuevo, a propósito
+
+La lectura vive en el golden y no en `src/lib`. La lógica de producción que
+ejercita —`validarPanel`— ya existe, y un módulo nuevo sin más consumidor que
+este golden es el huérfano que los dos trinquetes de conexión llevan toda la
+semana rechazando. Cuando exista la mitad de imágenes y haya un segundo
+consumidor de verdad, se muda.
+
+## REG-596 — el umbral de la voz, y el conjunto que el censo daba por inexistente
+
+**Eje.** WS-12.contratos-de-evaluacion + TR-VOZ. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/el-motor-de-voz-tiene-techo.test.ts`.
+
+### Dos cosas, y la segunda la destapó la primera
+
+**El umbral de `transcribir` no existía.** El instrumento que pesa errores de voz
+(`asr/lo-que-pesa-de-un-error.ts`) lleva meses escrito y ya separaba críticos,
+sin clasificar y ordinarios. Nadie lo corría contra un conjunto, y el tercer eje
+—cuánto error ordinario es demasiado— no lo había fijado nadie.
+
+**Y el censo mentía sobre el conjunto.** El contrato decía, literalmente: *«No
+existe gold de voz […] todavía no está»*. Y sí estaba, en el árbol:
+`synthetic-data/dialogos-consulta/` — 12 diálogos actuados con su guion y la
+salida real del motor al lado. **Novena entrada del censo que resulta estar vieja
+al ir a construir sobre ella.** Se corrige el censo; no se construye un segundo
+conjunto.
+
+### Se midió ANTES de preguntar
+
+La medición era la pregunta: sin ella, la alternativa era inventar una cifra o
+pedirle una a ciegas al médico.
+
+| | |
+|---|---|
+| Palabras del guion | 532, en 12 consultas |
+| WER crudo | 10,0 % — engañoso: casi todo puntuación y «tres»/«3» |
+| WER normalizado | **1,7 %** |
+| Errores ordinarios | 5 (0,94 %) |
+| Sin clasificar | **0** |
+| Críticos | **1** |
+
+### El crítico es real y tiene nombre
+
+**DLG-004.** El guion dice *«Van dos veces este mes»* —las caídas que cuenta la
+hija—. El motor **se comió la frase entera**: se perdió la cifra y se perdió
+quién la dijo. (De paso funde a la hija con la paciente en un solo hablante, que
+es un defecto de diarización y esta lectura, que sólo ve texto, no vigila.)
+
+### Lo que decidió el médico (D-043) y lo que no
+
+Tres ejes que **no se suman**, y sólo uno es suyo:
+
+| Eje | Umbral | De dónde sale |
+|---|---|---|
+| `criticos` | 0 | Regla ya escrita: `politica-critica.ts` — prohibido, **no penalizado** |
+| `sinClasificar` | 0 | La misma, más: «no sé qué es esto» no puede salir más limpio cuanto menos se reconozca |
+| `ordinario` | **5 %** | **Decisión del médico, 1-sep-2026**, con 1,7 % delante |
+
+Eligió 5 % —tres veces lo medido— porque ese eje no vigila la redacción: vigila
+un **derrumbe**. Si el proveedor degrada el modelo en silencio (ya pasó, REG-167)
+el ordinario sube y los críticos no. Descartó el 2 % por quedar tan pegado a la
+medición que un solo diálogo malo lo pondría rojo, y una compuerta que se pone
+roja por ruido se deja de mirar.
+
+Y a nivel de motor eligió **trinquete** sobre las consultas con crítico —sellado
+en 1, sólo baja— en vez de dejar el CI rojo. **Eso no es tolerar el error**: la
+compuerta del contrato sigue en cero y sigue diciendo `reprueba` hoy; la consulta
+sigue saliendo `aprobada: false`. El trinquete decide qué hace el CI *mientras*
+DLG-004 se arregla, y el defecto queda escrito con nombre en
+`EL_CRITICO_QUE_SIGUE_ABIERTO`, con un guardián que cae si alguien lo borra.
+
+### La compuerta se mudó, y por eso
+
+REG-595 la puso dentro de `ia/evaluacion.ts`, pegada al único arnés que había. Al
+día siguiente hizo falta para un instrumento distinto —éste cuenta errores
+pesados, no campos—. **Dos arneses, un solo tipo `Umbral`:** la compuerta
+pertenece al tipo, no a uno de los dos medidores. Vive ahora en
+`contratos-de-evaluacion.ts`; cada arnés traduce lo suyo a `LoMedido` y la
+comparación se hace UNA vez. La alternativa era una segunda compuerta para voz
+con su propia idea de qué es verde, que es justo lo que la política prohíbe.
+
+### Una prueba que ya había caducado
+
+El golden de REG-595 usaba `transcribir` como ejemplo de «umbral pendiente». A
+las veinticuatro horas dejó de serlo. Ahora lo toma de `sinUmbral()`, del censo:
+una prueba que nombra una capacidad concreta caduca en cuanto el trabajo avanza.
+
+### Probado al revés cinco veces
+
+Contar los críticos como tasa (que se diluyan) · ignorar el techo ordinario ·
+borrar el nombre del defecto de la declaración · subir el umbral de críticos a 1 ·
+dar por bueno un conjunto vacío. Las cinco ponen la prueba en rojo. Por el otro
+lado —pasarse de frenada— se comprueba que mayúsculas y puntuación no reprueban
+(el WER crudo era 10 % y el normalizado 1,7 %: casi todo eran comas) y que una
+transcripción perfecta no reprueba por nada.
+
+Y una contraprueba que importa: **quitando DLG-004 el motor pasa**, así que el
+rojo es de ese diálogo y de nada más.
+
+### El fixture que no probaba nada
+
+El primer intento ensuciaba con `palabra0` → `vocablo0` y el alineador no
+clasificaba **ni una**: la prueba habría quedado verde por un fixture mal
+construido, no por el código. Es REG-197 otra vez. Se ensucia con palabras
+corrientes de verdad —`gato` → `rata`— y queda dicho en el propio ayudante.
+
+## REG-595 — el umbral estaba decidido, escrito… y no reprobaba nada
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 1-sep-2026.
+**Prueba.** `src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts`.
+
+### Lo que faltaba
+
+REG-594 dejó el umbral de `nota-consulta` escrito en el contrato con su fuente y
+sus dos ejes. Su propia entrada del ledger lo dijo: *«que el umbral se APLIQUE es
+otra mitad»*. Esa mitad era ésta.
+
+El arnés (`ia/evaluacion.ts`) medía por un lado. El número del médico vivía por
+otro. **Entre los dos no había una sola función.** Un umbral que no puede
+reprobar nada es lo que el propio contrato llama una métrica decorativa — sólo
+que aquí la decoración la habríamos puesto nosotros, encima de una decisión que
+el médico sí tomó. Es la familia «escrito y sin conectar» de *el dato tiene que
+LLEGAR*, aplicada a un número en vez de a un campo.
+
+### La compuerta
+
+`aplicarUmbral()` toma el umbral **del contrato** —no una copia— y el resumen
+del arnés, y da un veredicto. Se prueba que el número manda: la misma salida rota
+que reprueba con el 1 % del médico pasa con un 50 % armado en la prueba.
+
+La traducción de eje a métrica es de quien escribe el código, así que se eligió
+siempre el lado estricto y se dejó escrita:
+
+| Eje del médico | Lo que mide | Por qué así |
+|---|---|---|
+| **pérdida** | `tasaError` = (faltantes + **incorrectos**) / esperados | Un campo que llegó cambiado tampoco llegó. Contar los incorrectos es más duro que la lectura literal de «perdida» |
+| **alucinación** | `alucinacionesPorCaso` | Con el umbral en cero el denominador da igual; se deja el promedio para el día que alguien lo suba |
+
+### Tres cosas que un descuido leería como verde
+
+1. **Umbral pendiente.** Catorce de las quince capacidades siguen en
+   `NEEDS_CLINICAL_REVIEW`. Si eso se leyera como aprobado, el hueco pasaría a
+   ser un visto bueno.
+2. **Conjunto vacío.** Cero casos dan cero errores y cero alucinaciones: sin
+   guarda, **la forma más fácil de tener la compuerta verde sería borrar el
+   corpus**, y la compuerta mediría el corpus en vez del producto.
+3. **Un eje que el arnés no sabe medir.** Ausencia de dato no es dato de
+   ausencia (seguridad clínica §4), dicho en lenguaje de compuerta.
+
+Ninguno de los tres devuelve `pasa`, y `esVerde()` es el **único** sitio donde se
+define «verde» — existe para que nadie escriba `veredicto !== 'reprueba'` y
+convierta los tres huecos en aprobación por descuido.
+
+### Lo que hay que decir y no es cómodo: el 1 % no se está ejerciendo
+
+Medido antes de escribir nada: el corpus tiene **4 casos y 4 campos esperados**.
+El escalón más pequeño que se puede medir en el eje `perdida` es **1/4 = 25 %**,
+veinticinco veces el umbral. En la práctica la compuerta se comporta hoy como si
+ese umbral fuera **cero**.
+
+Eso es más estricto, no más laxo, así que se aplica igual. Lo que no se puede
+hacer es callarlo: cada lectura lo declara (`elConjuntoNoAlcanzaElUmbral`) y el
+`porQue` lo dice con todas las letras. **Para ejercer el 1 % de D-042 harían
+falta ≥ 100 campos esperados, y ese conjunto no existe.** Hay contraprueba con
+cien campos sintéticos: la limitación es del corpus, no del código.
+
+### Probado al revés cinco veces
+
+Quitar la guarda del conjunto vacío · ignorar el umbral · callar la resolución ·
+leer un umbral pendiente como verde · dejar de medir la alucinación. Las cinco
+mutaciones ponen la prueba en rojo. Y por el otro lado —el de pasarse de
+frenada— se comprueba que la variación de redacción y un campo de más que **sí
+estaba en el dictado** no reprueban: una compuerta siempre roja se deja de mirar,
+que es el argumento con el que el médico descartó el 0 % en `perdida`.
+
+### Los trinquetes decidieron dónde vive, y tenían razón
+
+La compuerta nació como módulo aparte, y **dos trinquetes la rechazaron**:
+`modulos-sin-conectar` porque nadie la llamaba, y `el-camino-del-medico-llega-entero`
+porque subía de 33 a 34 los módulos fuera del camino del médico — y ese techo sólo
+baja.
+
+La salida no era subir el techo ni declarar una isla más: era que la compuerta
+**no es un módulo aparte**. Vive dentro de `ia/evaluacion.ts`, que es el
+instrumento que mide. Un arnés que mide y no compara contra el umbral decidido
+está a medias; separarlos habría dejado dos mitades de un solo instrumento en dos
+archivos, y un archivo nuevo fuera del camino para justificarlo. El techo se
+queda en 33.
+
+### Un cambio de tipo, pequeño y a propósito
+
+`esperaAlMedico()` pasa a ser predicado de tipo. Sin eso, la compuerta habría
+necesitado un `as` justo en el sitio donde un `as` mal puesto convierte un umbral
+pendiente en un número.
+
+## REG-594 — el primero de los quince umbrales, y tiene dos ejes
+
+**Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 31-ago-2026.
+
+### D-042 · el umbral de `nota-consulta`
+
+Quince de los diecisiete contratos esperaban una cifra del médico. El dueño fijó
+el primero, el de la nota, y lo fijó **con dos números distintos**:
+
+| Eje | Umbral | Por qué |
+|---|---|---|
+| **pérdida** | ≤ 1 % | Exigente pero medible. Deja margen para el caso raro —un fármaco dicho a medias, un nombre que el léxico no tiene— sin normalizar la pérdida |
+| **alucinación** | 0 % | Un medicamento perdido se nota al leer la nota; uno **añadido** sale impreso con cédula profesional y nadie lo busca, porque nadie sabe que está |
+
+Se le plantearon 0 %, 1 %, 5 % y «no reprueba, sólo se mide» para cada eje, y la
+advertencia de que **un umbral inalcanzable deja la compuerta siempre en rojo, y
+una compuerta siempre roja se deja de mirar**. Eligió 0 % sólo donde la asimetría
+lo justifica.
+
+### El tipo no podía llevar dos números
+
+`UmbralDecidido` tenía un único `valor`. Meter los dos ejes en un solo número
+habría borrado justo la asimetría que él acababa de decidir — que es lo que hace
+útil la decisión.
+
+Ahora lleva `ejes`, y **`valor` es el más laxo de los dos, a propósito**: quien
+lea sólo ese campo no puede llevarse una impresión mejor que la real. Con el más
+estricto, un lector superficial creería que la capacidad exige cero en todo. Hay
+guardián, y cae si alguien lo invierte.
+
+### El guardián se actualizó sin bajarlo
+
+`cada-capacidad-de-ia-tiene-su-contrato` exigía que **todo** umbral decidido
+saliera de «una regla escrita», porque los dos únicos que había eran ceros
+derivados de reglas del repositorio. Con la decisión del médico, esa exigencia
+habría obligado a disfrazarla de regla — o a bajar el guardián.
+
+Ahora acepta **dos fuentes y ninguna tercera**: una regla escrita, o una decisión
+del médico **con fecha**. Probado al revés tres veces: un número «porque es lo
+habitual» cae, una decisión sin fecha cae, y poner el valor más estricto cae.
+
+### Qué NO cubre
+
+- **Los otros catorce umbrales**, que siguen esperando.
+- **El conjunto real**: se mide sobre `casos-oro.ts`, que es sintético. El
+  estudio sobre dictados reales de-identificados es del dueño y no existe.
+- **Que el umbral se APLIQUE**: el contrato lo declara y el censo lo comprueba;
+  correr la evaluación contra un conjunto y bloquear por debajo del umbral es
+  otra mitad, y necesita el conjunto.
+
+**Prueba.** `src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts` (15 casos).

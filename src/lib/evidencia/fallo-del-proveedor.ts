@@ -27,7 +27,7 @@
  *    por eso sería cambiar un problema pequeño por uno grande.
  *  · **400 / 404** — la consulta estaba mal formada, o ese PMID no existe.
  */
-import type { Veredicto } from '@/lib/red/interruptor'
+import { anotarVeredicto, type Veredicto } from '@/lib/red/interruptor'
 import { TiempoAgotado } from '@/lib/fetch-con-timeout'
 
 /** Traduce el código HTTP de una fuente de evidencia. PURO. */
@@ -56,6 +56,49 @@ export function veredictoDeExcepcionEvidencia(e: unknown): Veredicto {
 export function claveCircuitoEvidencia(fuente: 'ncbi' | 'openfda'): string {
   return `ev:${fuente}:plataforma`
 }
+
+/**
+ * «Contestó» significa que la respuesta SIRVIÓ, no que el socket funcionó.
+ *
+ * ── POR QUÉ EXISTE (REG-583) ────────────────────────────────────────────────
+ *
+ * Los dos clientes anotaban el éxito así:
+ *
+ *     anotarVeredicto(clave, r.ok ? 'contesto' : veredictoDeRespuesta(r.status))
+ *
+ * `'contesto'` en la máquina de estados es `return CERRADO`: cierra el circuito
+ * y **olvida los fallos anteriores**. Un proveedor degradado que contesta `200`
+ * con una página de error —conducta normal de un balanceador o una CDN cuando
+ * el origen se cae— reseteaba su propio interruptor en cada intento y **nunca
+ * llegaba a los tres fallos seguidos** que hacen falta para abrir.
+ *
+ * Medido antes de arreglarlo: con openFDA devolviendo 200 y HTML, veinte
+ * llamadas hacían 40 peticiones y ningún circuito; con 503, tres peticiones y
+ * el circuito abierto. El interruptor de REG-391 estaba derrotado por el ORDEN
+ * de dos líneas.
+ *
+ * ── POR QUÉ ES SEÑALAR DE MENOS, NO DE MÁS ──────────────────────────────────
+ *
+ * Esto **no añade un veredicto de fallo**: quita un veredicto de ÉXITO que no
+ * estaba respaldado. Un cuerpo ilegible deja el contador donde estaba —ni lo
+ * resetea ni lo sube—, así que una respuesta rota aislada no abre nada y una
+ * caída sostenida sí puede acumular.
+ *
+ * Anotar el éxito antes de mirar el cuerpo es afirmar que el proveedor está
+ * bien porque contestó algo. Es el mismo error que «ausencia de dato no es dato
+ * de ausencia», del lado contrario: presencia de respuesta no es presencia de
+ * respuesta ÚTIL.
+ */
+export function anotarQueLaRespuestaSirvio(fuente: 'ncbi' | 'openfda'): void {
+  anotarVeredicto(claveCircuitoEvidencia(fuente), 'contesto')
+}
+
+export const POR_QUE_EL_EXITO_SE_ANOTA_DESPUES =
+  'Porque «contestó» cierra el circuito y borra los fallos anteriores. Anotarlo '
+  + 'al ver un 200, antes de mirar el cuerpo, deja que un proveedor degradado que '
+  + 'devuelve una página de error resetee su propio interruptor en cada intento y '
+  + 'no llegue nunca a abrirlo. No se añade un fallo nuevo: se quita un éxito que '
+  + 'nadie había comprobado.'
 
 export const POR_QUE_UN_429_NO_ABRE =
   'NCBI limita por llave y el módulo ya tiene su propio regulador de velocidad. ' +

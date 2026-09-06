@@ -93,6 +93,38 @@ export function correlacionDe(req: ConCabeceras): string {
   return esCorrelacionValida(cruda) ? cruda : nuevaCorrelacion()
 }
 
+/**
+ * LA TRAZA DE UN TRABAJO DE FONDO — REG-566.
+ *
+ * ── POR QUÉ NO VALE `correlacionDe(req)` AQUÍ ───────────────────────────────
+ *
+ * Un cron llega por HTTP, así que la tentación es reutilizar `correlacionDe`: no
+ * traería cabecera y acuñaría una nueva igual. Pero el endpoint es una URL, y
+ * quien tenga el secreto del cron **puede mandarle una cabecera**. Con
+ * `correlacionDe`, quien llame elige la traza — y dos ejecuciones distintas
+ * podrían compartirla, o una podría fijarse a la de otra cosa a propósito.
+ *
+ * Un trabajo de fondo no nace de un navegador: nace del reloj. Su traza se
+ * acuña **al arrancar**, sin mirar lo que llegó, y por eso es una función
+ * distinta y no un parámetro de la otra. Un `correlacionDe(req, { confiar: false })`
+ * habría dejado la decisión en cada llamador, que es como se pierden.
+ *
+ * ── QUÉ ATA ─────────────────────────────────────────────────────────────────
+ *
+ * Una ejecución entera: el latido que deja, lo que mande y lo que falle. Sin
+ * ella, «el recordatorio de las 8:00 no llegó» no se puede seguir hasta la
+ * corrida que lo intentó — sólo hasta la colección donde acabó.
+ */
+export function correlacionDeTrabajo(): string {
+  return nuevaCorrelacion()
+}
+
+export const POR_QUE_UN_TRABAJO_NO_ACEPTA_LA_QUE_LE_MANDEN =
+  'Un cron llega por HTTP y quien tenga su secreto puede mandarle una cabecera. '
+  + 'Si aceptara la que le llega, quien llama elegiría la traza: dos ejecuciones '
+  + 'podrían compartirla, o una podría fijarse a la de otra cosa. Un trabajo de '
+  + 'fondo no nace de un navegador, nace del reloj, y su traza se acuña al arrancar.'
+
 export const POR_QUE_NO_SE_REUSA_REQUESTID =
   'Porque un campo hacía dos trabajos. `requestId` es la clave con la que se COBRA, ' +
   'y el gateway le añade el proveedor a propósito para que dos intentos del mismo ' +

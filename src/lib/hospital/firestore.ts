@@ -15,8 +15,9 @@ import type {
   Internamiento, TipoEgreso, Interconsulta, Indicacion, TipoIndicacion, Administracion, RegistroSignos, RolHospital,
   SolicitudLab, ResultadoLab, Cama, EstadoCama, BedAssignment,
 } from '@/types/hospital'
-import { tareaDeResultado } from '@/lib/tareas-clinicas/derivar'
-import { crearTareas } from '@/lib/tareas-clinicas/firestore'
+import { tareaDeResultado, tareaDeInterconsulta } from '@/lib/tareas-clinicas/derivar'
+import { crearTareas, tareaPorId, cambiarEstado, idDeTareaDeOrigen } from '@/lib/tareas-clinicas/firestore'
+import { idIdempotente, claveDeIntento } from '@/lib/idempotencia'
 
 function internamientosCol(clinicId: string) {
   return collection(db, 'clinics', clinicId, 'internamientos')
@@ -182,15 +183,155 @@ export async function egresarInternamiento(clinicId: string, id: string, egreso:
 }
 
 // ── F2 · Interconsultas ──
-export async function agregarInterconsulta(clinicId: string, iid: string, ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>): Promise<string> {
+
+/**
+ * ── UNA INTERCONSULTA PEDIDA NO ENTRABA AL BUCLE (REG-570) ──────────────────
+ *
+ * Vivía sólo dentro de `Internamiento.interconsultas`, un array embebido en el
+ * documento del episodio. `tareasVivas`, `cabosDelPaciente` y `estadoDeAccion`
+ * leen `tareas_clinicas`: ninguno podía verla. Una pedida y no contestada era
+ * invisible salvo que alguien abriera esa pestaña de ese episodio.
+ *
+ * Es la misma fuga que REG-252 cerró para los resultados de laboratorio, y se
+ * cierra en el mismo sitio y por la misma razón: **aquí, no en la pantalla**.
+ * Ésta es la única puerta por la que se pide una interconsulta; si la tarea se
+ * creara arriba, la segunda pantalla que alguien escriba nacería con la fuga.
+ *
+ * ── POR QUÉ EL ID SE ACUÑA AQUÍ Y NO EN EL SERVIDOR ─────────────────────────
+ *
+ * El servidor lo acuñaba con `randomUUID()` dentro de la transacción y no lo
+ * devolvía, así que esta función retornaba cadena vacía: **no había forma de
+ * saber qué interconsulta se acababa de crear**, y sin eso la tarea no puede
+ * apuntar a ella.
+ *
+ * Acuñarlo aquí lo resuelve y de paso cierra un defecto que ya estaba: con el id
+ * del servidor, reintentar la petición —un doble clic, una red que se corta
+ * después de escribir— creaba una interconsulta MÁS, porque cada intento acuñaba
+ * un id nuevo. Con el id en la mano del que pide, el servidor reconoce el
+ * reintento y no lo duplica. Es la doctrina de REG-567 aplicada aquí.
+ */
+export interface InterconsultaAbierta {
+  /** El id de la interconsulta dentro del episodio. Ya no es cadena vacía. */
+  id: string
+  /** Cuántas tareas de seguimiento quedaron creadas. */
+  tareasCreadas: number
+  /** Cuántas se esperaban. Si no coinciden, el cabo se perdió y hay que decirlo. */
+  tareasEsperadas: number
+}
+
+export async function agregarInterconsulta(
+  clinicId: string,
+  iid: string,
+  ic: Omit<Interconsulta, 'id' | 'estado' | 'fecha'>,
+  /**
+   * De quién es. Sin paciente no hay tarea clínica, y el episodio lo sabe pero
+   * esta función no: se lo pasa quien la llama, que ya tiene el internamiento.
+   * Omitirlo deja la interconsulta como estaba —creada y fuera del bucle—, que
+   * es lo que hacía antes: se degrada, no se rompe.
+   */
+  paciente?: { id: string; nombre?: string },
+): Promise<InterconsultaAbierta> {
+  /* El id se acuña con la misma puerta que el resto de las escrituras clínicas
+     de este árbol: forma cerrada (`interconsulta__` + 32 hex), atada al
+     consultorio, y con respaldo donde no haya WebCrypto — `crypto.randomUUID`
+     lanza fuera de un contexto seguro, y esto corre en tabletas de hospital. */
+  const id = idIdempotente(clinicId, 'interconsulta', claveDeIntento())
   await mutar(clinicId, iid, 'interconsulta_agregar', {
+    id,
     especialidad: ic.especialidad, motivo: ic.motivo, solicitanteNombre: ic.solicitanteNombre,
     solicitanteId: ic.solicitanteId, medicoSolicitadoId: ic.medicoSolicitadoId, medicoSolicitadoNombre: ic.medicoSolicitadoNombre,
   })
-  return ''
+
+  if (!paciente?.id) return { id, tareasCreadas: 0, tareasEsperadas: 0 }
+  const tarea = tareaDeInterconsulta({
+    clinicId,
+    patientId: paciente.id,
+    patientNombre: paciente.nombre,
+    interconsultaId: id,
+    especialidad: ic.especialidad,
+    motivo: ic.motivo,
+    ahoraMs: Date.now(),
+    /* A quién se le pidió, si se eligió a alguien. Una interconsulta «a
+       cardiología» sin médico concreto nace sin dueño — y `sinDueno` existe
+       precisamente porque ésas son las que se pierden. */
+    ownerUid: ic.medicoSolicitadoId,
+    ownerNombre: ic.medicoSolicitadoNombre,
+  })
+  const { creadas } = await crearTareas(clinicId, [tarea])
+  return { id, tareasCreadas: creadas, tareasEsperadas: 1 }
 }
-export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<void> {
+
+/**
+ * ── CONTESTAR ES «COMPLETADA», NO «CERRADA» ─────────────────────────────────
+ *
+ * El censo pedía «cerrarla en `interconsulta_responder`», y el modelo no lo
+ * permite — con razón. `completada` es que el trabajo se hizo; `cerrada` es que
+ * alguien LO MIRÓ y decidió. Entre esas dos vive exactamente el daño que este
+ * módulo existe para evitar, y una interconsulta es el caso de libro: el
+ * cardiólogo contesta, y si el que la pidió no lee la respuesta, no ha pasado
+ * nada por mucho que el episodio diga «respondida».
+ *
+ * Así que contestar la marca **completada** y la deja viva en «Necesita
+ * revisión»; cerrarla, con la decisión escrita, es del que la pidió.
+ *
+ * `solicitada` no salta a `completada`: el ciclo pasa por `aceptada`, y eso es
+ * cierto aquí —al contestarla el colega la hizo suya y la terminó en el mismo
+ * acto—, así que se recorren los dos pasos y quedan los dos en el registro de
+ * transiciones. Si el segundo falla, la tarea queda `aceptada`: **sigue viva y
+ * sigue viéndose**, que es el lado seguro por el que fallar.
+ */
+export async function responderInterconsulta(clinicId: string, iid: string, icId: string, resp: { respuesta?: string; respondidaPor?: string; notaId?: string }): Promise<TareaDeInterconsulta> {
   await mutar(clinicId, iid, 'interconsulta_responder', { icId, respuesta: resp.respuesta, respondidaPor: resp.respondidaPor })
+  /* Se DEVUELVE lo que pasó con la tarea en vez de tragárselo: la respuesta ya
+     está guardada y no se revierte, pero un pendiente que se queda vivo cuando
+     el trabajo ya se hizo tiene que poder decirse. */
+  return marcarInterconsultaTrabajada(clinicId, icId)
+}
+
+/**
+ * Lleva la tarea de una interconsulta hasta `completada`.
+ *
+ * Separada y exportada para que se pueda probar sin servidor, y `void` a
+ * propósito en el llamador: la respuesta clínica YA está guardada y no se
+ * revierte porque su tarea no se mueva. Lo que no hace es callar el fallo — lo
+ * devuelve.
+ */
+/**
+ * TRES DESENLACES, NO DOS.
+ *
+ * `sin_tarea` no es un fallo y por eso no comparte cubeta con `no_se_pudo`: una
+ * interconsulta anterior a REG-570, o una pedida sin paciente en la mano, nunca
+ * tuvo tarea. Tratarla como error haría saltar un aviso en cada respuesta a una
+ * interconsulta vieja — y un aviso que sale siempre deja de leerse justo el día
+ * que significa algo.
+ */
+export type ComoQuedoLaTarea = 'movida' | 'sin_tarea' | 'no_se_pudo'
+export interface TareaDeInterconsulta { estado: ComoQuedoLaTarea; motivo: string }
+
+export async function marcarInterconsultaTrabajada(
+  clinicId: string, icId: string,
+): Promise<TareaDeInterconsulta> {
+  const tareaId = idDeTareaDeOrigen('hospital', icId)
+  if (!tareaId) return { estado: 'sin_tarea', motivo: 'La interconsulta no trae id.' }
+  const tarea = await tareaPorId(clinicId, tareaId)
+  if (!tarea) return { estado: 'sin_tarea', motivo: 'Esta interconsulta no abrió pendiente.' }
+  /* Ya estaba donde tiene que estar: contestar dos veces no la mueve dos veces
+     ni la marca como fallida. */
+  if (tarea.estado === 'completada' || tarea.estado === 'cerrada') return { estado: 'movida', motivo: '' }
+
+  /* Contestarla es aceptarla y terminarla en el mismo acto. Se recorren los dos
+     pasos porque el ciclo no permite el atajo, y quedan los dos en el registro
+     de transiciones — que es lo que después dice quién la tuvo. */
+  let actual = tarea
+  if (actual.estado === 'solicitada') {
+    const r = await cambiarEstado(clinicId, actual, 'aceptada')
+    if (!r.ok) return { estado: 'no_se_pudo', motivo: r.motivo }
+    const releida = await tareaPorId(clinicId, tareaId)
+    if (!releida) return { estado: 'no_se_pudo', motivo: 'La tarea desapareció entre los dos pasos.' }
+    actual = releida
+  }
+  const r = await cambiarEstado(clinicId, actual, 'completada')
+  return r.ok ? { estado: 'movida', motivo: '' } : { estado: 'no_se_pudo', motivo: r.motivo }
 }
 /** Editar interconsulta — solo mientras esté 'solicitada' (el servidor bloquea si ya respondió). */
 export async function editarInterconsulta(clinicId: string, iid: string, icId: string, ic: { especialidad: string; motivo: string; medicoSolicitadoId?: string; medicoSolicitadoNombre?: string }): Promise<void> {
@@ -244,8 +385,29 @@ export async function cambiarTratante(clinicId: string, iid: string, t: { medico
 function signosCol(clinicId: string, iid: string) {
   return collection(db, 'clinics', clinicId, 'internamientos', iid, 'signos')
 }
-export async function agregarSignos(clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>): Promise<void> {
-  await addDoc(signosCol(clinicId, iid), limpiar(s as object))
+/**
+ * ── UN REGISTRO DE SIGNOS DUPLICADO ALTERA UNA ESCALA — REG-567 ─────────────
+ *
+ * `addDoc` fabrica un nombre nuevo en cada llamada, así que el reintento que
+ * provoca la red —commit hecho, respuesta perdida, el formulario sigue abierto y
+ * se vuelve a pulsar Guardar— escribe **dos tomas del mismo momento**.
+ *
+ * Y aquí no es una molestia de inventario: de estos documentos salen NEWS2 y las
+ * tendencias. Dos tomas idénticas a la misma hora inclinan una escala de
+ * gravedad y disparan —o callan— una alerta de deterioro.
+ *
+ * La clave la acuña quien ABRE el modal y viaja con la intención. Sin ella se
+ * comporta como antes: un llamador que todavía no la pase no puede quedarse sin
+ * registrar unos signos.
+ */
+export async function agregarSignos(
+  clinicId: string, iid: string, s: Omit<RegistroSignos, 'id'>, claveDeIntento?: string,
+): Promise<void> {
+  const datos = limpiar(s as object)
+  if (!claveDeIntento) { await addDoc(signosCol(clinicId, iid), datos); return }
+  const ref = doc(signosCol(clinicId, iid), idIdempotente(clinicId, 'signos', claveDeIntento))
+  /* No se pisa: la toma anterior lleva su hora, que es el dato que la ordena. */
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
 }
 /**
  * Últimos N registros de signos. ANTES SE BAJABA LA SUBCOLECCIÓN COMPLETA.
@@ -291,9 +453,14 @@ export async function corregirSignos(
   iid: string,
   idOriginal: string,
   s: Omit<RegistroSignos, 'id' | 'corrigeA'>,
+  /** REG-567. Una corrección duplicada deja DOS enmiendas del mismo original. */
+  claveDeIntento?: string,
 ): Promise<void> {
   if (!idOriginal) throw new Error('corregirSignos requiere el id del registro que se corrige')
-  await addDoc(signosCol(clinicId, iid), limpiar({ ...s, corrigeA: idOriginal } as object))
+  const datos = limpiar({ ...s, corrigeA: idOriginal } as object)
+  if (!claveDeIntento) { await addDoc(signosCol(clinicId, iid), datos); return }
+  const ref = doc(signosCol(clinicId, iid), idIdempotente(clinicId, 'signos', claveDeIntento))
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
 }
 
 // ── F3/V3 · Rol hospitalario por usuario (persistido, sigue al usuario entre dispositivos) ──
@@ -317,9 +484,22 @@ export async function setTelefonoAlertas(clinicId: string, uid: string, telefono
 // ── F4 · Laboratorio (solicitud → resultado) ──
 function labCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'laboratorio') }
 
-export async function crearSolicitudLab(clinicId: string, data: Omit<SolicitudLab, 'id' | 'estado' | 'createdAt' | 'updatedAt'>): Promise<string> {
+/**
+ * REG-567 — una solicitud de laboratorio duplicada se le TOMA DOS VECES al
+ * paciente: dos punciones, dos tubos y dos resultados que después habrá que
+ * reconciliar. La clave se acuña al abrir el modal.
+ */
+export async function crearSolicitudLab(
+  clinicId: string,
+  data: Omit<SolicitudLab, 'id' | 'estado' | 'createdAt' | 'updatedAt'>,
+  claveDeIntento?: string,
+): Promise<string> {
   const now = new Date().toISOString()
-  const ref = await addDoc(labCol(clinicId), limpiar({ ...data, estado: 'solicitada', createdAt: now, updatedAt: now }))
+  const datos = limpiar({ ...data, estado: 'solicitada', createdAt: now, updatedAt: now })
+  if (!claveDeIntento) return (await addDoc(labCol(clinicId), datos)).id
+  const ref = doc(labCol(clinicId), idIdempotente(clinicId, 'laboratorio', claveDeIntento))
+  /* No se pisa: la solicitud anterior puede llevar ya un resultado colgando. */
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, datos)
   return ref.id
 }
 export async function getSolicitudesLabDeEpisodio(clinicId: string, iid: string): Promise<SolicitudLab[]> {

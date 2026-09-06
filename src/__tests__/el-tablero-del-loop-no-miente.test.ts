@@ -96,6 +96,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync, readdirSync } from 'fs'
+import { execFileSync } from 'node:child_process'
 import { join } from 'path'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
@@ -303,3 +304,68 @@ describe('la memoria del programa sigue completa', () => {
     expect(estado.autorizaciones.cambiosDestructivos).toBe(false)
   })
 })
+
+/**
+ * ── EL TABLERO QUE LEE UNA PERSONA, TAMBIÉN — REG-564 ───────────────────────
+ *
+ * Todo lo de arriba vigila `agent-state/MASTER_STATE.json`, que es la memoria de
+ * la máquina. `docs/product/AUSCULTA-MASTER-BOARD.md` es el tablero que lee una
+ * persona, y su estado estaba **escrito a mano** — con la cabecera diciendo que
+ * «el estado sale del código leído hoy».
+ *
+ * Al mirarlo, la ficha decía SHA `ba9d7a2f` y fecha 29-ago con el árbol quince
+ * REG por delante, mientras el censo del programa decía otra cosa. Dos respuestas
+ * a «¿en qué estado está WS-04?».
+ *
+ * Es el mismo diagnóstico que este archivo ya llevaba escrito para la memoria de
+ * la máquina —«mientras no lo derive un script, va a volver a pasar»— aplicado
+ * al documento de al lado, once meses después.
+ */
+describe('el tablero de la persona tampoco se escribe a mano', () => {
+  it('el bloque derivado existe, con sus marcas', () => {
+    const tablero = leer('docs', 'product', 'AUSCULTA-MASTER-BOARD.md')
+    expect(tablero).toContain('<!-- CENSO-DERIVADO:INICIO -->')
+    expect(tablero).toContain('<!-- CENSO-DERIVADO:FIN -->')
+  })
+
+  it('y coincide con el censo: si no, está viejo', () => {
+    /**
+     * AL REVÉS del estado anterior: cerrar un requisito y no tocar el tablero
+     * dejaba el tablero mintiendo, y nada se ponía rojo. Ahora esto cae.
+     */
+    const salida = execFileSync('node', ['scripts/programa/tablero-derivado.mjs', '--verificar'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    expect(salida).toContain('coincide con el censo')
+  })
+
+  it('lo DERIVADO no incluye el criterio, que se sigue escribiendo a mano', () => {
+    /**
+     * La línea que trazó REG-241 y que sigue siendo la correcta: se deriva el
+     * estado, no la decisión. Un generador que además escribiera «qué hacer a
+     * continuación» estaría inventando criterio con aspecto de dato.
+     */
+    const tablero = leer('docs', 'product', 'AUSCULTA-MASTER-BOARD.md')
+    const i = tablero.indexOf('<!-- CENSO-DERIVADO:INICIO -->')
+    const j = tablero.indexOf('<!-- CENSO-DERIVADO:FIN -->')
+    const bloque = tablero.slice(i, j)
+    expect(bloque).toContain('no sale de un `grep`')
+    /* El bloque cuenta y nombra; no recomienda. */
+    expect(bloque).not.toMatch(/lo siguiente es|hay que empezar por|prioridad: /i)
+  })
+
+  it('los bloqueados fuera dicen QUÉ los desbloquea, y no es código', () => {
+    /* Un «BLOCKED_EXTERNAL» sin la frase que lo desbloquea es un aparcamiento. */
+    const tablero = leer('docs', 'product', 'AUSCULTA-MASTER-BOARD.md')
+    const bloque = tablero.slice(
+      tablero.indexOf('### Bloqueados fuera'),
+      tablero.indexOf('<!-- CENSO-DERIVADO:FIN -->'),
+    )
+    const filas = bloque.split('\n').filter(l => l.startsWith('| `'))
+    expect(filas.length).toBeGreaterThan(5)
+    for (const f of filas) {
+      expect(f, `sin desbloqueo: ${f.slice(0, 60)}`).not.toMatch(/\|\s*—\s*\|/)
+    }
+  })
+})
+

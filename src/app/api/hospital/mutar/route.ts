@@ -10,6 +10,9 @@
  * Resp: { ok, id? } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { tamanoDelEpisodio, type TamanoDelEpisodio } from '@/lib/hospital/lo-que-cabe-en-un-episodio'
+import { enviarAlertaOps } from '@/lib/ops/alerta'
+import { safeLog } from '@/lib/security/sanitize'
 import { idDeEstanciaArchivada, hayQueArchivar } from '@/lib/hospital/estancias-uci'
 import { verificarMiembro } from '@/lib/auth-server'
 import { exigeCapacidad } from '@/lib/authz/verificar'
@@ -21,6 +24,8 @@ import { POLITICA_CAMAS_SEGURA, transicionar } from '@/lib/hospital/estados-cama
 import type { BedAssignment, EstadoCama } from '@/types/hospital'
 import { registroDurable } from '@/lib/hospital/registro-durable'
 import { mismaCama } from '@/lib/hospital/cama'
+import { esIdDeUnSoloSegmento } from '@/lib/idempotencia'
+import { cabe } from '@/lib/hospital/lo-que-cabe-en-un-episodio'
 import { randomUUID } from 'crypto'
 import { sanearAdministracionEntrante } from '@/lib/hospital/administracion-entrante'
 
@@ -121,12 +126,41 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
         porUid: actor.uid,
         fecha: now,                 // reloj del servidor, no el de la tablet
       }
-      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, administraciones: [...((x as Any).administraciones as Any[] ?? []), adm] } : x) }
+      /* WS-03 / REG-572 — el array se TOPA. `registro-durable.ts` decía desde
+         E0-09 que estaba topado y no lo estaba: crecía hasta que el documento
+         pasaba de 1 MB y entonces fallaba TODA mutación del episodio, incluida
+         la siguiente administración y el egreso. Se recorta por el principio, y
+         la dosis entera sigue entera en el libro append-only. */
+      return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId
+        ? { ...x, administraciones: cabe('indicaciones[].administraciones', [...((x as Any).administraciones as Any[] ?? []), adm]) }
+        : x) }
     }
     case 'verificar_farmacia':
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
-    case 'interconsulta_agregar':
-      return { interconsultas: [...arr('interconsultas'), { id: randomUUID(), especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
+    case 'interconsulta_agregar': {
+      /**
+       * ── EL ID LO TRAE QUIEN PIDE, Y ESO CIERRA DOS COSAS (REG-570) ────────
+       *
+       * Antes lo acuñaba aquí `randomUUID()` y no salía de la transacción, así
+       * que `agregarInterconsulta` devolvía cadena vacía: NADIE sabía qué
+       * interconsulta se acababa de crear, y por eso no se le podía colgar la
+       * tarea que la mete en el bucle del worklist.
+       *
+       * Y con el id del servidor, un reintento —doble clic, red que se corta
+       * después de escribir— acuñaba OTRO id y dejaba una interconsulta
+       * duplicada en el episodio. Con el id en la mano del que pide, esto lo
+       * reconoce y no lo repite.
+       *
+       * La forma se VALIDA: `esIdDeUnSoloSegmento` es la misma puerta que usa el
+       * resto del árbol, y lo que no encaje se descarta y se acuña aquí — nunca
+       * se escribe lo que llegó sin comprobarlo.
+       */
+      const id = typeof p.id === 'string' && esIdDeUnSoloSegmento(p.id) ? p.id : randomUUID()
+      /* Idempotente: si ya está, la petición es un reintento y no una segunda
+         interconsulta. Se devuelve el array intacto en vez de duplicarla. */
+      if (arr('interconsultas').some(x => (x as Any).id === id)) return {}
+      return { interconsultas: [...arr('interconsultas'), { id, especialidad: p.especialidad, motivo: p.motivo, solicitanteNombre: p.solicitanteNombre, solicitanteId: p.solicitanteId ?? null, medicoSolicitadoId: p.medicoSolicitadoId ?? null, medicoSolicitadoNombre: p.medicoSolicitadoNombre ?? null, estado: 'solicitada', fecha: now }] }
+    }
     case 'interconsulta_responder':
       return { interconsultas: arr('interconsultas').map(x => (x as Any).id === p.icId ? { ...x, estado: 'respondida', fechaRespuesta: now, respuesta: p.respuesta, respondidaPor: p.respondidaPor } : x) }
     case 'interconsulta_editar': {
@@ -171,11 +205,11 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
     // Igual que el MAR: la enfermera que registra queda registrada como ella, no
     // como el médico. Es dato clínico-legal (quién hizo qué).
     case 'balance':
-      return { balanceHidrico: [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }].slice(-100) }
+      return { balanceHidrico: cabe('balanceHidrico', [...arr('balanceHidrico'), { fecha: now, ingresos: p.ingresos, egresos: p.egresos, por: actor.nombre }]) }
     case 'escala':
-      return { escalas: [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }].slice(-100) }
+      return { escalas: cabe('escalas', [...arr('escalas'), { fecha: now, tipo: p.tipo, score: p.score, riesgo: p.riesgo, por: actor.nombre }]) }
     case 'sbar':
-      return { sbar: [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }].slice(-50) }
+      return { sbar: cabe('sbar', [...arr('sbar'), { fecha: now, texto: p.texto, por: actor.nombre }]) }
     default:
       return {}
   }
@@ -300,7 +334,15 @@ export async function POST(req: NextRequest) {
     const ref = col.doc(internamientoId)
     /** Hilo del expediente para la bitácora; se llena dentro de la transacción. */
     let pacienteIdDelEpisodio = ''
-    await adminDb.runTransaction(async (tx) => {
+    /**
+     * REG-590 · la transacción DEVUELVE lo que ocupa el episodio.
+     *
+     * Por retorno y no por efecto lateral sobre un `let` exterior: el callback
+     * puede no llegar a ejecutarse, así que el compilador no puede saber que la
+     * variable quedó llena — y una asignación que el compilador no ve es una que
+     * mañana nadie ve tampoco.
+     */
+    const tamano: TamanoDelEpisodio | null = await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(ref)
       if (!snap.exists) throw new Error('no-existe')
       const inter = { id: snap.id, ...(snap.data() as Any) }
@@ -516,11 +558,29 @@ export async function POST(req: NextRequest) {
         } catch { /* el alta clínica no se detiene por el historial de camas */ }
       }
 
-      tx.update(ref, { ...patch(accion, inter, payload, now, actor), updatedAt: now })
+      const cambios = { ...patch(accion, inter, payload, now, actor), updatedAt: now }
+      /**
+       * REG-590 · cuánto le queda al episodio antes de PARARSE.
+       *
+       * `lo-que-cabe-en-un-episodio.ts` dejó tres arrays sin tope —`movimientos`,
+       * `indicaciones`, `interconsultas`— porque el documento es su única copia,
+       * y terminaba diciendo que quedan «como riesgo NOMBRADO… un riesgo
+       * declarado SE PUEDE VIGILAR». Nadie lo vigilaba.
+       *
+       * Aquí importa más que en ninguna parte: al llegar a 1 MB no falla lo
+       * último que se añadió, falla TODO — incluido egresar al paciente.
+       *
+       * Se mide sobre el documento que se va a ESCRIBIR, que es el que puede ser
+       * rechazado, y **no bloquea**: frenar una mutación clínica por un umbral de
+       * tamaño sería peor que el riesgo que evita.
+       */
+      const medida = tamanoDelEpisodio({ ...(inter as Any), ...cambios })
+      tx.update(ref, cambios)
       // Además del array-caché en el doc, persiste el registro clínico COMPLETO
       // a la subcolección append-only (sin truncar) → no se pierde nada (NOM-004).
       const durable = registroDurable(accion, payload, now, actor.nombre)
       if (durable) tx.set(ref.collection('registros').doc(), durable)
+      return medida
     })
 
     /**
@@ -568,6 +628,37 @@ export async function POST(req: NextRequest) {
       }).catch(() => { /* la bitácora no revierte un cambio clínico ya aplicado */ })
     }
 
+    /**
+     * REG-590 · el aviso va a OPERACIONES, no al médico.
+     *
+     * Se pensó devolverlo también en la respuesta para pintarlo en la pantalla
+     * del episodio, y se descartó por dos razones:
+     *
+     *  · **El médico no puede hacer nada con él.** «Tu episodio ocupa el 82 %»
+     *    en mitad de una mutación clínica es ruido en el peor momento, y lo que
+     *    lo arregla —sacar los arrays a subcolección— no está en su mano.
+     *  · Los quince llamadores del gateway descartan la respuesta, así que el
+     *    campo habría viajado hasta el navegador para que nadie lo leyera: la
+     *    familia «escrito y sin conectar», añadida a sabiendas.
+     *
+     * Va al registro del servidor y, cuando es crítico, al canal de operaciones
+     * — que hoy DECLARA que no tiene destino en vez de fingir que avisó
+     * (`OPS_ALERTA_WEBHOOK` es acción del dueño, WS-13).
+     */
+    if (tamano && tamano.estado !== 'holgado') {
+      safeLog.warn(`[hospital/mutar] episodio al ${Math.round(tamano.fraccion * 100)} % del máximo por documento`)
+      if (tamano.estado === 'critico') {
+        void enviarAlertaOps({
+          titulo: 'Un episodio está cerca del máximo por documento',
+          /* Sin PHI: ni paciente, ni cama, ni servicio. Quien opera necesita
+             saber QUÉ campo lo llena y en qué consultorio, no de quién es. */
+          detalle: `${tamano.aviso} · consultorio ${clinicId} · episodio ${internamientoId}`,
+          gravedad: 'grave',
+          origen: 'hospital/mutar',
+        })
+          .catch(() => { /* la alerta no revierte un cambio clínico ya aplicado */ })
+      }
+    }
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'error'

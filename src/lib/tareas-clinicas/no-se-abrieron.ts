@@ -45,8 +45,25 @@
  *
  * El navegador es del consultorio, pero el almacenamiento local se comparte
  * entre pacientes: por eso lo guardado se limita a lo que ya iba a estar en la
- * tarea, se pone un tope, y **se borra al cerrar sesión** como el resto de PHI
- * local. No es un expediente paralelo: es un cajón de lo que no llegó.
+ * tarea y se pone un tope. No es un expediente paralelo: es un cajón de lo que
+ * no llegó.
+ *
+ * ── LO QUE ESTA CABECERA DECÍA Y NO ERA VERDAD (REG-576) ────────────────────
+ *
+ * Aquí decía que lo guardado «se borra al cerrar sesión como el resto de PHI
+ * local». **No se borraba.** `limpiarBorradoresLocales` purga las claves que
+ * empiezan por `nx.consulta.bkp.` o `nx.uci.`, y ésta se llama
+ * `nexusmed.pendientes-no-abiertos`: no casaba con ninguna. Hasta cincuenta
+ * pendientes con `patientNombre`, título y detalle dentro se quedaban en el
+ * disco de un equipo compartido, indefinidamente.
+ *
+ * Ahora el cierre de sesión **drena** el cajón (`drenarPendientesPerdidos`): lo
+ * que entra en Firestore desaparece del disco porque ya vive en el servidor, y
+ * lo que no entra se queda — igual que el borrador, porque borrarlo «por
+ * seguridad» convertiría un problema de red en un pendiente clínico perdido.
+ *
+ * Así que sigue habiendo PHI local posible, y ahora se dice: es la que no se
+ * pudo salvar, no la que nadie recogió.
  */
 import type { TareaClinica } from './modelo'
 

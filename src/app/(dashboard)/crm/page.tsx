@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useClinic } from '@/context/ClinicContext'
 import { getAppointments, listarPacientesCompat, TECHO_COMPAT_PACIENTES } from '@/lib/firestore'
-import { where } from 'firebase/firestore'
 import type { Appointment, Patient } from '@/types'
 import {
   TrendingUp, TrendingDown, Users, CalendarCheck2, UserX,
@@ -43,7 +42,7 @@ export default function CRMPage() {
     // 120 días (margen sobre los 90) → métricas idénticas, muchas menos lecturas.
     const ventana = isoDaysAgo(120) + ' 00:00'
     Promise.all([
-      getAppointments(clinicId, [where('fechaHora', '>=', ventana)]),
+      getAppointments(clinicId, { desde: ventana }),
       listarPacientesCompat(clinicId),
     ]).then(([a, p]) => {
       setAppts(a)

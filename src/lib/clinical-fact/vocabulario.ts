@@ -25,7 +25,7 @@
  */
 
 import type { ConceptoRef } from '@/types/clinical-fact'
-import { ANALITOS } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS, CLAVES_DEL_CATALOGO, type Analito } from '@/lib/expediente/laboratorio/analitos'
 
 /**
  * 1.1.0 (2026-07-30) — cierre de la verificación adversarial de E1-02:
@@ -134,13 +134,40 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
     candidatos: ['pcr', 'pcr_molecular'],
     nota: 'NEEDS_CLINICAL_REVIEW (E1-02/Q2): «PCR» puede ser proteína C reactiva o reacción en cadena de la polimerasa. Sin decisión del médico dueño no se elige: confirmar con el usuario.',
   },
+  /**
+   * REG-598 · §25.2 del catálogo de plausibilidad del dueño (D-045).
+   *
+   * Éstos no esperan una decisión: son ambiguos POR NATURALEZA, y lo seguirán
+   * siendo. La hoja imprime «Neutrófilos» y sólo la unidad dice si es el
+   * porcentaje o el absoluto. Colocar 75 en la serie del absoluto es un valor
+   * mal leído —el eje que el médico puso en CERO (D-044)— y no se ve, porque
+   * tiene la forma correcta.
+   */
+  neutrofilos: {
+    candidatos: ['neutrofilosPct', 'neutrofilosAbs'],
+    nota: '«Neutrófilos» no identifica un analito sin su unidad: 75 (%) y 7,5 (×10³/µL) son resultados distintos (§25.2 de D-045). La unidad decide; sin ella se pregunta.',
+  },
+  neutros: {
+    candidatos: ['neutrofilosPct', 'neutrofilosAbs'],
+    nota: 'Igual que «neutrófilos»: la abreviatura tampoco dice si es porcentaje o absoluto.',
+  },
+  linfocitos: {
+    candidatos: ['linfocitosPct', 'linfocitosAbs'],
+    nota: '«Linfocitos» no identifica un analito sin su unidad: 28 (%) y 2,8 (×10³/µL) son resultados distintos (§25.2 de D-045). La unidad decide; sin ella se pregunta.',
+  },
+  linfos: {
+    candidatos: ['linfocitosPct', 'linfocitosAbs'],
+    nota: 'Igual que «linfocitos»: la abreviatura tampoco dice si es porcentaje o absoluto.',
+  },
 }
 
 /**
  * NEEDS_CLINICAL_REVIEW · Q1 — LOINC de laboratorio.
  *
  * Trinquete: número de conceptos de dominio `laboratorio` SIN ningún código
- * estándar. Hoy son TODOS (25 = 24 de ANALITOS + creatinina_orina), porque
+ * estándar. Hoy son TODOS (218: los 32 escritos a mano más los 186 del catálogo
+ * del dueño. Eran 25, luego 33 con los ocho de REG-598, y 218 desde que REG-601
+ * cargó el catálogo entero), porque
  * elegir un LOINC no es mecánico —cambia según magnitud (masa vs. sustancia) y
  * espécimen— y un código equivocado viaja al exterior dentro de un `Observation`
  * de FHIR, donde otro sistema lo lee como verdad.
@@ -148,7 +175,17 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
  * Este número sólo puede BAJAR, y sólo cuando el médico dueño valide la tabla
  * concepto→LOINC. El test T-5 lo fija: nadie «completa» el catálogo inventando.
  */
-export const LAB_SIN_CODIGO_CONGELADO = 25
+/**
+ * SUBE CUANDO ENTRA UN ANALITO, Y ESO NO ES UNA EXCEPCIÓN AL TRINQUETE.
+ *
+ * Lo que este número vigila es que nadie INVENTE un LOINC, no que el catálogo no
+ * crezca. Un analito nuevo sin código es exactamente lo correcto: el §27.3 y el
+ * §35 del catálogo del dueño piden LOINC, y elegirlo no es mecánico —cambia con
+ * la magnitud y el espécimen— así que lo valida él, no yo.
+ *
+ * Baja SÓLO cuando el médico dueño valide una fila concepto→LOINC.
+ */
+export const LAB_SIN_CODIGO_CONGELADO = 218
 
 // ---------------------------------------------------------------------------
 // 3.b PROCEDENCIA DE LOS SINÓNIMOS — la afirmación «aquí no se inventó nada»
@@ -350,6 +387,42 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
   cloro: ['cloro', 'cl', 'cloro serico'],
   tsh: ['tsh', 'tirotropina'],
   pcr: ['pcr', 'proteina c reactiva'],
+  /**
+   * REG-601: `creatinina_orina` ya viene de ANALITOS (D-045 §20), pero sus tres
+   * términos los decidió una persona en E1-02, no el nombre del documento. Se
+   * quedan declarados a mano, que es lo que este mapa significa.
+   */
+  creatinina_orina: ['creatinina en orina', 'creatinina urinaria', 'creatinina orina'],
+
+  /**
+   * ── LOS OCHO DE D-045 (REG-598) ──────────────────────────────────────────
+   *
+   * Derivados de los literales que están EN los `patron` de `analitos.ts`, como
+   * todos los de arriba. Ni uno inventado; el invariante T-10 lo comprueba
+   * llamando a `analitoDe` con la unidad del propio concepto.
+   */
+  acidoUrico: ['acido urico', 'ac urico', 'ac. urico', 'a urico', 'a. urico'],
+  ferritina: ['ferritina'],
+  vitaminaD: ['vitamina d', '25 oh d', '25-oh d', '25 hidroxi vitamina d', 'calcidiol'],
+  vcm: ['vcm', 'mcv', 'volumen corpuscular medio'],
+  /**
+   * EL DIFERENCIAL LEUCOCITARIO COMPARTE TÉRMINOS A PROPÓSITO — §25.2 de D-045.
+   *
+   * «Neutrófilos» a secas NO identifica un analito: puede ser 75 (%) o 7,5
+   * (×10³/µL), y son dos series distintas. Los términos desnudos se declaran en
+   * LOS DOS conceptos para que el resolutor devuelva `ambiguo`, que es la
+   * verdad, en vez de elegir uno. Es la misma postura que toma `analitoDe`
+   * cuando no le dan unidad: no se adivina.
+   *
+   * Y por eso las claves son `…Pct` y `…Abs`, y NINGUNA es la palabra desnuda:
+   * si una de las dos se llamara `neutrofilos`, esa palabra tendría dueño, y la
+   * hoja que imprime «Neutrófilos» no dice cuál de los dos es. Los nombres salen
+   * del propio §25.2 (`neutrophils_percent` / `neutrophils_absolute`).
+   */
+  neutrofilosPct: ['neutrofilos', 'neutros'],
+  neutrofilosAbs: ['neutrofilos absolutos', 'neutrofilos', 'neutros', 'anc'],
+  linfocitosPct: ['linfocitos', 'linfos'],
+  linfocitosAbs: ['linfocitos absolutos', 'linfocitos', 'linfos', 'alc'],
 }
 
 /**
@@ -358,7 +431,32 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
  * no la FORMA del valor: `hemoglobina` declara exactamente ['hemoglobina'] y eso es
  * correcto — su `patron` en analitos.ts no admite ninguna otra forma.
  */
-export const CLAVES_SINONIMOS_DECLARADOS: readonly string[] = Object.keys(SINONIMOS_LAB)
+/**
+ * ── LOS 187 DEL CATÁLOGO DECLARAN SU SINÓNIMO SOLOS — REG-601 ───────────────
+ *
+ * Un analito que viene del documento del médico dueño tiene UN término y es su
+ * propio nombre en ese documento: «Procalcitonina», «Anti-Xa», «NT-proBNP». No
+ * hay abreviatura que decidir ni criterio que aportar, así que declararlos a
+ * mano sería copiar 187 renglones del mismo sitio del que ya salen.
+ *
+ * Lo que el invariante T-6 protege sigue en pie: un analito escrito A MANO en
+ * producción, sin sinónimos declarados, cae al respaldo `[clave]` y el test lo
+ * delata. Esa exigencia NO se afloja — sólo deja de aplicarse a los que no
+ * tienen nada que declarar. Y T-10 los comprueba igual, uno por uno, contra
+ * `analitoDe`.
+ */
+export const CLAVES_SINONIMOS_DECLARADOS: readonly string[] = [
+  ...Object.keys(SINONIMOS_LAB),
+  ...CLAVES_DEL_CATALOGO,
+]
+
+/** El sinónimo de un analito del catálogo: su nombre en el documento del dueño. */
+function sinonimosDelCatalogo(a: Analito): readonly string[] {
+  const partes = a.etiqueta.includes(' / ')
+    ? a.etiqueta.split('/').map(p => p.trim()).filter(Boolean)
+    : [a.etiqueta]
+  return [...new Set(partes.map(normalizarTermino))]
+}
 
 /**
  * Espécimen declarado, sólo donde el repo YA lo distinguía.
@@ -419,27 +517,31 @@ const CONCEPTOS_LAB: readonly ConceptoCanonico[] = [
     clave: a.clave,
     etiqueta: a.etiqueta,
     dominio: 'laboratorio',
-    ...(ESPECIMEN_LAB[a.clave] ? { especimen: ESPECIMEN_LAB[a.clave] } : {}),
+    /**
+     * REG-601: el espécimen lo trae YA el analito. `ESPECIMEN_LAB` sigue mandando
+     * donde lo declaró una persona —es más específico que la regla general— y el
+     * analito cubre el resto. Antes sólo existía el mapa, así que los 187 del
+     * catálogo habrían entrado sin muestra declarada.
+     */
+    especimen: ESPECIMEN_LAB[a.clave] ?? a.especimen,
     // Si un analito nuevo aparece en producción sin sinónimos declarados aquí,
     // al menos su propia clave lo resuelve; el test T-6 obliga a declararlos.
-    sinonimos: SINONIMOS_LAB[a.clave] ?? [normalizarTermino(a.clave)],
+    sinonimos: SINONIMOS_LAB[a.clave] ?? (CLAVES_DEL_CATALOGO.has(a.clave) ? sinonimosDelCatalogo(a) : [normalizarTermino(a.clave)]),
     codigos: [],                       // NEEDS_CLINICAL_REVIEW · Q1
     unidadConvencional: a.unidad,
   })),
   /**
-   * `creatinina_orina` existe hoy sólo como EXCLUSIÓN en `analitos.ts:44`
-   * (`(?!\s*(en\s*)?orina)`). Se le da identidad propia para que la aceptación
-   * de E1-02 no se pueda «cumplir» colapsando orina y suero en la misma serie.
-   * No comparte ni un sinónimo con `creatinina`.
+   * `creatinina_orina` YA NO SE DECLARA AQUÍ — REG-601.
+   *
+   * Nació en E1-02 como concepto sin analito detrás: existía sólo para que
+   * aquella aceptación no se pudiera «cumplir» colapsando orina y suero. Hoy el
+   * catálogo del dueño (D-045 §20) trae la creatinina urinaria de verdad, con
+   * sus límites de captura, y `analitos.ts` reutiliza ESTA clave para no crear
+   * una segunda. Así que ya viene de arriba, como todos.
+   *
+   * Sus tres sinónimos siguen declarados en `SINONIMOS_LAB`: son términos que
+   * decidió una persona, no el nombre del documento.
    */
-  {
-    clave: 'creatinina_orina',
-    etiqueta: 'Creatinina en orina',
-    dominio: 'laboratorio',
-    especimen: 'orina',
-    sinonimos: ['creatinina en orina', 'creatinina urinaria', 'creatinina orina'],
-    codigos: [],                       // NEEDS_CLINICAL_REVIEW · Q1
-  },
 ]
 
 /**

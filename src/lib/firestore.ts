@@ -67,20 +67,71 @@ export async function addClinicMember(
 
 // ── Appointments ──────────────────────────────────────────────
 
+/**
+ * LA VENTANA ES OBLIGATORIA, Y POR ESO ES UN PARÁMETRO Y NO UN `limit` — REG-563.
+ *
+ * ── QUÉ HABÍA ───────────────────────────────────────────────────────────────
+ *
+ * `constraints: QueryConstraint[] = []`. Con ese valor por omisión,
+ * `getAppointments(clinicId)` descarga **todas las citas que el consultorio haya
+ * tenido nunca**, y el que lo escriba no tiene que hacer nada raro: le basta con
+ * no pensar en la ventana.
+ *
+ * Ninguno de los cinco llamadores de hoy lo hace —los cinco pasan un
+ * `where('fechaHora', '>=', …)`—, así que esto no es una lectura cara en
+ * producción: es la puerta abierta para que la siguiente lo sea. Cerrarla ahora
+ * cuesta cinco líneas; cerrarla cuando alguien la cruce cuesta encontrarla.
+ *
+ * ── POR QUÉ NO SE ARREGLA CON UN `limit` ────────────────────────────────────
+ *
+ * La consulta ordena por `fechaHora` **ascendente**, así que `limit(N)` se queda
+ * con las N citas MÁS ANTIGUAS del consultorio y descarta las de esta semana. En
+ * una agenda, recortar por el extremo equivocado no es una lectura barata: es
+ * perder citas en silencio, que es peor que la lectura cara.
+ *
+ * Lo que acota de verdad una agenda es el TIEMPO. Por eso la ventana no es una
+ * opción que se pueda omitir sino el segundo argumento, y el tipo la exige.
+ */
+export interface VentanaDeAgenda {
+  /** `YYYY-MM-DD HH:MM`, inclusivo. */
+  readonly desde: string
+  /** `YYYY-MM-DD HH:MM`, inclusivo. Sin él, la ventana llega hasta el final. */
+  readonly hasta?: string
+}
+
 export async function getAppointments(
   clinicId: string,
-  constraints: QueryConstraint[] = []
+  ventana: VentanaDeAgenda,
+  extra: QueryConstraint[] = [],
 ): Promise<Appointment[]> {
-  const q = query(col(clinicId, COLLECTIONS.appointments), orderBy('fechaHora', 'asc'), ...constraints)
+  const q = query(
+    col(clinicId, COLLECTIONS.appointments),
+    orderBy('fechaHora', 'asc'),
+    where('fechaHora', '>=', ventana.desde),
+    ...(ventana.hasta ? [where('fechaHora', '<=', ventana.hasta)] : []),
+    ...extra,
+  )
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment))
 }
 
+/**
+ * Una cita por su identificador. REG-585.
+ *
+ * Hacía falta porque un pendiente declarado `agendada` nombra UNA cita, y los
+ * casos que importan —el paciente no vino, la cita se canceló— ya pasaron: una
+ * ventana de agenda futura los perdería justo a ellos.
+ *
+ * `null` = no existe. Una lectura que FALLA lanza, para que quien llama pueda
+ * distinguir «no existe» de «no se pudo leer».
+ */
+export async function getAppointment(clinicId: string, id: string): Promise<Appointment | null> {
+  const snap = await getDoc(d(clinicId, COLLECTIONS.appointments, id))
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Appointment) : null
+}
+
 export async function getAppointmentsByDate(clinicId: string, fecha: string): Promise<Appointment[]> {
-  return getAppointments(clinicId, [
-    where('fechaHora', '>=', fecha + ' 00:00'),
-    where('fechaHora', '<=', fecha + ' 23:59'),
-  ])
+  return getAppointments(clinicId, { desde: fecha + ' 00:00', hasta: fecha + ' 23:59' })
 }
 
 // createAppointment se eliminó: el alta de citas ahora es ATÓMICA vía POST /api/appointments

@@ -30,7 +30,7 @@
  * Módulo PURO.
  */
 
-import { ANALITOS, analitoPorClave, type Analito } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS, ANALITOS_EN_TEXTO, analitoPorClave, type Analito } from '@/lib/expediente/laboratorio/analitos'
 
 /**
  * Abreviatura de nota para cada analito.
@@ -186,7 +186,8 @@ export function esLineaDeLabCapturado(linea: string, capturados: readonly LabMed
   // Nombre + separador + número + unidad opcional, y NADA más.
   const m = l.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ()\/]+?)\s*[:=]\s*([\d.,]+)\s*(?:[A-Za-zµ%\/³×0-9.]+)?\s*\.?$/)
   if (!m) return false
-  const a = ANALITOS.find(x => x.patron.test(m[1]))
+  /** REG-601: el subconjunto de PROSA, no el catálogo entero. Ver `ANALITOS_EN_TEXTO`. */
+  const a = ANALITOS_EN_TEXTO.find(x => x.patron.test(m[1]))
   if (!a) return false
   const num = Number(m[2].replace(/,(?=\d{3}\b)/g, '').replace(',', '.'))
   if (!Number.isFinite(num)) return false

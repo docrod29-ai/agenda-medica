@@ -3,6 +3,30 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1186 — la rama de laboratorio se reencuentra con `main`, a la tercera
+
+El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1186.md`](PAQUETE-PRODUCCION-2026-09-06-v1186.md).
+
+**52 commits sobre v1185** · las 45 unidades de la rama de laboratorio
+(REG-560…604) y diez decisiones del dueño (D-036…045).
+
+Lo que trae: el catálogo maestro de plausibilidad del dueño (220 analitos)
+cargado por máquina; la unidad se normaliza ANTES de juzgar el número; los
+factores de conversión se CALCULAN de pesos atómicos IUPAC en vez de teclearse;
+el espécimen sale de la cabecera de la hoja, así que una glucosuria de 250 deja
+de archivarse como glucemia. Y en voz, el umbral de motor con su trinquete.
+
+**Tercera renumeración**: `main` se llevó REG-515…555 y D-032…035 mientras esto
+se fusionaba. Y en la vuelta anterior el detector de colisiones casi deja pasar
+veintiún duplicados, porque buscaba `## REG-N —` con raya y `main` escribe
+`## REG-N ·` con punto medio.
+
+**Dos cosas van APARTE del botón y las autoriza el dueño**: el índice compuesto
+de `errores` —sin él Firestore rechaza la consulta del vigilante en cada
+ejecución— y la regla de `platform_authz_denegadas`, que no abre nada porque el
+comodín final ya deniega, pero conviene que sea explícita.
+
 ## v1185 — el carril de excelencia de producto: doce encargos, medidos en un navegador
 
 **Publicado el 6-sep 02:36 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #25).
