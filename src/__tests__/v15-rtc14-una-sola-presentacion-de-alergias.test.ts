@@ -103,9 +103,26 @@ describe('RTC-14 — una sola presentación de la alergia en la consulta', () =>
   })
 
   it('4 · sólo se enseña la lectura cuando AÑADE algo', () => {
-    // Si lo escrito ya es exactamente el alérgeno, repetirlo al lado sería el
-    // mismo defecto que esta rebanada quita.
-    expect(CONSULTA).toMatch(/alergenosDelPaciente\.join\(' · '\) !== \(patient\?\.alergias \?\? ''\)\.trim\(\)/)
+    /*
+     * ESTE CASO CLAVABA EL DEFECTO QUE VENÍA A EVITAR (corregido el 1-sep-2026).
+     *
+     * Exigía la expresión LITERAL
+     * `alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim()`
+     * — o sea, comparar dos cadenas YA PUNTUADAS. Con «Penicilina (anafilaxia),
+     * sulfas, AINEs» escrito, la lectura es la misma lista separada con « · »:
+     * distintas como cadena, idénticas como hecho. La condición se cumplía
+     * SIEMPRE y la alergia se pintaba DOS VECES en la misma franja, en rojo.
+     *
+     * Visto en navegador, no aquí: esta prueba estaba en verde mientras el
+     * defecto estaba en pantalla, porque comprobaba que el código dijera una
+     * cadena concreta en vez de que hiciera lo que su propio nombre promete.
+     *
+     * Ahora exige la REGLA —que la decisión salga de `laLecturaAnadeAlgo`, que
+     * compara conjuntos normalizados— y la conducta se prueba de verdad, con
+     * casos, en `la-alergia-no-se-dice-dos-veces-en-la-misma-franja`.
+     */
+    expect(CONSULTA).toMatch(/laLecturaAnadeAlgo\(String\(patient\?\.alergias \?\? ''\), alergenosDelPaciente\)/)
+    expect(CONSULTA).toMatch(/import \{[^}]*laLecturaAnadeAlgo/)
   })
 
   it('5 · la siembra trae el caso de REG-311, para poder verlo en navegador', () => {

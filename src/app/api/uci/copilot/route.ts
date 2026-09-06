@@ -27,6 +27,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { esFundador as fundador } from '@/lib/authz/fundador'
 import { llamarIA, type Contexto } from '@/lib/ia/gateway'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5']
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
   const anthropic = await resolverClaveIA(acceso.uid, 'anthropic', process.env.ANTHROPIC_API_KEY ?? '').catch(() => ({ key: '', fuente: 'ninguna' as const, clinicId: acceso.clinicId ?? null }))
   const openai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '', fuente: 'ninguna' as const }))
   if (!anthropic.key && !openai.key) {
-    return NextResponse.json({ error: 'No hay llave de IA configurada. Agrega tu llave de Anthropic u OpenAI en Configuración.' }, { status: 400 })
+    return NextResponse.json({ error: iaNoDisponible('razonamiento').mensaje }, { status: 400 })
   }
 
   // RED DE SEGURIDAD DE COSTO (anti-fuga): si el Copilot corre sobre la LLAVE DEL

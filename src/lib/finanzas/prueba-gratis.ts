@@ -1,3 +1,4 @@
+import { fechaCorta } from '@/lib/formato/fecha'
 /**
  * LA PRUEBA GRATIS SE ESTRENA UNA VEZ.
  *
@@ -69,7 +70,7 @@ export function decidirPrueba(h: HistorialDePrueba): DecisionPrueba {
   if (h.pruebaEstrenadaEn) {
     return {
       dias: undefined,
-      porQue: `La prueba ya se estrenó el ${String(h.pruebaEstrenadaEn).slice(0, 10)}. `
+      porQue: `La prueba ya se estrenó el ${fechaCorta(String(h.pruebaEstrenadaEn))}. `
         + 'Se cobra desde el primer día.',
     }
   }

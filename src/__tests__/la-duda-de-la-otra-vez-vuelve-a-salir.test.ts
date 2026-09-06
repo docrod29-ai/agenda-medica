@@ -219,7 +219,11 @@ describe('el dato tiene que LLEGAR a la consulta', () => {
 
   it('y lo pinta con la fecha de la nota que lo dice', () => {
     expect(src).toMatch(/\{dudasDeAntes\.length > 0 && \(/)
-    expect(src).toContain('d.dichoEn.slice(0, 10)')
+        /* Antes exigía el ISO literal. La fecha sigue llegando —es lo que este caso
+       protege—, pero ahora en es-MX, como todo el producto (unidad 93). Se
+       compara con el mismo formateador para no clavar una abreviatura de mes
+       que depende del ICU del entorno. */
+    expect(src).toContain('fechaCorta(d.dichoEn)')
   })
 
   it('excluye la nota que se está escribiendo ahora', () => {

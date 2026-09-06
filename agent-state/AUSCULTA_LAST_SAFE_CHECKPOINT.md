@@ -1,5 +1,85 @@
 # AUSCULTA — último punto seguro
 
+<<<<<<< HEAD
+## Checkpoint · 6-sep-2026 — **fusionado con `main`: 155 commits de distancia, 12 archivos en conflicto, resueltos**
+
+```
+CURRENT_BRANCH=claude/ausculta-product-excellence-52rqck
+CURRENT_HEAD=(este commit)
+CURRENT_PR=(sin PR — la rama está empujada, no fusionada)
+LAST_COMPLETED_UNIT=103 · la fusión con main
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=La rama ya está al día con main y en verde. Lo que queda es del dueño: (1) abrir el PR y fusionar; (2) desplegar reglas e índices de Firestore; (3) la clave de IA, que destraba Evidencia y la transcripción de verdad; (4) un iPhone real — sin WebKit NADA de este carril prueba iPhone; (5) pentest y PITR.
+TESTS_PASSED=12695
+TESTS_FAILED=1
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes y el proxy del contenedor rechaza al instante. Es intermitente: en una corrida de la suite entera pasó. NO tocar la aserción.
+BUILD=compila
+BLOCKED_EXTERNAL=iPhone/WebKit real · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
+DO_NOT_REGRESS=REG-542…REG-555
+```
+
+### La fusión, y lo que enseñó
+
+`main` había avanzado **155 commits**. Al fusionar aparecieron 12 archivos en
+conflicto y, más interesante, **tres decisiones de producto tomadas dos veces
+por separado**: la agenda que abre en Día en el teléfono, `minmax(0, 1fr)` en la
+rejilla del mes, y derivar `ultimaCita` de las citas en la siembra.
+
+En las tres **gana `main`**, y no por ser el tronco: por estar selladas con
+guardianes que no son de este carril. Concretamente:
+
+- La **píldora flotante de grabación**: este carril la había retirado haciendo
+  `fixed` la barra de voz. `main` la conserva y la esconde cuando el panel está
+  a la vista, y lo tiene sellado en
+  `grabar-nunca-es-rojo-y-se-manda-desde-un-sitio.test.ts` junto con otras cinco
+  reglas (grabar nunca es rojo, un solo cronómetro, un solo botón de pausa). Las
+  dos soluciones son incompatibles. Se revierte la de aquí entera.
+- La **vista del calendario**: `main` la elige al montar y NO la re-impone al
+  girar, y lo tiene sellado. Este carril la derivaba con `useSyncExternalStore`.
+  Se revierte.
+
+De este lado se conserva lo que valía por su cuenta y no chocaba: la píldora y
+la barra usan ahora el **vocabulario común** (`rotulo`, `reloj`) en vez de dos
+`padStart` propios — la regla de REG-544, que aquel cambio no había alcanzado.
+
+**Los REG de este carril se renumeraron 417→513 … 430→526**: `main` había usado
+417-430 para regresiones distintas. Se renumeró sólo lo que no existía en
+`origin/main`, línea por línea.
+
+### Dos defectos que salieron DE la fusión
+
+- El observador de la píldora quedó vigilando **otro elemento** (`ref` en el
+  `<div>` equivocado). Lo cazó el guardián de `main`.
+- `nada-flotante-tapa-un-control` buscaba el botón del tour con
+  `hasText: /^saltar$/i`. Con expresión regular, `hasText` mira el texto CRUDO,
+  y el del botón lleva saltos de línea: **el tour no se cerraba nunca**, y el
+  guardián llevaba midiendo la pantalla del tour —una capa `fixed` con z-index
+  200— y diciendo «ok». Ahora se busca por nombre accesible y **se comprueba que
+  la capa se fue**; si sigue ahí, se para.
+
+### Los arneses de este carril
+
+| Comando | Qué mide |
+|---|---|
+| `npm run arnes:telefono-navegador` | Las 28 pantallas a 390 px: arrastre lateral y recorte mudo. |
+| `npm run arnes:confirmacion` | El teclado del diálogo destructivo: 9 comprobaciones. |
+| `npm run arnes:regresion-visual` | 14 capturas contra línea base. `--estabilidad` mide su propio ruido. |
+| `npm run arnes:dia-del-medico` | El día entero: entrar, ver, abrir, consentir, grabar, detener, firmar, cobrar, recuperar el audio. |
+
+### La lección que se repitió
+
+Un guardián puede estar escrito, correr y salir verde sin vigilar nada: porque
+pregunta del lado equivocado de la frontera (REG-550), porque mira una carpeta
+de menos (REG-553), porque prueba una forma del dato que nadie envía y a una
+hora en la que el defecto no se asoma (REG-554), porque mide la pantalla en un
+estado en el que nadie trabaja (REG-555), o porque su localizador nunca casa y
+mide la pantalla de otra cosa (el tour, arriba). **Visitar la ruta no es
+medirla.**
+
+---
+
+## Checkpoint anterior · Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
+=======
 ## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado, #442 absorbido el test-the-test y la seguridad reportada cerrados (REG-519…535) · tres decisiones del dueño escritas (D-033…034)**
 
 ```
@@ -75,6 +155,7 @@ DO_NOT_REGRESS=REG-519 (revocación en telesalud/sala) · REG-520 (una lista de 
 ---
 
 ## Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
+>>>>>>> origin/main
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v

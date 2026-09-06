@@ -1663,6 +1663,25 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 @media (max-width: 640px) {
   .grid-2 { grid-template-columns: 1fr !important; }
 }
+/* Un hijo de rejilla vale por defecto min-width:auto, y eso significa "nunca
+   más angosto que tu contenido". Con un nombre largo dentro —y los nombres
+   mexicanos traen cuatro o cinco partes— la pista crece más que la pantalla y
+   se lleva la rejilla por delante. Pasó en Finanzas: el recorte estaba escrito
+   (ellipsis, maxWidth 70%) y no se aplicaba nunca porque el hijo no podía
+   encoger. min-width:0 es lo que deja que la truncación ya escrita funcione. */
+.grid-2 > * { min-width: 0; }
+
+/* Rejilla de TITULAR + PAR: un dato manda y otros dos se comparan entre sí.
+   En un teléfono el titular toma el ancho completo y el par queda lado a lado.
+   Apilar los tres rompería la comparación, que es justo para lo que el par
+   existe (efectivo contra transferencia: la pregunta es cuál pesa más).
+   El !important vence al estilo inline en pantallas chicas. */
+.grid-titular-par { display: grid; }
+.grid-titular-par > * { min-width: 0; }
+@media (max-width: 640px) {
+  .grid-titular-par { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+  .grid-titular-par > :first-child { grid-column: 1 / -1; }
+}
 
 /* ── Objetivos táctiles ≥44px en dispositivos de dedo ──────────
    En desktop (puntero fino) los botones de 36px están bien y mantienen la
@@ -3345,6 +3364,49 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .riel-entrada[data-momento='hecho'] .riel-hora { color: var(--text2); font-weight: 500; }
 .riel-entrada[data-momento='cerrado'] .riel-nombre,
 .riel-entrada[data-momento='cerrado'] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* ── PASÓ, Y NO SE RESOLVIÓ ────────────────────────────────────────────────
+
+   Una cita confirmada cuya hora ya pasó no está HECHA —nadie la atendió— ni
+   CERRADA —nadie la canceló—. Medido el 1-sep a las 18:08: seis de las ocho
+   citas del día se pintaban a peso completo, indistinguibles de una que está
+   por venir, porque el momento se derivaba del estado y no del reloj.
+
+   Se atenúa igual que lo pasado, para que el ojo deje de tratarla como «lo
+   siguiente»… */
+.riel-entrada[data-momento='pasado'] .riel-nombre,
+.riel-entrada[data-momento='pasado'] .riel-hora { color: var(--text2); font-weight: 500; }
+
+/* …pero el NODO se dibuja distinto: hueco y con el borde en ámbar, no en gris.
+   «Pasó sin resolverse» no puede leerse como «listo»: son justamente las filas
+   que hay que reconciliar al cerrar el día. Ámbar es, en la paleta del riel,
+   «requiere confirmación humana» — que es exactamente lo que son. */
+.riel-entrada[data-momento='pasado'] .riel-nodo::before {
+  background: var(--bg);
+  /*
+    85% Y NO 70%, Y EL PORQUÉ ES MEDIDO.
+    El 70% con el que nació esta regla (unidad 95) daba **2.89 : 1 en tema
+    claro** sobre el fondo crema — por debajo del 3 : 1 que WCAG 1.4.11 pide a
+    un componente de interfaz que no es texto. En oscuro daba 3.5 : 1 y pasaba,
+    así que el defecto sólo existía en la mitad del producto que no se había
+    mirado.
+
+    Es exactamente lo que advierte la regla de diseño: los dos temas se diseñan
+    aparte, no se invierten. Un `color-mix` contra `transparent` se apoya en el
+    fondo, y el fondo es lo que cambia entre temas.
+
+       alfa   claro   oscuro
+        70%    2.89     3.50   ← lo que había
+        75%    3.13     3.87
+        85%    3.73     4.69   ← elegido: margen en los dos, sin llegar al sólido
+       100%    4.81     6.14
+
+    85 y no 75: 3.13 pasa por 0.13, y un token de color que se mueva un punto lo
+    tira. Y no 100 porque el nodo lleno es el del momento presente: éste tiene
+    que seguir siendo hueco.
+  */
+  border-color: color-mix(in srgb, var(--amber) 85%, transparent);
+}
 .riel-entrada[data-momento='cerrado'] .riel-nombre { text-decoration: line-through; text-decoration-color: var(--text3); }
 
 .riel-cuerpo { grid-area: cuerpo; min-width: 0; }
@@ -3833,6 +3895,32 @@ span.riel-aviso { cursor: default; }
 }
 .nx-agenda-bloque:active { transform: scale(0.985); }
 
+/* El nombre manda dentro del bloque estrecho de la agenda.
+   La etiqueta es UNA línea: el nombre ocupa lo que haya y se recorta DICIENDO
+   que se recorta; la hora va detrás y se retira cuando la columna es tan
+   angosta que se comería el nombre —que es lo que pasaba en un teléfono, con
+   columnas de 41 px donde el bloque entero decía «08:00» y ya. La hora exacta
+   sigue en el title y en la etiqueta accesible.
+
+   OJO CON DÓNDE VA ESTO. La primera versión colgó el `white-space: nowrap` de
+   `.nx-agenda-bloque`, que es la clase que comparten los TRES tamaños de
+   bloque — y la vista de día no es una línea estrecha: es una tarjeta de dos
+   renglones con el nombre completo y su insignia. Al dejar de poder partir la
+   línea, esa tarjeta se salió 198 px de la pantalla. La regla es de la
+   ETIQUETA estrecha, no del bloque; el bloque sólo pone su transición. */
+.nx-agenda-etiqueta {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  min-width: 0;
+}
+.nx-agenda-quien { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-agenda-hora { flex: 0 0 auto; color: var(--text3); font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .nx-agenda-hora { display: none; }
+}
+
 /* Las opciones de tipo de consulta: el borde lo lleva el grupo, no cada una.
    El foco tiene que verse SIN borde propio, así que va por dentro. */
 .nx-opcion-tipo { background: transparent; }
@@ -4302,6 +4390,78 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
 }
 
 
+
+/* ── LA BANDA DE CONTEXTO DE LA CONSULTA ───────────────────────────────────
+
+   MEDIDO en navegador el 1-sep, primer pliegue de `/consulta`: el contexto del
+   paciente se pintaba con CINCO contenedores de geometría idéntica — problemas
+   y última visita, medicación vigente, dispositivos, trayectorias de
+   laboratorio, visitas anteriores — todos `1px solid var(--border)` + radio 10
+   + un icono de 16 + una etiqueta en negrita. Cambiaba el icono y nada más.
+
+   Eso es exactamente lo que la regla de diseño prohíbe medir y dejar pasar:
+   «tablero hecho enteramente de tarjetas redondeadas» y «todo con el mismo peso
+   visual». Cinco cajas iguales no son jerarquía: son inventario. El médico no
+   puede saber, mirando, cuál de las cinco le importa hoy.
+
+   Y no se arregla repintándolas. Se arregla quitándoles la caja: R3 de la
+   gramática NexusMED —«cero contenedores nuevos donde el espacio y el tipo ya
+   jerarquizan»—. Las cinco pasan a ser FILAS de una sola banda, separadas por
+   una línea de pelo. Una caja donde había cinco, y la jerarquía la hace la
+   tipografía de cada fila, no su borde.
+
+   POR QUÉ CON ADYACENCIA Y NO CON UN ENVOLTORIO. Las cinco filas son
+   condicionales: cualquiera puede no existir. Un `<div>` envolvente pintaría la
+   caja aunque dentro no quedara ninguna. Con `+` la banda la forman las que de
+   verdad se rindieron, y si mañana alguien mete un bloque distinto en medio,
+   las de cada lado se agrupan solas y la de en medio queda aparte — degrada a
+   lo que había, nunca a algo roto.
+
+   La alergia NO entra en la banda, a propósito: no es contexto, es un aviso de
+   riesgo, y es lo único de este pliegue que debe poder gritar. */
+.nx-ctx {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 13px;
+  margin-bottom: 12px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+/* La fila que tiene otra detrás pierde su borde de abajo y sus esquinas: deja
+   de ser una caja y pasa a ser la parte de arriba de la banda. */
+.nx-ctx:has(+ .nx-ctx) {
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* Y la que va detrás se pega a la anterior con una línea de pelo en vez de con
+   dos bordes y un hueco de 12px. */
+.nx-ctx + .nx-ctx {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top-color: var(--border);
+}
+/* El icono de cada fila baja de rango: era un color más compitiendo en cinco
+   sitios. Marca la fila, no la reclama. */
+.nx-ctx > svg { flex-shrink: 0; margin-top: 1px; color: var(--text3); opacity: 0.75; }
+
+
+/* ── EL METADATO DE LA FRANJA DE ALERGIAS ──────────────────────────────────
+
+   MEDIDO por el arnés de tema claro: `--text3` sobre el crema rojizo de esta
+   franja da **4.49 : 1** en tema claro. AA pide 4.5 — falla por una centésima,
+   y falla en la franja del dato más letal del producto.
+
+   El token no está mal: `--text3` ya se ajustó una vez para pasar AA sobre las
+   superficies claras normales. Esta franja NO es una superficie normal: lleva un
+   tinte encima, y nadie había medido el metadato sobre él.
+
+   `--text2` da 5.41 : 1 en claro y 7.41 : 1 en oscuro sobre ese mismo tinte. Se
+   sube el rol SÓLO aquí dentro, no el token global: el resto del producto usa
+   `--text3` sobre superficies sin teñir, donde ya cumple. */
+.nx-franja-alergias .nx-meta { color: var(--text2); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SUPERFICIE PÚBLICA — la portada, su navegación y su héroe.

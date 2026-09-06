@@ -6,6 +6,7 @@ import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { avatarColor } from '@/lib/avatar-color'
 import { alergenosDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 
 /**
  * PATIENT ANCHOR — V15-PATIENT-WORKSPACE-001 (§7: identidad, edad/sexo,
@@ -99,9 +100,35 @@ export function PatientAnchor({
           <h1 className="nx-display nx-ancla-nombre nx-vt-paciente">
             {patient?.nombre ?? 'Paciente'}
           </h1>
+          {/*
+            ── EL MISMO DEFECTO QUE LA CONSULTA, AQUÍ (unidad 91 → 93) ────────
+            Decía «· Femenino · 5555010101»: separador HUÉRFANO delante, porque
+            la edad se concatenaba con `''` cuando faltaba y el « · » del sexo se
+            escribía igual. Al arreglarlo en la consulta quedó declarado que
+            otras pantallas seguían con la foto vieja; ésta es una.
+
+            Tres cosas cambian:
+
+            1. Las piezas se ARMAN y se unen, así que no hay separadores
+               huérfanos falte lo que falte.
+            2. La edad se DERIVA de la fecha de nacimiento con el motor
+               determinista (`edadEnAnios`), que ya existía y esta pantalla no
+               llamaba. Un número guardado es la foto del día que se escribió.
+            3. El TELÉFONO baja de este renglón. Es el subtítulo de la identidad
+               CLÍNICA del paciente —lo que hay que saber antes de decidir— y un
+               número de contacto no compite ahí con la edad. Sigue en «Datos del
+               paciente», que es su sitio.
+
+            Y la edad ausente se declara en vez de desaparecer: un hueco callado
+            en este renglón se lee como «ya la vi».
+          */}
           <div className="nx-meta" style={{ marginTop: 2 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}
-            {patient?.telefono ? ` · ${patient.telefono}` : ''}
+            {[
+              edadEnAnios(patient?.fechaNacimiento) != null
+                ? `${edadEnAnios(patient?.fechaNacimiento)} años`
+                : patient?.edad != null ? `${patient.edad} años` : '— edad no registrada',
+              patient?.sexo,
+            ].filter(Boolean).join(' · ')}
           </div>
         </div>
         {encuentroActivo && (
@@ -162,7 +189,10 @@ export function PatientAnchor({
           <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {errorPaciente}
         </div>
       ) : (
-        <div style={{
+        /* `nx-franja-alergias`: la HOJA necesita poder hablar de esta franja
+           —lleva un tinte encima y sus metadatos no contrastan igual que sobre
+           una superficie normal—. Ver `globals.css`. */
+        <div className="nx-franja-alergias" style={{
           ...alertaEstilo,
           color: alergenos.length ? 'var(--red)' : alergiasNegadas ? 'var(--text2)' : 'var(--amber)',
           background: alergenos.length
@@ -183,6 +213,32 @@ export function PatientAnchor({
               ? alergenos.join(' · ')
               : alergiasNegadas ? 'negadas por el paciente' : 'no registradas'}
           </span>
+          {/*
+            ── `--text3` NO LLEGA A AA SOBRE EL TINTE DE ESTA FRANJA ──────────
+            Medido por el arnés de tema claro: **4.49 : 1** de `--text3` sobre el
+            crema rojizo de la franja de alergias, en tema claro. AA pide 4.5, así
+            que falla por una centésima — y falla en la franja del dato más letal
+            del producto.
+
+            (Los valores concretos de cada token viven en `globals.css`, que es su
+            sitio: escribirlos aquí sube el contador de hex del trinquete de
+            diseño, y con razón.)
+
+            El token no está mal: `--text3` ya se ajustó una vez para pasar AA
+            sobre las superficies claras normales. Lo que pasa es que esta franja
+            NO es una superficie normal: lleva un tinte rojo encima, y nadie
+            había medido el metadato sobre él.
+
+            Sube a `--text2`, que da 5.41 : 1 en claro y 7.41 : 1 en oscuro sobre
+            ese mismo tinte. No se toca el token global: se sube el rol del
+            metadato que vive DENTRO de esta franja.
+
+            Y se hace en la HOJA (`.nx-franja-alergias .nx-meta`), no con un color
+            en el `style={{ }}`. Mi primera versión lo puso en línea y el guardián
+            de roles tipográficos lo cazó con razón: es exactamente lo que este
+            carril lleva quitando desde la unidad 91 — la apariencia vive en la
+            hoja, no en el JSX.
+          */}
           {ultimoCambio && (
             <span className="nx-meta" style={{ marginLeft: 'auto' }}>
               Último cambio: {TIPO_NOTA_LABEL[ultimoCambio.tipo]} · {formatoRelativo(ultimoCambio.fechaConsulta || ultimoCambio.createdAt)}

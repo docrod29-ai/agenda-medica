@@ -40,6 +40,7 @@
  */
 
 import { writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 
 const PROYECTO = process.env.ARNES_PROYECTO || 'demo-nexusmed-v10'
 const AUTH = process.env.ARNES_AUTH || '127.0.0.1:9099'
@@ -186,28 +187,49 @@ const PACIENTES = [
  * `pendiente-confirmar` es el estado real de una cita que aún no confirma el
  * paciente, y es el que de verdad llena la agenda de un consultorio.
  */
+/**
+ * El vocabulario REAL de un tipo unión de `src/types/index.ts`.
+ *
+ * Se lee del archivo en vez de copiarlo aquí a mano, porque una copia a mano
+ * es exactamente el defecto que este guardián existe para cazar: se escribe
+ * bien el día que se escribe y se queda vieja en silencio.
+ */
+function vocabulario(nombreDelTipo) {
+  const tipos = readFileSync(new URL('../../src/types/index.ts', import.meta.url), 'utf8')
+  const i = tipos.indexOf(`export type ${nombreDelTipo} =`)
+  if (i < 0) throw new Error(`No existe el tipo ${nombreDelTipo} en src/types/index.ts`)
+  const fin = tipos.indexOf('\nexport ', i + 1)
+  const bloque = tipos.slice(i, fin < 0 ? undefined : fin)
+  const valores = [...bloque.matchAll(/\|\s*'([^']+)'/g)].map(m => m[1])
+  if (valores.length === 0) throw new Error(`No se pudo leer el vocabulario de ${nombreDelTipo}`)
+  return valores
+}
+
+/** El origen con el que se escribe TODA cita del arnés. Una sola fuente. */
+const ORIGEN_DE_LA_SIEMBRA = 'Manual'
+
 const CITAS = [
-  { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
-  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
-  { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
-  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
+  { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
+  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'primera-vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
+  { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
+  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'primera-vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
   /**
    * Dos casos que EXISTEN en el código y no se podían ver en pantalla:
    * la cita de cortesía (con su motivo) y la descuadrada con Google Calendar.
    * Sin sembrarlas, sus avisos no se pintan nunca y no hay forma de auditarlos.
    */
-  { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
-  { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
+  { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
+  { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
   /**
    * ATENDIDA Y SIN COBRAR — el único estado en el que aparece el botón de
    * «Cobrar». Sin ella, el camino del dinero no se puede recorrer en el arnés:
    * el botón no existe, así que no hay nada que auditar. Cuarta vez en esta
    * vuelta que la siembra era lo que impedía ver una pantalla.
    */
-  { id: 'cita-010', pac: 'pac-001', hora: '08:00', dur: 30, tipo: 'Seguimiento', estado: 'atendida', conf: true, motivo: 'Control de presión' },
-  { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
-  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
-  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+  { id: 'cita-010', pac: 'pac-001', hora: '08:00', dur: 30, tipo: 'seguimiento', estado: 'atendida', conf: true, motivo: 'Control de presión' },
+  { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
+  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
+  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
 ]
 
 /**
@@ -414,6 +436,7 @@ async function main() {
   })
 
   /**
+  /**
    * `ultimaCita` SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
    *
    * La siembra escribía `noShowCount` y `cancelacionCount` —lo que dejaría una
@@ -432,7 +455,15 @@ async function main() {
    * Se deriva con la MISMA regla del producto —`esAtencionEfectiva` en
    * `src/lib/agenda/contadores-paciente.ts`— y no con una fecha inventada, para
    * que la siembra no pueda separarse de la regla sin que un guardián lo vea.
+   *
+   * Y para que eso sea verdad, la lista **se lee de ese archivo**, no se copia
+   * aquí: una copia se escribe bien el día que se escribe y se queda vieja en
+   * silencio, que es exactamente el defecto del que va este bloque.
    */
+  /* La lista es LITERAL a propósito: `las-dos-listas-de-estados-son-la-misma`
+     la compara con `esAtencionEfectiva` del producto y falla si se separan, así
+     que la copia no puede derivar en silencio. Leerla del archivo dejaría al
+     guardián sin nada que comparar. */
   const ESTADOS_QUE_CUENTAN_COMO_ATENCION = ['atendida', 'finalizada', 'pagada']
   const ultimaCitaDe = new Map()
   for (const c of CITAS) {
@@ -597,6 +628,40 @@ async function main() {
       hashFirma: '',
     },
     /*
+     * ── LOS TRES EJES DEL ESTADO DEL PACIENTE, SEMBRADOS ────────────────────
+     *
+     * `Diagnostico` distingue tres cosas a la vez, y el consultorio de prueba no
+     * tenía NI UNO, así que la jerarquía de estado del expediente se estaba
+     * juzgando sobre una lista vacía — que es como dar por buena una pantalla
+     * porque no tiene nada que enseñar.
+     *
+     *   tipo   → definitivo · presuntivo · descartado · diferencial   (certeza)
+     *   estado → activo · resuelto · cronico · en_seguimiento         (momento)
+     *   tipoOrigen → quién puso el tipo: el médico o la IA           (procedencia)
+     *
+     * Se siembra uno de cada combinación que importa, para que se pueda VER si
+     * la pantalla los distingue. Descripciones sintéticas y sin cifras: lo que
+     * se vigila es si el ojo separa un hecho de una sospecha, no el contenido.
+     */
+    diagnosticos: [
+      { descripcion: 'Condición crónica sintética A', tipo: 'definitivo', estado: 'cronico',
+        fechaDiagnostico: '2019-04-11', tipoOrigen: 'medico' },
+      { descripcion: 'Condición activa sintética B', tipo: 'definitivo', estado: 'activo',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'medico' },
+      // SOSPECHA, no hecho: tiene que verse distinto de las dos de arriba.
+      { descripcion: 'Sospecha sintética C', tipo: 'presuntivo', estado: 'en_seguimiento',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'medico' },
+      // La IA lo propuso y el médico NO lo ha avalado: el caso más delicado.
+      { descripcion: 'Propuesta de la IA sintética D', tipo: 'presuntivo', estado: 'activo',
+        fechaDiagnostico: iso(hoy).slice(0, 10), tipoOrigen: 'extraccion' },
+      // DESCARTADO: estuvo sobre la mesa y ya no. No puede leerse como vigente.
+      { descripcion: 'Descartada sintética E', tipo: 'descartado', estado: 'resuelto',
+        fechaDiagnostico: '2024-02-20', tipoOrigen: 'medico' },
+      // RESUELTO: fue verdad y ya no lo es. Distinto de descartado.
+      { descripcion: 'Resuelta sintética F', tipo: 'definitivo', estado: 'resuelto',
+        fechaDiagnostico: '2023-08-05', tipoOrigen: 'medico' },
+    ],
+    /*
      * Texto sintético y SIN UNA SOLA CIFRA CLÍNICA: aquí se vigila que la
      * pantalla se comporte, no lo que dice. `clinical-safety.md` §1 — una dosis
      * o un umbral inventados en un fixture acaban citándose como si fueran algo.
@@ -693,6 +758,40 @@ async function main() {
   })
 
   // ── Agenda ────────────────────────────────────────────────────────────────
+  /**
+   * LA SIEMBRA SE COMPRUEBA CONTRA EL VOCABULARIO DE VERDAD.
+   *
+   * Cuarta vez que un dato de prueba fuera del vocabulario hace mentir a la
+   * pantalla que se está auditando: `urgencia` por `urgente` (unidad 16), el
+   * estado inventado que documenta la cabecera de este archivo, y ahora el
+   * tipo de cita escrito con su ETIQUETA humana —«Seguimiento», «Primera
+   * vez»— donde el producto guarda su clave —`seguimiento`, `primera-vez`—.
+   *
+   * El efecto era mudo, que es lo peor: `APPOINTMENT_TYPE_CONFIG[tipo]?.label`
+   * devolvía `undefined`, la línea del bloque decía « · 30min» con un hueco
+   * donde iba el tipo, y nadie se quejaba. Diez citas del arnés, las diez con
+   * el tipo en blanco, en TODAS las capturas de la agenda que hay en
+   * `docs/design/capturas/`. Un arnés que miente calla mejor que un arnés roto.
+   *
+   * Por eso ya no se confía en leerlo bien: se compara con el catálogo real,
+   * y si no casa la siembra se para en vez de escribir la mentira.
+   */
+  const TIPOS_DE_CITA = vocabulario('AppointmentType')
+  const ESTADOS_DE_CITA = vocabulario('AppointmentStatus')
+  const ORIGENES_DE_CITA = vocabulario('AppointmentOrigin')
+  for (const c of CITAS) {
+    for (const [campo, valor, validos] of [
+      ['tipo', c.tipo, TIPOS_DE_CITA],
+      ['estado', c.estado, ESTADOS_DE_CITA],
+      ['origen', ORIGEN_DE_LA_SIEMBRA, ORIGENES_DE_CITA],
+    ]) {
+      if (validos.includes(valor)) continue
+      throw new Error(
+        `${c.id}: ${campo} '${valor}' fuera del vocabulario del producto.\n` +
+        `  Se guarda la CLAVE, no la etiqueta que se le enseña al médico.\n` +
+        `  Válidos: ${validos.join(', ')}`)
+    }
+  }
   for (const c of CITAS) {
     const p = PACIENTES.find(x => x.id === c.pac)
     await escribir(`clinics/${CLINICA}/appointments/${c.id}`, {
@@ -704,7 +803,7 @@ async function main() {
       tipo: c.tipo,
       motivo: c.motivo,
       estado: c.estado,
-      origen: 'manual',
+      origen: ORIGEN_DE_LA_SIEMBRA,
       medicoNombre: 'Dra. Ximena Alcántara Robledo',
       medicoId: uid,
       confirmadoPaciente: c.conf,

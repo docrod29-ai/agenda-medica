@@ -20111,3 +20111,1067 @@ Verificación en navegador: `docs/product/AUSCULTA-ULTRA-READINESS.md` §8.
 
 - Una nota firmada duplicada con otro id seguiría cruzándose.
 - No renderiza; la sonda del arnés es la que mira, y no corre en CI.
+---
+
+## REG-542 — la consulta trabajaba sin la edad del paciente, y ninguna compuerta lo dijo
+
+**Dónde**: `src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`src/lib/expediente/pediatria.ts` (`edadEnAnios`, ya existía)
+
+### Qué fallaba
+
+La consulta leía `patient.edad` —un número guardado— y no derivaba nada de
+`patient.fechaNacimiento`. Con el campo vacío, **trece lecturas** de esa pantalla
+degradaban en silencio:
+
+- `esPediatrico` nunca se encendía → sin modo pediátrico
+- `esGineco` nunca se encendía → sin módulo de ginecología
+- las vacunas atrasadas devolvían 0 → un cero que no vigila nada
+- el memo de contexto de **seguridad** y cada llamada a motor recibían `undefined`
+- al copiloto le llegaba, literalmente, la cadena «? años»
+
+Ninguno avisaba. Es «ausencia de dato no es dato de ausencia» en la capa que
+decide dosis.
+
+### Cómo se descubrió
+
+Mirando el primer pliegue de `/consulta` en el navegador. El subtítulo decía
+«· Femenino · Nota de Primera Vez», con un **separador huérfano** donde debía ir
+la edad — y el paciente sí tenía fecha de nacimiento en el expediente. El síntoma
+visible era un « · » de más; lo que había debajo era la capa que decide dosis
+trabajando sin la edad.
+
+### Causa raíz
+
+Dos campos para un solo hecho: el expediente guarda `fechaNacimiento` y las
+pantallas leen `edad`. `edadEnAnios` —motor determinista, ya probado en
+`pediatria.ts`— existía y la consulta **no lo llamaba**: la regla «escrito,
+probado y sin conectar». `/pacientes` sí lo llama, pero **sólo** al teclear la
+fecha en su formulario, y guarda el resultado como número.
+
+### El arreglo
+
+Cuando hay fecha de nacimiento, la edad **derivada manda** sobre la guardada. Un
+número guardado es la foto del día que se escribió: quien se registró con 66
+sigue teniendo 66 cinco años después. La resta la hace el motor, no la pantalla
+(`clinical-safety` §2). No se escribe nada en Firestore: corregir el documento
+del paciente es otro acto, del médico. Y sin fecha ni edad, la pantalla lo
+**declara** («— edad no registrada») en vez de callarlo.
+
+### Qué NO cubre
+
+- Sólo la consulta. Otras pantallas que lean `edad` sin derivarla siguen viendo
+  la foto vieja.
+- No corrige el dato en Firestore, a propósito.
+- No vigila que los trece consumidores usen bien la edad: sólo que la reciban.
+
+**Prueba.** `src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts`
+(8 casos), con los dos casos de compuerta —pediátrica y ginecológica— probados
+en los dos sentidos: encendida con la edad al día, apagada y muda sin ella.
+
+---
+
+## REG-543 — la alergia se decía dos veces en la misma franja, y su guardián clavaba el defecto
+
+**Dónde**: `src/lib/seguridad/alergias.ts` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx` ·
+`src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts`
+
+### Qué fallaba
+
+En el primer pliegue de la consulta, la franja de alergias decía lo mismo dos
+veces, en rojo, a 700 px de distancia:
+
+```
+Alergias: Penicilina (anafilaxia), sulfas, AINEs   se lee: Penicilina (anafilaxia) · sulfas · AINEs
+```
+
+### Causa raíz
+
+La condición era `alergenos.join(' · ') !== (patient?.alergias ?? '').trim()` —
+comparar dos **cadenas ya puntuadas**. El texto escrito separa con «, » y la
+lectura con « · », así que difieren como cadena aunque digan exactamente lo
+mismo, y la condición se cumplía **siempre**.
+
+El comentario del código ya declaraba la intención correcta —«sólo aparece
+cuando la lectura AÑADE algo»—. Lo que no coincidía era la implementación: un
+guardián que dice lo que quiere hacer y comprueba otra cosa.
+
+Es REG-311 —«dos avisos del mismo dato compiten entre sí, y el segundo se aprende
+a ignorar»— reapareciendo **en horizontal** cuando se fusionaron los dos avisos
+verticales.
+
+### Y el guardián existente clavaba el defecto
+
+`v15-rtc14` §4 exigía esa expresión **literal**. Estaba en verde mientras el
+defecto estaba en pantalla, porque comprobaba que el código dijera una cadena
+concreta en vez de que **hiciera** lo que su propio nombre promete. Se reescribió
+para exigir la regla, y la conducta se prueba con casos aparte.
+
+### El arreglo
+
+`laLecturaAnadeAlgo` compara **conjuntos normalizados**: mismos alérgenos, en
+cualquier orden, con cualquier separador, sin acentos ni mayúsculas → no añade
+nada y no se pinta. Y al revés sigue funcionando: con prosa clínica —«Niega
+penicilina. Alérgico a sulfas»— la lectura sí añade y se ve.
+
+### Qué NO cubre
+
+- No dice si la lectura es **correcta**, sólo si es redundante. Un alérgeno mal
+  extraído se sigue enseñando — que es lo que debe pasar.
+- Los separadores reconocidos son los que un médico escribe de verdad. Uno
+  exótico haría que la lectura se considere distinta y se pinte: falla hacia
+  enseñar de más, no de menos.
+
+**Prueba.** `src/__tests__/la-alergia-no-se-dice-dos-veces-en-la-misma-franja.test.ts`
+(8 casos). **Probada al revés**: restaurar la comparación de cadenas → 4 rojos,
+incluido el caso real; quitar la normalización de acentos → 1 rojo.
+
+---
+
+## REG-544 — cuatro relojes y tres palabras para un solo estado de grabación
+
+**Dónde**: `src/lib/encuentro/vocabulario-de-la-escucha.ts` (nuevo) ·
+`src/components/InstrumentStrip.tsx` · `src/components/MientrasHablas.tsx` ·
+`src/app/(dashboard)/consulta/[patientId]/page.tsx`
+
+### Qué fallaba
+
+Medido en navegador con la consulta **grabando de verdad** (micrófono falso,
+ciclo completo desde el consentimiento):
+
+```
+relojes a la vez ........ 4   →  «0:39», «0:39», «00:39», «00:39»
+palabras de estado ...... 3   →  «Grabando», «Escuchando», «Esperando voz»
+regiones aria-live ...... 6, dos releyendo el cronómetro entero cada segundo
+relojes escritos a mano .. 5
+```
+
+Para quien usa lector de pantalla eso no es información: es un goteo continuo de
+cifras —«Rosalía Mendieta Cuevas · Grabando · 00:39»— una vez por segundo,
+durante una consulta con el paciente hablando.
+
+### Causa raíz, que no es la que parece
+
+**No había cuatro fuentes de verdad.** Hay una —el `EVENTO_GRABANDO` que escuchan
+`MarcoEscuchando`, `InstrumentStrip`, `FlowRail` y `BottomNav`— y el invariante
+de arquitectura se respetaba.
+
+Lo duplicado era la **presentación**. «La misma entidad se pinta distinto según
+dónde se mire» permite que una franja sea discreta y otra grande; no permite que
+una diga «Escuchando» y otra «Grabando» del mismo segundo. Eso no es pintar
+distinto: es **decir** distinto.
+
+### El arreglo
+
+Un módulo de vocabulario. Palabra y reloj salen de ahí. Dos decisiones que son
+clínicas y no de estilo:
+
+1. **«Grabando», no «Escuchando»**: el paciente firmó consentimiento para que la
+   conversación *se grabe*, el audio se guarda y `data-privacy` declara que la
+   voz es biométrica. La palabra suave es la equivocada justo aquí.
+2. **`grabando` no se anuncia**: lleva el reloj. Se anuncia el CAMBIO de estado,
+   no el paso del tiempo. El `role="status"` de la franja **no se quita** —
+   sostiene la regla `region` de axe que `v15-a11y-avisos-en-landmark` cerró—:
+   se calla el reloj con `aria-hidden`, no la franja.
+
+### Qué NO cubre
+
+- Siguen siendo **cuatro indicadores**; ahora dicen lo mismo. Reducirlos es otra
+  unidad.
+- Dos controles de detener con texto más un ⏹ sin texto. Sin tocar.
+- `Esperando voz…` sigue leyéndose como contradicción de «Grabando».
+- El control flotante queda encima de un campo de signos vitales.
+
+**Prueba.** `src/__tests__/un-estado-de-la-escucha-se-dice-una-sola-vez.test.ts`
+(7 casos). **Probada al revés ×3.** Y el propio reverso corrigió el guardián: su
+primera versión exigía la ortografía exacta que ya había visto —espacios
+incluidos— y dejó pasar la misma copia escrita de otra forma. Al ampliarla
+encontró un **quinto** reloj que el arreglo había dejado atrás.
+
+---
+
+## REG-545 — nueve pantallas le enseñaban al médico la fecha en ISO
+
+**Dónde**: `src/lib/formato/fecha.ts` (nuevo) · expediente · consulta ·
+pacientes · corte de caja · `dosing/consulta.ts` · `finanzas/prueba-gratis.ts` ·
+`ResumenPaciente`
+
+### Qué fallaba
+
+En el expediente longitudinal, dos renglones seguidos decían la misma fecha de
+dos maneras, y un tercer sitio de la misma pantalla la decía en ISO:
+
+```
+Actividad: 1 consulta · última visita  01 sep 2026
+                        · desde         1 sep 2026
+                        · desde el      2026-09-01
+```
+
+Contado en el árbol entero: **9** pantallas de cara al médico imprimían ISO crudo
+y había **6 o más** especificaciones de formato para la misma clase de hecho.
+
+### Por qué importa más de lo que parece
+
+Una fecha en un expediente no es adorno: es cuándo se prescribió, cuándo se
+firmó, desde cuándo toma un fármaco. `2026-09-01`, `01 sep 2026` y `1 sep 2026`
+son la misma fecha, pero leerlas juntas obliga a traducir, y traducir es donde se
+equivoca uno. El producto ya tuvo un defecto de esta familia —«08/09/2026»,
+formato de EE. UU. en un producto es-MX— y volvió por otra puerta.
+
+### El arreglo
+
+Dos formas y ninguna más: `fechaCorta` y `fechaConHora`. `YYYY-MM-DD` se
+interpreta al mediodía, porque a secas es UTC y en México retrocede un día. Lo
+que no es una fecha devuelve `''`, nunca «Invalid Date» ni el ISO de entrada: un
+hueco visible en vez de disfrazado.
+
+Los usos **técnicos** se separan uno a uno y no en bloque: FHIR exige `birthDate`
+en ISO, Google Calendar arma un `datetime` de API, los nombres de archivo de
+respaldo llevan la fecha ordenable. Cada uno queda nombrado en el guardián para
+que añadir otro sea una decisión y no un descuido.
+
+### Qué NO cubre
+
+- Las fechas dentro de documentos imprimibles (receta, nota Word) tienen su
+  propio formato legal y no se tocan aquí.
+- No cuenta formatos en el navegador: cuenta lo que el código puede producir.
+- No unifica los formatos CON hora del resto del producto.
+
+**Prueba.** `src/__tests__/una-sola-fecha-en-todo-el-producto.test.ts` (6 casos).
+**Probada al revés ×3**, una de ellas devolviendo el ISO **con otra ortografía**
+(`slice( 0 , 10 )`) — la lección de REG-544 aplicada. Las aserciones fijan la
+FORMA y no la cadena: la abreviatura del mes la decide el ICU del entorno, y
+clavarla haría un guardián que falla al actualizar Node sin que el producto
+cambie.
+
+### Y cinco guardianes clavaban la ortografía
+
+`dosing-consulta`, `stripe-prueba-una-vez`,
+`la-alergia-sellada-en-una-nota-firmada-no-desaparece` (×2) y
+`la-duda-de-la-otra-vez-vuelve-a-salir` exigían el ISO literal. Ninguno era una
+regresión —la fecha sigue llegando, que es lo que protegen—: exigían **cómo se
+escribe**. Van **ocho** guardianes en tres unidades clavando una ortografía en
+vez de una conducta.
+
+---
+
+## REG-546 — quince rutas le contaban al médico de quién era el modelo
+
+**Dónde**: `src/lib/ia/fallo-proveedor.ts` · 15 rutas de `src/app/api/` ·
+`src/app/api/telesalud/sala/route.ts`
+
+### Qué fallaba
+
+Se preguntó **de verdad** en el Consultor de Evidencia, sin proveedor detrás, y
+lo que apareció **en el sitio de la respuesta** fue:
+
+```
+⚠️ No hay API key de Claude configurada.
+```
+
+Contado después en el árbol: **15 rutas** devolvían jerga de proveedor, en **7
+redacciones distintas** del mismo hecho — desde la más completa hasta
+`OPENAI_API_KEY no configurada` a secas. Y cuatro eran fallos **en marcha**, no
+falta de llave: un médico que acaba de grabar a un paciente leía `OpenAI 429` o
+`AssemblyAI upload HTTP 413`.
+
+### Y una peor, de cara al paciente
+
+`/api/telesalud/sala` devolvía `ok: true` con una URL de `meet.example.com` y el
+aviso «DAILY_API_KEY no configurada — usando URL ficticia». `/teleconsulta/[citaId]`
+lo pinta tal cual, y **esa pantalla la abre el paciente con su token del portal**.
+El producto entregaba un enlace de videoconsulta que no lleva a ninguna consulta,
+explicado en lenguaje de programador.
+
+### Por qué no es redacción
+
+1. **Nombraba al proveedor** en la interfaz de un producto clínico.
+   `security-tenant` prohíbe que un error cuente el interior.
+2. **Salía donde iba la respuesta.** En una superficie de evidencia, lo que ocupa
+   el lugar de la evidencia tiene que ser inconfundiblemente no-evidencia.
+3. **No decía qué NO se perdió** — la pregunta real a media consulta: ¿se fue el
+   audio? ¿se fue lo que llevo escrito?
+
+### El arreglo, y dónde vive
+
+`iaNoDisponible(capacidad, puedeConfigurar)` **dentro de `fallo-proveedor.ts`**,
+no en un módulo nuevo. Ese archivo ya es «lo que el médico lee cuando la IA no
+funciona»; partirlo habría dejado dos vocabularios para el mismo momento, que es
+el defecto que las unidades 92 y 93 vinieron a quitar.
+
+`ClaseFallo` cubre una llamada que salió mal —llave rechazada, sin saldo,
+saturación— y no tiene caso para «no hay llave», porque ahí no falló nada: la
+capacidad nunca se encendió. Son situaciones distintas, en el mismo módulo.
+
+Los cuatro fallos en marcha se enrutaron por `avisoAlMedico`, **que ya existía**
+y clasifica el HTTP.
+
+### Lo que aquí NO se prohíbe, a propósito
+
+`avisoAlMedico` **sí** nombra al proveedor cuando la llave es del consultorio:
+«Tu llave de Anthropic fue rechazada… Actualízala». Es correcto — si el médico le
+paga a ese proveedor, tiene que saber a cuál entrar — y el guardián lo respeta.
+La diferencia es de fondo: con llave propia el nombre es accionable; sin llave
+ninguna es una decisión de la casa que no le sirve para nada.
+
+### Qué NO cubre
+
+- Sólo el mensaje de «la IA no está activada» y los cuatro fallos de
+  transcripción. Otras causas (red, cuota) siguen con su texto.
+- **El mensaje sigue saliendo en el hueco de la respuesta**, con un `⚠️` delante,
+  y **no está en una región viva**: quien usa lector de pantalla no se entera de
+  que su pregunta falló. Declarado, no arreglado — anunciar un flujo delta a
+  delta sería el defecto de REG-544 otra vez.
+
+**Prueba.** `src/__tests__/el-error-de-la-ia-no-nombra-al-proveedor.test.ts`
+(6 casos). **Probada al revés ×3**, una con **otra redacción** de la jerga. El
+barrido excluye `safeLog` —registro de servidor, no viaja al cliente— y
+`avisoAlMedico`; su primera versión los cazaba y habría obligado a borrar un log
+útil para pasar una prueba.
+
+---
+
+## REG-547 — el riel de la agenda no miraba el reloj
+
+**Dónde**: `src/app/(dashboard)/citas/page.tsx` (`momentoDeCita`, `RielEntrada`) ·
+`src/app/globals.css`
+
+### Qué fallaba
+
+Medido en navegador el 1-sep-2026 a las **18:08** (hora del consultorio), con las
+ocho citas del día ya pasadas:
+
+```
+pintadas a peso completo ................. 6 de 8
+atenuadas ................................ 2 — y por ESTADO (atendida,
+                                           cancelada), no por hora
+que aún ofrecían «Iniciar consulta» o
+«Confirmar» como acción primaria ......... 6
+```
+
+El riel es una línea de tiempo con el marcador de AHORA siempre visible, y R1 de
+la gramática NexusMED dice que ese marcador separa «lo pasado (**atenuado**) de
+lo que viene». Sin la atenuación, el riel contesta «aquí hay ocho cosas que
+hacer» cuando el día terminó y ninguna es la siguiente.
+
+### Causa raíz
+
+Todo lo demás estaba construido: el marcador existe, la hoja **ya** atenuaba
+`hecho` y `cerrado` por token —su comentario lo explicaba— y la fila **recibía**
+`ahoraHHMM` del padre.
+
+Pero `ahoraHHMM` estaba en el **tipo** de props de `RielEntrada` y **no se
+desestructuraba**: el padre lo mandaba, el tipo lo declaraba, y la firma lo
+tiraba al suelo. No es que no se usara: era imposible usarlo. Y `momentoDeCita`
+mapeaba estado → momento sin recibir el reloj nunca.
+
+«Escrito y sin conectar» en la pieza que decide qué momento es cada cita, dentro
+de la pantalla cuyo tema **es** el tiempo.
+
+### El arreglo
+
+Un momento nuevo, `pasado`: la cita cuya hora pasó y que nadie atendió ni
+canceló. No es `hecho` —nadie la atendió— ni `cerrado` —nadie la canceló—.
+Llamarle `hecho` para que se atenuara habría sido mentir con tal de que se viera
+bien.
+
+Se atenúa como lo pasado y su **nodo se dibuja en ámbar**, hueco: «pasó sin
+resolverse» no puede leerse como «listo». Son justamente las filas que hay que
+reconciliar al cerrar el día, y ahora forman una columna visible.
+
+Sólo aplica **al día de hoy**: en otro día «pasado» lo es todo o nada.
+
+### Lo que NO cambia, a propósito
+
+- La **acción primaria** se conserva: el médico puede iniciar una consulta tarde
+  o cobrar una visita de la mañana. Cambia el peso visual, no lo que se puede
+  hacer.
+- El **riesgo** no se atenúa: el badge `Alto`, el aviso `Calendario descuadrado`
+  y los avisos de estado mantienen su peso. Atenuar la identidad es correcto;
+  atenuar una advertencia, no.
+
+### Qué NO cubre
+
+- No decide qué hacer con una cita pasada sin resolver: sólo la distingue.
+- No mide la pantalla; la atenuación se comprobó en navegador (8 de 8 atenuadas
+  hoy, 10:30 de mañana a peso completo) y vive en la bitácora del carril.
+
+**Prueba.** `src/__tests__/el-riel-mira-el-reloj.test.ts` (11 casos).
+**Probada al revés ×3.** Y el propio reverso encontró que la prueba **no
+servía**: sus casos de conducta usaban una COPIA local de la regla, así que
+borrar la comparación del producto los dejaba a todos en verde. Es el defecto que
+este carril lleva encontrando toda la sesión —un guardián que comprueba su
+recuerdo de la regla en vez de la regla— esta vez en mi propia prueba. Se añadió
+el caso que mira la función real.
+
+---
+
+## REG-548 — el expediente no decía quién había puesto cada diagnóstico
+
+**Dónde**: `src/components/expediente/ResumenPaciente.tsx`
+
+### Qué fallaba
+
+Medido en navegador el 1-sep-2026, con un paciente sembrado a propósito con los
+tres ejes del modelo (`tipo`, `estado`, `tipoOrigen`): los cuatro diagnósticos
+vigentes se pintaban **en el mismo nodo de texto**, con el mismo color, peso y
+tamaño, bajo el rótulo «Diagnósticos activos»:
+
+```
+Condición crónica sintética A · Condición activa sintética B ·
+Sospecha sintética C · Propuesta de la IA sintética D
+```
+
+Uno definitivo puesto por el médico y otro que el modelo propuso y **nadie
+avaló**, indistinguibles.
+
+### Cómo se descubrió
+
+Sembrando los tres ejes. El consultorio de prueba no tenía **ni un** diagnóstico,
+así que la jerarquía de estado del expediente se estaba juzgando sobre una lista
+vacía — que es dar por buena una pantalla porque no tiene nada que enseñar.
+
+### Causa raíz
+
+`ResumenPaciente` empujaba `d.descripcion` **pelada** a una lista de cadenas.
+`tipo` y `tipoOrigen` viajaban en el documento firmado y se tiraban ahí.
+
+### Lo que NO se hizo, y es la mitad importante
+
+**No se etiqueta `presuntivo`.** REG-365 lo decidió y sigue siendo correcto: es
+el valor de fábrica del esquema —«nadie dijo nada»—, y escribir «(presuntivo)»
+junto a una crónica confirmada afirma una duda que el médico nunca expresó, en
+casi todos los renglones. Iba a romperlo y el comentario de `nombreConCerteza` lo
+impidió. La prueba lo fija en los dos sentidos.
+
+### El arreglo
+
+Se dice la **procedencia**, que es otro eje y era invisible:
+`tipoOrigen === 'medico'` es «lo eligió una persona» y el resto no. Es la misma
+frontera que `la-certeza-que-sale-al-mundo` ya aplica al salir a FHIR —`confirmed`
+sólo con `medico`— y la que la consulta ya avisa antes de firmar. `requisitos.ts`
+declaraba el hueco: «FALTA la misma elección en las otras superficies que
+muestran diagnósticos (**expediente**…)».
+
+Y se dice **una vez y no por fila**, con la regla que ya eligió la consulta:
+`por_defecto` cuenta igual que `extraccion` — en los dos casos nadie lo decidió.
+El aviso habla del **registro**, no de la clínica: «lo puso el dictado o la
+plantilla, no una persona», nunca «no confirmado» ni «dudoso», porque lo que
+falta es una firma, no certeza.
+
+### Qué NO cubre
+
+- **Dice cuántos, no cuáles.** En la consulta «una vez» funciona porque cada
+  diagnóstico tiene su fila con selector; aquí van unidos por « · », así que
+  copiar la regla fielmente cuesta identificabilidad. Marcar por fila
+  contradiría la política del producto y el argumento de ruido de REG-365;
+  reordenar por procedencia rompería el orden cronológico. **Es una decisión del
+  dueño**, y queda abierta.
+- No añade al expediente el selector de tipo de la consulta: avalar desde aquí
+  sigue sin poder hacerse.
+- No toca UCI ni hospitalización, que muestran diagnósticos con el mismo hueco.
+
+**Prueba.** `src/__tests__/el-expediente-dice-quien-puso-el-diagnostico.test.ts`
+(6 casos). **Probada al revés ×4**: tirar `tipoOrigen` → 1 rojo; pasar el aviso a
+por fila → 1 rojo; que el aviso afirme una duda clínica («no confirmados») → 1
+rojo; y **etiquetar `presuntivo`** → 1 rojo, que es el que protege REG-365 de un
+arreglo futuro de la procedencia.
+
+---
+
+## REG-549 — dos defectos de contraste que sólo existían en tema claro
+
+**Dónde**: `src/app/globals.css` (`[data-momento='pasado']`,
+`.nx-franja-alergias .nx-meta`) · `src/components/expediente/PatientAnchor.tsx`
+
+### Qué fallaba
+
+Seis unidades de este carril habían añadido CSS —la banda de contexto, el nodo
+del riel, la acción en prosa— y **ninguna se había mirado en tema claro**.
+
+Al mirarlo, dos defectos, y uno era mío:
+
+| | claro | oscuro | mínimo |
+|---|---|---|---|
+| Nodo `pasado` del riel (borde, 70 % de ámbar) | **2.89 : 1** | 3.50 : 1 | 3 : 1 (WCAG 1.4.11) |
+| `--text3` sobre el tinte de la franja de alergias | **4.49 : 1** | ok | 4.5 : 1 (AA) |
+
+El primero lo introduje yo en la unidad 95. El segundo lo encontró el arnés de
+tema claro, y cae en la franja del **dato más letal del producto**, fallando por
+una centésima.
+
+### Causa raíz
+
+Un `color-mix` contra `transparent` **se apoya en el fondo**, y el fondo es
+justo lo que cambia entre temas: el 70 % que daba 3.50 en oscuro daba 2.89 en
+claro. Es literalmente lo que advierte la regla de diseño —«tema claro y oscuro
+deben diseñarse por separado, no invertir colores automáticamente»—.
+
+Y `--text3` no está mal: ya se ajustó una vez para pasar AA sobre las superficies
+claras **normales**. La franja de alergias no es una superficie normal —lleva un
+tinte encima— y nadie había medido el metadato sobre él.
+
+### El arreglo
+
+Ámbar al **85 %**: 3.73 en claro y 4.69 en oscuro. No 75 % —3.13 pasa por 0.13, y
+un token que se mueva un punto lo tira— y no 100 % —el nodo lleno es el del
+momento presente, y éste tiene que seguir siendo hueco—.
+
+Y el metadato de la franja sube a `--text2` (5.41 en claro, 7.41 en oscuro),
+**sólo dentro de la franja**: el resto del producto usa `--text3` sobre
+superficies sin teñir, donde ya cumple.
+
+### Dos errores de forma, cazados por los guardianes del repositorio
+
+1. Puse el color en el `style={{ }}`. El guardián de roles tipográficos lo cazó:
+   es exactamente lo que este carril lleva quitando desde la unidad 91 — la
+   apariencia vive en la hoja, no en el JSX. Ahora es una clase.
+2. Escribí los hex de los tokens en un comentario y el trinquete de diseño subió
+   de 357 a 359. Tenía razón: los valores viven en `globals.css`.
+
+### Qué NO cubre
+
+- El arnés de tema claro corre axe y foco; **no repite las sondas de estructura**
+  —estaticidad, solapes, estados de carga— en claro. Si un cambio de tema mueve
+  una caja, esto no lo ve. Está declarado en el propio arnés.
+- No se midió `TEMA=auto` en esta corrida.
+- El nodo `pasado` no se pudo ver en pantalla: a las 02:47 del consultorio no hay
+  ninguna cita pasada. Su contraste está calculado por token, no observado.
+
+**Prueba.** El arnés `el-tema-claro-tambien-cuenta` — **44 combinaciones, axe 0,
+0 de 91 campos sin foco** — y `el-riel-mira-el-reloj`, cuyo caso de la hoja se
+corrigió: pedía `amber` dentro de 160 caracteres del selector y se puso rojo
+cuando el arreglo añadió un comentario en medio. **Un guardián que se rompe al
+documentar el porqué empuja a no documentarlo**; ahora mira el bloque de la regla.
+
+---
+
+## REG-550 — Finanzas escondía una cifra de dinero detrás de un arrastre lateral, y el trinquete lo daba por bueno
+
+**Dónde**: `src/app/(dashboard)/finanzas/page.tsx` · `src/app/globals.css`
+(`.grid-2`, `.grid-titular-par`) · `scripts/carril-excelencia/trinquete-de-interfaz.mjs`
+
+### Qué fallaba
+
+Barriendo las 28 pantallas del panel a 390 px (unidad 98). En `/finanzas`,
+`<main>` medía 390 px de ancho con **685 px de contenido**: 295 px de pantalla
+quedaban fuera de la vista, y en ellos iba la tarjeta de **Transferencia**
+entera, con su importe y su porcentaje. En la captura se ve el corte a media
+tarjeta: «$90…», «1 cobr…».
+
+El médico que abre Finanzas en el teléfono ve dos de los tres métodos de cobro y
+**nada le dice que hay un tercero**. No es una tarjeta fea: es una cifra de
+dinero escondida.
+
+### Por qué ningún guardián lo vio — y esto es lo importante
+
+`/finanzas` **ya estaba** en la lista de rutas del `trinquete-de-interfaz`, **ya
+se medía** a 390 px, y su contador `desborde` salía en **false**: verde, corrida
+tras corrida, durante meses. Porque la pregunta era
+
+```js
+document.documentElement.scrollWidth > document.documentElement.clientWidth
+```
+
+y el documento **no** se desbordaba: `<main>` lleva `overflow-x: auto` y se
+tragaba el desborde. El contenido no desaparece del documento — se esconde
+detrás de un arrastre lateral que en un teléfono nadie descubre.
+
+Familia **«el dato tiene que LLEGAR»**: el guardián estaba escrito, corría, y
+preguntaba del lado equivocado de la frontera. Un guardián en verde sin nada
+vigilado es peor que ninguno, porque ocupa el sitio del que sí miraría.
+
+El otro guardián de teléfono tampoco podía verlo, y **no es culpa suya**:
+`scripts/calidad/cabe-en-un-telefono.mjs` barre el código fuente buscando lo que
+no puede encoger —anchos fijos, suelos de `minmax`, columnas clavadas en
+píxeles (REG-306)—, y las rejillas que rompieron Finanzas eran `1.1fr 1fr 1fr` y
+`1fr 1fr`: ni un píxel clavado, ni un suelo. Ninguna de sus cuatro clases las
+alcanza. Su cabecera ya lo decía —«no sustituye al navegador: **acota**»— y esta
+regresión es la prueba de que decía la verdad. Por eso el arnés nuevo se llama
+`el-telefono-medido-en-el-navegador` y no repite aquel nombre: es el navegador
+que aquél declara no ser.
+
+### Causa raíz del desborde
+
+Un hijo de rejilla vale por defecto `min-width: auto` — «nunca más angosto que
+tu contenido». Con las columnas escritas en el `style` inline (`1.1fr 1fr 1fr`,
+`1fr 1fr`), donde ningún `@media` las alcanza, y un nombre largo dentro, la
+pista crece más que la pantalla y se lleva la rejilla por delante.
+
+Y el nombre largo no es aquí un caso raro: un nombre mexicano trae cuatro o
+cinco partes. «María Guadalupe de la Concepción Villaseñor Etchegaray» pedía
+301 px en una caja de 256.
+
+Lo más caro del caso: **el recorte del nombre ya estaba escrito** en el código
+(`textOverflow: 'ellipsis'`, `maxWidth: '70%'`) y **no se aplicaba nunca**,
+porque sin `min-width: 0` el hijo no podía encoger. Código correcto, sin efecto
+— la misma forma del defecto que el guardián.
+
+### El arreglo
+
+1. El trinquete pregunta por el desborde **a cada contenedor de scroll de dentro
+   de `<main>`**, no sólo al documento.
+2. Las tres rejillas de Finanzas llevan la utilidad responsiva del sistema
+   (`.grid-2`, que ya existía y ya se usaba en nueve sitios, y
+   `.grid-titular-par`, nueva para la forma «un dato manda y otros dos se
+   comparan»: en el teléfono el titular toma el ancho y el par queda lado a
+   lado, porque apilarlos mataría la comparación, que es para lo que el par
+   existe).
+3. `min-width: 0` en los hijos de esas utilidades y en las filas de los
+   desgloses, que es lo que deja funcionar a la truncación ya escrita.
+
+### Medido
+
+| | antes | después |
+|---|---|---|
+| Ancho de `<main>` en `/finanzas` a 390 px | 390 → **685** | 390 → **390** |
+| Pantallas del panel que se salen a 390 px | 2 de 28 | 0 de 28 |
+
+**Qué NO cubre.** Sólo Chromium: **no hay WebKit en este entorno, así que esto
+no prueba iPhone**. Sólo el ancho, no lo que se sale por abajo. Sólo el panel
+del médico con los datos del arnés: otros datos —un nombre más largo, veinte
+cobros— pueden sacar pantallas que hoy caben. Y las otras ~50 rejillas de
+columnas fijas del producto **no** se tocaron: hoy caben, y quien las vigila es
+el barrido, no una clase puesta a mano en cada una.
+
+**Prueba.** `src/__tests__/el-dinero-cabe-en-un-telefono.test.ts` (6 casos) y el
+arnés `el-telefono-medido-en-el-navegador`, que es el que lo encontró.
+
+---
+
+## REG-551 — en la agenda de un teléfono, el bloque de la cita decía la hora y se comía el nombre del paciente
+
+**Dónde**: `src/app/(dashboard)/calendario/page.tsx` (`EtiquetaDeBloque`,
+vistas de semana y de mes) · `src/app/globals.css` (`.nx-agenda-quien`,
+`.nx-agenda-hora`)
+
+### Qué fallaba
+
+La misma sonda de 390 px, buscando textos cortados **sin puntos suspensivos que
+lo digan**. En `/calendario`, vista de semana, **diez** bloques cortados en
+seco.
+
+Al mirar la captura se vio lo que el número no decía: en un teléfono la columna
+de un día mide unos **41 px**, ahí caben unos cinco caracteres, y los cinco se
+los llevaba la hora. Los bloques decían «08:00», «09:00», «10:30», «13:00» — y
+el nombre del paciente **no llegaba a pintarse nunca**.
+
+La hora ya la da la fila de la izquierda de la rejilla. El nombre no lo da nadie
+más. La pantalla donde el médico busca a quién tiene a las nueve gastaba su
+ancho entero repitiendo el eje y escondiendo la respuesta.
+
+### Causa raíz
+
+El bloque escribía `{hora} {nombre}` como **un solo texto** con
+`overflow: hidden`. En un texto corrido el recorte se lleva siempre lo último, y
+lo último era el nombre. No había forma de que la hora cediera: no era un
+elemento aparte que pudiera retirarse.
+
+### El arreglo
+
+1. **El nombre va primero** en el orden del documento, así que es la hora la que
+   se queda fuera cuando no cabe, y no al revés.
+2. **La hora se retira** por debajo de 640 px en vez de comerse la línea. La
+   hora exacta sigue en el `title` y en la etiqueta accesible del bloque, y a un
+   toque está la cita entera.
+3. **El recorte se declara** con puntos suspensivos. Un nombre cortado en seco
+   —«Ros» por Rosalía o por Rosario— es peor que uno que avisa de que sigue: en
+   una agenda clínica confundir a dos pacientes es un daño, y un recorte mudo
+   invita justo a eso.
+4. Las columnas del día pasan de `1fr` a `minmax(0, 1fr)`: la misma trampa de
+   `min-width: auto` hacía que siete días de 41 px sumaran 287 y se pasaran tres
+   píxeles del contenedor.
+
+### Y aun así, 41 px no dan para un nombre
+
+Con la regla puesta y medido otra vez, los bloques de la semana pasaron de decir
+«08:00» a decir «R…», «M…», «Ta…». Ya no se corta nada en silencio —que era el
+defecto— pero **una letra no es un nombre**. El ancho no da y no lo va a dar.
+
+Así que la agenda **abre en DÍA cuando la pantalla es de teléfono**. La vista de
+día ya existía, tiene la columna entera y escribe «HH:MM — nombre completo». La
+semana no se quita, y en cuanto el médico elige una vista la suposición se
+calla: **una preferencia dicha gana a una preferencia supuesta**.
+
+Y abrir el día delante de la sonda por primera vez destapó dos cosas más:
+
+- **La tarjeta del día se salía 198 px**, porque el arreglo anterior colgó el
+  `white-space: nowrap` de `.nx-agenda-bloque` —la clase que comparten los tres
+  tamaños de bloque— en vez de la etiqueta estrecha. Compartir clase no es
+  compartir forma. La vista de día no se había medido nunca a 390 px: **lo que
+  no es la ruta por defecto no lo mira nadie**.
+- **El tipo de la cita salía en blanco** en las diez citas del arnés. Es
+  REG-552, y no era del producto.
+
+### La vista se deriva; no se copia
+
+La primera versión leía `matchMedia` en un `useEffect` y empujaba el resultado a
+un estado. El lint de React lo rechazó, y tenía razón dos veces: encadena
+renders, y —lo que importa— **un efecto no se entera de que la ventana cambió**.
+Un teléfono que gira, o una ventana de escritorio que alguien estrecha, se
+quedaban con la respuesta del primer render para siempre.
+
+`useSyncExternalStore` es la herramienta: `matchMedia` es un sistema al que uno
+se **suscribe**, no un estado que haya que copiar. Vive en
+`src/hooks/useEsTelefono.ts`, con la instantánea del servidor diciendo «no es un
+teléfono» en vez de adivinar, porque leer el ancho durante el render rompería la
+hidratación.
+
+### Medido
+
+Las cuatro conductas, comprobadas en Chromium de verdad y no deducidas:
+
+| en el navegador | resultado |
+|---|---|
+| 390 vertical | abre en **Día** |
+| girado a 844 | pasa a **Semana** |
+| de vuelta a 390 | vuelve a **Día** |
+| el médico elige Semana y gira | sigue en **Semana** |
+| escritorio 1440 | abre en **Semana** |
+
+| | antes | después |
+|---|---|---|
+| Textos cortados sin decirlo, en las 28 pantallas | **10** | **0** |
+| Rejilla de la semana a 390 px | 343 px en 340 | cabe |
+| Tarjeta del día a 390 px | 340 → **538** | cabe |
+
+**Qué NO cubre.** No mide píxeles: que el nombre quepa de verdad en 41 px lo
+dice el navegador, no el golden. No cubre la vista de **día**, que tiene el
+ancho entero y escribe «HH:MM — nombre completo» a propósito. No juzga el
+umbral de 640 px: es una decisión de dónde está «un teléfono», no una medida.
+Y **sólo Chromium**: esto no prueba iPhone.
+
+**Prueba.** `src/__tests__/en-un-bloque-estrecho-el-nombre-manda.test.ts`
+(8 casos) y el arnés `el-telefono-medido-en-el-navegador`.
+
+---
+
+## REG-552 — el arnés escribía el tipo de cita con su etiqueta, y diez citas enseñaban el tipo en blanco
+
+**Dónde**: `scripts/design/sembrar-emulador.mjs`
+
+### Qué fallaba
+
+Mirando la vista de día de la agenda a 390 px, ya arreglada, la línea bajo cada
+nombre decía « · 30min». Con un hueco delante del punto medio, donde va el tipo
+de la cita.
+
+En el DOM: `"08:00 — Rosalía Mendieta CuevasAtendida  · 30min"` — dos espacios
+seguidos y nada entre ellos.
+
+### Causa raíz
+
+La siembra escribía `tipo: 'Seguimiento'` y `tipo: 'Primera vez'` — las
+**etiquetas** que se le enseñan al médico. El producto guarda la **clave**:
+`'seguimiento'`, `'primera-vez'`. `APPOINTMENT_TYPE_CONFIG[tipo]?.label`
+devolvía `undefined`, React pintó una cadena vacía, y nadie se quejó.
+
+Lo mismo con `origen: 'manual'`, que en el producto es `'Manual'`.
+
+El producto estaba bien: su propio formulario recorre
+`Object.entries(APPOINTMENT_TYPE_CONFIG)`, así que siempre escribe la clave. El
+que mentía era el arnés.
+
+### Por qué importa más de lo que parece
+
+Un arnés que miente **calla mejor que un arnés roto**. Las diez citas del arnés
+llevaban el tipo en blanco, y con ellas **todas las capturas de la agenda que
+hay en `docs/design/capturas/`**: cada medición visual de esa pantalla se hizo
+contra una agenda a la que le faltaba un dato, sin que ninguna lo dijera.
+
+Y es la **cuarta** vez. La cabecera de este mismo archivo ya documentaba
+`urgencia` por `urgente` (unidad 16) y un estado de cita inventado, con la
+lección escrita: «un dato de prueba fuera del vocabulario hace mentir a la
+pantalla que se está auditando». La lección estaba escrita y no estaba
+**ejecutada**.
+
+### El arreglo
+
+La siembra lee el vocabulario de `src/types/index.ts` —`AppointmentType`,
+`AppointmentStatus`, `AppointmentOrigin`— y comprueba cada cita antes de
+escribir nada. Si un valor no casa, **se para** con el campo, el valor y la
+lista de válidos, en vez de escribir la mentira.
+
+Se lee del archivo y no se copia aquí, porque una copia a mano es exactamente
+el defecto que este guardián existe para cazar: se escribe bien el día que se
+escribe y se queda vieja en silencio.
+
+### Medido
+
+| | antes | después |
+|---|---|---|
+| Citas del arnés con el tipo en blanco | **10 de 10** | 0 de 10 |
+| Campos de la cita comprobados contra el vocabulario | 0 | 3 |
+
+**Qué NO cubre.** Sólo las citas. El resto de las colecciones del arnés
+—pacientes, cobros, notas, resultados— **no** comprueban su vocabulario, y
+pueden estar mintiendo igual ahora mismo. Se declara, no se arregla aquí.
+
+**Prueba.** Probado al revés metiendo el defecto en los tres campos, uno a uno:
+la siembra se para en `cita-001` (tipo), `cita-010` (estado) y `cita-001`
+(origen). No hay caso en vitest: el guardián vive donde se escriben los datos,
+que es donde puede pararlos.
+
+---
+
+## REG-553 — el diálogo que existe para que nada se borre sin querer, borraba sin querer
+
+**Dónde**: `src/context/ToastContext.tsx`
+
+### Qué fallaba
+
+`confirm()` es la confirmación de TODA acción destructiva de la aplicación: la
+que pregunta «¿Eliminar esta cita permanentemente?», la que quita una cortesía,
+la que borra un paciente. Tenía el teclado escrito a mano y le faltaba la trampa
+de foco.
+
+Medido en Chromium el 2-sep, con el diálogo abierto sobre `/citas`:
+
+- **cinco tabulaciones sacaban el foco del diálogo** y lo dejaban en el enlace
+  «Encuentro» de la navegación de detrás — a pesar de su `aria-modal="true"`,
+  que le promete a la tecnología de apoyo que lo de atrás está inerte;
+- y el `Enter` estaba atado a la **ventana**, no al diálogo.
+
+Así que pulsar Enter sobre ese enlace, creyendo que se navegaba, **borraba la
+cita**. Medido: la lista pasó de **7 citas a 6**, y la navegación ni siquiera
+ocurrió.
+
+Una tecla apuntada a otra cosa ejecutando un acto destructivo e irreversible es
+lo más caro que puede hacer justo el diálogo que existe para que nada se borre
+sin querer. No hay deshacer: la cita se va.
+
+### Por qué ningún guardián lo vio
+
+`ToastContext.tsx` vive en `src/context/`, y los dos barridos de diálogos que
+había miraban `src/components` y `src/app`. **Una carpeta fuera de la lista es
+una carpeta sin vigilar, y no se nota**: el barrido sale verde igual.
+
+El arnés `todo-dialogo-se-cierra-con-escape` tampoco lo alcanzaba, y lo dice en
+su cabecera: «sólo los diálogos que este guion sabe abrir… no estar aquí
+significa que NO se vigilan». Estaba declarado. **Declarado no es cubierto** —
+una declaración honesta de un hueco sigue siendo un hueco.
+
+### El arreglo
+
+1. El diálogo usa `useDialogoDeTeclado`, el gancho canónico que ya daban por
+   bueno los otros diecinueve: Escape, trampa de foco, foco inicial, scroll
+   bloqueado y foco devuelto.
+2. El `Enter` vive **dentro** del diálogo (`onKeyDown` en su caja), no en la
+   ventana.
+3. Y **cede ante cualquier control que quiera esa tecla**. Sin esa cesión,
+   pulsar Enter sobre «Cancelar» dispara las dos cosas a la vez y gana la
+   destructiva: probado al revés, la agenda pasó de **8 citas a 7 mientras el
+   médico cancelaba**.
+
+El foco inicial cae ahora en «Cancelar», no en «Eliminar»: en un diálogo
+destructivo el botón que espera bajo el dedo es el que no rompe nada.
+
+### Medido
+
+| en el navegador | antes | después |
+|---|---|---|
+| Tabulaciones que se van del diálogo (de 40) | **38** | **0** |
+| Escape cierra | no | sí |
+| Enter con el foco fuera | **borra la cita** | imposible: el foco no sale |
+| Enter sobre «Cancelar» | — | no borra (8 → 8) |
+| Enter sobre «Eliminar» | — | borra (8 → 7) |
+| Foco inicial | «Eliminar» | «Cancelar» |
+
+**Qué NO cubre.** Sólo Chromium: **no hay WebKit en este entorno, así que esto
+no prueba iPhone**. El guardián estático no mide el foco —un gancho llamado no
+es un foco atrapado— y no ve una capa que no se declare ni con `role="dialog"`
+ni con `inset: 0`. No juzga el orden del foco dentro del diálogo ni lo que oye
+un lector de pantalla real.
+
+**Prueba.** El arnés `la-confirmacion-no-se-dispara-sola` (9 comprobaciones en
+navegador, probado al revés en las dos direcciones: sin el gancho, 38 de 40
+tabulaciones se van y el foco arranca en «Eliminar»; sin la cesión, Enter sobre
+«Cancelar» borra la cita) y
+`src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts` (7 casos),
+que barre **todo `src/`** —`context` incluido— y exige que cada capa que tapa la
+pantalla pase por uno de los dos teclados canónicos.
+
+---
+
+## REG-554 — todas las tardes, a partir de las seis, el producto envejecía un día a todo el que se hubiera atendido ese día
+
+**Dónde**: `src/lib/pacientes/estado-clinico.ts` (`ultimaVezVisto`) ·
+`scripts/design/sembrar-emulador.mjs`
+
+### Qué fallaba
+
+En `/pacientes`, Rosalía —**atendida ese mismo día a las 08:00**— salía como
+«visto ayer». En Reactivación, como «Hace 1 día», dentro del bloque de
+«atendidos hace ≤10 días».
+
+Medido a las 18:11 hora del consultorio. A las 06:00 no pasaba.
+
+### Causa raíz
+
+`ultimaVezVisto` restaba **instantes**:
+
+```js
+const dias = Math.floor((ahoraMs - Date.parse(iso)) / 86_400_000)
+```
+
+`ultimaCita` es una **fecha** a secas —`fechaHora.slice(0, 10)`, «2026-09-02»—
+y `Date.parse` de una fecha sin hora es medianoche **UTC**. En México (UTC−6),
+de las 18:00 en adelante ya es el día siguiente en UTC: la resta pasa de 24 h y
+el paciente de esa mañana se convierte en el de ayer.
+
+Y la tarde es justo cuando el médico repasa la jornada. Es el mismo defecto que
+vaciaba Finanzas y el corte de caja al caer la tarde, ya documentado allí con
+las mismas palabras: **el día del consultorio no es el día UTC**.
+
+### Por qué la prueba que había no lo vio
+
+Porque medía **una forma del dato que nadie envía**. El caso 7 de
+`v15-rtc15-la-lista-dice-algo-clinico` pasaba marcas de tiempo ISO completas
+(`new Date(AHORA - DIA).toISOString()`); lo que la lista manda es `ultimaCita`,
+una fecha de diez caracteres, sin hora y sin zona. Con hora completa la resta de
+instantes acierta; sin ella, no.
+
+Familia «el dato tiene que LLEGAR», en su variante de prueba: el guardián
+existía, corría, y comprobaba una entrada que la producción no produce.
+
+Y había una segunda trampa dentro de la trampa: ese caso usaba `AHORA` =
+12:00 UTC, que son las **06:00** en el consultorio. A esa hora el día UTC y el
+día local coinciden y el defecto no se asoma. Al reparar el guardián, la primera
+versión de la reparación tampoco podía fallar por lo mismo; se ancló a las 18:30
+del consultorio, que es cuando el defecto existe.
+
+### Cómo se descubrió, que es la otra mitad
+
+Midiendo la velocidad percibida, `/pacientes` no llegaba nunca a enseñar un
+nombre. No era lento: la pestaña que abre por defecto, «Recientes», decía
+«Ninguno tiene citas recientes» **con ocho citas en la agenda de ese día**.
+
+`ultimaCita` la escribe la transición de estado (`cambiosPorTransicion`, dentro
+de su transacción), y el arnés escribe las citas **ya en su estado final**: esa
+transición no ocurre nunca y el campo se quedaba vacío para todos. Con él vacío
+no se podía auditar «Recientes», ni los pacientes activos del CRM (contaba
+cero), ni Reactivación (proponía reactivar a quien se atendió hoy), ni la
+retención NOM-004 (evaluaba con la fecha vacía) — **todo con aspecto de pantalla
+vacía legítima**. Mismo defecto que REG-552 en otra forma.
+
+Al sembrar `ultimaCita` derivándola de las citas, las tres pantallas se
+encendieron — y con ellas apareció el «visto ayer» que llevaba escondido detrás.
+
+La regla no se copia en el arnés: se **lee** de `contadores-paciente.ts`, que es
+de quien es. Si allí cambia qué estado cuenta como atención, la siembra se
+entera.
+
+### En el camino, dos cosas que resultaron NO ser defectos
+
+Se dicen porque costaron tiempo y porque la conclusión contraria habría sido
+cara:
+
+- **`noShowCount`, `cancelacionCount` y `ultimaCita` sí se escriben.** Parecía
+  que sólo los tocaba una ruta de mantenimiento que nadie llama. Los escribe
+  `src/lib/agenda/transicion-cita.ts` dentro de la transacción del cambio de
+  estado; el primer barrido no los vio porque miraba `src/lib/*.ts` sin entrar
+  en las carpetas. La cabecera de `contadores-paciente.ts` documenta haber
+  arreglado exactamente eso.
+- **El motor de riesgo de no-show no está ciego.** Su historial es real.
+
+### Medido
+
+En el navegador, a la misma hora en la que estaba mal:
+
+| | antes | después |
+|---|---|---|
+| `/pacientes`, paciente atendido esa mañana | «visto **ayer**» | «visto **hoy**» |
+| `/reactivacion`, el mismo paciente | «Hace 1 día» | «**Hoy**» |
+| `/pacientes` → pestaña «Recientes» | vacía, «ninguno» | «Recientes (1)» |
+| Pacientes con `ultimaCita` en el arnés | 0 de 5 | 1 de 5 |
+
+**Qué NO cubre.** Sólo `ultimaVezVisto`: otros sitios que resten fechas siguen
+sin vigilar aquí. Y **sólo la zona del consultorio por defecto** —
+`fijarZonaConsultorio` no publica fuera del navegador, lo dice su propio código,
+así que un consultorio en otra zona no se puede probar en vitest: que la cuenta
+sea la del consultorio y no la de UTC sí queda probado; que funcione en Madrid,
+no.
+
+**Prueba.** `src/__tests__/la-tarde-no-envejece-al-paciente.test.ts` (7 casos), y
+el caso 7 de `v15-rtc15-la-lista-dice-algo-clinico` reparado para usar la forma
+del dato que manda la lista y una hora en la que el defecto exista. Probado al
+revés: con la resta de instantes, fallan tres casos del golden nuevo y el caso 7
+del viejo.
+
+---
+
+## REG-555 — la barra de voz se va de la pantalla al bajar por la nota (medido; el arreglo vino de otra rama)
+
+**Dónde**: `src/components/MientrasHablas.tsx` · `src/app/(dashboard)/consulta/[patientId]/page.tsx`
+
+### Qué se midió
+
+Recorriendo el día de un médico en un navegador (unidad 102): entrar, abrir la
+consulta, consentir, grabar y **bajar por la nota**.
+
+`MientrasHablas` es la barra que, según su propia cabecera, «no se va de la
+pantalla». Está escrita con `position: sticky; bottom: 0`, y eso no hace eso:
+`sticky` con `bottom` sólo sujeta al elemento al que uno se ACERCA desde arriba
+y lo suelta en cuanto se pasa de largo. Medido con la consulta grabando:
+
+| | al abrir | tras bajar por la nota |
+|---|---|---|
+| Barra a 1440 | visible | `top −1155` (fuera) |
+| Barra a 390 | visible | `top −1718` (fuera) |
+
+Con ella se van el nivel de voz y las últimas palabras oídas, que son la única
+prueba en vivo de que el micrófono capta — lo dice esa misma cabecera: «un
+contador de tiempo sigue corriendo aunque el micrófono esté silenciado; una
+barra que se mueve, no».
+
+### Cómo quedó, y por qué NO como yo lo había hecho
+
+Este carril lo arregló haciendo la barra `fixed` y retirando la píldora
+flotante. Al fusionar con `main` resultó que **la rama de transformación de voz
+ya había resuelto el mismo problema por otro camino**, y mejor cubierto: quitó
+el segundo botón de pausa, quitó el cronómetro repetido de la fila de abajo,
+dejó de pintar de rojo lo que significa «grabando» —rojo es riesgo clínico— y
+dejó la píldora **sólo cuando el panel de escucha no está a la vista**, con su
+alto reservado para que no tape nada. Todo ello sellado en
+`grabar-nunca-es-rojo-y-se-manda-desde-un-sitio.test.ts`.
+
+Las dos soluciones son incompatibles: con la barra fija, la píldora aparecería
+encima de ella. **Se conserva la de `main`**, por tres razones y ninguna de
+gusto: es la del tronco, está sellada por un guardián que no es mío, y resuelve
+el problema que importa —que el control de detener esté siempre a mano—. Mi
+cambio se revierte entero, y su golden se retira con él.
+
+Lo que sí se conserva de este lado, porque valía por su cuenta: la píldora usa
+ahora el **vocabulario común** (`rotulo`) en vez de su propio `padStart`, que es
+la regla de REG-544 —cuatro relojes y dos formatos para un mismo estado— que
+aquel cambio no había alcanzado.
+
+### Lo que queda dicho, no arreglado
+
+La diferencia entre las dos soluciones no es cosmética y se declara: con la
+píldora, el médico que baja por la nota conserva **el control** pero pierde **la
+señal** —le queda un reloj, que es justo la que la cabecera de `MientrasHablas`
+advierte que miente—. Hacer que la barra acompañe sin estorbar a la píldora es
+trabajo pendiente, con la medición de arriba como punto de partida.
+
+### Lo que NO era, y se dice porque lo dije yo primero
+
+Midiendo a mano pareció que la píldora **tapaba tres controles** a 390 px. El
+arnés `nada-flotante-tapa-un-control`, que aplica la regla de los extremos, dijo
+que no: los tapaba en reposo y se liberaban al desplazarse. No era una trampa.
+
+### Lo que sí queda de esta unidad
+
+`nada-flotante-tapa-un-control` **ya visitaba** la consulta — en reposo. Y en
+reposo esa pantalla no tiene ninguna capa flotante: aparecen al grabar. Se medía
+la pantalla donde el médico pasa la consulta entera en un estado en el que nadie
+trabaja. Ahora el arnés tiene **escenarios**: `/consulta/pac-001 · grabando`
+abre la consulta, da el consentimiento y empieza a grabar antes de medir — y si
+no llegó a grabar, **se para** en vez de dar un verde sobre el reposo. Probado
+al revés con una capa que sí atrapa: caza «Firmar y cerrar nota», «Guardar
+borrador», «Leer resumen» y «Descartar», a 1440 y a 390.
+
+Y el recorrido entero queda como arnés (`npm run arnes:dia-del-medico`).
+
+**Qué NO cubre.** Sólo Chromium: **no prueba iPhone**.

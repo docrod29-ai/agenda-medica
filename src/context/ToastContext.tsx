@@ -1,5 +1,6 @@
 'use client'
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -78,16 +79,42 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setPending(prev => { prev?.resolve(valor); return null })
   }, [])
 
-  // Teclado: Esc = cancelar, Enter = aceptar
-  useEffect(() => {
-    if (!pending) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); cerrar(false) }
-      else if (e.key === 'Enter') { e.preventDefault(); cerrar(true) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [pending, cerrar])
+  /**
+   * EL TECLADO DE ESTA CONFIRMACIÓN, POR EL CAMINO CANÓNICO.
+   *
+   * Estaba escrito a mano y le faltaba la trampa de foco. Medido en el
+   * navegador el 2-sep: con «¿Eliminar esta cita permanentemente?» abierto,
+   * **cinco tabulaciones sacaban el foco del diálogo** y lo dejaban en el
+   * enlace «Encuentro» de la navegación de detrás — a pesar del
+   * `aria-modal="true"`, que le promete a la tecnología de apoyo que lo de
+   * atrás está inerte.
+   *
+   * Y encima el Enter estaba atado a la VENTANA. Así que pulsar Enter sobre
+   * ese enlace, creyendo que se navegaba, **borraba la cita**: medido, la
+   * lista pasó de 7 citas a 6. Una tecla apuntada a otra cosa ejecutando un
+   * acto destructivo e irreversible es lo más caro que puede hacer un diálogo
+   * de confirmación — precisamente el que existe para que nada se borre sin
+   * querer.
+   *
+   * Ahora el foco queda atrapado (`useDialogoDeTeclado`, las cinco cosas:
+   * Escape, trampa, foco inicial, scroll bloqueado y foco devuelto) y el Enter
+   * vive DENTRO del diálogo, no en la ventana.
+   */
+  const cajaRef = useRef<HTMLDivElement>(null)
+  useDialogoDeTeclado(!!pending, cajaRef, () => cerrar(false))
+
+  /**
+   * Enter acepta — pero sólo cuando no hay un control que quiera esa tecla.
+   * Con el foco en «Cancelar», Enter cancela: lo dice el botón, no este atajo.
+   * Sin esta guarda, las dos cosas pasarían a la vez y ganaría la destructiva.
+   */
+  const alTeclearEnElDialogo = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter') return
+    const dentro = e.target as HTMLElement | null
+    if (dentro && dentro.closest('button, a, input, textarea, select')) return
+    e.preventDefault()
+    cerrar(true)
+  }
 
   return (
     <Ctx.Provider value={{ toast, confirm }}>
@@ -133,6 +160,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           }}
         >
           <div
+            ref={cajaRef}
+            tabIndex={-1}
+            onKeyDown={alTeclearEnElDialogo}
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%', maxWidth: 400, background: 'var(--s1)', color: 'var(--text)',
