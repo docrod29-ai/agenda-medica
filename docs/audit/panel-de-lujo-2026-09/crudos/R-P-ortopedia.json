@@ -1,0 +1,155 @@
+{
+  "auditor": "P-ortopedia",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "PO-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/portal/route.ts:1090 `diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', ')` — literal en la linea citada; los tres campos que el auditor dice que no se miran EXISTEN en el modelo (src/types/expediente.ts:70 `tipo: 'definitivo'|'presuntivo'|'descartado'|'diferencial'`, :71 `estado`, :80 `tipoOrigen`). El guardian de REG-516 solo recorre DOS rutas y el portal no esta en la lista (src/__tests__/el-diagnostico-impreso-no-es-un-codigo-huerfano.test.ts:71-73)",
+      "nota": "Confirmado con la evidencia mas fuerte que la que trae el auditor: VEINTE LINEAS ARRIBA, en el mismo `.map`, la ruta SI aplica la puerta de prescripcion (route.ts:1070 `medicamentosDeLaReceta`) con un comentario de 28 lineas que explica por que la lista cruda no puede salir impresa bajo una cedula — y a los diagnosticos no se les aplica ninguna. La asimetria dentro de una sola expresion es el defecto. BAJO de P0 a P1: no hay fuga entre pacientes ni dato inventado (todo el texto lo escribio el medico en su nota, solo que de mas), la nota tiene que estar `firmada` (:1052) y el campo ya se ve en pantalla antes de descargar (mi/[token]/page.tsx:1051), asi que no es silencioso. Matiz sobre la propuesta: `diagnosticoParaImprimir` (fusionar-diagnosticos.ts:211-212) tampoco excluye un descartado cuando es el UNICO con texto — `find(tipo==='definitivo') ?? conTexto[0]`; copiarla sin mas no cierra el caso del esguince con la fractura descartada como unico dx."
+    },
+    {
+      "id": "PO-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:338 `encounterSummary: (n.diagnosticos ?? []).map(d => texto(d?.descripcion)).filter(Boolean).join(', ')` — literal; y :230 `diagnosticos?: readonly { descripcion?: unknown }[]`, el tipo de entrada del motor no declara `tipo` ni `estado`, asi que hoy `componerPaquete` NO PUEDE filtrar aunque quiera",
+      "nota": "Confirmado, y la causa raiz esta un piso mas abajo de donde la pone el auditor: no es un filtro olvidado, es que `NotaParaElPaquete` recorta la vista del motor a `descripcion` a proposito (comentario :218-222: «ampliar la vista obliga a ampliar este tipo — o sea, a decidirlo»). El arreglo empieza por el tipo. BAJO de P1 a P2 por dos controles reales que el auditor menciona pero no pesa: el paquete nace DRAFT y no es visible hasta que alguien lo libera (paquete-de-visita.ts:352 `estado: 'DRAFT'`), y la previsualizacion se lo ensena al medico rotulado «Motivo:» (EntregarAlPaciente.tsx:231) antes de que decida. Hermano de PO-001, mismo arreglo."
+    },
+    {
+      "id": "PO-003",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/urgencia.ts:145 (regex literal, «pie» y «dedos» ausentes) PERO :44-51, la cabecera del propio modulo: «LO QUE ESTE MODULO NO VIGILA (clinical-safety.md §5) … No cubre, entre otros: hemorragia, TRAUMA …» + src/app/mi/[token]/page.tsx:502-508 (`ViaDeUrgencia` en TODOS los destinos, no en una pestana) y src/components/portal/ViaDeUrgencia.tsx:69-76 («o cualquier otro malestar grave» + `tel:911`)",
+      "nota": "MISMO VEREDICTO QUE PG-001 (parcial, P2): es el mismo hueco estructural con otro vocabulario de especialidad, no un defecto nuevo. Reproducido con jiti, salida literal: `\"el pie se me puso morado y frio con la ferula\" => null` · `\"la ferula me aprieta mucho y no siento los dedos\" => null` · `\"se me durmio el pie\" => null` · `\"no siento la pierna\" => {\"motivo\":\"sintomas_neurologicos_agudos\",\"clase\":\"URGENT_REVIEW_REQUIRED\"}`. El hecho es exacto. PARCIAL y P2, no P1, porque: (1) el modulo declara por escrito que el trauma no se vigila, que es justo lo que exige clinical-safety §5 — un caso declarado no es un caso oculto; (2) el 911 esta en pantalla en el momento de preguntar; (3) que signos entran (¿«morado»? ¿«aprieta»? ¿sin «no siento»?) es politica clinica y el propio auditor lo manda a NEEDS_CLINICAL_REVIEW: sin decision del dueno/ortopedista no hay linea que escribir."
+    },
+    {
+      "id": "PO-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/EntregarAlPaciente.tsx:257 (promesa literal) contra src/lib/paciente/paquete-de-visita.ts:344 `warningSigns: []` y :226-231 (`NotaParaElPaquete` no declara `indicaciones`); src/app/api/expediente/paquete-de-visita/route.ts:187 pasa cinco campos y ninguno es indicacion",
+      "nota": "DUPLICADO de PG-002/MG-015; misma prioridad final (P2). Aporto la pata que faltaba y que CORRIGE al equipo rojo de gineco: PG-002 anoto que `indicacionesDelMedico` «SI viaja por la hoja impresa (como-se-lo-explico.ts:59 y :155, consumida por HojaParaElPaciente.tsx:47)». Es falso a la salida: `grep -rn 'indicacionesDelMedico' src/` devuelve DOS lineas, las dos dentro de como-se-lo-explico.ts — CERO llamadores. El unico sitio que monta la hoja (consulta/[patientId]/page.tsx:6544-6557) le pasa `medicamentos`, `estudios`, `proximaCita` y `onInteraccion`, y nada mas. O sea: el campo esta escrito y sin conectar, y las indicaciones del medico —el retiro de la ferula y los ejercicios— no llegan ni al portal ni a la hoja del paciente; solo a la receta impresa (RecetaDocumento.tsx:582-588)."
+    },
+    {
+      "id": "PO-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/tareas-clinicas/de-una-pregunta.ts:83 y :91 (`titulo: 'Pregunta del paciente: ${etiquetaDelMotivo(p.motivo)}'`) son literales — PERO :92 `detalle: p.texto` y src/app/(dashboard)/pendientes/page.tsx:178 `{t.detalle && <p className=\"nx-meta\">{t.detalle}</p>}` pintan LO QUE DIJO EL PACIENTE en la propia tarjeta, sin abrirla",
+      "nota": "El titulo mal elegido es cierto; el impacto que lo sostiene, no. «Tiene que abrir cada tarjeta para saber que una dice pie morado y frio» queda refutado por pendientes:178 — y lo desmiente la captura del propio auditor, que transcribe la tarjeta CON la frase del paciente al final («… · el pie se me puso morado y frio con la ferula»). Lo mismo en el panel corto (PanelPendientes.tsx:99). Queda una friccion de redaccion (motivo donde deberia ir la frase) y una propuesta —subir a `critica` por vocabulario de sintoma— que es politica clinica, no codigo: por eso P3 y no P2."
+    },
+    {
+      "id": "PO-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:151 `const tiposCita = info?.tiposCita.filter(t => Number(t.duracion) > 0) ?? []` y :202-207 (`<Card title=\"¿Que tipo de consulta deseas?\">` con `tiposCita.map` y ninguna rama para longitud 0) · src/app/api/public/clinic/[clinicId]/route.ts:83 (`tiposCita` sale solo de `config.duraciones`)",
+      "nota": "DUPLICADO de PG-007; mismo veredicto y misma prioridad (P2). Verificado que los unicos returns tempranos son cargando/error/!info, asi que con `duraciones` vacio la tarjeta se pinta con la pregunta y sin hijos, exactamente como describe el recorrido movil."
+    },
+    {
+      "id": "PO-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:331 (`<strong>`, no `<a>`) y :337 · `grep -c 'href=' src/app/reservar/[clinicId]/page.tsx` = 0 · el servidor lo exige en src/app/api/public/booking/route.ts:54-55 y lo escribe como consentimiento en :396",
+      "nota": "DUPLICADO de PG-006; mismo veredicto y prioridad (P2). Todas las lineas citadas son exactas, incluido el cero de `href`. El control del otro lado que ya encontro el equipo rojo de gineco sigue valiendo aqui: el servidor conserva `versionAviso` y el sha256 del aviso de ESE consultorio (booking route :249-257), asi que el consentimiento es reproducible y fechado aunque la pantalla no lo enseñe. Lo que queda es enlazarlo y la etiqueta de la segunda casilla (NEEDS_LEGAL_REVIEW: «consentimiento informado» por casilla no es NOM-004)."
+    },
+    {
+      "id": "PO-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:254-292 (`cargar()` dispara `session`, `documentos`, `paquetes` y `preguntas`) · src/app/api/portal/route.ts:56 `ACCIONES_CLINICAS = new Set(['documentos','paquetes','preguntar','preguntas'])` y :331 `limitarEstricto('portal:clinico:…', 15, 600)`",
+      "nota": "Confirmado el mecanismo, con DOS correcciones a la aritmetica del auditor. (1) A la baja: `session` NO cuenta como clinica (:56), asi que cada apertura gasta TRES del cupo de 15, no cuatro — la sexta apertura en diez minutos es la que se cae, no la quinta. (2) Al alza, y esto el auditor no lo vio: el freno clinico se cobra en :331, ANTES de comprobar el alcance (:754, :968, :1015), asi que un enlace de AGENDA —el que emite el mostrador y que ni siquiera puede ver documentos— tambien quema el cupo clinico con tres 403 por apertura. P2 se sostiene: el mensaje es honesto y la ventana son 10 minutos, pero el presupuesto esta hecho por accion y la pantalla gasta por apertura."
+    },
+    {
+      "id": "PO-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/patient-token.ts:26 `const DIAS_DEFECTO = 7` (literal) y :50-68 `PayloadPaciente { c, p, e, a?, v? }` — no hay alcance por documento · src/app/mi/[token]/page.tsx:1086-1088 (perfil sin revocar) · src/app/(dashboard)/expediente/[patientId]/page.tsx (unica revocacion) · `clasificarPregunta('necesito mi incapacidad para el jefe')` → ESCALATE_TO_CLINICIAN / documento_firmado (jiti, salida literal)",
+      "nota": "MISMO VEREDICTO QUE MO-010 (parcial, P3) para la pata principal: el documento de incapacidad/constancia no existe (RecetaDocumento.tsx:49 y receta-word.ts:20 solo conocen `'receta'|'orden'`), y su formato es politica LEGAL —falsedad en certificados— que un agente no puede fijar: decision del dueno. Comprobado a mano lo que el auditor afirma del reenvio: con alcance clinico el enlace da citas con motivo, recetas con diagnostico completo y el historial de preguntas. Dos precisiones: el payload es `{c,p,e,a,v}` (lleva `e`, la caducidad), no `{c,p,a,v}`; y «expediente completo» exagera — `documentos` solo devuelve notas FIRMADAS con medicamentos que pasaron `medicamentosDeLaReceta` (route.ts:1049-1052, :1070), no el expediente. Las otras dos patas (boton de revocar en el portal, alcance por documento) son mejora de producto sin decision tomada."
+    },
+    {
+      "id": "PO-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/portal/route.ts:118 `motivo: a.motivo` dentro de la lista blanca de `leerCitasPaciente`, sin mirar `alcance` (las tres comprobaciones de alcance viven en :754, :968 y :1015 y ninguna cubre `session`) · src/app/mi/[token]/page.tsx:176 `const det = encodeURIComponent(c.motivo || …)` → :177 `https://calendar.google.com/…&details=${det}`",
+      "nota": "SUBO de P2 a P1, no lo bajo: esto es texto clinico en un PARAMETRO DE URL hacia un tercero, que es exactamente lo que security-tenant.md prohibe («PHI: nunca en logs, nunca en parametros de URL»), y va por el enlace que emite cualquier miembro del mostrador. La contradiccion esta escrita en el propio archivo: mi/[token]/page.tsx:70-72 declara «NO trae `motivo` — el servidor no se lo manda al paciente» para el tipo `PreguntaHecha`, mientras el tipo `Cita` de doce lineas mas abajo (:109) SI lo declara y la pantalla lo mete en el `details` de Google. Y patient-token.ts:19 ya nombra el riesgo («incluido el `motivo`, que es texto clinico») como razon para bajar el TTL a 7 dias: se conocia y se mitigo con caducidad en vez de con alcance."
+    },
+    {
+      "id": "PO-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/resena/[token]/page.tsx:77 «Tu opinion es anonima en la pagina publica.» · src/lib/reviews.ts:155-161 `return \\`${partes[0]} ${partes[1][0]}.\\`` · src/app/dr/[clinicId]/page.tsx:244 (lo pinta) y :127 (`author: { '@type': 'Person', name: nombreAnonimizado(...) }` en el JSON-LD)",
+      "nota": "Las cuatro lineas son exactas. La promesa es al paciente y la pantalla que la incumple es publica e indexable: el JSON-LD (:127) manda el nombre a los resultados enriquecidos de los buscadores, que es peor que pintarlo en la pagina. La moderacion del medico no lo salva —modera el TEXTO, y el nombre lo pone el sistema, no el paciente—. P2 correcto: no hay dano clinico, pero es una afirmacion falsa hecha a la persona sobre sus propios datos (LFPDPPP). El arreglo mas barato es el que propone el auditor: que la frase diga la verdad o que la funcion devuelva «Paciente»."
+    },
+    {
+      "id": "PO-012",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "MITAD REFUTADA: src/app/globals.css:1710, dentro de `@media (pointer: coarse)`, `button:not(.mobile-topbar-btn) { min-height: 44px !important; }` — cubre TODO `<button>`, tambien los de estilo en linea, y el `!important` gana a un estilo inline (el comentario :1693-1703 explica por que). MITAD CONFIRMADA: src/app/privacidad/[clinicId]/page.tsx:285 `background: '#fff'` fijo en la tarjeta y :190 `<h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>` sin color, que hereda `body { color: var(--text) }` (globals.css:438) = `#F2EFE9` en el tema oscuro (globals.css:319)",
+      "nota": "REFUTO el objetivo tactil, con la misma linea con la que se refuto PG-009: en cualquier puntero grueso ese «← Volver» mide ≥44 px. Los «55x20» medidos indican que el arnes emulo el viewport de 390x844 pero NO `hasTouch`, asi que la media query no aplicaba: es un artefacto de la medicion, no de la pantalla. CONFIRMO el contraste, y es peor de lo que dice el auditor: no es un titulo «gris claro», es texto casi blanco (#F2EFE9) sobre blanco (#fff) — ilegible, no palido — y afecta a los once colores fijos de la pantalla legalmente mas sensible (11 hex contados con grep). P2 por esa mitad; la compuerta de diseno declara el contraste <4.5:1 como fallo."
+    },
+    {
+      "id": "PO-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:432 `void descargarRecetaWord(` y :1055-1057 (unico control) · src/lib/receta-word.ts:3 («Word (.doc) editable») · existe /verificar/[token] (src/app/verificar/[token]/page.tsx) y el impreso del medico si pinta el QR (RecetaDocumento.tsx:834 y :1075, `recetaConfig.mostrarQR`)",
+      "nota": "DUPLICADO de PG-015; mismo veredicto y prioridad (P3). CORRIJO una pata de la evidencia: `mostrarQR: false` (mi:39) es un espantapajaros — `grep -n 'mostrarQR|verificar' src/lib/receta-word.ts` devuelve CERO, o sea que el exportador a Word no sabe pintar un QR y poner la bandera en `true` no cambiaria nada. El defecto real no es un flag apagado sino que el canal del paciente usa otro documento (Word sin membrete ni verificacion) que el que imprime el medico (RecetaDocumento con QR): son dos papeles del mismo acto. Se sostiene P3 porque el contenido clinico SI esta en pantalla antes de descargar (mi:1044-1053, mi:924-928)."
+    },
+    {
+      "id": "PO-014",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:1086-1088 (el texto que declara la ausencia) y :1066-1077 (el comentario que la explica: «el token del portal ata a UN paciente, sin concepto de cuidador») · src/lib/patient-token.ts:50-68 (payload sin quien lo usa) · src/app/reservar/[clinicId]/page.tsx:337 (la casilla no pregunta relacion ni edad)",
+      "nota": "MISMO VEREDICTO QUE PG-011 (parcial, P2): la ausencia es total y esta declarada por escrito en el codigo y en la especificacion V9, y lo que decide el caso —que puede ver y firmar el padre de un menor de 15— es derecho, no codigo. El producto hace hoy lo unico honesto: decirlo en vez de fingir un boton. No es un defecto que se pueda arreglar sin decision del dueno."
+    },
+    {
+      "id": "PO-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx:342 `const [estudios, setEstudios] = useState<string[]>([])` y :269 `'Radiografia de extremidades'` (literales) · src/lib/paciente/paquete-de-visita.ts:341 `orders: (n.estudiosOrden ?? []).map(texto)` · src/lib/paciente/pregunta-del-paciente.ts:384-394 (el portal contesta la orden TAL CUAL, con procedencia `orders`)",
+      "nota": "MISMO VEREDICTO QUE MO-003 (confirmado, P2), del que este es la cara del paciente. Reproducido con jiti sobre `clasificarPregunta` con un plan sintetico: `\"de que lado era la radiografia?\" => ANSWER_FROM_APPROVED_PLAN | null | \"• Radiografia de tobillo izquierdo, dos proyecciones\"`. O sea: el portal responde EXACTAMENTE la cadena de la orden, con sello de procedencia nivel 2 — si el medico no tecleo el lado, el paciente recibe una linea sin lado presentada como respuesta completa y aprobada. Eso es lo que hace de esto un P2 y no un P3: el sello de procedencia le presta autoridad a una orden incompleta. `orders` no lleva ningun campo de lateralidad (paquete-de-visita.ts:143)."
+    },
+    {
+      "id": "PO-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:7459-7463 (texto literal «se conserva temporalmente en este dispositivo … el expediente guarda unicamente la transcripcion de texto») · src/hooks/useGrabacionAudio.ts:616-620 (`consultas-audio/${uid}/…` + `uploadBytes`) · src/lib/expediente/audio-caduco.ts:47 `HORAS_DE_VIDA = 24`",
+      "nota": "DUPLICADO de PG-003; mismo veredicto y prioridad (P2). Lineas verificadas una a una. Vale aqui el matiz que ya establecio PG-003 y que el auditor no recoge: el texto NO es falso en lo material (el envio a un servicio de transcripcion si se declara, y «el expediente guarda unicamente la transcripcion» es literalmente cierto: `audioPath` no se escribe en Firestore), y REG-032 no ha reaparecido — lo que cerro REG-032 era la frase «el audio no se guarda». El defecto es de PRECISION: «en este dispositivo» como unico lugar y «por si la transcripcion falla» como unico motivo."
+    },
+    {
+      "id": "PO-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "`grep -n privacidad src/app/mi/[token]/page.tsx src/app/dr/[clinicId]/page.tsx` = CERO resultados en los dos archivos; el perfil del portal (mi:1079-1100) lleva idioma, la frase del enlace y el pie del consultorio, y nada mas",
+      "nota": "Premisa comprobada con el grep exacto que pide el hallazgo, en los dos archivos: no hay ninguna puerta al portal de privacidad desde ninguna pantalla de cara al paciente. Y en /reservar tampoco, porque ahi no hay ni un `href` (0 resultados, ver PO-007). P3 correcto: la pagina existe y funciona, falta un enlace de una linea; y es el arreglo natural del hueco de PO-021 (un Perfil sin acciones)."
+    },
+    {
+      "id": "PO-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:276 `const PREGUNTA_POR_TOMA = /(como|cuando|cada cuando|cada cuanto|a que hora|cuantas veces|cuanto tiempo|hasta cuando|con que|en ayunas|con comida)/` (literal), :171-175 `prescripcion_o_receta` exige `(cambiame|cambia|…|mandame|necesito) … receta`, :155-162 `cambio_de_dosis` no cubre «dos … juntos»",
+      "nota": "Reproducido con jiti sobre `clasificarPregunta` con plan sintetico de ibuprofeno; salida literal: `\"cuanto ibuprofeno puedo tomar?\" => ESCALATE_TO_CLINICIAN | no_esta_en_el_plan_liberado` · `\"me puedo tomar dos juntos?\" => ESCALATE_TO_CLINICIAN | no_esta_en_el_plan_liberado` · `\"me mandas otra receta?\" => ESCALATE_TO_CLINICIAN | no_esta_en_el_plan_liberado`, contra `\"cada cuanto tomo el ibuprofeno?\" => ANSWER_FROM_APPROVED_PLAN` citando la instruccion. Exacto. P3 bien puesto por el auditor: la seguridad esta intacta (escala por omision y nunca origina una dosis), lo que falla es la ETIQUETA con la que el consultorio triaja. El arreglo es vocabulario, y cada frase nueva tiene que ir a evals/patient-ai/casos.json o se pierde."
+    },
+    {
+      "id": "PO-019",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/not-found.tsx:120 `Ir al dashboard` y :138 `Version: {version}` — las dos literales en las lineas citadas",
+      "nota": "MISMO VEREDICTO QUE PG-019 (parcial, P3). La evidencia de codigo es exacta y la lectura razonable, pero la premisa de producto —«no hay forma de encontrar a su ortopedista»— es una decision del dueno ya tomada: no existe directorio de medicos, el enlace lo reparte el consultorio (/dr/<id>, /reservar/<id>) y la landing vende a medicos por diseno. Sin decision del dueno no hay defecto que arreglar. Lo unico que si es un error a secas y no una opinion es el sello del service worker impreso al visitante (:138)."
+    },
+    {
+      "id": "PO-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:850-851 (texto literal, en la rama `else` de :845 cuando `sesion.clinica?.telefono` esta vacio) · src/app/api/portal/route.ts:928 («Sin telefono no se intenta nada, y desde REG-521 eso ya no…») · src/components/portal/ViaDeUrgencia.tsx:81-85 (el boton del consultorio solo se pinta si HAY telefono)",
+      "nota": "Confirmado literalmente, incluida la rama condicional. P3 se sostiene y no sube: el texto es honesto en vez de fingir una via, el 911 sigue en pantalla y la pregunta si queda como tarea (REG-521, verificado en pendientes/page.tsx:178). Lo que propone el auditor —bloquear con 409 la emision de un enlace clinico si el consultorio no configuro telefono— es una compuerta nueva sobre el flujo comercial del trial de 14 dias: decision del dueno, no arreglo evidente."
+    },
+    {
+      "id": "PO-021",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:1066-1077 — el comentario declara la decision («Se ensena el estado real en vez de un control que no hace nada … un boton de cuidador que no autoriza a nadie le mienten al paciente») · :1090-1097, el pie del consultorio dentro de ese mismo destino, con `<a href={tel:…}>` accionable",
+      "nota": "PARCIAL. El inventario sin accion existe (idioma fijo + frase de disculpa) y la lectura es razonable como opinion de producto, pero «no ofrece ninguna accion» no es exacto: el destino Perfil es el que lleva el pie del consultorio con el telefono marcable (:1094), que a las 2 a.m. es justamente la accion de PO-020. Y la ausencia esta decidida y escrita, no olvidada. La recomendacion del auditor (fusionar y meter ahi «Invalidar mi enlace» de PO-009 y «Mis datos y privacidad» de PO-017) es sensata y no cuesta un destino; convertirlo en trabajo depende del dueno."
+    }
+  ],
+  "ratio": { "total": 21, "confirmados": 14, "refutados": 0, "parciales": 7 },
+  "observaciones_del_auditor": "Auditor MUY solido en lo textual: abri las 21 lineas citadas y todas existen donde dice (portal route:1090 y :118, paquete-de-visita:338 y :341, urgencia:145, de-una-pregunta:83, reservar:151/331/337, patient-token:26, reviews:155, resena:77, dr:127 y :244, privacidad:187, not-found:120, mi:39/850/1079/1086, consulta:7459-7463, orden:269 y :342, pregunta-del-paciente:276). Sus DOS reproducciones ejecutables (urgencia.ts y clasificarPregunta) salieron EXACTAS al correrlas con jiti, frase por frase. Cuatro patrones de error, todos menores: (1) MIDE SIN EMULAR EL DEDO — el «55x20» de PO-012 es imposible con `pointer: coarse` (globals.css:1710 cubre TODO `<button>` con `!important`); es el mismo tropiezo que ya se refuto en PG-009 y sigue midiendo con viewport pero sin `hasTouch`. (2) ARITMETICA DEL LIMITE — PO-008 cuenta cuatro acciones clinicas por apertura cuando `session` no lo es (route.ts:56): falla la sexta, no la quinta; en cambio no vio que el freno se cobra antes del control de alcance, que es peor. (3) NO PESA LOS CONTROLES QUE EL MISMO CAPTURA — en PO-005 su propia transcripcion de la tarjeta de Pendientes contiene la frase del paciente, lo que desmiente el impacto que escribe dos lineas mas abajo. (4) CITA FLAGS QUE NO HACEN NADA — el `mostrarQR:false` de PO-013 es inerte porque receta-word.ts no sabe pintar un QR (grep = 0), y el defecto real es otro (dos documentos para el mismo acto). Y una virtud que conviene decir: es el unico auditor del panel que atraviesa la frontera hasta el otro lado (respuesta real de la API, .doc descargado, tarjeta de Pendientes), que es la regla «el dato tiene que LLEGAR» aplicada de verdad; de ahi salen sus dos mejores hallazgos, PO-001 y PO-010."
+}

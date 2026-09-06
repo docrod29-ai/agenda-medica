@@ -1,0 +1,162 @@
+{
+  "auditor": "P-cirugia",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "PC-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/portal/route.ts:1090 `diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', ')` · src/lib/paciente/paquete-de-visita.ts:337 `encounterSummary` igual · src/types/expediente.ts:70 `tipo: 'definitivo' | 'presuntivo' | 'descartado' | 'diferencial'` · y el DESTINO, que el auditor no citó: src/app/mi/[token]/page.tsx:1052 lo pinta y :438 lo mete en el .doc descargable",
+      "nota": "Busqué la línea que ya lo impidiera y no existe: `diagnosticoParaImprimir` (fusionar-diagnosticos.ts:209) tiene exactamente dos llamadores —receta/[patientId]/[notaId]/page.tsx:335 y orden/…:415— y ninguno es la ruta del portal. Es la misma forma exacta de REG-329, que además DECLARÓ no cubrir esto (ledger:8646 «No cubre el PaqueteDeVisita»). Dos matices contra el auditor que no le quitan el hallazgo: (a) `EntregarAlPaciente.tsx:228` SÍ le enseña `encounterSummary` al médico antes de liberar, rotulado «Motivo», así que su `control_existente` es inexacto — pero `documentos` no pasa por ninguna liberación; (b) la receta impresa no «elige el definitivo» sino que prefiere el definitivo y si no hay cae al primero (`?? conTexto[0]`, l.212), así que también puede imprimir un descartado — imprime UNO, no los seis."
+    },
+    {
+      "id": "PC-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:344 `warningSigns: []` · :222-231 `NotaParaElPaquete` no declara `secciones` · src/app/api/expediente/paquete-de-visita/route.ts:187 (la llamada pasa nota, medicacionPrevia, alergias, telefono y proximaCita y nada más)",
+      "nota": "DUPLICADO de PG-002 (R-P-gineco) y de MC-002 (R-M-cirujano): mismo veredicto y misma prioridad final, P2. Añado munición que ninguno de los dos vio y que refuerza el hallazgo: la plantilla `nota_alta` YA tiene `signosAlarma` como clave estructurada y OBLIGATORIA (src/lib/expediente/templates.ts:62, placeholder «Acudir a urgencias si…»), o sea que el producto sabe modelar el campo — y `componerPaquete` sigue devolviendo `[]` a pelo. No es que falte el concepto: es que el compositor no mira las secciones de la nota."
+    },
+    {
+      "id": "PC-003",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "Refutan las tres carencias del título: src/components/portal/ViaDeUrgencia.tsx:70-77 («o cualquier otro malestar grave. Nadie está leyendo esta pantalla ahora mismo» + `<a href=\"tel:911\">` pulsable, montado arriba de TODOS los destinos) y src/app/mi/[token]/page.tsx:846-850 (`<a href=\"tel:{telefono}\">Llamar al consultorio`). Confirma el núcleo: src/lib/paciente/urgencia.ts:44-51, que DECLARA no vigilar hemorragia, trauma ni dolor abdominal agudo",
+      "nota": "Reproduje el clasificador con jiti (alias @→src) y sale lo que dice el auditor, literal: {\"f\":\"La herida está roja y caliente y tengo fiebre\",\"clase\":\"ESCALATE_TO_CLINICIAN\",\"motivo\":\"no_esta_en_el_plan_liberado\",\"urg\":null}; igual «La herida no para de sangrar», «Se me abrió y sale pus» y «Piel amarilla y orina oscura»; «Tengo dolor en el pecho» → URGENT_REVIEW_REQUIRED/dolor_toracico. PERO: «sin 911 dentro de la respuesta» y «sin decir que nadie la leerá hasta mañana» son falsos a nivel de PANTALLA —las dos cosas están arriba, en la misma pantalla, en ámbar y pulsables—, y «sin teléfono» sólo se cumple en un consultorio sin teléfono, que es PC-004. Y el hueco de vocabulario no es un defecto: es cobertura declarada por clinical-safety §5, que es exactamente lo que la regla manda hacer. Baja de P1 a P2: lo accionable y no cubierto en otro sitio es que `TEXTO_ESCALACION` (pregunta-del-paciente.ts:450) no lleve la vía que `mensajeDeUrgencia` (urgencia.ts:194-206) sí lleva. Ampliar el vocabulario postoperatorio es NEEDS_CLINICAL_REVIEW, como el propio auditor dice."
+    },
+    {
+      "id": "PC-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/portal/route.ts:906 `if (r.avisarAlConsultorio && telConsultorio)` para el WhatsApp — pero :884-905 abre la tarea en `tareas_clinicas` ANTES y SIN condicionarla al teléfono (REG-521, comentario literal: «LA ESCALACIÓN LLEGA AL WORKLIST, HAYA TELÉFONO O NO»)",
+      "nota": "Bajo de P2 a P3. El impacto que el título insinúa —«la escalación no avisa a nadie»— ya está cerrado en REG-521 y sigue cerrado: la pregunta escalada abre tarea en /pendientes con o sin teléfono; el auditor lo reconoce en su propio `impacto.medico` («sólo el worklist») pero lo titula como si no. Lo que queda es un hueco de alta del consultorio, y el portal lo DECLARA en vez de callarlo (page.tsx:851-855) con el 911 intacto arriba (ViaDeUrgencia.tsx:76). Sigue siendo cierto y sigue mereciendo el requisito en Configuración; no es P2."
+    },
+    {
+      "id": "PC-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/urgencia.ts:197-205 (literal: `'🚨 *Esto puede ser una urgencia médica.*'`, `'…este canal es para citas y no hay nadie leyéndolo ahora mismo.'`, `` `📞 Llame al *${TELEFONO_EMERGENCIAS}*…` ``) · pregunta-del-paciente.ts:311 `texto: mensajeDeUrgencia(ctx.telefonoConsultorio ?? '')` · src/app/mi/[token]/page.tsx:803-805 `whiteSpace: 'pre-line'`",
+      "nota": "Salida literal del motor con jiti: \"🚨 *Esto puede ser una urgencia médica.*\\n\\nNo espere respuesta por este medio: este canal es para citas y no hay nadie leyéndolo ahora mismo.\\n\\n📞 Llame al *911* o acuda al servicio de urgencias más cercano.\\n📞 Consultorio: 55-1234-5678\\n\\nAvisamos al consultorio de que usted escribió.\" — una sola cadena para WhatsApp y para la web, con markdown de WhatsApp, y el teléfono del consultorio TAMPOCO es pulsable ahí (el auditor sólo señaló el 911). Ni un `tel:` en toda la respuesta: los dos únicos de la pantalla viven fuera de ella (ViaDeUrgencia.tsx:76,82)."
+    },
+    {
+      "id": "PC-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/portal/route.ts:56 `ACCIONES_CLINICAS = new Set(['documentos','paquetes','preguntar','preguntas'])` y :330-333 `limitarEstricto(…, 15, 600, 'Demasiadas consultas a tus documentos…')` · src/app/mi/[token]/page.tsx:257,275,288 (tres de esas cuatro acciones se disparan en CADA `cargar()`) · :882 el aviso genérico",
+      "nota": "La aritmética se sostiene: 3 acciones clínicas por carga contra un cupo de 15 en 10 minutos = la sexta carga cae; el auditor dice «a la quinta recarga» (carga inicial + 4 recargas), coherente. Comprobé además que el servidor SÍ manda algo mejor de lo que la pantalla enseña: `limitarEstricto` devuelve 429 con `mensaje` y, si el freno no pudo contar, 503 con `Retry-After` (src/lib/rate-limit.ts:100-112) — y el `.then` del portal colapsa cualquier `!res.ok` en un booleano (`setPaquetesError(true)`), así que el 503 «no pude contar» y el 429 «espera un momento» se pintan idénticos. Eso agrava el hallazgo, no lo refuta."
+    },
+    {
+      "id": "PC-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "Lo que refuta la probabilidad: src/types/index.ts:751-753 `DEFAULT_CONFIG.duraciones` trae OCHO tipos con minutos, y src/app/api/clinic/crear/route.ts:91 lo escribe entero al crear el consultorio. Lo que queda en pie: src/app/api/public/clinic/[clinicId]/route.ts:61 `const config = cfg ?? {}` (sin fusión con DEFAULT_CONFIG), :80 `publicBookingEnabled: config.publicBookingEnabled !== false` (falla ABIERTO) frente a :83 `config.duraciones ?? {}` (falla VACÍO); y src/app/reservar/[clinicId]/page.tsx:203, sin rama para `tiposCita.length === 0`",
+      "nota": "Bajo de P2 a P3 y niego «probabilidad media»: un consultorio creado por el camino normal nace con los ocho tipos, así que la pared en blanco que el auditor vio es del sembrado sintético —el mismo tipo de artefacto que él mismo declaró en `como-se-lo-explico`—. Lo que sí llega a producción, y es el hallazgo de verdad, es la ASIMETRÍA de la ruta pública: la reserva se da por encendida cuando falta el dato y los tipos se dan por vacíos cuando falta el dato, en dos líneas seguidas del mismo objeto. Refuto también «no hay teléfono alternativo en pantalla»: reservar page.tsx:193-197 pinta el teléfono del consultorio en el hero cuando existe."
+    },
+    {
+      "id": "PC-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:176 `const det = encodeURIComponent(c.motivo || TIPO_LABEL[c.tipo] || 'Consulta')` y :177 `…&details=${det}` (el auditor citó 177: dentro de ±5) · el botón que lo dispara, :590",
+      "nota": "Busqué un filtro o una lista blanca antes del enlace y no hay ninguno: `gcalLink` es la única función que compone la URL y tiene un solo llamador. Peor de lo dicho: `txt` (l.175) ya manda «Cita médica — {nombre del médico}» a Google, así que aun vaciando `details` el enlace seguiría diciendo que es una consulta médica y con quién. `.claude/rules/data-privacy.md` es tajante («PHI nunca en parámetros de URL») y aquí no hay excepción escrita para «lo pulsa el propio paciente»."
+    },
+    {
+      "id": "PC-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/AppointmentModal.tsx:420 (`…caduca en unos días — no lo compartas.`; el auditor citó 413, siete líneas arriba) · src/lib/patient-token.ts:27 `const DIAS_DEFECTO = 7` · mitigaciones ya escritas: src/app/mi/[token]/page.tsx:713-714 y :894-897",
+      "nota": "Bajo de P2 a P3: es literalmente un cambio de copia («unos días» → «7 días»), el diseño de alcance es correcto y falla cerrado (patient-token.ts:29-45, E0-06), y las dos pantallas donde el paciente choca ya le dicen qué hacer con palabras. El auditor lo clasifica bien como `friccion` y luego lo prioriza como si fuera un defecto de permisos, que no lo es. Nota de método: la cita de línea va desplazada siete líneas."
+    },
+    {
+      "id": "PC-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/ayuda/conocimiento.ts:282 literal `{ t: 'Cuidadores', d: 'Un familiar autorizado es una autorización explícita, revocable y con bitácora — no un segundo dueño del expediente.' }` frente a `grep -rn cuidador src/app src/lib src/components` = TRES resultados, los tres comentarios en src/app/mi/[token]/page.tsx:1070-1075 («el token del portal ata a UN paciente, sin concepto de cuidador»)",
+      "nota": "Premisa comprobada con el grep que pedía el encargo: no hay `cuidadorId`, ni colección, ni bitácora por token, ni ruta. La frase de la ayuda es una cita casi literal del §8 de `.claude/rules/patient-facing-ai.md` —o sea, la REGLA se copió a la ayuda como si fuera una descripción del producto—. Es el reverso de «escrito y sin conectar»: prometido y sin escribir, y el que lee la promesa es el médico, que puede creer que sabe quién preguntó. Mantengo P2: el arreglo barato (cambiar el texto a «todavía no») no depende de nadie."
+    },
+    {
+      "id": "PC-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "`grep -rn 'type=\"file\"|FileReader|uploadBytes|accept=\"image'` en src/app/mi, src/app/api/portal, src/lib/paciente y src/lib/portal = CERO resultados; `grep -rni 'foto|imagen|upload|adjunt'` en esas cuatro rutas = un solo acierto, la palabra «imagen» dentro de un comentario (src/app/mi/[token]/page.tsx:191). src/lib/portal/formulario-previo.ts:29-35, seis campos, todos de texto",
+      "nota": "La premisa es cierta al 100% y la conclusión de seguridad también: la IA no puede opinar sobre una foto porque no existe camino por el que una foto entre (no es que el prompt lo prohíba — es que no hay ruta). Lo marco `parcial` y no `confirmado` porque es `mejora` con `decision_del_dueno` abierta y porque comprobé que está FUERA del alcance escrito: `grep -i 'foto|photo'` en docs/ai/NEXUSMED_PATIENT_EXPERIENCE_AND_DESIGN_MASTER_LOOP_V9.md = cero. Pedirlo es legítimo; llamarlo hueco de V9 no. Y la propuesta del auditor («la IA NO clasifica la imagen») es la única forma segura de construirlo."
+    },
+    {
+      "id": "PC-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:1810 `const yaConsintio = consentimiento || !!patient?.consentimientoGrabacion?.fecha` con el comentario :1802 · el modal :7459-7462 · y el contraste que sostiene el hallazgo: src/types/index.ts:300-308, donde el aviso de privacidad SÍ guarda huella SHA-256 del texto aceptado y por qué",
+      "nota": "No duplica a PG-003 (R-P-gineco), que juzga si el TEXTO del modal es veraz; esto juzga que no haya huella ni versión del texto y que sea una sola vez por expediente. El propio repositorio ya resolvió el problema idéntico para el aviso de privacidad y dejó escrito el razonamiento («si el médico cambia esos datos el aviso deja de ser reproducible y la versión NO cambia: queda un consentimiento que no se puede demostrar»), así que la propuesta no inventa un mecanismo: copia el que ya existe al lado. P3 correcto: «una vez por paciente» es decisión del dueño y el auditor la respeta."
+    },
+    {
+      "id": "PC-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:337 (texto literal «Doy mi consentimiento informado para la atención médica solicitada.») · src/app/api/public/booking/route.ts:53-54 lo exige en el servidor y :396 lo persiste como `consentimientos: { avisoPrivacidad: true, informado: true, timestamp: now }` · src/lib/expediente/prompts.ts:550 `CONSENTIMIENTO INFORMADO (NOM-004)…`",
+      "nota": "La mitad quirúrgica —consentimiento sin firma del paciente y sin salida al portal— es MC-003, ya confirmado P1 en R-M-cirujano; no la vuelvo a contar. Lo NUEVO y confirmado aquí es que la casilla de reserva se llama «consentimiento informado» sin procedimiento, riesgos ni alternativas, se exige en servidor y se guarda con ese nombre: el campo se llama `informado`, así que cualquiera que lea el documento después creerá que hubo consentimiento informado. Renombrar la casilla y el campo no depende de nadie más; el consentimiento electrónico sí es decisión del dueño."
+    },
+    {
+      "id": "PC-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/arco.ts:26 literal `oposicion: 'Oposición (no usar para X)',` · `grep -n 'privacidad|arco|ARCO' src/app/mi/[token]/page.tsx` = CERO resultados",
+      "nota": "Las dos mitades comprobadas: la «X» de plantilla está en el catálogo único que pinta el portal público, y el portal del paciente —el único sitio donde ya está identificado— no tiene ni una mención de privacidad ni un enlace a /privacidad/<clinicId>. REG-154 y REG-331 cerraron la «O» y la accesibilidad del formulario, no su redacción ni su descubribilidad, así que no está cerrado en el ledger. Severidad 1: P3 bien puesto."
+    },
+    {
+      "id": "PC-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/globals.css:302 `--t-overline: 10.5px;` usada en src/app/mi/[token]/page.tsx:1128 · 12 px en :800 (Preguntaste), :812 (procedencia), :818 (estado de la escalación), :979 y :986 (prescriptor y reglas de contacto) — y una que el auditor NO vio: :1258 pinta `AVISO_URGENCIA` del formulario previo a 12 px",
+      "nota": "Abrí cada línea citada: todas existen y todas son `fontSize` en px absolutos, no rem, así que el tamaño de fuente del sistema no las escala (sólo el zoom). Añado la peor: el aviso de urgencia del formulario previo, también a 12 px. Un matiz contra el auditor: esto NO «falla la compuerta» de accesibilidad — `.claude/rules/design-system.md` enumera lo que la falla (contraste <4.5:1, objetivo táctil <44×44, foco invisible, campo sin etiqueta) y el tamaño mínimo de fuente no está en esa lista. Es fricción real para el lector de 74 años, no un incumplimiento WCAG. Mantengo P2 por la línea 1258."
+    },
+    {
+      "id": "PC-016",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "public/sw.js:70-73, la política declarada: «Rutas CLÍNICAS: … por defensa en profundidad (§11.2) NO cacheamos su HTML — así ningún dato clínico puede quedar en la caché del navegador» · :66 `if (url.pathname.startsWith('/api/')) return` (el auditor citó 61) · src/app/mi/[token]/page.tsx:298 `setError('Sin conexión. Intenta de nuevo.')`",
+      "nota": "Refutado COMO DEFECTO: el service worker hace exactamente lo que su cabecera declara —API sin tocar, ningún dato clínico en caché— y el portal dice la verdad cuando no hay red en vez de pintar un plan viejo sin fecha. Que el plan no esté offline no es un fallo del código: es la política, y el propio auditor manda su propuesta a `decision_del_dueno` («¿Se permite conservar el plan liberado en el dispositivo del paciente?»), que es donde le corresponde estar. Además choca de frente con su propio PC-017, que pide MENOS caché para /mi: los dos hallazgos le piden cosas opuestas al mismo archivo. Queda como petición de producto pendiente de decisión, no como P2."
+    },
+    {
+      "id": "PC-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "public/sw.js:74 `const esRutaClinica = /^\\/(expediente|consulta|nota|receta|orden|referencia|hospitalizacion|valoracion)(\\/|$)/…` (el auditor citó 66, que es OTRA línea: el `return` de /api/) · :77-81 la navegación se cachea si `!esRutaClinica` · :50-51 la caché sólo se purga al cambiar de versión · src/components/ServiceWorkerRegister.tsx:19 + src/app/layout.tsx:192 (el SW se registra para TODO el árbol, /mi incluido)",
+      "nota": "La cita de línea está desplazada ocho líneas y apunta a una línea distinta, pero el texto existe literal en el archivo y la premisa se sostiene: `mi`, `resena`, `teleconsulta` y `verificar` no están en la lista, así que el HTML de /mi/<token> entra a Cache Storage con el token como clave. Es incumplimiento de la LETRA de la política que el propio archivo declara (l.70-73), no de su efecto: el cascarón no lleva PHI y la API valida firma, caducidad, alcance y versión en cada llamada. Severidad 1 y P3, como dijo el auditor; el arreglo es una palabra en una expresión regular."
+    },
+    {
+      "id": "PC-018",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/patient-token.ts:27 `const DIAS_DEFECTO = 7` con el razonamiento :17-26 (eran 30, se bajaron a 7 por este mismo escenario) · la revocación existe sólo en el lado del médico: src/app/(dashboard)/expediente/[patientId]/page.tsx:658-668 y :986-988 · Perfil del portal sin equivalente: src/app/mi/[token]/page.tsx:1081-1088",
+      "nota": "Todo lo comprobable se comprueba y el propio auditor lista un `control_existente` que cubre firma, caducidad, alcance, revocación por contador y límite por paciente. Lo dejo `parcial` porque la parte gorda —segundo factor para el enlace clínico— es `decision_del_dueno` declarada por él mismo y contradice el diseño de magic-link que el repositorio ya razonó por escrito (un segundo dato que el adulto mayor no recuerda es la forma más rápida de que nadie abra el portal). La parte que NO necesita decisión y que sostengo es pequeña: un «Cerrar este enlace» en Perfil que suba `portalTokenVersion`, exactamente lo que ya hace el botón del médico. P3."
+    },
+    {
+      "id": "PC-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:590-592 `<a href={gcalLink(c, tzClinica)} … className=\"btn btn-ghost btn-sm\"><CalendarPlus size={14} /> Agendar</a>`, en la misma fila que Confirmar, Reagendar y Cancelar (:580-589)",
+      "nota": "Literal y en el lugar exacto: cuatro controles seguidos, tres actúan sobre la cita y el cuarto sale a un tercero con el mismo aspecto. Es copia, cuesta una palabra y el auditor lo prioriza bien. Sin objeción."
+    },
+    {
+      "id": "PC-020",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:334-346 (el paquete entero: dx, medicamentos, cambios, órdenes, followUp y tres listas vacías) · src/lib/expediente/templates.ts:65-71 `valoracion_preoperatoria` sin campo de indicaciones al paciente · `grep -rn incapacidad src/app src/lib src/components` = DOS aciertos, ninguno un documento: prompts.ts:373 (un ejemplo) y pregunta-del-paciente.ts:187 (el patrón que lo escala)",
+      "nota": "Bajo a P3 por doble contabilidad: la mitad estructural —que `componerPaquete` no lea las secciones de la nota— ya está cobrada a P2 en PC-002, PG-002 y MC-002, y contarla tres veces infla el panel. Lo que queda es petición de producto con `decision_del_dueno` abierta. Verifiqué con jiti las cuatro frases: «¿Puedo comer antes de la cirugía?», «¿Cuántas horas de ayuno antes de la operación?», «¿Cuándo me puedo bañar?» y «¿Me dan incapacidad?» → las cuatro ESCALATE_TO_CLINICIAN/no_esta_en_el_plan_liberado, ninguna origina nada. Detalle fino que el auditor no notó: «¿Me dan incapacidad?» NO cae en el acto prohibido `documento_firmado` (pregunta-del-paciente.ts:186-188 exige además un verbo del tipo «genérame/dame»), cae al paso 5 — mismo destino, motivo distinto, y por eso el consultorio la recibe mal etiquetada."
+    },
+    {
+      "id": "PC-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/page.tsx — `grep -ni paciente` devuelve 12 líneas y las 12 hablan DEL paciente al médico (l.75, 94, 131, 133, 183…); ninguna se dirige a un paciente ni enlaza a /dr o /reservar",
+      "nota": "Confirmo la lectura, aunque la cita de evidencia («línea 1») no es una cita: es un recorrido. Comprobé el archivo entero (412 líneas) y no hay salida hacia la reserva. El propio auditor escribe en `impacto.negocio` que es «por diseño», y el aislamiento entre consultorios impide un buscador, así que el arreglo posible es la línea al pie que él propone. Severidad 1, probabilidad baja: P3."
+    },
+    {
+      "id": "PC-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/receta-word.ts:235 `const blob = new Blob(['\\ufeff', html], { type: 'application/msword' })` y :242 `a.download = …'.doc'`",
+      "nota": "Literal en la línea citada. Añado lo que el auditor no miró y que va en la misma dirección: el nombre del archivo lleva el nombre del paciente (:237, `nombrePac`), así que el .doc que acaba en la carpeta de descargas compartida del teléfono se identifica solo. P3 correcto: es una mejora de formato, la receta se ve en pantalla y la firma electrónica queda fuera del alcance."
+    }
+  ],
+  "ratio": { "total": 22, "confirmados": 17, "refutados": 1, "parciales": 4 },
+  "observaciones_del_auditor": "Auditor fuerte y honesto: separa lo recorrido de lo deducido, declara lo no alcanzado, no propone ni una cifra clínica y marca NEEDS_CLINICAL_REVIEW donde toca. Verifiqué 22 citas de archivo:línea y 19 caen dentro de ±5; tres van desplazadas (AppointmentModal 413→420, sw.js 61→66 y 66→74, y esta última apunta además a OTRA línea real del mismo archivo), señal de que trabajó sobre un árbol ligeramente anterior. Patrones de error: (1) TITULA más fuerte que su propia evidencia — PC-003 dice «sin 911 y sin decir que nadie la leerá» cuando las dos cosas están arriba en la misma pantalla (ViaDeUrgencia.tsx:70-77), y PC-004 dice «no avisa a nadie» cuando su propio campo `impacto` reconoce el worklist de REG-521; (2) confunde artefacto del sembrado con defecto de código y luego le pone «probabilidad media» (PC-007: DEFAULT_CONFIG trae ocho tipos de cita), aunque en otro sitio él mismo detecta ese sesgo y lo declara; (3) cuenta tres veces el mismo hueco estructural de `componerPaquete` (PC-002, PC-020 y, de refilón, PC-003b), lo que infla el recuento de P1/P2; (4) dos hallazgos suyos piden cosas OPUESTAS al mismo archivo (PC-016 quiere caché del plan clínico, PC-017 quiere menos caché para /mi); (5) inexactitudes menores en `control_existente` que juegan a su favor (dice que el médico no ve los diagnósticos como los verá el paciente, y EntregarAlPaciente.tsx:228 se los enseña). Nada de eso invalida su hallazgo mayor: PC-001 es REG-329 otra vez, en el campo que REG-329 declaró no cubrir, y llega hasta el .doc que el paciente se lleva."
+}
