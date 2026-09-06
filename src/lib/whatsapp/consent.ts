@@ -18,8 +18,8 @@ import { adminDb } from '@/lib/firebase-admin'
 // ── Puro: normalización de teléfono (misma clave en registro y verificación) ──
 // Se movió a `./telefono` (module client-safe) y se re-exporta aquí para no romper
 // los imports existentes `from '@/lib/whatsapp/consent'`.
-export { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
-import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
+export { normalizarTelefonoWa, claveTelefonoWa, telefonoValidoParaWa } from '@/lib/whatsapp/telefono'
+import { claveTelefonoWa } from '@/lib/whatsapp/telefono'
 
 // ── Puro: detección de intención de baja / alta ──────────────────────────────
 
@@ -83,7 +83,7 @@ export function conPieOptout(mensaje: string): string {
 function optoutRef(clinicId: string, telefono: string) {
   return adminDb
     .collection('clinics').doc(clinicId)
-    .collection('whatsapp_optout').doc(normalizarTelefonoWa(telefono))
+    .collection('whatsapp_optout').doc(claveTelefonoWa(telefono))
 }
 
 /**
@@ -105,7 +105,7 @@ export async function estaDadoDeBaja(clinicId: string, telefono: string): Promis
 export async function registrarBaja(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<boolean> {
   try {
     await optoutRef(clinicId, telefono).set(
-      { baja: true, telefono: normalizarTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
+      { baja: true, telefono: claveTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
       { merge: true },
     )
     return true
@@ -119,7 +119,7 @@ export async function registrarBaja(clinicId: string, telefono: string, via = 'w
 export async function registrarAlta(clinicId: string, telefono: string, via = 'whatsapp_inbound'): Promise<boolean> {
   try {
     await optoutRef(clinicId, telefono).set(
-      { baja: false, telefono: normalizarTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
+      { baja: false, telefono: claveTelefonoWa(telefono), via, updatedAt: new Date().toISOString() },
       { merge: true },
     )
     return true

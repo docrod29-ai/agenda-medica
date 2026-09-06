@@ -39,6 +39,13 @@ const ORIGENES: OrigenAviso[] = [
   'dosis_peligrosa', 'antecedente_del_familiar', 'dato_incierto',
   'sin_respaldo_en_el_dictado',
   /**
+   * MO-001 — la NOTA dice un lado que el dictado no dijo, o el contrario.
+   * Declarado a mano, como manda esta lista: AVISA, no bloquea. La lateralidad
+   * se dicta muchas veces sin nombrarla («esta rodilla»), y apagar el botón de
+   * Firmar por cada nota cuyo lado no se oyó enseñaría a esquivar la compuerta.
+   */
+  'lado_de_la_nota_sin_respaldo',
+  /**
    * REG-238 — «14 editas», «24 tras». Declarado aquí a mano y a propósito:
    * esta lista es la que impide que un motor nuevo se cuele en la barra sin
    * que alguien diga si bloquea. Este AVISA, no bloquea.
@@ -155,6 +162,8 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       procedimientosSinEscribir: [{ texto: 'Colecistectomía', mensaje: 'Se mencionó «Colecistectomía» y la nota no lo recoge.' }],
       /** REG-373 — vigente en la lista, pasado en el dictado. */
       farmacosEnPasado: [{ nombre: 'Warfarina', mensaje: 'Le dieron warfarina cuando la operaron — y Warfarina figura como vigente.' }],
+      /** MO-001 — la nota escribió un lado que el dictado no sostiene. */
+      discrepanciasDeLado: [{ region: 'rodilla', mensaje: 'La nota dice «rodilla izquierda» y lo último que se dictó fue «rodilla derecha».' }],
     })
     const origenes = new Set(avisos.map(a => a.origen))
     for (const o of ORIGENES) expect(origenes, `${o} se perdió`).toContain(o)

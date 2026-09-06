@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 /**
  * El pipeline de corrección se carga al PULSAR grabar, no al abrir la pantalla
  * (V15-PERF-001: /consulta pagaba léxico + normalización + guardián en el JS
@@ -152,8 +152,26 @@ export function useGrabacionVoz(): UseGrabacionVoz {
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
 
-  return {
+  /**
+   * ── EL OBJETO DE VUELTA ES ESTABLE (ASN-001, Panel de Lujo 2026-09) ────────
+   *
+   * Esto devolvía un objeto literal NUEVO en cada render. Quien lo consume
+   * —`consulta/[patientId]/page.tsx`— lo tiene en las dependencias de varios
+   * efectos, así que TODOS ellos corrían en cada commit del componente, sin
+   * que nada hubiera cambiado.
+   *
+   * Uno de esos efectos es el de restauración del respaldo local. Corriendo en
+   * cada tecla, alcanzó a leer el espejo en memoria de hace una pulsación y a
+   * reponerlo encima del estado vivo: el primer signo vital tecleado en una
+   * consulta recién abierta perdía su segunda cifra («154» → «14»).
+   *
+   * La causa raíz de aquel defecto son dos —también la asimetría de `vacio`,
+   * reparada en la página—, pero ésta es la que hace que el efecto se ejecute
+   * cien veces cuando debía ejecutarse una. `useMemo` con las piezas reales:
+   * los cinco valores de estado y los cuatro callbacks, que ya son estables.
+   */
+  return useMemo(() => ({
     soportado, grabando, transcripcion, interim, duracion,
     iniciar, detener, reiniciar, setTranscripcion: setTransc,
-  }
+  }), [soportado, grabando, transcripcion, interim, duracion, iniciar, detener, reiniciar, setTransc])
 }

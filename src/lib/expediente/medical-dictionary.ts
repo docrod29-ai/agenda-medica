@@ -74,6 +74,56 @@ export const FAMILIA_BETALACTAMICOS = [
   'piperacilina', 'meropenem', 'imipenem', 'ertapenem',
 ]
 
+/**
+ * ── LA ALERGIA ESCRITA POR CLASE, NO POR FÁRMACO — MI-004 y MI-005 ──────────
+ *
+ * Los médicos escriben la alergia como se la cuenta el paciente: «alérgico a
+ * las cefalosporinas», «a los betalactámicos», «a las penicilinas». El motor
+ * sólo conocía nombres de principio activo, así que «Cefalosporinas» +
+ * ceftriaxona no disparaba **nada** (MI-004).
+ *
+ * El parche que había para eso era peor que el hueco: `a.includes('beta')`, una
+ * subcadena suelta que convertía «betametasona» y «betabloqueadores» en alergia
+ * a betalactámicos, bloqueaba la firma de la nota, y la única salida era borrar
+ * la alergia del expediente (MI-005). Un corticoide y un antihipertensivo no
+ * comparten nada con la penicilina salvo cinco letras.
+ *
+ * QUÉ NO CAMBIA. Que una alergia a penicilina alerte sobre una cefalosporina es
+ * una decisión clínica que este repositorio ya tomó y selló en pruebas
+ * (auditoría 2026-07: un alérgico a penicilina podía recibir cefazolina —la
+ * profilaxis quirúrgica más usada— sin alerta). Aquí no se toca: la familia
+ * sigue siendo una sola. Lo único que cambia es CÓMO se reconoce la alergia
+ * escrita — por nombre de fármaco o por nombre de clase, nunca por un trozo de
+ * palabra.
+ */
+const DISPARADORES_DE_CLASE: RegExp[] = [
+  /\bbeta[\s-]?lact[áa]mic[oa]s?\b/i,
+  /\bbetalactamas?\b/i,
+  /\bpenicilinas?\b/i,
+  /\bpenicil[íi]nic[oa]s?\b/i,
+  /\bcefalosporinas?\b/i,
+  /\bcefalospor[íi]nic[oa]s?\b/i,
+  /\bcarbapen[ée]mic[oa]s?\b/i,
+  /\bcarbapenems?\b/i,
+]
+
+/**
+ * Los miembros de la familia que cubre esta alergia escrita, o lista vacía.
+ *
+ * Puro y exportado para poder probarlo solo — incluida la prueba al revés, que
+ * es la que caza el regreso de MI-005: «betametasona» y «betabloqueadores»
+ * tienen que devolver lista vacía.
+ */
+export function miembrosCubiertosPorAlergia(textoAlergia: string): string[] {
+  const a = (textoAlergia ?? '').toLowerCase()
+  if (!a.trim()) return []
+  if (DISPARADORES_DE_CLASE.some(re => re.test(a))) return [...FAMILIA_BETALACTAMICOS]
+  // El fármaco nombrado tal cual: alergia a un miembro cubre a la familia, que
+  // es la política sellada desde 2026-07.
+  if (FAMILIA_BETALACTAMICOS.some(f => a.includes(f))) return [...FAMILIA_BETALACTAMICOS]
+  return []
+}
+
 /* ─── Normalización conservadora ─────────────────────────────────── */
 
 export interface NormalizacionResult {
@@ -143,11 +193,15 @@ export function validarAlergiasVsMedicamentos(
     const nom = (med.nombre ?? '').toLowerCase()
     if (!nom) continue
 
-    // Alergia a penicilina + betalactámico
-    const alergicoBetalactamico = alergiasLow.some(a =>
-      FAMILIA_BETALACTAMICOS.some(f => a.includes(f) || a.includes('beta'))
-    )
+    /**
+     * Alergia a betalactámicos + betalactámico prescrito. La cobertura ya no es
+     * «¿aparece alguna letra?» sino «¿este fármaco está entre los que cubre lo
+     * que el médico escribió?» — ver `miembrosCubiertosPorAlergia` (MI-004,
+     * MI-005).
+     */
+    const cubiertos = new Set(alergiasLow.flatMap(a => miembrosCubiertosPorAlergia(a)))
     const esBetalactamico = FAMILIA_BETALACTAMICOS.some(f => nom.includes(f))
+    const alergicoBetalactamico = [...cubiertos].some(f => nom.includes(f))
     if (alergicoBetalactamico && esBetalactamico) {
       /**
        * CARBAPENÉMICOS — decisión clínica del médico dueño (E0-15d, 2026-07-28).

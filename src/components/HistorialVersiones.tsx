@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { History, Loader2, RotateCcw } from 'lucide-react'
 import { listarVersiones, resumirVersion, type NotaVersion } from '@/lib/expediente/versioning'
 import { useToast } from '@/context/ToastContext'
+import { zonaActiva } from '@/lib/timezone'
 
 /**
  * Historial de versiones de un borrador — la única vía de rescate que existía…
@@ -104,6 +105,7 @@ export function HistorialVersiones({
                   <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>
                     <div style={{ fontVariantNumeric: 'tabular-nums' }}>
                       {new Date(v.versionadoEn).toLocaleString('es-MX', {
+                        timeZone: zonaActiva(),
                         day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
                       })}
                     </div>

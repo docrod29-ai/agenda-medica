@@ -45,6 +45,29 @@ export const MAPA_LOINC: Record<string, { campo: keyof RegistroSignos; unidades:
   '8867-4': { campo: 'fc', unidades: ['/min', 'bpm', '{beats}/min', 'min-1'] },
   '9279-1': { campo: 'fr', unidades: ['/min', '{breaths}/min', 'min-1'] },
   '8310-5': { campo: 'temp', unidades: ['Cel', 'C', '°C'] },
+  /**
+   * ── DOS CÓDIGOS, UN SOLO CAMPO — Y AHORA ESTÁ DICHO (ZL-005) ─────────────
+   *
+   * `2708-6` es saturación de oxígeno en sangre —la que reporta una gasometría
+   * ARTERIAL— y `59408-5` es la de PULSIOXIMETRÍA. No son la misma medición, y
+   * este adaptador las metía las dos en `spo2` sin decirlo: un receptor que
+   * distinga SaO₂ de SpO₂ vería registrada una gasometría que nadie hizo.
+   *
+   * No se quitan ni se separan, y las dos razones son de este repositorio:
+   *
+   *  · `RegistroSignos` (types/hospital) tiene UN campo de saturación. Añadir
+   *    otro es modelo compartido y decisión del dueño (`NEEDS_CLINICAL_REVIEW`:
+   *    si la gráfica del hospital quiere SaO₂ aparte).
+   *  · Descartar `2708-6` PERDERÍA datos reales: es el código que la propia
+   *    exportación FHIR de NexusMED usa para la saturación (fhir-export.ts,
+   *    unificado a propósito), así que un ida y vuelta con nuestro propio
+   *    formato dejaría de traer la saturación.
+   *
+   * Lo que sí cambia: la fusión deja de ser silenciosa. `traducirVitales`
+   * declara en `avisos` cuándo la saturación entró por el código de gasometría,
+   * para que quien guarda o pinta pueda decirlo. Es la regla de siempre — nada
+   * se junta en silencio.
+   */
   '2708-6': { campo: 'spo2', unidades: ['%'] },
   '59408-5': { campo: 'spo2', unidades: ['%'] },
   '2339-0': { campo: 'glucosa', unidades: ['mg/dL', 'mg/dl'] },
@@ -77,7 +100,22 @@ export interface VitalesTraducidos {
   medidoEn: string | null
   /** Lo que NO entró, y por qué. Nunca se calla. */
   descartados: Descartado[]
+  /**
+   * Lo que SÍ entró pero no significa exactamente lo que parece (ZL-005).
+   *
+   * Hoy sólo hay un caso: una saturación que llegó con el código de gasometría
+   * arterial y se guarda en el mismo campo que la de pulsioximetría.
+   */
+  avisos: string[]
 }
+
+/** Código LOINC de saturación ARTERIAL (gasometría), no de pulsioximetría. */
+export const LOINC_SATURACION_ARTERIAL = '2708-6'
+
+export const AVISO_SATURACION_ARTERIAL =
+  'La saturación llegó con el código de gasometría arterial (LOINC 2708-6) y se ' +
+  'guarda en el mismo campo que la de pulsioximetría: la gráfica no las ' +
+  'distingue.'
 
 const num = (v: string): number | null => {
   const n = Number(String(v ?? '').trim())
@@ -101,6 +139,7 @@ function unidadAceptada(unidad: string | undefined, aceptadas: string[]): boolea
 export function traducirVitales(obs: readonly ObxEntrante[]): VitalesTraducidos {
   const signos: Partial<RegistroSignos> = {}
   const descartados: Descartado[] = []
+  const avisos: string[] = []
   let sistolica: number | null = null
   let diastolica: number | null = null
   let medidoEn: string | null = null
@@ -136,6 +175,10 @@ export function traducirVitales(obs: readonly ObxEntrante[]): VitalesTraducidos 
     }
     const n = num(o.valor)
     if (n === null) { descartados.push({ codigo, motivo: `valor no numérico: «${o.valor}»` }); continue }
+    // ZL-005 — la fusión de los dos códigos de saturación se declara.
+    if (codigo === LOINC_SATURACION_ARTERIAL && !avisos.includes(AVISO_SATURACION_ARTERIAL)) {
+      avisos.push(AVISO_SATURACION_ARTERIAL)
+    }
     ;(signos as Record<string, unknown>)[def.campo] = n
   }
 
@@ -149,7 +192,7 @@ export function traducirVitales(obs: readonly ObxEntrante[]): VitalesTraducidos 
     })
   }
 
-  return { signos, medidoEn, descartados }
+  return { signos, medidoEn, descartados, avisos }
 }
 
 /**

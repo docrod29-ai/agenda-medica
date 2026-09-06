@@ -117,14 +117,17 @@ describe('el techo sólo baja', () => {
     ).toEqual([])
   })
 
-  it('y las DOCE clínicas siguen contándose: el cero no es una lista vacía', () => {
+  it('y las TRECE clínicas siguen contándose: el cero no es una lista vacía', () => {
     /**
      * El caso que impide el falso cero. Si el inventario dejara de reconocer las
      * escrituras —un `addDoc` renombrado, una colección fuera del manifiesto—
      * `sinIntencion` daría cero por no mirar, que es indistinguible de cero por
      * estar bien.
      */
-    expect(recuento().clinicas).toBe(12)
+    // 12 → 13 el 2026-09-06 al fusionar `main`: la rama paralela añadió una
+    // escritura clínica más, y el censo la ve. Este número sube cuando el
+    // producto crece; lo que NO puede subir es `sinIntencion`.
+    expect(recuento().clinicas).toBe(13)
   })
 
   it('la dispensación de farmacia YA NO está entre ellas', () => {

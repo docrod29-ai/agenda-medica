@@ -24919,3 +24919,719 @@ habitual» cae, una decisión sin fecha cae, y poner el valor más estricto cae.
   otra mitad, y necesita el conjunto.
 
 **Prueba.** `src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts` (15 casos).
+
+---
+
+# Panel de Lujo (6-sep-2026) — REG-605 a REG-651
+
+Cuarenta y siete entradas de una sola auditoría. Vienen de
+`docs/audit/panel-de-lujo-2026-09/`: 43 auditores simulados (ingeniería,
+seguridad, diseño, negocio, cinco especialidades médicas, treinta pacientes y
+cinco asistentes), un equipo rojo que intentó REFUTAR cada hallazgo, y una
+reproducción que **falla hoy** para cada P0 y P1.
+
+**Renumeradas.** Salieron como REG-556…602 y se renumeran a **REG-605…651**
+al fusionar: `main` ya había dado REG-556…604 a otro programa que corría en
+paralelo. Es la tercera vez que pasa en este repositorio y se resuelve igual —
+el número lo da `main`, no la rama.
+
+De 493 hallazgos crudos quedaron 465 verificados tras la refutación (28
+refutados, un 5.7 %). Estos 47 son los P0 y P1 confirmados que además tenían
+causa raíz propia. La reparación fue por rebanadas, con su bitácora cada una en
+`docs/audit/panel-de-lujo-2026-09/reparacion/`.
+
+**43 CLOSED · 4 OPEN.** Los cuatro abiertos lo están por la misma razón, y es la
+correcta: **les falta una cifra clínica que sólo el dueño puede aportar.** El
+mecanismo que las declararía ya existe y avisa solo. No se rellenaron.
+
+## REG-605 — Ningún cobro ligado a cita se puede anular
+
+**Área**: Dinero (P0) · **Hallazgo(s) de la auditoría**: ASC-001 · **Estado**: CLOSED
+
+**Qué fallaba.** **Ningún cobro ligado a cita se puede anular**: `cancelarCobro` escribe el cobro (`tx.update`, `cobros.ts:441`) y lee la cita después (`:467`); Firestore rechaza la transacción siempre, y el toast enseña el mensaje crudo del SDK (ASC-001; R-36)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-01. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-030-anular-cobro-lee-la-cita-despues-de-escribir.test.ts` — falla hoy (corrida del redactor: 1 de 4)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-606 — «Amoxicilina 5 mL cada 8 horas» se firma, imprime y libera al cuidador sin concentración
+
+**Área**: Clínico (P0) · **Hallazgo(s) de la auditoría**: MP-005 · **Estado**: CLOSED
+
+**Qué fallaba.** **«Amoxicilina 5 mL cada 8 horas» se firma, imprime y libera al cuidador sin concentración**: `Medicamento` no tiene campo de presentación, «5 mL» pasa `revisarUnidadDosis` como completo y `dosisPeligrosasDeLaLista` se salta el renglón (`dosis.ts:476`) (MP-005; R-13; decisión PL-C1 sólo para el tramo de la firma)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-02. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts` — falla hoy (SALIDA-P0: 4 de 6)
+
+**Prueba permanente (sellada).** `src/__tests__/dosis-unidad-ausente.test.ts` · `src/__tests__/la-receta-dice-lo-que-no-comprobo.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-607 — Cambiar de plan cancela la suscripción anterior sin abono
+
+**Área**: Dinero (P0) · **Hallazgo(s) de la auditoría**: N-001 · **Estado**: CLOSED
+
+**Qué fallaba.** **Cambiar de plan cancela la suscripción anterior sin abono**: el webhook llama `cancel` sin prorrateo (`stripe/webhook/route.ts:216`) y no asienta crédito; el médico pierde los meses pagados y no queda nota (N-001; R-34; decisión PL-D2 sobre la forma)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-03. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts` — falla hoy (SALIDA-P0: 1 de 2)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-608 — El anticipo del paciente cae en la cuenta de Stripe de la plataforma (sin `stripeAccount`, `transfer_data`…
+
+**Área**: Dinero (P0) · **Hallazgo(s) de la auditoría**: N-002 · **Estado**: CLOSED
+
+**Qué fallaba.** **El anticipo del paciente cae en la cuenta de Stripe de la plataforma** (sin `stripeAccount`, `transfer_data` ni `on_behalf_of` en todo `src/`) y se asienta como ingreso del consultorio: el corte reporta dinero que el médico nunca recibió (`payment/create-checkout/route.ts:103`) (N-002; R-33; decisión PL-D1)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-04. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts` — falla hoy (SALIDA-P0: 1 de 2)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-609 — La receta impresa por omisión afirma «ALERGIAS
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-002 · **Estado**: CLOSED
+
+**Qué fallaba.** La receta impresa por omisión **afirma** «ALERGIAS: Negadas / no referidas» cuando nadie preguntó, y lee `paciente.alergias` (texto libre) en vez del estructurado (`RecetaDocumento.tsx:977`); la carta de referencia repite la frase; el guardián `alergias-impreso-fuente.test.ts:66` tiene punto ciego (el `\
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-05. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** '…'` esquiva su regex) (MI-002; R-09)
+
+**Prueba permanente (sellada).** `src/__tests__/el-impreso-no-afirma-alergias-negadas.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-610 — El cruce alergia↔fármaco no salta por clase
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-004 · **Estado**: CLOSED
+
+**Qué fallaba.** El cruce alergia↔fármaco **no salta por clase**: «Cefalosporinas» + ceftriaxona → `validarAlergiasVsMedicamentos` devuelve `[]`, y la compuerta de firma por token tampoco (`medical-dictionary.ts:147`, `nom004.ts:57-72`) (MI-004; R-10)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-06. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts` — falla hoy (corrida del redactor: 2 de 4)
+
+**Prueba permanente (sellada).** `src/__tests__/la-compuerta-de-firma-ve-la-clase-y-pide-diagnostico.test.ts` · `src/__tests__/medical-dictionary.test.ts` · `src/__tests__/nom004.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-611 — Al revés
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-005 · **Estado**: CLOSED
+
+**Qué fallaba.** Al revés: «Betametasona» o «Betabloqueadores» se leen como betalactámicos y **bloquean la firma sin vía de paso** (`medical-dictionary.ts:148`; `validarNOM004` → `valida:false`); la única salida es borrar la alergia (MI-005; R-11; la vía de paso espera PL-C3, el vocabulario no)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-07. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts` — falla hoy (SALIDA-P1: 2 de 4)
+
+**Prueba permanente (sellada).** `src/__tests__/medical-dictionary.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-612 — En la receta el ajuste renal corre sólo sobre los fármacos de hoy (`meds`, `receta/…/page.tsx
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-001 · **Estado**: CLOSED
+
+**Qué fallaba.** En la receta el ajuste renal corre **sólo sobre los fármacos de hoy** (`meds`, `receta/…/page.tsx:284`) y no sobre `medsDelCuadro` como sí hace el bloque de interacciones: la metformina crónica con CrCl 28 no dispara nada (MI-001; R-16; REG-527 no lo cubría)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-08. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-011-ajuste-renal-receta-solo-hoy.test.ts` — falla hoy (SALIDA-P1: 1 de 2)
+
+**Prueba permanente (sellada).** `src/__tests__/el-ajuste-renal-de-la-receta-ve-lo-vigente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-613 — Dos catálogos renales y dos escalas
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-014 · **Estado**: OPEN
+
+**Qué fallaba.** **Dos catálogos renales y dos escalas**: la receta compara contra CrCl de Cockcroft con un catálogo (`funcion-renal.ts:222`) y el copiloto contra TFG indexada con otro (`copiloto.ts:378`); el AINE con TFG<30 avisa en consulta y no en receta, mismo paciente (MI-014; R-16; decisión PL-C4)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-09. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-013-dos-catalogos-renales.test.ts` — falla hoy (SALIDA-P1: 2 de 4)
+
+**Por qué sigue ABIERTO.** Unificar los dos catálogos renales exige decidir CUÁL manda y con qué escala se dosifica. Eso es política clínica del dueño, no una elección de quien programa. La pregunta ya está formulada en el registro de motores.
+
+
+## REG-614 — En un combinado el motor lee el número equivocado
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MI-006 · **Estado**: CLOSED
+
+**Qué fallaba.** En un combinado el motor lee el número equivocado: `extraerMg('325/37.5 mg')` → 37.5 (`dosis.ts:293`), y la terapia duplicada imprime «4112.5 mg/día» al médico (MI-006; R-17; fuera del `QUE_NO_CUBRE` de REG-528)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-10. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts` — falla hoy (corrida del redactor: 4 de 6)
+
+**Prueba permanente (sellada).** `src/__tests__/dosis-unidad-ausente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-615 — El neonato no existe para el motor
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MP-003 · **Estado**: CLOSED
+
+**Qué fallaba.** El neonato no existe para el motor: la pauta «Gentamicina neonatal (≤7 días)» no tiene edad máxima (`pediatria.ts:67`), el «matcher por edad» del comentario no está escrito y el copiloto la elige por nombre para cualquier niño (falsa alarma crítica a 8 años; pauta usable «50 mg c/12 h») (MP-003; R-14; la cifra de edad máxima espera PL-C6)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-11. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts` — falla hoy (corrida del redactor: 3 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/la-pauta-neonatal-no-es-la-de-un-escolar.test.ts` · `src/__tests__/pediatria.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-616 — 20 de 25 fármacos de `FARMACOS_PED` no tienen techo en el verificador de consulta y receta (`dosis.ts
+
+**Área**: Clínico (P1, `NEEDS_CLINICAL_REVIEW`) · **Hallazgo(s) de la auditoría**: MP-004 · **Estado**: OPEN
+
+**Qué fallaba.** 20 de 25 fármacos de `FARMACOS_PED` no tienen techo en el verificador de consulta y receta (`dosis.ts:187`): «Ondansetrón 80 mg c/8 h» a 6 años y 20 kg pasa sin aviso. REG-043 sigue OPEN y está redactado sólo para adultos (MP-004; R-14; decisión PL-C5)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-12. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** **sin reproducción aún** (medido con jiti por el equipo rojo; el ancla `toBe(20)` de `dosis-invariantes-property.test.ts` es el marcador)
+
+**Por qué sigue ABIERTO.** Faltan las cifras: veinte techos de adulto para fármacos pediátricos. El mecanismo que las declararía YA existe y funciona — el aviso `sin_referencia` sale solo. Rellenar un techo plausible es el fallo más caro posible aquí: no falla, no rompe una prueba, y sale impreso con cédula profesional. Sigue siendo REG-043.
+
+
+## REG-617 — El hard-stop kg/lb de REG-013 protege sólo al panel
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MP-006 · **Estado**: CLOSED
+
+**Qué fallaba.** El hard-stop kg/lb de REG-013 protege **sólo al panel**: `revisarPesoPediatrico` tiene un único llamador; el peso de signos alimenta mg/kg en consulta y receta sin guarda, y el «peso previo» es el de hoy (`revisarPesoPediatrico(20,20)={ok:true}`), así que la detección ×2.2 nunca dispara (`consulta/…/page.tsx:6727`) (MP-006; R-15)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-13. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Prueba permanente (sellada).** `src/__tests__/el-peso-de-signos-pasa-por-la-guarda-de-unidad.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-618 — Las contraindicaciones por edad (ibuprofeno < 6 m, TMP-SMX < 2 m, nitrofurantoína < 1 m) viven sólo en el…
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MP-016 · **Estado**: CLOSED
+
+**Qué fallaba.** Las contraindicaciones por edad (ibuprofeno < 6 m, TMP-SMX < 2 m, nitrofurantoína < 1 m) viven sólo en el panel: el copiloto llama al motor **sin edad** (`copiloto.ts:290`) y la receta no las conoce; «Ibuprofeno 30 mg c/8 h» a 3 meses pasa con nivel `accion` y rango (MP-016; R-14)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-14. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-619 — «Ácido valproico» y «Metotrexato» sin sinónimos
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MG-006 · **Estado**: CLOSED
+
+**Qué fallaba.** «Ácido valproico» y «Metotrexato» **sin sinónimos**: «valproato de magnesio», «divalproato» y «metotrexate» no casan y el teratógeno pasa sin aviso a una mujer de 25 años (`prescripcion-segura.ts:293`) (MG-006; R-19)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-15. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts` — falla hoy (SALIDA-P1: 5 de 6)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-620 — El prompt del consultor de evidencia ordena al modelo «ajústala» por función renal y peso…
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: B-001 · **Estado**: CLOSED
+
+**Qué fallaba.** El prompt del consultor de evidencia **ordena** al modelo «ajústala» por función renal y peso (`consultor-evidencia/route.ts:474`) — el ajuste tiene motor determinista y este camino no lo usa; la prosa se pega a la nota sin compuerta (B-001; R-22)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-16. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-015-consultor-ordena-ajustar-dosis.test.ts` — falla hoy (SALIDA-P1: 1 de 3)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-621 — El prompt preoperatorio ordena asumir «cirugía menor» de Caprini a partir de una cirugía mencionada de…
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MC-001 · **Estado**: CLOSED
+
+**Qué fallaba.** El prompt preoperatorio ordena **asumir** «cirugía menor» de Caprini a partir de una cirugía mencionada de pasada (`prompts.ts:823`), contra la línea 815 del mismo prompt; la casilla llega marcada al panel sin que el médico lo dijera (MC-001; R-22)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-17. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts` — falla hoy (SALIDA-P1: 2 de 4)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-622 — Las dosis de profilaxis antibiótica quirúrgica no tienen fuente por fila (`cirugia.ts
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: MC-005 · **Estado**: OPEN
+
+**Qué fallaba.** Las dosis de profilaxis antibiótica quirúrgica **no tienen fuente por fila** (`cirugia.ts:177`), el registro las declara `pendiente_validacion`, el panel las agrega a la nota sin `SelloMotor` y arranca en cefazolina por defecto contra lo que promete `registry.ts:1156` (MC-005; R-21; la fuente es PL-C12)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-18. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Por qué sigue ABIERTO.** Las dosis de profilaxis quirúrgica no tienen fuente citada en ningún sitio del repositorio. Marcarlas como no validadas es lo que ya hace el registro de motores; ponerles una fuente es criterio clínico del dueño.
+
+
+## REG-623 — El primer signo vital tecleado en una consulta recién abierta pierde su segunda cifra («154»→«14»,…
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: ASN-001 · **Estado**: CLOSED
+
+**Qué fallaba.** El **primer signo vital tecleado** en una consulta recién abierta pierde su segunda cifra («154»→«14», «36.7»→«3.7», «120/80»→«10/80»): el efecto de restauración corre en cada commit, el `vacio` de la página no cuenta signos y el espejo de hace una tecla se aplica encima (`consulta/…/page.tsx:3493`). Reproducido en vivo 3/3 (ASN-001)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-19. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts` — falla hoy (SALIDA-LOTE3: 6 de 15)
+
+**Prueba permanente (sellada).** `src/__tests__/el-primer-signo-vital-no-pierde-su-segunda-cifra.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-624 — El consentimiento informado se imprime sólo con la firma del médico
+
+**Área**: Clínico-legal (P1) · **Hallazgo(s) de la auditoría**: MC-003 · **Estado**: CLOSED
+
+**Qué fallaba.** El consentimiento informado se imprime **sólo con la firma del médico**: sin línea para el paciente, testigos, fecha de otorgamiento ni huella del texto aceptado (`nota/…/page.tsx:548`, `templates.ts:99-106`) (MC-003; R-27; el formato final es PL-L1)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-20. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts` — falla hoy (corrida del redactor: 3 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/el-consentimiento-lo-firma-quien-consiente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-625 — La carta de referencia se imprime y desaparece
+
+**Área**: Clínico-legal (P1) · **Hallazgo(s) de la auditoría**: MC-004 · **Estado**: CLOSED
+
+**Qué fallaba.** La carta de referencia **se imprime y desaparece**: sin colección, sin `logAudit`, sin línea de tiempo (`referencia/[patientId]/page.tsx:35`); ninguno de los tres sitios de `security-tenant.md` la declara (MC-004; R-26)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-21. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-017-carta-de-referencia-no-se-persiste.test.ts` — falla hoy (SALIDA-P1: 1 de 2)
+
+**Prueba permanente (sellada).** `src/__tests__/la-carta-de-referencia-queda-en-el-expediente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-626 — «Estoy dando pecho, ¿cómo tomo el ibuprofeno?» no escala
+
+**Área**: Clínico (P1, portal) · **Hallazgo(s) de la auditoría**: MG-014 · **Estado**: CLOSED
+
+**Qué fallaba.** «Estoy dando pecho, ¿cómo tomo el ibuprofeno?» **no escala**: la regex sólo conoce «doy pecho» (`pregunta-del-paciente.ts:208`); «le doy leche a mi bebé» y «estoy en cinta» tampoco. Refuta el invariante del módulo: un acto prohibido que no casa no cae a escalación, cae a contestar (MG-014; R-20)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-22. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-019-dando-pecho-no-escala.test.ts` — falla hoy (SALIDA-P1: 3 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/dando-pecho-no-es-una-forma-menor-de-decir-lactancia.test.ts` · `src/__tests__/las-doce-preguntas-del-paciente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-627 — «¿Puedo saltarme la metformina hoy?» y «si no como, ¿me la tomo?» se contestan desde el plan sin avisar
+
+**Área**: Clínico (P1, portal) · **Hallazgo(s) de la auditoría**: PI-001 · **Estado**: CLOSED
+
+**Qué fallaba.** «¿Puedo saltarme la metformina hoy?» y «si no como, ¿me la tomo?» se contestan desde el plan sin avisar: `PREGUNTA_POR_TOMA` sobre-captura «como»/«cuando» por subcadena antes de `ACTOS_PROHIBIDOS` (`pregunta-del-paciente.ts:276`) — el fallo de orden que `urgencia.ts:236-239` ya documentó (PI-001; R-20)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-23. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts` — falla hoy (corrida del redactor: 3 de 5; comparte con PI-002)
+
+**Prueba permanente (sellada).** `src/__tests__/como-y-cuando-dentro-de-otra-pregunta-no-son-una-pregunta-de-toma.test.ts` · `src/__tests__/las-doce-preguntas-del-paciente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-628 — «Cuando tomo la furosemida me da mucha sed, ¿es normal?» recibe la pauta
+
+**Área**: Clínico (P1, portal) · **Hallazgo(s) de la auditoría**: PI-002, PI-001 · **Estado**: CLOSED
+
+**Qué fallaba.** «Cuando tomo la furosemida me da mucha sed, ¿es normal?» recibe la pauta; la queja no llega al médico (`pregunta-del-paciente.ts:357`). La clase «efecto adverso reportado» ya está comprometida en la puerta (ai-11) y esta forma la derrota (PI-002; misma raíz y arreglo que PI-001 → **un solo REG con REG-PL-23**)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-24. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts` — falla hoy (corrida del redactor: 3 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/como-y-cuando-dentro-de-otra-pregunta-no-son-una-pregunta-de-toma.test.ts` · `src/__tests__/las-doce-preguntas-del-paciente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-629 — Con el cupo clínico compartido agotado (tres peticiones por carga, 15/10 min), «me duele el pecho y me…
+
+**Área**: Clínico (P1, portal) · **Hallazgo(s) de la auditoría**: PI-004 · **Estado**: CLOSED
+
+**Qué fallaba.** Con el cupo clínico compartido agotado (tres peticiones por carga, 15/10 min), «me duele el pecho y me falta el aire» recibe **429**: `preguntar` está dentro de `ACCIONES_CLINICAS`, no corre `clasificarPregunta`, no se escribe la tarea crítica ni el WhatsApp (`api/portal/route.ts:331`) (PI-004; R-43)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-25. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts` — falla hoy (corrida del redactor: 2 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/la-urgencia-no-la-frena-el-limite-de-tasa.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-630 — El paciente lee como suyos diagnósticos descartados, diferenciales y propuestos por la IA
+
+**Área**: Clínico-legal (P1, portal) · **Hallazgo(s) de la auditoría**: PC-001 · **Estado**: CLOSED
+
+**Qué fallaba.** El paciente lee como suyos diagnósticos **descartados, diferenciales y propuestos por la IA**: `api/portal/route.ts:1090` concatena `n.diagnosticos` sin filtrar `tipo`, en «Mis recetas» y en el resumen del plan; `diagnosticoParaImprimir` no tiene llamador en el portal. REG-329 declaró no cubrirlo (PC-001; R-44; la rama «presuntivo» es PL-P2)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-26. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts` — falla hoy (SALIDA-LOTE3: 5 de 7)
+
+**Prueba permanente (sellada).** `src/__tests__/al-paciente-solo-bajan-los-diagnosticos-que-su-medico-confirmo.test.ts` · `src/__tests__/el-impreso-no-lleva-un-diagnostico-descartado.test.ts` · `src/__tests__/portal-alcance.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-631 — Misma línea, otro documento
+
+**Área**: Clínico-legal (P1, portal) · **Hallazgo(s) de la auditoría**: PO-001 · **Estado**: CLOSED
+
+**Qué fallaba.** Misma línea, otro documento: la receta que el paciente descarga imprime como «diagnóstico» todos los de la nota, mientras veinte líneas arriba el mismo `.map` sí aplica `medicamentosDeLaReceta` (`route.ts:1070`) (PO-001; **un solo REG con REG-PL-26**)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-27. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts` — falla hoy (SALIDA-LOTE3: 5 de 7)
+
+**Prueba permanente (sellada).** `src/__tests__/al-paciente-solo-bajan-los-diagnosticos-que-su-medico-confirmo.test.ts` · `src/__tests__/el-impreso-no-lleva-un-diagnostico-descartado.test.ts` · `src/__tests__/portal-alcance.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-632 — El enlace de agenda —el que emite cualquier asistente— devuelve al navegador el `motivo` clínico de cada…
+
+**Área**: Seguridad-PHI (P1, portal) · **Hallazgo(s) de la auditoría**: PO-010, MG-012 · **Estado**: CLOSED
+
+**Qué fallaba.** El enlace de **agenda** —el que emite cualquier asistente— devuelve al navegador el `motivo` clínico de cada cita y lo incrusta en el `details=` del enlace a Google Calendar: PHI en parámetro de URL hacia un tercero (`api/portal/route.ts:118`, `mi/[token]/page.tsx:176`) (PO-010; MG-012; R-45)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-28. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts` — falla hoy (SALIDA-LOTE3: 2 de 5)
+
+**Prueba permanente (sellada).** `src/__tests__/el-motivo-clinico-no-viaja-en-la-url-de-google.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-633 — El aviso de privacidad publicado afirma que Meta/WhatsApp «no trata datos de salud» (`subencargados.ts
+
+**Área**: Legal (P1, público) · **Hallazgo(s) de la auditoría**: D-034, PG-005 · **Estado**: CLOSED
+
+**Qué fallaba.** El aviso de privacidad publicado afirma que Meta/WhatsApp **«no trata datos de salud»** (`subencargados.ts:150`) mientras el portal manda nombre y pregunta íntegra por WhatsApp desde D-034 (5-sep); ninguna prueba cruza emisor con declaración (PG-005; R-46; la redacción final es PL-L2)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-29. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts` — falla hoy (corrida del redactor: 4 de 6)
+
+**Prueba permanente (sellada).** `src/__tests__/lo-que-el-paciente-pregunta-se-clasifica-antes-de-contestarse.test.ts` · `src/__tests__/lo-que-se-declara-de-whatsapp-y-lo-que-se-manda-por-whatsapp.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-634 — Anular un cobro sin cita (suelto, membresía) lo niega la regla
+
+**Área**: Dinero (P1) · **Hallazgo(s) de la auditoría**: ASC-001, ASC-002 · **Estado**: CLOSED
+
+**Qué fallaba.** Anular un cobro **sin cita** (suelto, membresía) lo niega la regla: compara `citaId`/`patientId` por acceso directo sobre un documento que no los tiene (`firestore.rules:917`). Probado en emulador: «Property citaId is undefined». Con ASC-001, hoy ningún cobro se anula (ASC-002; R-36)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-30. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-031-anular-cobro-suelto-permission-denied.test.ts` — falla hoy (corrida del redactor: 1 de 3; **requiere emulador**)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-635 — Escribir `cobroId` a mano en la cita la saca de «por cobrar», del corte y del botón Cobrar sin cobro real…
+
+**Área**: Dinero (P1) · **Hallazgo(s) de la auditoría**: ASC-003 · **Estado**: CLOSED
+
+**Qué fallaba.** Escribir `cobroId` a mano en la cita la saca de «por cobrar», del corte y del botón Cobrar sin cobro real ni rastro; y borrarlo permite cobrarla otra vez. La regla de citas sólo vigila la cortesía (`firestore.rules:152`); `updateAppointment` no tiene lista blanca (ASC-003; R-37; PL-D4)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-31. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts` — falla hoy (corrida del redactor: 2 de 4; **requiere emulador**)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-636 — Quitar una cortesía no pide motivo, vacía quién la autorizó y por qué, y no deja bitácora (`cobros.ts
+
+**Área**: Dinero (P1) · **Hallazgo(s) de la auditoría**: ASC-004 · **Estado**: CLOSED
+
+**Qué fallaba.** Quitar una cortesía **no pide motivo, vacía quién la autorizó y por qué, y no deja bitácora** (`cobros.ts:403`; `citas/page.tsx:791` sin `logAudit`): el rastro anti-fraude de REG-003 se deshace con dos clics (ASC-004; R-37)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-32. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-637 — La pantalla le pide al médico su liga de MercadoPago y el portal cobra por la ruta de checkout de la…
+
+**Área**: Dinero (P1) · **Hallazgo(s) de la auditoría**: N-003 · **Estado**: CLOSED
+
+**Qué fallaba.** La pantalla le pide al médico su liga de MercadoPago y el portal cobra por la ruta de checkout de la plataforma; la liga sólo aparece cuando el pago falla (`api/portal/route.ts:374`). El desvío fue deliberado (`mi/[token]/page.tsx:646-656`): lo que queda es el rótulo falso (N-003; R-33; depende de PL-D1)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-33. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** **sin reproducción aún**
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-638 — La portada promete «te avisamos tres días antes» de que acabe la prueba y no existe ningún canal de correo…
+
+**Área**: Dinero-legal (P1, público) · **Hallazgo(s) de la auditoría**: N-005 · **Estado**: CLOSED
+
+**Qué fallaba.** La portada promete «te avisamos tres días antes» de que acabe la prueba y **no existe ningún canal de correo** en el repositorio ni cron que mire `trialEndsAt` (`app/page.tsx:207`) (N-005; R-35; reafirma N-2; retirar es PL-D6)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-34. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts` — falla hoy (corrida del redactor: 3 de 4; comparte con N-004)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-639 — Buscar por un apellido a secas («iparraguirre») contesta «Ninguno de los 6 expedientes coincide» aunque existe
+
+**Área**: Datos (P1) · **Hallazgo(s) de la auditoría**: ASE-001 · **Estado**: CLOSED
+
+**Qué fallaba.** Buscar por un apellido a secas («iparraguirre») contesta «Ninguno de los 6 expedientes coincide» aunque existe: el `return busquedaServidor.pacientes` vacío (`pacientes/page.tsx:168`) pisa el `includes` local, y el rescate por parecidos da 0.67 contra umbral 0.8 (ASE-001; R-40)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-35. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-037-el-vacio-del-servidor-pisa-el-acierto-local.test.ts` — falla hoy (corrida del redactor: 1 de 3)
+
+**Prueba permanente (sellada).** `src/__tests__/el-vacio-del-servidor-no-pisa-el-acierto-local.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-640 — El importador guarda «15/03/1980» tal cual (`migracion/page.tsx
+
+**Área**: Datos (P1) · **Hallazgo(s) de la auditoría**: ASE-003 · **Estado**: CLOSED
+
+**Qué fallaba.** El importador guarda «15/03/1980» tal cual (`migracion/page.tsx:211`): `edadEnAnios = null`, y `compararPacientes` con «1980-03-15» devuelve `null` — el mismo paciente importado y capturado a mano son dos personas para siempre (ASE-003; R-40; familia REG-160)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-36. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-038-fecha-de-nacimiento-cruda-en-la-importacion.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Prueba permanente (sellada).** `src/__tests__/la-fecha-del-archivo-llega-en-iso-al-expediente.test.ts` · `src/__tests__/la-pantalla-de-migracion-ensena-lo-que-no-guarda.test.ts` · `src/__tests__/lo-que-entra-por-la-importacion-se-mira-antes-de-escribirse.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-641 — «Nombre / Apellido paterno / Apellido materno» en columnas separadas importa 1 200 pacientes sólo con el…
+
+**Área**: Datos (P1) · **Hallazgo(s) de la auditoría**: ASE-004 · **Estado**: CLOSED
+
+**Qué fallaba.** «Nombre / Apellido paterno / Apellido materno» en columnas separadas importa 1 200 pacientes **sólo con el nombre de pila** y sin avisar: el mapeo devuelve `null` para las columnas de apellido y la pantalla no lista lo descartado (`csv-pacientes.ts:80`) (ASE-004; R-40)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-37. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-039-apellidos-en-columnas-separadas-se-pierden.test.ts` — falla hoy (corrida del redactor: 3 de 4)
+
+**Prueba permanente (sellada).** `src/__tests__/la-pantalla-de-migracion-ensena-lo-que-no-guarda.test.ts` · `src/__tests__/los-apellidos-en-columnas-separadas-llegan-al-nombre.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-642 — Las solicitudes ARCO reales no se pueden ejecutar
+
+**Área**: Datos-legal (P1) · **Hallazgo(s) de la auditoría**: ASE-010 · **Estado**: CLOSED
+
+**Qué fallaba.** Las solicitudes ARCO reales **no se pueden ejecutar**: nacen del portal sin `patientId`, ninguna escritura lo manda, no existe pantalla que las ligue y el panel manda a «ejecutarla desde su expediente», donde `grep 'arco'` da cero (`cumplimiento/page.tsx:931`) (ASE-010; R-41; el plazo es PL-L6)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-38. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** **sin reproducción aún** (seguido del otro lado por el equipo rojo)
+
+**Prueba permanente (sellada).** `src/__tests__/una-solicitud-arco-real-se-puede-ejecutar.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-643 — Cerrar sesión desde Pacientes, Agenda u Operaciones —sin consulta abierta que conteste al evento— no…
+
+**Área**: Datos-privacidad (P1) · **Hallazgo(s) de la auditoría**: ASE-013 · **Estado**: CLOSED
+
+**Qué fallaba.** Cerrar sesión desde Pacientes, Agenda u Operaciones —sin consulta abierta que conteste al evento— **no limpia IndexedDB**: `salirSeguro` sale por `window.location.href` sin `limpiarCacheFirestore()` (`salir-seguro.ts:101`, rama `:202`); Operaciones promete lo contrario; contradice `data-privacy.md` (ASE-013; R-42)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-39. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-040-cerrar-sesion-sin-consulta-no-purga-indexeddb.test.ts` — falla hoy (corrida del redactor: 1 de 3)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-644 — Un teléfono con código de país explícito se muta en silencio a uno mexicano
+
+**Área**: Datos-PHI (P1) · **Hallazgo(s) de la auditoría**: ASM-002 · **Estado**: CLOSED
+
+**Qué fallaba.** Un teléfono con código de país explícito se **muta en silencio** a uno mexicano: «+1 619 555 1234» → `526195551234`, «+34 600 000 000» → `5234600000000` (`whatsapp/telefono.ts:18`); ninguna capa valida país antes de enviar (ASM-002; R-38)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-40. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts` — falla hoy (corrida del redactor: 2 de 3)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-645 — Corregir el teléfono del paciente no corrige el de sus citas
+
+**Área**: Datos-PHI (P1) · **Hallazgo(s) de la auditoría**: ASM-004 · **Estado**: CLOSED
+
+**Qué fallaba.** Corregir el teléfono del paciente **no corrige el de sus citas**: el dato desnormalizado sólo se escribe al crear la cita y el cron nunca cae al expediente (`firestore.ts:638`); el recordatorio de mañana sale al número viejo. Caso canónico de «el dato tiene que LLEGAR» (ASM-004; R-38)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-41. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-035-telefono-corregido-no-llega-a-las-citas.test.ts` — falla hoy (corrida del redactor: 1 de 2)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-646 — El «SÍ» del paciente al recordatorio se pierde si contesta más de 2 h después
+
+**Área**: Datos (P1) · **Hallazgo(s) de la auditoría**: ASM-006 · **Estado**: CLOSED
+
+**Qué fallaba.** El «SÍ» del paciente al recordatorio se pierde si contesta **más de 2 h después**: el bloque de caducidad corre 44 líneas antes del que atiende SÍ/NO y hace `return`; se borra la sesión y se manda el menú (`whatsapp/webhook/route.ts:574`); el mensaje del cron no dice el plazo (ASM-006; R-39)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-42. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-036-el-si-al-recordatorio-caduca-a-las-2h.test.ts` — falla hoy (corrida del redactor: 2 de 3)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-647 — Recepción lee y escribe las alergias del paciente (`types/index.ts
+
+**Área**: Seguridad (P1) · **Hallazgo(s) de la auditoría**: S-002 · **Estado**: CLOSED
+
+**Qué fallaba.** Recepción **lee y escribe** las alergias del paciente (`types/index.ts:371`; emulador con rol `secretaria`: get PERMITIDO, update `{alergias:''}` PERMITIDO); la subcolección `clinico` con guarda `isMedico` existe y no tiene escritor; la aceptación E0-06 está declarada incumplida (S-002; R-12; el «cuándo» es PL-S1)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-43. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-014-recepcion-escribe-alergias.test.ts` — falla hoy (SALIDA-P1: 2 de 3)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-648 — Un homónimo que llama con su teléfono se cuelga del expediente del OTRO cuando ese expediente no tiene…
+
+**Área**: PHI / identidad (P1) · **Hallazgo(s) de la auditoría**: RT-001 · **Estado**: CLOSED
+
+**Qué fallaba.** Un homónimo que llama con su teléfono se cuelga del expediente del OTRO cuando ese expediente no tiene teléfono; con un segundo homónimo de teléfono contradictorio, el `continue` de `duplicados.ts:465` destruye la evidencia antes del desempate (RT-001; REG-039 cerró sólo el caso espejo)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-44. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts` — falla hoy (SALIDA-ATAQUES: casos A y C)
+
+**Prueba permanente (sellada).** `src/__tests__/un-homonimo-no-se-cuelga-del-expediente-sin-telefono.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-649 — «Digoxina 250 mg» y «Enoxaparina 60 mcg» salen impresas sin una sola alerta
+
+**Área**: Clínico (P1) · **Hallazgo(s) de la auditoría**: RT-003 · **Estado**: CLOSED
+
+**Qué fallaba.** «Digoxina 250 mg» y «Enoxaparina 60 mcg» salen impresas sin una sola alerta: la unidad sólo se vigila cuando FALTA, nunca cuando es imposible para ese fármaco (`dosis.ts:470`, y `:411` nombra a digoxina como su motivo de existir) (RT-003)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-45. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts` — falla hoy por los tres caminos
+
+**Prueba permanente (sellada).** `src/__tests__/dosis-unidad-ausente.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-650 — Una cita inventada («[4]» con dos referencias) entra literal a la nota firmada bajo un bloque…
+
+**Área**: Clínico-legal (P1) · **Hallazgo(s) de la auditoría**: RT-004 · **Estado**: CLOSED
+
+**Qué fallaba.** Una cita inventada («[4]» con dos referencias) entra literal a la nota firmada bajo un bloque «Referencias» real; `citasEnTexto` sólo existe en `/consultor` (`consulta/[patientId]/page.tsx:2329`) (RT-004)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-46. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-082-cita-inventada-entra-a-la-nota-firmada.test.ts` — falla hoy (contrato textual declarado)
+
+**Prueba permanente (sellada).** `src/__tests__/la-cita-del-analisis-se-comprueba-antes-de-la-nota.test.ts` · `src/__tests__/la-cita-sin-fuente-se-marca-y-no-se-borra.test.ts`
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+## REG-651 — El cross-check alergia↔fármaco no lleva `GUARDA_INYECCION` y delimita con `"""` sin escapar
+
+**Área**: Seguridad clínica (P1) · **Hallazgo(s) de la auditoría**: RT-002 · **Estado**: CLOSED
+
+**Qué fallaba.** El cross-check alergia↔fármaco no lleva `GUARDA_INYECCION` y delimita con `"""` sin escapar: una frase dicha frente al micrófono cierra la valla (`medical-ner.ts:246`); P1 y no P0 porque la compuerta de firma es determinista (RT-002)
+
+**Cómo se descubrió.** Panel de Lujo (6-sep-2026), candidato REG-PL-47. Confirmado por el equipo rojo, que intentó refutarlo y no pudo.
+
+**Reproducción que fallaba.** `reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts` — falla hoy (3 casos, diferencial benigno vs ataque)
+
+**Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
+
+
+### Pruebas selladas de esta auditoria que no cuelgan de un REG concreto
+
+Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porque no eran regresiones con causa raíz separada, pero se sellan igual — un archivo sellado que nadie reclama se borra el día que estorbe.
+
+- `src/__tests__/cada-campo-dice-como-se-llama.test.ts`
+- `src/__tests__/cirugia-programada-y-anticoagulante-se-cruzan.test.ts`
+- `src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts`
+- `src/__tests__/dos-expedientes-de-la-misma-persona-se-pueden-juntar.test.ts`
+- `src/__tests__/el-alta-de-un-paciente-revisa-lo-que-guarda.test.ts`
+- `src/__tests__/el-aviso-urgente-del-portal-llegaba-el-ultimo.test.ts`
+- `src/__tests__/el-consentimiento-dice-donde-va-el-audio.test.ts`
+- `src/__tests__/el-enlace-del-paciente-abre-menos-y-se-puede-cerrar.test.ts`
+- `src/__tests__/el-enlace-del-paciente-no-se-queda-en-el-telefono.test.ts`
+- `src/__tests__/el-expediente-recuerda-donde-estabas.test.ts`
+- `src/__tests__/el-papel-no-dice-1-anios-ni-la-fecha-de-manana.test.ts`
+- `src/__tests__/el-sello-de-motor-sin-validar-se-pinta.test.ts`
+- `src/__tests__/el-silencio-clinico-lleva-etiqueta.test.ts`
+- `src/__tests__/la-alerta-tiene-quien-la-lea.test.ts`
+- `src/__tests__/la-nota-quirurgica-tiene-donde-asentarlo-todo.test.ts`
+- `src/__tests__/la-orden-de-imagen-dice-de-que-lado.test.ts`
+- `src/__tests__/la-pantalla-habla-como-persona.test.ts`
+- `src/__tests__/lo-que-la-pantalla-promete-lo-cumple.test.ts`
+- `src/__tests__/lo-que-sale-al-mundo-no-afirma-de-mas.test.ts`
+- `src/__tests__/los-signos-capturados-se-preguntan-no-se-tragan.test.ts`
+- `src/__tests__/los-ultimos-signos-dicen-de-donde-salieron.test.ts`
+- `src/__tests__/no-se-pudo-leer-no-es-no-hay-nada.test.ts`
+- `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts`
+- `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts`

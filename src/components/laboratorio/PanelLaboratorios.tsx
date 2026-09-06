@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react'
 import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { guardarPanelLab, listarPanelesLab, borrarPanelLab, type PanelLaboratorio } from '@/lib/expediente/laboratorio/firestore'
 import { seriesDesdeHistorial, type PanelValidado } from '@/lib/expediente/laboratorio/extraccion'
 import { dictaminarSujeto, vinculoDeSujeto, type DictamenSujeto, type DestinoPaciente } from '@/lib/expediente/laboratorio/sujeto'
@@ -156,7 +157,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       }
       setConfirmadoSujeto(false)
       setRevision({ ...panel, fuente: esPdf ? 'pdf' : 'foto', destino, dictamen, clave: claveDeIntento() })
-    } catch { toast('Error de red al interpretar el archivo', 'error') }
+    } catch (e) { toast(noSePudo('interpretar el archivo de laboratorio', e), 'error') }
     finally { setSubiendo(false); if (fileRef.current) fileRef.current.value = '' }
   }
 

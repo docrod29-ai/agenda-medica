@@ -4,12 +4,18 @@ import { safeLog } from '@/lib/security/sanitize'
 import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
 import { Appointment, ClinicConfig } from '@/types'
-import { sendWhatsApp as sendWA } from '@/lib/whatsapp-send'
 import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import {
   entradasVencidas, resolverEntrada, reprogramarEntrada, contarMuertas,
 } from '@/lib/whatsapp/outbox'
-import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
+import { normalizarTelefonoWa, analizarTelefonoWa } from '@/lib/whatsapp/telefono'
+import { registrarNoEntregado } from '@/lib/whatsapp/no-entregados'
+import {
+  CAMPOS_RECORDATORIO, reservaReciente, motivoDeResultado, esTransitorio, falloParaLaCita,
+  type ClaveRecordatorio, type MotivoNoEnviado,
+} from '@/lib/whatsapp/recordatorio-idempotente'
+import { textoRecordatorio24h, textoRecordatorioMismoDia, textoSolicitudResena, type DatosRecordatorio } from '@/lib/whatsapp/texto-recordatorio'
+import { puedeEscribir } from '@/lib/finanzas/paywall-prueba'
 import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from '@/lib/timezone'
 import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
 import { crearTokenPaciente } from '@/lib/patient-token'
@@ -50,38 +56,9 @@ async function crearSolicitudResenaAdmin(origin: string, clinicId: string, appt:
   return `${origin.replace(/\/$/, '')}/resena/${token}`
 }
 
-function buildWhatsAppMessage(
-  template: string,
-  data: {
-    paciente: string
-    fecha: string
-    hora: string
-    medico: string
-    clinica: string
-    direccion: string
-    telefono: string
-  }
-): string {
-  return template
-    .replace(/\{paciente\}/g, data.paciente)
-    .replace(/\{fecha\}/g, data.fecha)
-    .replace(/\{hora\}/g, data.hora)
-    .replace(/\{medico\}/g, data.medico)
-    .replace(/\{clinica\}/g, data.clinica)
-    .replace(/\{direccion\}/g, data.direccion)
-    .replace(/\{telefono\}/g, data.telefono)
-}
-
 function formatDateES(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
-}
-
-/** Thin wrapper — uses per-clinic credentials from whatsapp-send.ts.
- *  proactivo:true → respeta el opt-out del contacto y agrega el pie "Responda BAJA…". */
-async function sendWhatsApp(phone: string, message: string, _config: ClinicConfig, clinicId: string): Promise<boolean> {
-  const { ok } = await sendWA(clinicId, phone, message, { proactivo: true })
-  return ok
 }
 
 export async function GET(req: NextRequest) {
@@ -115,7 +92,7 @@ export async function GET(req: NextRequest) {
      * pantalla las enseña. Contarlas aquí es lo mínimo para que un aviso las
      * saque del cajón.
      */
-    const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0, pausadas: 0, muertas: 0 }
+    const totals = { sent: 0, failed: 0, skipped: 0, clinics: 0, pausadas: 0, muertas: 0, omitidasPorPruebaVencida: 0 }
 
     // ── Get all active clinics ────────────────────────────────
     const clinicsSnap = await adminDb.collection('clinics')
@@ -127,6 +104,20 @@ export async function GET(req: NextRequest) {
       totals.clinics++
 
       try {
+        /**
+         * LA PRUEBA VENCIDA NO MANDA MENSAJES (Panel de Lujo N-006, PL-D8).
+         *
+         * Este cron seguía mandando WhatsApp durante meses a costa de la
+         * plataforma para consultorios cuya prueba había vencido. Se usa el
+         * MISMO espejo que el resto del paywall (`puedeEscribir`): mismo día de
+         * gracia, mismo fallo-abierto sin `trialEndsAtMs`. Se cuentan aparte para
+         * que el dueño vea cuántas son — ese número es su lista de reactivación.
+         */
+        if (!puedeEscribir(clinicDoc.data() as { status?: string; trialEndsAtMs?: number; paseLibre?: boolean }, now.getTime())) {
+          totals.omitidasPorPruebaVencida++
+          continue
+        }
+
         const configSnap = await adminDb
           .collection('clinics').doc(clinicId)
           .collection('config').doc('main').get()
@@ -204,80 +195,108 @@ export async function GET(req: NextRequest) {
           .filter(a => ESTADOS_RECORDABLES.includes(a.estado))
 
         /**
-         * `{donde}` EN LUGAR DE `{direccion}`, Y `{cierre}` EN LUGAR DE «Te esperamos».
-         *
-         * Estas plantillas se escribieron cuando todas las citas eran
-         * presenciales: a un paciente de TELECONSULTA le llegaba la dirección
-         * del consultorio y «te esperamos», sin el enlace de la sala por ningún
-         * lado. En el mejor caso llama para preguntar; en el peor conduce hasta
-         * allá. Lo decide `lib/telesalud/donde-es.ts`, por tipo de cita.
+         * El TEXTO vive en `lib/whatsapp/texto-recordatorio.ts` (puro): `{donde}`
+         * en lugar de `{direccion}` y `{cierre}` en lugar de «Te esperamos»
+         * porque a un paciente de TELECONSULTA le llegaba la dirección del
+         * consultorio; sin «Consultorio: undefined» (ASM-017); con el plazo de
+         * respuesta (ASM-006); y con modo discreto por consultorio (PG-018).
          */
-        const template24h =
-          `Hola {paciente} 👋\n\nTe recordamos que tienes una cita *mañana* con {medico}.\n\n📅 {fecha}\n🕐 {hora}\n{clinicaLinea}{donde}\n\n¿Confirmas tu asistencia? Responde *SÍ* para confirmar o *NO* para cancelar.\n\nConsultorio: {telefono}`
+        const discreto = (config as { recordatoriosDiscretos?: boolean }).recordatoriosDiscretos === true
+        const citasRef = adminDb.collection('clinics').doc(clinicId).collection('appointments')
 
-        const templateSameDay =
-          `Buenos días {paciente} ☀️\n\nHoy tienes tu cita con {medico}:\n\n🕐 {hora}\n{clinicaLinea}{donde}\n\n{cierre} Cualquier duda: {telefono}`
+        /**
+         * QUÉ QUEDA ESCRITO CUANDO NO SALE (ASM-007, ASM-005). Un fallo o una
+         * omisión que sólo suben un contador no le dicen a la asistente a quién
+         * llamar. Se anota en la cita (`recordatorio24hFallo`) y en
+         * `whatsapp_no_entregados`. Silencio y tope NO son fallos: se reintentan.
+         */
+        const anotarNoEnviado = async (appt: Appointment, clave: ClaveRecordatorio, motivo: MotivoNoEnviado, texto: string) => {
+          if (esTransitorio(motivo)) { totals.skipped++; return }
+          if (motivo === 'proveedor') totals.failed++; else totals.skipped++
+          await citasRef.doc(appt.id).update({ ...falloParaLaCita(clave, motivo, now.toISOString()), updatedAt: now.toISOString() })
+            .catch(() => { /* la constancia no puede tumbar el bucle */ })
+          await registrarNoEntregado(clinicId, appt.pacienteTelefono, texto, clave, motivo)
+        }
 
         for (const appt of appointments) {
-          if (!appt.consentimientoMensajes) { totals.skipped++; continue }
-          const phone = appt.pacienteTelefono
-          if (!phone) { totals.skipped++; continue }
-
           const apptDate = appt.fechaHora.slice(0, 10)
           const apptHour = appt.fechaHora.slice(11, 16)
           // Instante REAL de la cita en hora MX (no en la zona del servidor)
           const apptDateObj = instanteMX(apptDate, apptHour, tzClinica)
           const diffHours = (apptDateObj.getTime() - now.getTime()) / (1000 * 60 * 60)
 
+          const toca24h = config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26
+          const tocaMismoDia = config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4
+          if (!toca24h && !tocaMismoDia) continue
+          const clave: ClaveRecordatorio = toca24h ? 'recordatorio24h' : 'recordatorioMismoDia'
+
+          if (!appt.consentimientoMensajes) { totals.skipped++; continue }
+
+          /**
+           * EL TELÉFONO SALE DEL EXPEDIENTE CUANDO LO HAY (Panel de Lujo ASM-004).
+           *
+           * `pacienteTelefono` es una copia en la cita. Corregir el teléfono en
+           * `/pacientes` ya lo propaga (`updatePatient`), pero esta lectura es la
+           * segunda red: si el expediente tiene teléfono, ése manda, porque es la
+           * ÚNICA IDENTIDAD del paciente. La cita sólo decide cuando no hay
+           * expediente (bot antiguo) o el expediente no tiene teléfono.
+           */
+          let phone = appt.pacienteTelefono
+          let versionPortal = 0
+          if (appt.pacienteId) {
+            try {
+              const pacSnap = await adminDb.collection('clinics').doc(clinicId)
+                .collection('patients').doc(appt.pacienteId).get()
+              const pac = pacSnap.data() as { telefono?: string; whatsapp?: string; portalTokenVersion?: number } | undefined
+              const delExpediente = String(pac?.whatsapp || pac?.telefono || '').trim()
+              if (delExpediente) phone = delExpediente
+              versionPortal = Number(pac?.portalTokenVersion ?? 0)
+            } catch { /* sin expediente legible se usa el de la cita, como antes */ }
+          }
+          if (!phone) { totals.skipped++; continue }
+          /**
+           * DESTINO VALIDADO ESTRICTO (ASM-002): lo que no se entiende no se manda
+           * a nadie, y queda dicho en la cita para que recepción lo corrija.
+           */
+          if (!analizarTelefonoWa(phone).ok) {
+            await anotarNoEnviado(appt, clave, 'telefono-invalido', '')
+            continue
+          }
+
+          /**
+           * RESERVAR ANTES DE ENVIAR (ASM-019). Si hay una reserva reciente sin
+           * confirmación, no se reenvía: puede que sí saliera y sólo fallara la
+           * marca. Si la reserva no se puede escribir, tampoco se manda: sin
+           * reserva no hay idempotencia.
+           */
+          const campos = CAMPOS_RECORDATORIO[clave]
+          const intentoPrevio = (appt as unknown as Record<string, unknown>)[campos.intentoAt] as string | undefined
+          if (reservaReciente(intentoPrevio, now.getTime())) { totals.skipped++; continue }
+          try {
+            await citasRef.doc(appt.id).update({ [campos.intentoAt]: now.toISOString() })
+          } catch { totals.skipped++; continue }
+
           /**
            * EL ENLACE DE LA SALA — éste es el mensaje que lo prometía.
            *
            * `dondeEsLaCita` sólo emite el enlace si le llega el token del
-           * paciente, y ningún llamador se lo daba: la confirmación decía
-           * «recibirás el enlace por este medio antes de tu cita», el
-           * recordatorio decía lo mismo, y el enlace no llegaba nunca. Este cron
-           * es el único que corre ANTES de la cita (ventana de hoy y mañana), así
-           * que es aquí donde la promesa se cumple o no se cumple.
+           * paciente. Alcance `agenda`, no `clinico`: este enlace viaja por
+           * WhatsApp y se reenvía. Nace con la VERSIÓN vigente del expediente.
            *
-           * Alcance `agenda`, no `clinico`: este enlace viaja por WhatsApp y se
-           * reenvía. Deja entrar a la sala y a la agenda del paciente; los
-           * documentos clínicos firmados siguen exigiendo un enlace emitido por
-           * un médico (`/api/telesalud/token`). Mismo criterio que
-           * `/api/portal/link`.
+           * Sólo se firma para una videoconsulta. Sin `pacienteId` no hay a quién
+           * atarlo, y tampoco cuando el expediente se eligió POR TELÉFONO SIN
+           * NOMBRE (RT-008): sin nombre confirmado no hay a quién atarlo, y un
+           * enlace al portal de la madre en la cita de la hija es una fuga.
            *
-           * Nace con la VERSIÓN vigente del expediente: cuando alguien revoca los
-           * enlaces de ese paciente, el contador sube y éste cae con los demás.
-           *
-           * Sólo se firma para una videoconsulta: a una cita presencial no le
-           * hace falta y emitir credenciales que nadie usa es ampliar la
-           * superficie por nada. Sin `pacienteId` no hay a quién atarlo, y un
-           * enlace sin titular es justo el que la sala rechaza con 404.
+           * `crearTokenPaciente` LANZA si falta `PORTAL_PACIENTE_SECRET`; se
+           * degrada a «sin enlace», no a «sin recordatorio».
            */
           let tokenSala = ''
-          if (esTeleconsulta(appt.tipo) && appt.pacienteId) {
-            /**
-             * TODO EL BLOQUE VA EN try/catch, y no es por costumbre.
-             *
-             * `crearTokenPaciente` LANZA si falta `PORTAL_PACIENTE_SECRET`. El
-             * `try` de este bucle está a nivel de CONSULTORIO, así que una
-             * variable de entorno mal puesta no dejaría a un paciente sin enlace:
-             * dejaría a ese consultorio entero sin recordatorios, presenciales
-             * incluidos, y con un 200 en la respuesta del cron.
-             *
-             * Un recordatorio sin enlace sigue avisando de la cita. Ningún
-             * recordatorio no avisa de nada. Se degrada por lo primero.
-             */
+          const expedientePorConfirmar = !!(appt as { expedientePorConfirmar?: string }).expedientePorConfirmar
+          if (esTeleconsulta(appt.tipo) && appt.pacienteId && !expedientePorConfirmar) {
             try {
-              let versionPortal = 0
-              try {
-                const pacSnap = await adminDb.collection('clinics').doc(clinicId)
-                  .collection('patients').doc(appt.pacienteId).get()
-                versionPortal = Number((pacSnap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
-              } catch { /* sin versión conocida se emite la 0: una revocación posterior lo corta igual */ }
               tokenSala = crearTokenPaciente(clinicId, appt.pacienteId, undefined, 'agenda', versionPortal)
             } catch (e) {
-              // Sin token no se inventa un enlace: `dondeEsLaCita` dirá que llega
-              // aparte, que es la verdad. Y queda dicho POR QUÉ, sin PHI.
               safeLog.warn('[reminders] no se pudo firmar el enlace de teleconsulta:', String(e))
               tokenSala = ''
             }
@@ -292,88 +311,72 @@ export async function GET(req: NextRequest) {
             baseUrl: process.env.NEXT_PUBLIC_APP_URL,
             tokenPaciente: tokenSala,
           })
-          const msgData = {
+          const msgData: DatosRecordatorio = {
             paciente: appt.pacienteNombre,
             fecha: formatDateES(apptDate),
             hora: apptHour,
             // El médico de LA CITA, no el titular de la clínica (multi-médico).
             medico: appt.medicoNombre || config.nombreMedico || 'el médico',
-            clinica: config.nombreClinica,
+            clinica: config.nombreClinica ?? '',
             // El nombre del consultorio tampoco va en una videoconsulta: sobra y
             // sugiere que hay que ir.
             clinicaLinea: lugar.esVideo ? '' : `📍 ${config.nombreClinica ?? ''}\n`,
             donde: lugar.lineas.join('\n'),
             cierre: lugar.cierre,
             direccion: config.direccion || '',
-            telefono: config.whatsappConsultorio || config.telefonoAdmin,
+            telefono: config.whatsappConsultorio || config.telefonoAdmin || '',
           }
+          const texto = clave === 'recordatorio24h'
+            ? textoRecordatorio24h(msgData, { discreto })
+            : textoRecordatorioMismoDia(msgData, { discreto })
 
-          // 24h reminder (window: 23–26h before)
-          if (config.recordatorio24h && !appt.recordatorio24hEnviado && diffHours >= 23 && diffHours <= 26) {
-            const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorio24h', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
-              textoLibre: buildWhatsAppMessage(template24h, msgData),
-            })
-            if (resultado === 'enviado') {
-              await adminDb.collection('clinics').doc(clinicId)
-                .collection('appointments').doc(appt.id).update({
-                  recordatorio24hEnviado: true,
-                  estado: appt.estado === 'confirmada' ? 'recordatorio-enviado' : appt.estado,
-                  updatedAt: now.toISOString(),
-                })
-              /**
-               * EL «SÍ» DEL PACIENTE TIENE QUE LLEGAR A ALGÚN SITIO.
-               *
-               * El mensaje dice, con estas palabras, «Responde SÍ para confirmar
-               * o NO para cancelar» — y no había NADA que lo implementara: sin
-               * sesión previa el bot caía en el saludo y contestaba el menú de
-               * bienvenida. El paciente confirmaba y su cita seguía sin
-               * confirmar; decía NO queriendo cancelar y la cita seguía viva
-               * ocupando el hueco.
-               *
-               * Se deja la sesión esperando esa respuesta, con la cita concreta.
-               * `merge: true` para no pisar una conversación en curso más que en
-               * lo necesario.
-               */
-              await adminDb.collection('clinics').doc(clinicId)
-                .collection('bot_sessions').doc(normalizarTelefonoWa(phone))
-                .set({
-                  telefono: normalizarTelefonoWa(phone),
-                  estado: 'confirmando_cita',
-                  /**
-                   * `cancelarSolo: ''` NO sobra.
-                   *
-                   * `merge: true` funde los mapas anidados, así que una bandera
-                   * de un diálogo de cancelación ABANDONADO sobrevivía aquí — y
-                   * el «SÍ» del paciente a este recordatorio le cancelaba la
-                   * cita en vez de confirmarla. Escribirla vacía la neutraliza.
-                   */
-                  datos: { citaId: appt.id, fecha: apptDate, hora: apptHour, cancelarSolo: '' },
-                  lastMessageAt: now.toISOString(),
-                  createdAt: now.toISOString(),
-                }, { merge: true })
-                .catch(() => { /* el recordatorio ya salió: esto no puede tumbarlo */ })
-              totals.sent++
-            } else if (resultado === 'fallo') { totals.failed++ }
-            else { totals.skipped++ } // omitido (sin plantilla fuera de ventana) / optout
-            continue
-          }
+          const { resultado } = await enviarProactivo(clinicId, phone, {
+            clave, datos: discreto ? { ...msgData, medico: '', clinica: '' } : msgData,
+            ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
+            textoLibre: texto,
+          })
+          const motivo = motivoDeResultado(resultado)
+          if (motivo) { await anotarNoEnviado(appt, clave, motivo, texto); continue }
 
-          // Same-day reminder (window: 1–4h before)
-          if (config.recordatorioMismoDia && !appt.recordatorioMismoDiaEnviado && diffHours >= 1 && diffHours <= 4) {
-            const { resultado } = await enviarProactivo(clinicId, phone, {
-              clave: 'recordatorioMismoDia', datos: msgData, ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
-              textoLibre: buildWhatsAppMessage(templateSameDay, msgData),
-            })
-            if (resultado === 'enviado') {
-              await adminDb.collection('clinics').doc(clinicId)
-                .collection('appointments').doc(appt.id).update({
-                  recordatorioMismoDiaEnviado: true,
-                  updatedAt: now.toISOString(),
-                })
-              totals.sent++
-            } else if (resultado === 'fallo') { totals.failed++ }
-            else { totals.skipped++ }
+          /**
+           * CONFIRMAR DESPUÉS DE ENVIAR. Si esto falla, la reserva de arriba
+           * impide reenviar durante dos horas. El teléfono del expediente se
+           * copia a la cita, para que el menú «Llamar» de /citas vea el mismo.
+           */
+          await citasRef.doc(appt.id).update(clave === 'recordatorio24h'
+            ? {
+                recordatorio24hEnviado: true,
+                estado: appt.estado === 'confirmada' ? 'recordatorio-enviado' : appt.estado,
+                pacienteTelefono: phone,
+                updatedAt: now.toISOString(),
+              }
+            : { recordatorioMismoDiaEnviado: true, pacienteTelefono: phone, updatedAt: now.toISOString() })
+          totals.sent++
+
+          if (clave === 'recordatorio24h') {
+            /**
+             * EL «SÍ» DEL PACIENTE TIENE QUE LLEGAR A ALGÚN SITIO.
+             *
+             * El mensaje dice «Responde SÍ para confirmar o NO para cancelar» y
+             * sin sesión previa el bot caía en el saludo. Se deja la sesión
+             * esperando esa respuesta, con la cita concreta. El bot la mantiene
+             * viva HASTA LA HORA DE LA CITA (ASM-006, `lib/whatsapp/vigencia-sesion.ts`),
+             * no las 2 h de una conversación que inicia el paciente.
+             *
+             * `cancelarSolo: ''` NO sobra: `merge: true` funde los mapas anidados,
+             * y una bandera de un diálogo de cancelación ABANDONADO sobrevivía
+             * aquí — el «SÍ» al recordatorio le cancelaba la cita.
+             */
+            await adminDb.collection('clinics').doc(clinicId)
+              .collection('bot_sessions').doc(normalizarTelefonoWa(phone))
+              .set({
+                telefono: normalizarTelefonoWa(phone),
+                estado: 'confirmando_cita',
+                datos: { citaId: appt.id, fecha: apptDate, hora: apptHour, cancelarSolo: '' },
+                lastMessageAt: now.toISOString(),
+                createdAt: now.toISOString(),
+              }, { merge: true })
+              .catch(() => { /* el recordatorio ya salió: esto no puede tumbarlo */ })
           }
         }
 
@@ -389,7 +392,7 @@ export async function GET(req: NextRequest) {
             .where('fechaHora', '>=', desdeStr)
             .get()
           for (const d of postSnap.docs) {
-            const a = { id: d.id, ...d.data() } as Appointment & { resenaSolicitada?: boolean }
+            const a = { id: d.id, ...d.data() } as Appointment & { resenaSolicitada?: boolean; resenaIntentoAt?: string }
             if (!ESTADOS_POST_VISITA.includes(a.estado)) continue
             if (a.resenaSolicitada) continue
             if (!a.consentimientoMensajes || !a.pacienteTelefono) { totals.skipped++; continue }
@@ -397,15 +400,37 @@ export async function GET(req: NextRequest) {
             const fin = instanteMX(a.fechaHora.slice(0, 10), a.fechaHora.slice(11, 16), tzClinica)
             const horas = (now.getTime() - fin.getTime()) / 3_600_000
             if (horas < 2 || horas > 72) continue
+            if (!analizarTelefonoWa(a.pacienteTelefono).ok) { totals.skipped++; continue }
+            /**
+             * POR LA PUERTA PROACTIVA, COMO TODO LO DEMÁS (ASM-008). Antes salía
+             * como texto libre fuera de ventana, sin plantilla ni silencio ni
+             * tope, y `resenaSolicitada` se escribía pase lo que pase: un rechazo
+             * del proveedor cerraba la puerta para siempre. Ahora sólo se marca
+             * cuando SALIÓ; si no, queda el fallo escrito y se reintenta un
+             * ciclo después (con la misma reserva de 2 h que el recordatorio).
+             */
+            if (reservaReciente(a.resenaIntentoAt, now.getTime())) continue
             try {
+              await citasRef.doc(a.id).update({ resenaIntentoAt: now.toISOString() })
               const link = await crearSolicitudResenaAdmin(origin, clinicId, a)
-              const nombre = (a.pacienteNombre || '').split(' ')[0]
-              const msg = `Hola ${nombre} 🙏 ¿Nos ayudas con una reseña de tu consulta con ${config.nombreMedico || 'el médico'}? Solo toma 30 segundos:\n${link}`
-              const ok = await sendWhatsApp(a.pacienteTelefono, msg, config, clinicId)
-              // Marcar siempre (un intento) para no spamear ante fallos transitorios
-              await adminDb.collection('clinics').doc(clinicId)
-                .collection('appointments').doc(a.id).update({ resenaSolicitada: true, updatedAt: now.toISOString() })
-              if (ok) totals.sent++; else totals.failed++
+              const medico = config.nombreMedico || 'el médico'
+              const texto = textoSolicitudResena(a.pacienteNombre, medico, link)
+              const { resultado } = await enviarProactivo(clinicId, a.pacienteTelefono, {
+                clave: 'resena', datos: { paciente: a.pacienteNombre, medico, enlace: link },
+                ahoraMs: now.getTime(), waConfig, minutosDelDiaMx: minMx, fechaHoyMx: hoyISO(tzClinica),
+                textoLibre: texto,
+              })
+              const motivo = motivoDeResultado(resultado)
+              if (!motivo) {
+                await citasRef.doc(a.id).update({ resenaSolicitada: true, updatedAt: now.toISOString() })
+                totals.sent++
+              } else if (esTransitorio(motivo)) {
+                totals.skipped++
+              } else {
+                if (motivo === 'proveedor') totals.failed++; else totals.skipped++
+                await citasRef.doc(a.id).update({ resenaFallo: { at: now.toISOString(), motivo } }).catch(() => {})
+                await registrarNoEntregado(clinicId, a.pacienteTelefono, texto, 'resena', motivo)
+              }
             } catch { totals.failed++ }
           }
         }
@@ -476,6 +501,7 @@ export async function GET(req: NextRequest) {
         enviados: totals.sent, fallidos: totals.failed, consultorios: totals.clinics,
         /* La cola, no el envío. Ver el comentario de `totals` (REG-397). */
         pausadas: totals.pausadas, muertas: totals.muertas,
+        omitidasPorPruebaVencida: totals.omitidasPorPruebaVencida,
       },
     })
     return NextResponse.json({ ok: true, ...totals })

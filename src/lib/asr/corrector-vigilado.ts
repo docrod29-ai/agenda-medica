@@ -164,7 +164,7 @@ export function corregirVigilado(texto: string): ResultadoVigilado {
  * una lista de avisos con título y explicación, y los muestra.
  */
 export interface AlertaDictado {
-  tipo: 'sustitucion' | 'dosis-sin-cantidad'
+  tipo: 'sustitucion' | 'dosis-sin-cantidad' | 'lateralidad'
   titulo: string
   detalle: string
 }

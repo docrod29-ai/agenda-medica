@@ -236,7 +236,10 @@ describe('LA SEGUNDA PUERTA: EL EXTRACTOR DE ENTIDADES', () => {
   it('y el panel lo enseña, diciendo que no cambió nada', () => {
     // Señalar sin tocar sólo sirve si se enseña.
     const panel = leer('src', 'components', 'NerPanel.tsx')
-    expect(panel).toContain('salen como activas y en el dictado se dijeron en pasado')
+    // El texto pasó a plurales reales en la reparación de ZC-016 (Panel de Lujo
+    // 2026-09): «condición(es)» hablaba como sistema. Lo que esta prueba vigila
+    // —que el panel lo ENSEÑE y diga que no tocó nada— no cambia.
+    expect(panel).toContain('salen como activos y en el dictado se dijeron en pasado')
     expect(panel).toMatch(/No se cambiaron: decidir que están resueltas sería una decisión clínica/)
   })
 

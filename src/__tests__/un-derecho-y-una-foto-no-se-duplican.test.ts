@@ -128,7 +128,10 @@ describe('un derecho ejercido una vez es un expediente', () => {
   })
 
   it('y LLEGA a la escritura', () => {
-    expect(PORTAL).toMatch(/\}, claveSolicitud\)/)
+    // El tercer argumento: entre el cuerpo y la clave va `origen`, que ASE-010
+    // añadió para poder registrar un derecho ejercido EN EL CONSULTORIO —ligado
+    // ya al expediente y verificado— además del del portal público.
+    expect(PORTAL).toMatch(/\}, undefined, claveSolicitud\)/)
   })
 
   it('si la solicitud ya existe NO se pisa: el plazo legal corre desde su fecha', () => {

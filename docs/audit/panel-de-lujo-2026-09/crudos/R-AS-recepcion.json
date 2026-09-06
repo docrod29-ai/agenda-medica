@@ -1,0 +1,155 @@
+{
+  "auditor": "AS-recepcion",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ASR-001",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/clinic/crear/route.ts:90-91 `tx.set(clinicaRef.collection('config').doc('main'), { ...DEFAULT_CONFIG, nombreClinica, nombreMedico, zonaHoraria, … })` · scripts/design/sembrar-emulador.mjs:425-435",
+      "nota": "El 500 es real y está en el log del auditor («TypeError … reading 'lunes' at getDaySchedule (src/lib/availability.ts:150) at POST (route.ts:165)», dos veces), y route.ts:145-165 efectivamente no mezcla DEFAULT_CONFIG. Pero la premisa del impacto —«el consultorio recién dado de alta no puede agendar»— es FALSA: la única alta de la app (/setup → /api/clinic/crear:90-91) escribe DEFAULT_CONFIG entero, con `horario` de los siete días, y `horario` es campo REQUERIDO de ClinicConfig (src/types/index.ts:528). El `config/main` sin `horario` lo fabrica la siembra sintética, que escribe `horaInicio`/`horaFin`/`duracionCitaDefault` —campos que el tipo no tiene— y ningún `horario` ni `duraciones` (scripts/design/sembrar-emulador.mjs:425-435). Si `config/main` no existiera, `if (cfg)` (route.ts:147) salta la validación entera y no hay crash. Queda como defecto de robustez (500 sin causa en vez de 409 explicado), no como bloqueo de la prueba de 14 días."
+    },
+    {
+      "id": "ASR-002",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:203 `{tiposCita.map(...)}` sin rama vacía (contraste: :267 sí la tiene, «No hay horarios disponibles este día») · src/types/index.ts:752-755 `DEFAULT_CONFIG.duraciones` con los 8 tipos, servido por crear/route.ts:91",
+      "nota": "Contestando lo que se preguntó: es la SIEMBRA. `tiposCita: []` sale de `Object.entries(config.duraciones ?? {})` (api/public/clinic/[clinicId]/route.ts:83) y `duraciones` sólo falta en el consultorio sembrado (sembrar-emulador.mjs:425-435); todo consultorio real nace con las 8 duraciones. La pantalla TAMPOCO avisa —eso es cierto y es el medio hallazgo que sobrevive: el paso «hora» tiene estado vacío y el paso «tipo» no—, pero para llegar a verlo hace falta una config que ninguna ruta del producto escribe. Baja a P3, como pedía el encargo."
+    },
+    {
+      "id": "ASR-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/dashboard/page.tsx:71 `const h = new Date().getHours()`; :120 `a.fechaHora >= ${today} ${new Date().toTimeString().slice(0,5)}`; :125-126 `const now = new Date(); const fechaLabel = now.toLocaleDateString('es-MX', …)`; :337 `const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)` — frente a :62-63 `todayStr() { return hoyISO() }`",
+      "nota": "Las cuatro líneas existen literalmente y mezclan reloj del navegador con fecha del consultorio en la MISMA pantalla. No es cosmético: :120 elige QUÉ cita es la próxima y :337 calcula «en 4h». El guardián de REG-067 (src/__tests__/timezone-sitios.test.ts) sólo exige cero en rutas de API, así que estas llamadas de cliente quedan fuera por diseño del propio guardián — no hay línea que lo impida."
+    },
+    {
+      "id": "ASR-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:1061 `const QUICK_STATUSES: AppointmentStatus[] = ['en-sala','en-consulta','atendida','finalizada','cancelada','no-asistio']` (sin 'confirmada'); :901 y :1088 `case 'confirmar': handleWA(); break` → :1013 `openWhatsApp(...)`",
+      "nota": "Verificado línea por línea: los cuatro números (901, 1013, 1061, 1088) son exactos y no hay ningún otro sitio en /citas ni en /dashboard que escriba `estado: 'confirmada'` (grep de `cambiarEstadoCita`: sólo citas/page.tsx:406). La única vía es AppointmentModal.tsx:41-42 `STATUSES_EDIT` → :655. Bajo de P1 a P2 por dos razones: existe camino funcional (Editar cita) y el lazo SÍ se cierra solo cuando el paciente contesta —api/whatsapp/webhook/route.ts:659-663 y api/portal/route.ts:386-388 ponen 'confirmada' con `confirmadoPaciente: true`—, así que el botón que abre WhatsApp no es un callejón, es la mitad de un ciclo asíncrono. Sigue siendo un hueco real de recepción."
+    },
+    {
+      "id": "ASR-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:406 `const r = await cambiarEstadoCita(clinicId!, appt.id, newStatus)` sin `confirm` previo, frente a :511 `if (!(await confirm('¿Eliminar esta cita permanentemente?', { peligro: true, … })))`; :443-450 borra el evento de Google y :456 avisa a la lista de espera",
+      "nota": "Confirmado, incluida la queja de móvil: `.riel-menu-item` es `padding: 7px 10px; font-size: 13px` (src/app/globals.css:3572-3577) ≈ 33-34 px de alto, por debajo del mínimo de 44 que exige la propia regla de diseño del repo. El contraste con Eliminar (que sí pregunta) está en el mismo archivo, así que no es una convención del producto: es una omisión. El control que sí existe (`aplicado:false` e :417 bitácora) registra pero no impide."
+    },
+    {
+      "id": "ASR-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:427 `toast(\\`Estado actualizado: ${newStatus}\\`)` y :411 `toast(\\`Ya estaba en «${newStatus}»\\`)`; src/components/AppointmentModal.tsx:655 `{STATUSES_EDIT.map(s => <option key={s} value={s}>{s}</option>)}`",
+      "nota": "Las tres citas son literales y el traductor existe y se usa 200 líneas más abajo (:1253 `{estadoCita(s)?.label ?? s}`), así que la incoherencia es real. Bajo a P3: el propio auditor pone severidad 1, no hay consecuencia clínica ni de datos, y no aparece en ninguna superficie de cara al paciente."
+    },
+    {
+      "id": "ASR-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:219 `if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false` — sin `normalize('NFD')`; contraste: src/app/(dashboard)/pacientes/page.tsx:137 `const norm = (s) => s.toLowerCase().normalize('NFD').replace(...)`",
+      "nota": "Línea exacta, sin normalización, y la solución ya vive en la pantalla hermana. Se mantiene P2 aunque el estado vacío avisa de que el filtro esconde citas: quien busca «Rosalia» ve cero filas y la carga de deducir por qué recae en la recepcionista."
+    },
+    {
+      "id": "ASR-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/availability.ts:295-297 `if (config) { const schedule = getDaySchedule(fecha, config); if (!schedule) return true }` → src/components/AppointmentModal.tsx:228 `setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloquesTotales, medicoId, cfgAgenda))` y :504 `disabled={saving || (conflict && (!esMedicoReal || motivoSobreagenda.trim().length < 5))}`",
+      "nota": "Verificado: el modal en modo edición vuelve a evaluar el conflicto con la fecha/hora que YA tenía la cita, y `hasConflict` devuelve true por día inactivo, no por solape — el mismo booleano alimenta el texto «ocupado» y el botón apagado. La excepción de `horaOriginal` (:218-220) sólo rescata el desplegable de horas, no el conflicto. Para el rol asistente el guardado queda cerrado por completo (:504 exige `esMedicoReal`)."
+    },
+    {
+      "id": "ASR-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:890 `export function accionPrimaria(appt: Appointment, esHoy: boolean)` — la firma no recibe rol; :904-906 devuelve 'Iniciar consulta'. PERO src/app/(dashboard)/layout.tsx:576 `RUTAS_SOLO_MEDICO = ['/expedientes','/expediente/','/consulta/', …]` y :592 `if (!esMedicoReal && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) { router.replace('/dashboard') }`",
+      "nota": "La observación estructural se sostiene (la acción primaria ignora el rol; «En sala de espera» sólo vive en el menú :1251-1254). El daño alegado NO: una asistente que pulse «Iniciar consulta» no abre /consulta — el guardia de rol del layout la rebota a /dashboard, y `role` viene de Firestore, no del cliente. Lo que queda es distinto de lo escrito: para recepción el botón grande de cinco filas no lleva a ninguna parte."
+    },
+    {
+      "id": "ASR-010",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:687-691 `onClick={() => updDescansos(dia, [...(h.descansos ?? []), { inicio: '14:00', fin: '16:00' }])}` — el descanso nace con las horas puestas",
+      "nota": "Que no exista «copiar a todos los días» es cierto (grep de «aplicar a todos|Copiar horario» = 0). La cifra no: el botón añade el descanso ya relleno a 14:00–16:00, así que bloquear la comida de lunes a viernes son 5 clics + Guardar si el valor por omisión sirve, no ~18 interacciones. El propio auditor midió «2 clics + 2 horas» sólo porque quiso reescribir las horas. Friccíon menor real, magnitud inflada."
+    },
+    {
+      "id": "ASR-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/asistente/page.tsx:335-340 (comentario) «Ahora decide `elegirExpedienteParaCita` … Ante la duda crea uno nuevo, porque de los dos errores posibles el duplicado es el barato» → :341-352 crea sin preguntar; el POST va después, :373-400",
+      "nota": "El código hace exactamente lo que el auditor describe, pero crear el duplicado no es un descuido: es la decisión que CERRÓ REG-039 (docs/audit/regression-ledger.md:55, fundir por nombre metió cita y alergias bajo la persona equivocada, P1 de PHI). Pedir confirmación para fundir reabre justo ese camino, así que la propuesta necesita al dueño. Lo que sí queda en pie sin decisión de nadie es el ORDEN: `createPatient` se ejecuta antes de saber si el servidor escribió la cita, de modo que un 409/500 deja un expediente huérfano — que es precisamente lo que le pasó al auditor."
+    },
+    {
+      "id": "ASR-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/not-found.tsx:89-90 «Es posible que tu navegador esté usando una versión vieja de la app. Toca Reintentar para limpiar la caché y volver al inicio.» y :120 `Ir al dashboard`",
+      "nota": "Texto literal en las líneas citadas y `not-found.tsx` es global: una URL pública mal copiada (/reservar sin id) cae en la página que le habla al médico de caché y de dashboard. No hay ninguna variante pública que lo impida."
+    },
+    {
+      "id": "ASR-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/asistente/page.tsx:451-455 `<label style={…}>Nombre completo *</label>` + `<input …>` sin `htmlFor`/`id`/`aria-label`, y :497-503 igual para el teléfono; src/app/(dashboard)/configuracion/page.tsx:2198-2199 y :2202-2203 «Desde»/«Hasta» con `<input type=\"datetime-local\">` sin asociar",
+      "nota": "Los cinco pares existen tal cual. Y el contraste que cierra el caso está en el MISMO archivo de configuración: :545, :550 y :556 sí usan `htmlFor`+`id`, y los inputs de descanso llevan `aria-label` (:670, :676) — no es una limitación del patrón, es un descuido localizado. Se mantiene P2: la regla de diseño del repo pone «campo sin etiqueta» entre los mínimos que fallan la compuerta."
+    },
+    {
+      "id": "ASR-014",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp/ofrecer-hueco.ts:145 `.orderBy('prioridad', 'asc')` (con índice `waitlist(estado, prioridad, createdAt)`, :142) y :203-204 `if (!huecoSirve(entry.rangoHorario, hora, slotDuracion)) { const leido = leerRangoHorario(entry.rangoHorario) … }`",
+      "nota": "La premisa —«no cambian a quién se avisa»— es falsa: los DOS campos que el hallazgo propone esconder mandan sobre el aviso real. `prioridad` ordena la cola en Firestore (y el comentario :107-120 cuenta el defecto que se arregló precisamente por ordenar mal) y `rangoHorario` se parsea y descarta huecos que no le sirven al paciente. El propio auditor dejó la condición («sólo si el dueño confirma que el aviso lo usa»): lo usa."
+    },
+    {
+      "id": "ASR-015",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/calendario/page.tsx:329 `onCellClick={openNew}` y :341 `onCellClick={(h) => openNew(diaDeRejilla(baseDate), h)}` → :196-201 `openNew = (fecha, hora) => { … router.push(s ? \\`/asistente?${s}\\` : '/asistente') }`; el modal sólo se abre en :203-206 `openEdit`",
+      "nota": "La celda del calendario NO abre AppointmentModal: manda a /asistente con fecha y hora prellenadas. `setModalOpen(true)` aparece una sola vez en el archivo y es dentro de `openEdit`. Es decir, no hay «dos formularios de Nueva cita»: la propuesta del hallazgo («un solo flujo de alta en /asistente; el modal sólo para editar») ES la implementación actual, y el propio auditor lo escribió dos líneas antes de contradecirse. Sobrevive únicamente que la cita nace `estado: 'confirmada'` con `confirmadoPaciente: false` (asistente/page.tsx:387, :393), que ya está contado en ASR-004."
+    },
+    {
+      "id": "ASR-016",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:947-948 (comentario) «la acción primaria NO se quita: el médico puede iniciar una consulta tarde o cobrar una visita de la mañana. Cambia el peso visual, no lo que se puede hacer» → :962 `if (esHoy && ahoraHHMM && appt.fechaHora.slice(11,16) < ahoraHHMM) return 'pasado'`",
+      "nota": "La evidencia es exacta y el auditor argumenta el desacuerdo en vez de esconderlo, lo cual se agradece. Pero lo que describe como defecto está declarado como decisión razonada en el archivo, y cambiar la primaria a «No vino» tiene coste propio (marcar inasistencia sube `noShowCount` en transacción, transicion-cita.ts). Queda como propuesta de producto pendiente del dueño, no como hallazgo."
+    },
+    {
+      "id": "ASR-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/globals.css:1097-1101 `.nx-push-optin { position: fixed; bottom: 16px; right: 16px; z-index: 44; max-width: 360px; }` con src/components/NotificacionesPushOptIn.tsx:100 `<div className=\"nx-push-optin\" role=\"region\" …>`",
+      "nota": "El CSS citado existe literalmente y un flotante fijo abajo-derecha con z-index 44 sobre una lista de filas con botón a la derecha se solapa por construcción; el auditor tiene captura a 1440×900. Nada en la hoja lo reserva ni desplaza la lista. Severidad baja porque hay «Después» y «Cerrar aviso»."
+    },
+    {
+      "id": "ASR-018",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:1102 `const puedeCobrar = !['cancelada','no-asistio','reagendada'].includes(appt.estado) && !appt.cobroId && !appt.cobroExento && !!onCobrar`",
+      "nota": "La línea es exacta y el menú sí ofrece «Registrar cobro» a una cita `pendiente-confirmar` (:1205-1208). Pero no hay defecto demostrado: cobrar antes de la consulta (anticipo) es legítimo y el propio hallazgo lo admite en `que_no_cubre`; el estado del cobro no depende del estado de la cita y REG-015 ya sella autoría y monto en `registrarCobro`. Probabilidad declarada «baja» por el propio auditor. Queda como afinado de menú."
+    },
+    {
+      "id": "ASR-019",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:1150-1155 (comentario) «Es señal que PIDE acción: por eso sí lleva color de aviso y es botón, no texto» → :1157-1169, incluido :1167 `<span className=\"nx-solo-lector\">. {avisoDesincronizada(appt.estado)}</span>`",
+      "nota": "Que sea botón y no texto está declarado como decisión, la acción es idempotente y el nombre accesible YA lleva la explicación completa (el auditor omitió el `nx-solo-lector` de :1167, que es justamente lo que rebate el «pulsarlo para leerlo»). Lo que sobrevive es sólo el tamaño del objetivo (148×22 frente al mínimo de 44 de la regla de diseño), que es un P3 de accesibilidad, no un disparo accidental de escritura."
+    },
+    {
+      "id": "ASR-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:1175 `placeholder=\"Apellido Apellido, Nombre\"` y :1191 `<label className=\"label\">Edad *</label>`; src/app/(dashboard)/asistente/page.tsx:451-453 «Nombre completo *» con :460 `placeholder=\"Escribe para buscar o crear paciente\"`",
+      "nota": "Las dos convenciones conviven literalmente en las líneas citadas y las dos puertas crean expedientes en la misma colección. El detector de parejas y `normalizarNombre` mitigan después, no antes. Confirmado en P3 tal y como lo puso el auditor."
+    },
+    {
+      "id": "ASR-021",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/layout.tsx:861 `<OnboardingTour enabled={esMedicoReal} />` con src/components/OnboardingTour.tsx:50 `if (!enabled || !user?.uid) return`",
+      "nota": "El efecto no mira el pathname (OnboardingTour.tsx:49-55), así que sí se abre en /configuracion o /citas: esa mitad es cierta. La otra mitad —«una asistente nueva ve un cartel que describe otra pantalla»— es imposible: el tour se renderiza con `enabled={esMedicoReal}` y `esMedicoReal = role === 'medico' || role === 'admin'` (layout.tsx:585). Ninguna asistente lo verá jamás. Nota aparte: REG-057 cerró otra cosa (el destino /agenda inexistente), no el disparo por página."
+    }
+  ],
+  "ratio": { "total": 21, "confirmados": 10, "refutados": 2, "parciales": 9 },
+  "observaciones_del_auditor": "Cita con una precisión poco común: los 21 archivo:línea se comprobaron y NINGUNO estaba movido ni inventado (citas/page.tsx 219/406/427/901/962/1013/1061/1088/1102/1157, availability.ts:295-297, AppointmentModal 228/504/655 — todos exactos), y cuando reporta la app viva tiene log o captura detrás. Sus tres patrones de error son otros. (1) NO VERIFICA EL ORIGEN DEL DATO QUE LE FALLA: ASR-001 y ASR-002 son el mismo defecto de la SIEMBRA sintética —scripts/design/sembrar-emulador.mjs:425-435 escribe `horaInicio`/`horaFin`, campos que ClinicConfig no tiene, y ningún `horario` ni `duraciones`—, y los presentó como dos P1 de producto atribuyendo a «consultorio recién dado de alta» algo que /api/clinic/crear:90-91 hace imposible. Un P1 y medio del panel se los comió su propio arnés. (2) NO LEE EL COMENTARIO QUE TIENE ENCIMA: propuso en ASR-015 lo que ya está implementado dos líneas más arriba de su propia cita, y en ASR-011, ASR-016 y ASR-019 pide revertir decisiones documentadas (REG-039, la primaria del momento `pasado`, el aviso de Google como botón). (3) INVENTA EL DAÑO, no la evidencia: la asistente que abre /consulta (la rebota layout.tsx:592), la asistente que ve el tour (nunca: layout.tsx:861), los campos de lista de espera que «nadie pondera» (ofrecer-hueco.ts:145 y :203 los usan para decidir a quién se le ofrece el hueco). Y una inflación de esfuerzo: las «18 interacciones» de ASR-010 son 6, porque el descanso nace con 14:00–16:00 puestos."
+}

@@ -1,10 +1,16 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useToast } from '@/context/ToastContext'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
 import { useConfig } from '@/hooks/useConfig'
-import { getNota, listarNotasPagina } from '@/lib/expediente/firestore'
+import { getNota, listarNotasPagina, agregarAdenda } from '@/lib/expediente/firestore'
+import { logAudit } from '@/lib/expediente/audit-log'
+import { claveDeIntento } from '@/lib/idempotencia'
+import { useAuth } from '@/hooks/useAuth'
+import { useDoctors } from '@/hooks/useDoctors'
+import { textoDeLaCarta, motivoDeLaCarta, cartaTieneContenido } from '@/lib/referencia-carta'
+import { huellaContenido } from '@/lib/expediente/huella-impreso'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
@@ -13,7 +19,9 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
-import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { hoyISO, zonaActiva } from '@/lib/timezone'
+import { edadLegible } from '@/lib/edad-legible'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 
 type Tipo = 'referencia' | 'contrarreferencia'
@@ -29,8 +37,27 @@ export default function CartaReferenciaPage() {
   const { toast } = useToast()
 
   const [patient, setPatient] = useState<Patient | null>(null)
+  const [notaOrigen, setNotaOrigen] = useState<NotaMedica | null>(null)
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
+  const { user } = useAuth()
+  const { activeDoctors } = useDoctors()
+  /** Quien asienta la carta es el médico de la sesión, no el consultorio. */
+  const medicoEnSesion = useMemo(() => {
+    const uid = user?.uid
+    const correo = (user?.email ?? '').trim().toLowerCase()
+    const porUid = uid ? activeDoctors.filter(d => d.uid === uid) : []
+    if (porUid.length === 1) return porUid[0]
+    const porCorreo = correo ? activeDoctors.filter(d => (d.email ?? '').trim().toLowerCase() === correo) : []
+    return porCorreo.length === 1 ? porCorreo[0] : undefined
+  }, [activeDoctors, user?.uid, user?.email])
+  /**
+   * LA HUELLA DE LO ÚLTIMO QUE SE ASENTÓ — misma razón que en la orden emitida
+   * (`orden/[patientId]/[notaId]/page.tsx`): un booleano impediría registrar la
+   * carta corregida que sí se imprimió la segunda vez.
+   */
+  const huellaAsentada = useRef<string | null>(null)
+  const claveAsiento = useRef<string | null>(null)
 
   // Campos de la carta
   const [tipo, setTipo] = useState<Tipo>('referencia')
@@ -44,18 +71,72 @@ export default function CartaReferenciaPage() {
   const [estudios, setEstudios] = useState('')
   const [descargando, setDescargando] = useState(false)
 
-  const descargarPDF = async () => {
+  /**
+   * MC-004 — LA CARTA QUEDA EN EL EXPEDIENTE.
+   *
+   * Se asienta como adenda de la nota firmada de la que se compuso (ver
+   * `referencia-carta.ts` para por qué ahí y no en una colección nueva), y deja
+   * su evento de bitácora SIEMPRE — también cuando no hay nota firmada donde
+   * asentarla, porque entonces lo único que queda es el asiento.
+   *
+   * Idempotente por `claveDeIntento`: imprimir dos veces la misma carta no
+   * enmienda dos veces un documento inmutable.
+   *
+   * La bitácora NO lleva el contenido clínico: lleva su huella. El nombre del
+   * destinatario tampoco viaja — basta saber que la hubo y poder cotejar el
+   * papel con su huella.
+   */
+  const asentarCarta = async (formato: 'impresa' | 'pdf') => {
+    if (!clinicId) return
+    const carta = { tipo, urgencia, destino, institucion, motivo, resumen, diagnosticos, tratamiento, estudios }
+    if (!cartaTieneContenido(carta)) return
+    const texto = textoDeLaCarta(carta)
+    const enNotaFirmada = notaOrigen?.estado === 'firmada'
+    const huella = huellaContenido([texto])
+    if (enNotaFirmada && huellaAsentada.current !== huella) {
+      if (claveAsiento.current === null || huellaAsentada.current !== null) claveAsiento.current = claveDeIntento()
+      try {
+        await agregarAdenda(clinicId, patientId, notaOrigen.id, {
+          texto,
+          motivo: motivoDeLaCarta(carta),
+          autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
+          autorEmail: user?.email || '',
+          autorCedula: medicoEnSesion
+            ? (medicoEnSesion.cedulaProfesional || undefined)
+            : (config?.cedulaProfesional || undefined),
+        }, claveAsiento.current)
+        huellaAsentada.current = huella
+      } catch {
+        toast('La carta salió, pero no se pudo guardar en el expediente. Vuelve a intentarlo.', 'error')
+      }
+    }
+    logAudit({
+      evento: 'referencia_emitida',
+      clinicId,
+      patientId,
+      notaId: notaOrigen?.id,
+      meta: { tipo, urgencia, formato, enExpediente: enNotaFirmada, huella },
+    }).catch(() => {})
+  }
+
+  /** Devuelve `true` sólo si el PDF llegó a generarse (ZL-002). */
+  const descargarPDF = async (): Promise<boolean> => {
     const el = document.getElementById('doc')
-    if (!el) return
+    if (!el) return false
     setDescargando(true)
     try {
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date().toISOString().slice(0, 10)
+      // C-015 — `new Date().toISOString().slice(0,10)` da el día en UTC: a las
+      // 19:00 de CDMX el archivo salía con la fecha de MAÑANA. `hoyISO()` usa la
+      // zona del consultorio (REG-067).
+      const fechaCorta = hoyISO()
       const tag = tipo === 'referencia' ? 'Referencia' : 'Contrarreferencia'
       await descargarComoPDF(el, { filename: `${tag}_${nombre}_${fechaCorta}` })
+      return true
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
+      return false
     } finally {
       setDescargando(false)
     }
@@ -85,6 +166,7 @@ export default function CartaReferenciaPage() {
       const nota: NotaMedica | undefined =
         notas.find(n => n.estado === 'firmada') ||
         notas[0]
+      setNotaOrigen(nota ?? null)
       if (nota) {
         setResumen(nota.resumenEjecutivo || nota.secciones.find(s => s.value)?.value || '')
         /* REG-569 — esta lista viaja a OTRO médico. Aquí no se filtra: un
@@ -120,7 +202,10 @@ export default function CartaReferenciaPage() {
   const cedula = config?.cedulaProfesional || '—'
   const especialidad = config?.especialidad || ''
   const establecimiento = config?.nombreClinica || ''
-  const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  /* C-015 — la fecha que se IMPRIME en la carta salía en la zona del navegador:
+     a las 19:00 de CDMX desde un equipo en otra zona, la carta se fecha otro
+     día. Se formatea en la zona del consultorio, como el resto del producto. */
+  const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: zonaActiva() })
   const titulo = tipo === 'referencia' ? 'CARTA DE REFERENCIA' : 'CARTA DE CONTRARREFERENCIA'
 
   return (
@@ -137,12 +222,12 @@ export default function CartaReferenciaPage() {
           <ArrowLeft size={15} /> Atrás
         </button>
         <div className="actions-row">
-          <button onClick={() => { if (configError) return; descargarPDF() }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
+          <button onClick={() => { if (configError) return; void descargarPDF().then(ok => { if (ok) void asentarCarta('pdf') }) }} disabled={descargando || !!configError} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: descargando ? 'default' : 'pointer' }}>
             {descargando
               ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={16} /> Descargar PDF</>}
           </button>
-          <button onClick={() => { if (configError) return; imprimirElemento(document.getElementById('doc'), 'Carta de referencia', { formato: 'carta', onError: (m) => toast(m, 'error') }) }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => { if (configError) return; /* ZL-002 — el asiento va después de que la ventana se abre. */ const resultado = imprimirElemento(document.getElementById('doc'), 'Carta de referencia', { formato: 'carta', onError: (m) => toast(m, 'error') }); if (resultado === 'abierta') void asentarCarta('impresa') }} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={16} /> Imprimir
           </button>
         </div>
@@ -155,6 +240,19 @@ export default function CartaReferenciaPage() {
           `select-name`) — la única deuda CRÍTICA del inventario de
           V15-A11Y-001, pagada en su 2ª rebanada. */}
       <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 20px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* MC-004 — se dice DÓNDE va a quedar la carta, o que no va a quedar.
+            Callarlo es lo que hacía que el médico creyera que el sistema la
+            guardaba: no la guardaba en ninguna parte. */}
+        <div style={{
+          background: notaOrigen?.estado === 'firmada' ? 'var(--s2)' : 'var(--badge-amber-b)',
+          border: `1px solid ${notaOrigen?.estado === 'firmada' ? 'var(--border)' : 'var(--amber)'}`,
+          borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'var(--text)', lineHeight: 1.5,
+        }}>
+          {notaOrigen?.estado === 'firmada'
+            ? <>Al imprimir o descargar, la carta queda asentada en el expediente como adenda de la nota firmada, y su emisión en la bitácora. Si la corriges y vuelves a emitirla, se asienta la nueva.</>
+            : <><strong>Esta carta no quedará en el expediente.</strong> No hay una nota firmada de la que colgarla, así que sólo se registrará en la bitácora que se emitió. Firma la nota de la consulta y vuelve a emitirla si necesitas que conste.</>}
+        </div>
+
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 160 }}>
             <label className="label" htmlFor="ref-tipo">Tipo de carta</label>
@@ -240,13 +338,14 @@ export default function CartaReferenciaPage() {
         {/* Datos del paciente */}
         <div style={{ marginBottom: 10, fontSize: 12.5 }}>
           <strong>Paciente:</strong> {patient?.nombre ?? ''}
-          {patient?.edad ? ` · ${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
+          {/* C-018 — esta hoja viaja a OTRO médico: «1 años» no. */}
+          {edadLegible(patient?.edad) ? ` · ${edadLegible(patient?.edad)}` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
         </div>
         <div style={{ border: '1.5px solid #b91c1c', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
           {/* Misma fuente que la pantalla y que la receta: leer `patient.alergias`
               en crudo se salta el campo estructurado, y esta hoja viaja a OTRO
               médico. */}
-          ALERGIAS: {alergiasParaImpreso(patient) || 'Negadas / no referidas'}
+          ALERGIAS: {alergiasParaElPapel(patient)}
         </div>
 
         {/* Cuerpo */}

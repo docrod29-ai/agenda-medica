@@ -26,16 +26,48 @@
  * fallo en el login —donde por definición no hay sesión— tampoco se podía
  * reportar.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fetchConTimeout, TiempoAgotado, TIMEOUT, POR_QUE_UN_HELPER } from '@/lib/fetch-con-timeout'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
+/**
+ * ── POR QUÉ EL SERVIDOR QUE NO CONTESTA ES UN DOBLE Y NO UNA IP ─────────────
+ *
+ * Estos casos pedían `http://10.255.255.1/nunca` —una dirección que por
+ * convención no contesta— y confiaban en que la conexión se quedara colgada más
+ * de 30 ms. Eso depende de la RED de quien corre la prueba: detrás de un proxy
+ * que rechaza al instante, el `fetch` falla por conexión antes de que salte el
+ * temporizador, y la prueba se pone roja sin que el helper tenga nada que ver.
+ * Pasó en un contenedor con proxy saliente, y el rojo no decía nada del código.
+ *
+ * Lo que se quiere probar es el HELPER: que arranque su temporizador, que aborte
+ * él, y que lo cuente con los milisegundos y el host. Nada de eso necesita una
+ * red. El doble se cuelga hasta que alguien lo aborta, que es exactamente la
+ * situación que el helper existe para cortar — y ahora se cumple siempre, no
+ * cuando la red acompaña.
+ *
+ * Lo que este doble NO cubre: que `fetch` de verdad respete `signal`. Eso es de
+ * la plataforma, y ninguna versión de esta prueba lo comprobaba.
+ */
+function servidorQueNuncaContesta() {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(
+    (_url: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolver, rechazar) => {
+      const s = init?.signal
+      if (!s) return
+      if (s.aborted) return rechazar(Object.assign(new Error('abortado'), { name: 'AbortError' }))
+      s.addEventListener('abort', () => rechazar(Object.assign(new Error('abortado'), { name: 'AbortError' })), { once: true })
+    }),
+  )
+}
+
+afterEach(() => { vi.restoreAllMocks() })
+
 describe('el helper de timeout', () => {
   it('aborta y lo dice con su propio error', async () => {
-    // Un servidor que nunca contesta: el helper tiene que cortar solo.
+    servidorQueNuncaContesta()
     await expect(
       fetchConTimeout('http://10.255.255.1/nunca', {}, 40),
     ).rejects.toBeInstanceOf(TiempoAgotado)
@@ -47,6 +79,7 @@ describe('el helper de timeout', () => {
      * segundo por lo primero manda al médico a revisar su internet cuando el que
      * no contesta es el proveedor.
      */
+    servidorQueNuncaContesta()
     try {
       await fetchConTimeout('http://10.255.255.1/nunca', {}, 30)
       throw new Error('debió agotarse')
@@ -57,12 +90,24 @@ describe('el helper de timeout', () => {
     }
   })
 
+  it('al revés: si el servidor SÍ contesta a tiempo, no hay TiempoAgotado', async () => {
+    /**
+     * Sin este caso, un helper que lanzara `TiempoAgotado` siempre pasaría los
+     * dos de arriba. Es la prueba al revés que exige `testing-gates.md`.
+     */
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'))
+    await expect(fetchConTimeout('http://ejemplo.invalido/si', {}, 30)).resolves.toBeInstanceOf(Response)
+  })
+
   it('respeta una cancelación que ya venía de fuera', async () => {
     // Perderla sería romper una cancelación que alguien puso a propósito.
+    servidorQueNuncaContesta()
     const c = new AbortController()
     c.abort()
-    await expect(fetchConTimeout('http://10.255.255.1/x', { signal: c.signal }, 5000))
-      .rejects.toBeDefined()
+    const e = await fetchConTimeout('http://10.255.255.1/x', { signal: c.signal }, 5000).catch(x => x)
+    expect(e).toBeDefined()
+    // Y NO se disfraza de «se agotó el tiempo»: fue un cierre deliberado.
+    expect(e).not.toBeInstanceOf(TiempoAgotado)
   })
 
   it('limpia el temporizador SIEMPRE, también en el éxito', () => {

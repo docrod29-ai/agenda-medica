@@ -2,9 +2,9 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 320,
-    "tamanosFueraDeEscala": 1868,
-    "radiosFueraDeEscala": 599,
+    "hexEnLinea": 316,
+    "tamanosFueraDeEscala": 1840,
+    "radiosFueraDeEscala": 597,
     "sombrasEnLinea": 19,
     "gradientes": 11,
     "cristal": 14,
@@ -55,14 +55,14 @@
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
       "respaldos": 0,
       "hex": 5,
-      "tam": 83,
-      "rad": 28,
+      "tam": 77,
+      "rad": 27,
       "sombras": 1,
       "gradientes": 0,
       "cristal": 0,
       "halos": 0,
       "lienzos": 0,
-      "total": 117
+      "total": 110
     },
     {
       "archivo": "src/app/demo/interactivo/page.tsx",
@@ -130,17 +130,17 @@
       "total": 50
     },
     {
-      "archivo": "src/components/RecetaDocumento.tsx",
+      "archivo": "src/app/(dashboard)/configuracion/secciones-cuenta.tsx",
       "respaldos": 0,
-      "hex": 19,
-      "tam": 23,
-      "rad": 6,
-      "sombras": 2,
-      "gradientes": 0,
+      "hex": 9,
+      "tam": 29,
+      "rad": 9,
+      "sombras": 0,
+      "gradientes": 1,
       "cristal": 0,
       "halos": 0,
       "lienzos": 0,
-      "total": 50
+      "total": 48
     }
   ]
 }

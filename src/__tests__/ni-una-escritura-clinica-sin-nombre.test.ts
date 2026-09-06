@@ -69,7 +69,10 @@ describe('no queda ninguna escritura clínica con nombre aleatorio', () => {
      * escrituras, `sinIntencion` daría cero por no mirar — indistinguible de cero
      * por estar bien.
      */
-    expect(recuento().clinicas).toBe(12)
+    // 12 → 13 el 2026-09-06 al fusionar `main`: la rama paralela añadió una
+    // escritura clínica más, y el censo la ve. Este número sube cuando el
+    // producto crece; lo que NO puede subir es `sinIntencion`.
+    expect(recuento().clinicas).toBe(13)
     expect(recuento().sinClasificar).toBe(0)
   })
 })

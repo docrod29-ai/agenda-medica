@@ -1,0 +1,253 @@
+
+ RUN  v4.1.10 /home/user/agenda-medica
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts (15 tests | 6 failed) 25ms
+     × FALLA HOY · la expresión `vacio` de la página da la MISMA respuesta que hayAlgoQuePerder para un formulario con sólo signos 7ms
+     × FALLA HOY · la decisión de restauración con el `vacio` de la página NO es «aplicar el respaldo encima» 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «signos» escrito ⇒ la página no lo llama vacío 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «estudiosOrden» escrito ⇒ la página no lo llama vacío 2ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «preop» escrito ⇒ la página no lo llama vacío 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «proximoSeguimiento» escrito ⇒ la página no lo llama vacío 4ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts (7 tests | 5 failed) 25ms
+     × FALLA HOY · un diagnóstico DESCARTADO no baja al paciente 12ms
+     × FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente 2ms
+     × FALLA HOY · un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente 1ms
+     × FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el confirmado 2ms
+     × FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts (5 tests | 2 failed) 33ms
+     × FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo 7ms
+     × FALLA HOY · o la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance` 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · ASN-001 — un respaldo de hace una tecla no se aplica encima de un formulario con signos > FALLA HOY · la expresión `vacio` de la página da la MISMA respuesta que hayAlgoQuePerder para un formulario con sólo signos
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:134:25
+    132|   it('FALLA HOY · la expresión `vacio` de la página da la MISMA respue…
+    133|     // Hoy: vacio(VIVO) === true aunque hay «154» escrito.
+    134|     expect(vacio(VIVO)).toBe(!hayAlgoQuePerder(VIVO))
+       |                         ^
+    135|   })
+    136|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · ASN-001 — un respaldo de hace una tecla no se aplica encima de un formulario con signos > FALLA HOY · la decisión de restauración con el `vacio` de la página NO es «aplicar el respaldo encima»
+AssertionError: expected 'APLICAR_SOLO' not to be 'APLICAR_SOLO' // Object.is equality
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:146:26
+    144|     })
+    145|     // Con «154» en pantalla, lo único aceptable es OFRECER (visible y…
+    146|     expect(decision).not.toBe('APLICAR_SOLO')
+       |                          ^
+    147|   })
+    148|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «signos» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «signos»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «estudiosOrden» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «estudiosOrden»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «preop» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «preop»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «proximoSeguimiento» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «proximoSeguimiento»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts > REP-071 · PO-010 — la URL de Google Calendar no lleva el motivo clínico > FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo
+AssertionError: PHI en parámetro de URL hacia un tercero: expected 'https://calendar.google.com/calendar/…' not to contain 'VIH'
+
+Expected: "VIH"
+Received: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Cita médica — Dra. Ficticia Prueba&dates=20260910T160000Z/20260910T163000Z&details=Valoración de VIH sintética y ajuste de metformina"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts:98:65
+     96|   it('FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) co…
+     97|     const url = decodeURIComponent(gcalLink(CITA, 'America/Mexico_City…
+     98|     expect(url, 'PHI en parámetro de URL hacia un tercero').not.toCont…
+       |                                                                 ^
+     99|     expect(url).not.toContain('metformina')
+    100|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts > REP-071 · PO-010 — la respuesta `session` con alcance `agenda` no devuelve `motivo` (contrato textual, declarado) > FALLA HOY · o la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance`
+AssertionError: route.ts:118 devuelve `motivo: a.motivo` a cualquier alcance, y `session` no lo filtra: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts:124:7
+    122|       decidePorAlcance && !exponeMotivoSinCondicion,
+    123|       'route.ts:118 devuelve `motivo: a.motivo` a cualquier alcance, y…
+    124|     ).toBe(true)
+       |       ^
+    125|   })
+    126| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un diagnóstico DESCARTADO no baja al paciente
+AssertionError: el paciente leería como suyo un dx que su cirujano descartó: expected 'Colecistitis crónica litiásica sintét…' not to contain 'DESCARTADA'
+
+Expected: "DESCARTADA"
+Received: "Colecistitis crónica litiásica sintética, Neoplasia maligna sintética DESCARTADA"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:109:88
+    107|     const resumen = resumenDelPaquete([CONFIRMADO, DESCARTADO])
+    108|     expect(resumen).toContain('Colecistitis crónica litiásica sintétic…
+    109|     expect(resumen, 'el paciente leería como suyo un dx que su cirujan…
+       |                                                                                        ^
+    110|   })
+    111|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' not to contain 'Pancreatitis sintética'
+
+Expected: "Pancreatitis sintética"
+Received: "Colecistitis crónica litiásica sintética, Pancreatitis sintética (diferencial)"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:114:25
+    112|   it('FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, …
+    113|     const resumen = resumenDelPaquete([CONFIRMADO, DIFERENCIAL])
+    114|     expect(resumen).not.toContain('Pancreatitis sintética')
+       |                         ^
+    115|   })
+    116|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' not to contain 'propuesta por el modelo'
+
+Expected: "propuesta por el modelo"
+Received: "Colecistitis crónica litiásica sintética, Sospecha sintética propuesta por el modelo"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:120:25
+    118|     // patient-facing-ai §1: el nivel 9 nunca origina un dato del paci…
+    119|     const resumen = resumenDelPaquete([CONFIRMADO, PROPUESTO_POR_IA])
+    120|     expect(resumen).not.toContain('propuesta por el modelo')
+       |                         ^
+    121|   })
+    122|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el confirmado
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' to be 'Colecistitis crónica litiásica sintét…' // Object.is equality
+
+Expected: "Colecistitis crónica litiásica sintética"
+Received: "Colecistitis crónica litiásica sintética, Neoplasia maligna sintética DESCARTADA, Pancreatitis sintética (diferencial), Sospecha sintética propuesta por el modelo"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:125:8
+    123|   it('FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el …
+    124|     expect(resumenDelPaquete([CONFIRMADO, DESCARTADO, DIFERENCIAL, PRO…
+    125|       .toBe('Colecistitis crónica litiásica sintética')
+       |        ^
+    126|   })
+    127| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — la acción `documentos` del portal no vuelca los diagnósticos en crudo (contrato textual, declarado) > FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo
+AssertionError: route.ts:1090 vuelca todos los diagnósticos de la nota al .doc del paciente: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:140:100
+    138|   it('FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` …
+    139|     const enCrudo = /diagnostico:\s*\(n\.diagnosticos\s*\?\?\s*\[\]\)\…
+    140|     expect(enCrudo, 'route.ts:1090 vuelca todos los diagnósticos de la…
+       |                                                                                                    ^
+    141|   })
+    142| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  13 failed | 14 passed (27)
+   Start at  02:03:54
+   Duration  1.22s (transform 1.11s, setup 126ms, import 1.70s, tests 83ms, environment 0ms)
+

@@ -35,8 +35,20 @@ const FINANZAS: Item[] = [
   { nombre: 'Tu factura de Ausculta (CFDI 4.0)', estado: 'activo', desc: 'Nosotros te timbramos a TI el CFDI de tu suscripción: pides la factura desde la app, con tus datos fiscales, y descargas PDF y XML. No requiere tus CSD.' },
   { nombre: 'Facturar a tus pacientes (CFDI)', estado: 'roadmap', desc: 'Que el consultorio timbre a su paciente NO existe todavía: exige PAC, tus CSD y llave, catálogo fiscal, timbrado, cancelación y conciliación. Cuando esté en producción lo diremos aquí, no antes.' },
   { nombre: 'Reportes financieros', estado: 'parcial', desc: 'Ingresos, IVA contenido, costos y margen. Se están ampliando por médico, servicio y tendencia.' },
-  { nombre: 'Comisiones', estado: 'parcial', desc: 'Cálculo por médico/servicio en construcción.' },
-  { nombre: 'Membresías de pacientes', estado: 'roadmap', desc: 'Planes recurrentes para pacientes (la recurrencia Stripe ya existe para clínicas).' },
+  /*
+   * C-028 — «Comisiones: parcial» SE QUEDA, y el equipo rojo explicó por qué:
+   * `PanelComisiones` calcula por MÉDICO y no por servicio, que es justo lo que
+   * este texto llama «en construcción». Lo que se corrige es el renglón de al
+   * lado, y sólo la parte que era falsa.
+   */
+  { nombre: 'Comisiones', estado: 'parcial', desc: 'Cálculo por médico ya disponible; por servicio, en construcción.' },
+  /*
+   * C-028 — «Membresías: roadmap» ERA FALSO. El módulo está vivo: tiene su
+   * entrada en el Sidebar y en el índice de Operaciones, y cobra cuotas. Esta
+   * página es material de venta pública: decir «roadmap» de algo que el cliente
+   * ya tiene contratado es prometer de menos en el sitio donde más se mira.
+   */
+  { nombre: 'Membresías de pacientes', estado: 'activo', desc: 'Planes recurrentes para pacientes del consultorio, con cobro de cuotas y control de vigencia.' },
   { nombre: 'TPV (terminal de pago)', estado: 'roadmap', desc: 'Cobro con terminal integrada (Stripe Terminal / Clip / Mercado Pago).' },
   { nombre: 'Multi-sucursal', estado: 'roadmap', desc: 'Varias sedes sobre el multi-tenant existente.' },
 ]

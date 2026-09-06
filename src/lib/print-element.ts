@@ -21,6 +21,43 @@
 // Marca de la última impresión disparada (anti-rebote de doble clic).
 let ultimaImpresion = 0
 
+/**
+ * QUÉ PASÓ CON LA IMPRESIÓN — ZL-002.
+ *
+ * ── EL DEFECTO ───────────────────────────────────────────────────────────────
+ *
+ * `imprimirElemento` no devolvía nada, así que quien la llamaba no podía saber
+ * si el documento llegó al diálogo. Y las pantallas asentaban ANTES de llamarla:
+ *
+ *     logAudit({ evento: 'receta_generada', … }); aprenderDeReceta();
+ *     imprimirElemento(document.getElementById('receta-doc'), 'Receta', {…})
+ *
+ * Con las ventanas emergentes bloqueadas, con el nodo no encontrado o con el
+ * anti-rebote del doble clic, el médico veía «no se imprimió nada» y la bitácora
+ * NOM-004 ya decía que había emitido la receta; el aprendizaje ya la había
+ * contado como recetada; y en la orden ya se habían creado los pendientes de
+ * estudios de un papel que nadie entregó.
+ *
+ * Una bitácora que asienta antes del hecho no acredita EMISIÓN: acredita
+ * intención. Y en una revisión medicolegal el rastro contradice al papel.
+ *
+ * ── LO QUE SE DEVUELVE ───────────────────────────────────────────────────────
+ *
+ * · `abierta`       — la ventana se abrió con el documento dentro y el diálogo
+ *                     va a salir. Es el único caso en que se puede asentar.
+ * · `rebote`        — segundo clic dentro de la ventana anti-rebote: NO se abre
+ *                     una segunda ventana, así que tampoco un segundo asiento.
+ * · `sin-documento` — no se encontró el nodo a imprimir.
+ * · `bloqueada`     — el navegador bloqueó la ventana emergente.
+ * · `sin-navegador` — no hay `window` (render de servidor).
+ *
+ * Lo que NO se puede saber desde el navegador —si el papel salió de la
+ * impresora después del diálogo— sigue sin poderse saber, y por eso no se
+ * promete: `abierta` significa «se abrió el diálogo», ni más ni menos.
+ */
+export type ResultadoImpresion =
+  | 'abierta' | 'rebote' | 'sin-documento' | 'bloqueada' | 'sin-navegador'
+
 export function imprimirElemento(
   el: HTMLElement | null,
   titulo = 'Documento',
@@ -67,14 +104,14 @@ export function imprimirElemento(
      */
     onAvisoPapeleria?: (mensaje: string) => void
   },
-): void {
-  if (typeof window === 'undefined') return
+): ResultadoImpresion {
+  if (typeof window === 'undefined') return 'sin-navegador'
 
   // Auditoría papelería 2026-07 (P3): anti-rebote. Un doble clic (o el toque doble
   // habitual en tablet) abría DOS ventanas de impresión y disparaba dos diálogos.
   // Un candado de módulo con ventana corta ignora la segunda llamada.
   const ahora = performance.now()
-  if (ahora - ultimaImpresion < 1200) return
+  if (ahora - ultimaImpresion < 1200) return 'rebote'
   ultimaImpresion = ahora
 
   /**
@@ -95,10 +132,10 @@ export function imprimirElemento(
     // eslint-disable-next-line no-alert
     window.alert(msg)
   }
-  if (!el) { avisar('no se encontró el documento'); return }
+  if (!el) { avisar('no se encontró el documento'); return 'sin-documento' }
 
   const win = window.open('', '_blank', 'width=900,height=1000')
-  if (!win) { avisar('el navegador la bloqueó'); return }
+  if (!win) { avisar('el navegador la bloqueó'); return 'bloqueada' }
 
   // Copiamos SOLO las hojas de estilo globales (<link>), NO los <style> de página:
   // esas páginas inyectan su propio "@media print { #doc{…}; @page{margin} }" del
@@ -243,4 +280,11 @@ export function imprimirElemento(
     }))
     .catch(() => 0)
     .finally(esperarImagenesEImprimir)
+
+  return 'abierta'
 }
+
+export const POR_QUE_EL_ASIENTO_VA_DESPUES =
+  'Porque una bitácora que se escribe antes del hecho acredita intención, no ' +
+  'emisión. Con las ventanas emergentes bloqueadas el médico leía «no se ' +
+  'imprimió nada» mientras el expediente ya decía que había emitido la receta.'

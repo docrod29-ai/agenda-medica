@@ -21,6 +21,7 @@
 import type { Patient as AmPatient, ClinicConfig } from '@/types'
 import { verificationStatusDe, clinicalStatusDe } from '@/lib/fhir/la-certeza-que-sale-al-mundo'
 import { alergiasDe } from '@/lib/seguridad/alergias'
+import { emisorDeNota } from '@/lib/receta-certificado'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_EGRESO_LABEL, type Internamiento, type RegistroSignos } from '@/types/hospital'
 
@@ -100,6 +101,53 @@ function observacionTA(id: string, patientId: string, ta: string, fecha: string,
 }
 
 /**
+ * ¿SIGUE VIGENTE ESTA RECETA? — ZL-004.
+ *
+ * FHIR pide un `status` para cada `MedicationRequest`, y aquí se ponía `active`
+ * siempre. Este ayudante sólo afirma lo que puede demostrar con lo que la nota
+ * guarda:
+ *
+ *   · duración legible («7 días», «2 semanas», «3 meses») + fecha de la receta
+ *     ⇒ si esa ventana ya pasó, `completed`;
+ *   · si no ha pasado, `active`;
+ *   · duración indefinida o crónica ⇒ `active` (es lo que dice la receta);
+ *   · cualquier otra cosa —duración vacía, «según indicaciones», una unidad que
+ *     no se reconoce— ⇒ `unknown`, que es la palabra que FHIR tiene para «no se
+ *     puede saber». No se estima.
+ *
+ * NO hay ninguna cifra clínica aquí: los factores son de calendario (un día son
+ * 24 h), no de farmacología. La regla de cuándo un tratamiento crónico deja de
+ * estar vigente es otra pregunta, y ésa sí sería `NEEDS_CLINICAL_REVIEW`.
+ */
+const UNIDADES_DE_DURACION: Record<string, number> = {
+  hora: 1 / 24, horas: 1 / 24, h: 1 / 24,
+  dia: 1, dias: 1, d: 1,
+  semana: 7, semanas: 7,
+  mes: 30, meses: 30,
+  ano: 365, anos: 365, año: 365, años: 365,
+}
+
+export function estadoDeReceta(
+  duracion: string | undefined,
+  fechaReceta: string,
+  ahora: string,
+): 'active' | 'completed' | 'unknown' {
+  const t = String(duracion ?? '').trim().toLowerCase()
+  if (!t) return 'unknown'
+  if (/indefinid|permanent|cr[oó]nic|continuo|de por vida/.test(t)) return 'active'
+  const m = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .match(/(\d+(?:[.,]\d+)?)\s*([a-z]+)/)
+  if (!m) return 'unknown'
+  const factor = UNIDADES_DE_DURACION[m[2]]
+  if (!factor) return 'unknown'
+  const inicio = Date.parse(fechaReceta)
+  const fin = Date.parse(ahora)
+  if (!Number.isFinite(inicio) || !Number.isFinite(fin)) return 'unknown'
+  const diasTranscurridos = (fin - inicio) / 86_400_000
+  return diasTranscurridos > Number(m[1].replace(',', '.')) * factor ? 'completed' : 'active'
+}
+
+/**
  * Construye un Bundle FHIR con el expediente del paciente.
  */
 export function exportarPacienteAFhir({
@@ -110,10 +158,56 @@ export function exportarPacienteAFhir({
   config: ClinicConfig | null
 }): FhirBundle {
   const patientId = `Patient/${paciente.id}`
+  /**
+   * ── QUIÉN FIRMÓ, SEGÚN LA NOTA — ZL-003 ────────────────────────────────────
+   *
+   * Esto era UN solo `Practitioner`, el de `config/main`, y con él salían el
+   * `author`, el `attester` de la firma y el `requester` de cada receta. En un
+   * consultorio con dos médicos, el archivo que se entrega al paciente decía
+   * que lo atendió y le recetó otro: el dueño de la configuración.
+   *
+   * `nota.firma` trae el nombre y la cédula de quien firmó, y el repositorio ya
+   * resolvió este mismo defecto en la superficie hermana —el QR de la receta,
+   * con `emisorDeNota` (receta-certificado.ts)—. Se reutiliza esa función en
+   * vez de escribir un segundo criterio.
+   *
+   * `config` queda como RESPALDO DECLARADO para las notas legadas sin bloque de
+   * firma: ahí es la única identidad que hay, y el recurso lo dice.
+   */
   const practitionerId = `Practitioner/${config?.cedulaProfesional || 'unknown'}`
   const now = new Date().toISOString()
 
   const entries: { fullUrl: string; resource: FhirResource }[] = []
+  /** Cédulas ya emitidas como Practitioner, para no duplicar el recurso. */
+  const practitionersEmitidos = new Set<string>()
+
+  /** El Practitioner de esta nota, emitido una sola vez por cédula. */
+  const practitionerDeNota = (nota: NotaMedica): string => {
+    const emisor = emisorDeNota(nota)
+    const cedula = emisor.cedula || config?.cedulaProfesional || 'unknown'
+    const ref = `Practitioner/${cedula}`
+    if (!practitionersEmitidos.has(cedula)) {
+      practitionersEmitidos.add(cedula)
+      // El de config ya se emite más abajo con su especialidad; sólo se añaden
+      // los que la configuración de la clínica no conoce.
+      if (cedula !== (config?.cedulaProfesional || 'unknown')) {
+        entries.push({
+          fullUrl: ref,
+          resource: {
+            resourceType: 'Practitioner',
+            id: cedula,
+            identifier: [{ system: SYSTEM.cedula, value: cedula }],
+            active: true,
+            // Sin nombre en la firma NO se rellena con el de la clínica: sería
+            // la identidad de otro médico en un documento medicolegal.
+            name: emisor.doctorNombre ? [{ use: 'official', text: emisor.doctorNombre }] : [],
+            qualification: [],
+          },
+        })
+      }
+    }
+    return ref
+  }
 
   // === Patient ===
   const patientResource: FhirResource = {
@@ -183,7 +277,21 @@ export function exportarPacienteAFhir({
         resourceType: 'AllergyIntolerance',
         id: `${paciente.id}-alg-${i}`,
         clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] } as FhirCodeableConcept,
-        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] } as FhirCodeableConcept,
+        /**
+         * ── LA CERTEZA NO SE INVENTA — ZL-004 ──────────────────────────────
+         *
+         * Aquí iba `confirmed` para TODA alergia, incluida la derivada de un
+         * texto libre como «refiere molestia con AINE (no confirmada)».
+         * `AlergiaEstructurada` no tiene ningún campo de verificación, así que
+         * el expediente NUNCA capturó esa certeza: afirmarla es inventarla
+         * (regla 4 — ausencia de dato no es dato de ausencia).
+         *
+         * `unconfirmed` es la palabra que FHIR ya tiene para «está registrada y
+         * nadie la ha confirmado», y es la que corresponde a lo que sabemos.
+         * El mismo módulo ya aplicaba este criterio a la criticidad —sólo se
+         * declara cuando el expediente la trae—: faltaba aplicarlo aquí.
+         */
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'unconfirmed' }] } as FhirCodeableConcept,
         ...(a.tipo ? { category: [CATEGORIA_FHIR[a.tipo] ?? 'biologic'] } : {}),
         // Sólo se declara criticidad cuando el expediente la trae: «alta» por
         // defecto llenaría de alarmas al receptor, y «baja» las apagaría.
@@ -205,7 +313,8 @@ export function exportarPacienteAFhir({
         resourceType: 'AllergyIntolerance',
         id: `${paciente.id}-alergias`,
         clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical', code: 'active' }] } as FhirCodeableConcept,
-        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'confirmed' }] } as FhirCodeableConcept,
+        // ZL-004 — con más razón aquí: esto es texto libre sin descomponer.
+        verificationStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification', code: 'unconfirmed' }] } as FhirCodeableConcept,
         patient: { reference: patientId, display: paciente.nombre } as FhirReference,
         code: { text: paciente.alergias } as FhirCodeableConcept,
         recordedDate: paciente.updatedAt,
@@ -216,6 +325,7 @@ export function exportarPacienteAFhir({
   // === Por cada nota firmada: Composition + Conditions + MedicationRequests + Observations ===
   for (const nota of notas.filter(n => n.estado === 'firmada')) {
     const fechaNota = nota.fechaConsulta || nota.metadata.fechaCreacion
+    const practitionerNota = practitionerDeNota(nota)
 
     // Composition (la nota como documento clínico estructurado)
     const compositionId = `note-${nota.id}`
@@ -252,12 +362,23 @@ export function exportarPacienteAFhir({
       const medResource: FhirResource = {
         resourceType: 'MedicationRequest',
         id: `${nota.id}-med-${i}`,
-        status: 'active',
+        /**
+         * ── UNA RECETA DE HACE DOS AÑOS NO ES UN TRATAMIENTO DE HOY (ZL-004) ─
+         *
+         * Esto era `'active'` para TODA receta de TODA nota firmada, sin mirar
+         * la fecha ni la duración: el sistema receptor leía como medicación
+         * actual la amoxicilina de siete días que se recetó hace dos años.
+         *
+         * `estadoDeReceta` es determinista y sólo afirma lo que puede
+         * demostrar; cuando no se puede saber devuelve `unknown`, que es la
+         * palabra que FHIR tiene para eso. Ningún umbral clínico nuevo.
+         */
+        status: estadoDeReceta(med.duracion, fechaNota, now),
         intent: 'order',
         medicationCodeableConcept: { text: `${med.nombre} ${med.dosis}`.trim() } as FhirCodeableConcept,
         subject: { reference: patientId } as FhirReference,
         authoredOn: fechaNota,
-        requester: { reference: practitionerId } as FhirReference,
+        requester: { reference: practitionerNota } as FhirReference,
         dosageInstruction: [{
           text: `${med.frecuencia}${med.duracion ? ` por ${med.duracion}` : ''}${med.indicacion ? ` — ${med.indicacion}` : ''}`,
           route: { text: med.via } as FhirCodeableConcept,
@@ -307,6 +428,35 @@ export function exportarPacienteAFhir({
       })
     }
 
+    /**
+     * ── LOS ESTUDIOS PEDIDOS TAMBIÉN SON DEL EXPEDIENTE — MO-005 ────────────
+     *
+     * El bundle no tenía `ServiceRequest`: una orden de estudios no existía
+     * para ningún sistema receptor. Se emite desde `estudiosOrden`, que es
+     * donde la nota guarda lo solicitado (y lo que sella su hash).
+     *
+     * LO QUE NO CUBRE, dicho aquí porque es donde se nota: una orden EMITIDA
+     * después de firmar la nota vive en una adenda —no se puede escribir sobre
+     * una nota sellada— y todavía no llega hasta aquí. Está en el handoff.
+     */
+    nota.estudiosOrden?.filter(e => String(e ?? '').trim()).forEach((estudio, i) => {
+      const srId = `ServiceRequest/${nota.id}-est-${i}`
+      entries.push({
+        fullUrl: srId,
+        resource: {
+          resourceType: 'ServiceRequest',
+          id: `${nota.id}-est-${i}`,
+          status: 'active',
+          intent: 'order',
+          code: { text: String(estudio).trim() } as FhirCodeableConcept,
+          subject: { reference: patientId } as FhirReference,
+          authoredOn: fechaNota,
+          requester: { reference: practitionerNota } as FhirReference,
+        },
+      })
+      compositionEntries.push({ reference: srId })
+    })
+
     // Composition (documento clínico)
     const seccionesNarrativa = nota.secciones?.map(s => `<h3>${s.label}</h3><p>${escapeXml(s.value)}</p>`).join('\n') ?? ''
     entries.push({
@@ -318,13 +468,15 @@ export function exportarPacienteAFhir({
         type: { text: 'Nota clínica' } as FhirCodeableConcept,
         subject: { reference: patientId } as FhirReference,
         date: fechaNota,
-        author: [{ reference: practitionerId } as FhirReference],
+        author: [{ reference: practitionerNota } as FhirReference],
         title: nota.tipo || 'Nota clínica',
         attester: nota.firma
           ? [{
               mode: 'professional',
               time: nota.firma.timestamp,
-              party: { reference: practitionerId } as FhirReference,
+              // ZL-003 — quien atestigua es quien firmó, no el dueño de la
+              // configuración del consultorio.
+              party: { reference: practitionerNota } as FhirReference,
             }]
           : [],
         section: compositionEntries.length > 0 ? [{
@@ -371,7 +523,7 @@ export function exportarPacienteAFhir({
         type: { text: 'Nota clínica (borrador, sin firmar)' } as FhirCodeableConcept,
         subject: { reference: patientId } as FhirReference,
         date: nota.fechaConsulta || nota.metadata.fechaCreacion,
-        author: [{ reference: practitionerId } as FhirReference],
+        author: [{ reference: practitionerDeNota(nota) } as FhirReference],
         title: nota.tipo || 'Nota clínica',
         // Sin firma no hay atestación: dejarla vacía es la verdad.
         attester: [],

@@ -223,6 +223,21 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'arco/acceso': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/oponerse': { tipo: 'capacidad', capacidad: 'administrar' },
+  // Ligar una solicitud del portal a un expediente identificado (ASE-010):
+  // mismo responsable que ejecutar la cancelación.
+  'arco/ligar': { tipo: 'capacidad', capacidad: 'administrar' },
+
+  /**
+   * ASE-009 — FUNDIR DOS EXPEDIENTES REPETIDOS.
+   *
+   * `administrar` por el mismo motivo que las tres de arriba: juntar dos
+   * historias clínicas —o juntar por error las de dos personas distintas— es
+   * una decisión del responsable del expediente, no del mostrador. Y va en el
+   * servidor porque mueve subcolecciones con el SDK admin: desde el navegador
+   * dependería de que las reglas permitieran cada documento, y las de notas
+   * firmadas, con razón, no lo permiten.
+   */
+  'pacientes/fundir': { tipo: 'capacidad', capacidad: 'administrar' },
 
   // ── cobro y facturación ──────────────────────────────────────────────────
   'facturacion/descargar': {

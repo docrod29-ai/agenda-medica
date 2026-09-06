@@ -84,15 +84,60 @@ const sinAcentos = (s: string) =>
  * sería inventar una cifra (regla 1). Se exige una de dos cosas dichas:
  */
 
-/** Alguien dijo que se acabó. Es la evidencia directa. */
+/**
+ * Alguien dijo que se acabó. Es la evidencia directa.
+ *
+ * ── LO QUE SE AMPLIÓ, Y POR QUÉ ES SEGURO — Panel de Lujo MI-008 ────────────
+ *
+ * El equipo rojo pasó nueve formas de decirlo y **cuatro no se reconocían**:
+ *
+ *     «No toma el losartán desde hace un mes»          ← sin pronombre
+ *     «No se ha tomado el losartán desde hace un mes»  ← perfecto compuesto
+ *     «Nunca se tomó el losartán que le receté»        ← nunca lo empezó
+ *     «Abandonó el losartán hace un mes»               ← verbo que faltaba
+ *
+ * La última alternativa de la regla anterior exigía un PRONOMBRE entre «no» y
+ * «toma» (`no\s+(?:la|lo|las|los)\s+toma`), y en el habla de consulta ese
+ * pronombre casi nunca está.
+ *
+ * Ampliar aquí es el lado seguro y no una decisión clínica: este módulo **no
+ * reclasifica nada**, sólo avisa al médico de que un fármaco que figura como
+ * vigente se nombró en pasado. Reconocer de más produce un aviso que el médico
+ * descarta; reconocer de menos deja el fármaco alimentando cruces de
+ * interacciones y la receta. Es vocabulario, no criterio (regla 5).
+ *
+ * El control de REG-374 sigue en pie y tiene su caso: «le receté amoxicilina
+ * hace tres días» NO puede disparar, porque ese antibiótico está corriendo.
+ */
 const CESACION = new RegExp([
-  '\\bya\\s+no\\s+(?:la|lo|las|los)?\\s*(?:toma|tomo|usa|uso|recibe|recibia)\\b',
+  '\\bya\\s+no\\s+(?:la|lo|las|los|se)?\\s*(?:toma|tomo|usa|uso|recibe|recibia)\\b',
   '\\bdej[oó]\\s+de\\s+(?:tomar|usar|recibir)\\b',
   '\\b(?:se\\s+(?:le|lo|la)\\s+)?suspend(?:i[oó]|imos|ieron|ida|ido)\\b',
   '\\b(?:se\\s+(?:le|lo|la)\\s+)?retir(?:[oó]|amos|aron|ado|ada)\\b',
   '\\b(?:ya\\s+)?(?:termin[oó]|acab[oó]|complet[oó])\\s+(?:el|la|con)?\\s*(?:ciclo|tratamiento|esquema)?\\b',
-  '\\bno\\s+(?:la|lo|las|los)\\s+(?:toma|est[aá]\\s+tomando)\\b',
+  /* MI-008 — el pronombre pasa a ser OPCIONAL: «no toma el losartán». */
+  '\\bno\\s+(?:la|lo|las|los)?\\s*(?:toma|tomo|est[aá]\\s+tomando|usa|recibe)\\b',
+  /* MI-008 — perfecto compuesto: «no se ha tomado», «no ha tomado». */
+  '\\bno\\s+(?:se\\s+)?(?:ha|han|he)\\s+(?:tomado|usado|recibido)\\b',
+  /* MI-008 — «nunca» es cesación por la vía de que jamás empezó. */
+  '\\bnunca\\s+(?:se\\s+)?(?:la|lo|las|los)?\\s*(?:tom[oó]|ha\\s+tomado|us[oó]|recibi[oó])\\b',
+  /* MI-008 — abandono por cuenta propia, que es como lo dice el paciente. */
+  '\\babandon(?:[oó]|aron|ado|ada)\\b',
 ].join('|'), 'i')
+
+/**
+ * LO QUE ESTE MÓDULO SIGUE SIN RECONOCER — MI-008, regla 5.
+ *
+ * Se declara porque un vocabulario que no dice sus límites se lee como
+ * exhaustivo, y entonces el silencio pasa por «no hay nada que decir».
+ */
+export const LO_QUE_NO_RECONOCE_LA_CESACION =
+  'Se reconocen las formas frecuentes de decir que un fármaco ya no se toma, no ' +
+  'todas. Quedan fuera, entre otras: los eufemismos («lo tengo guardado», «no me ' +
+  'cayó bien»), la cesación dicha sólo por la dosis («ahora nada más media»), la ' +
+  'que se deduce de una fecha de fin escrita en otra parte de la nota, y ' +
+  'cualquier forma en otra lengua. Que no salte el aviso NO significa que el ' +
+  'paciente lo siga tomando.'
 
 /**
  * Lo sitúa en un pasado que ya no puede ser el tratamiento de hoy.

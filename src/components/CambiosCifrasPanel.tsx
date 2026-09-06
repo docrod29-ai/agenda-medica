@@ -3,15 +3,28 @@
 /**
  * CambiosCifrasPanel — las cifras, unidades y siglas que el pipeline reescribió.
  *
- * La lista sigue disponible donde una superficie especializada la necesita
- * (por ejemplo UCI). En el Golden Path ambulatorio de Consultorio, en cambio,
- * la normalización determinista segura es provenance y no una tarea de depuración
- * para el médico: allí este panel no se renderiza. La incertidumbre clínicamente
- * material sigue escalando por AlertasDictado/ambigüedad contextual antes de firmar.
+ * ── POR QUÉ VUELVE A VERSE EN LA CONSULTA (D-001, Panel de Lujo 2026-09) ────
+ *
+ * Este panel se apagaba a sí mismo en `/consulta/` con un `return null` por
+ * ruta. La justificación escrita era que en el consultorio la normalización
+ * segura es procedencia y no trabajo de depuración — pero el efecto real es que
+ * en la consulta ambulatoria, que es el 90 % del producto, las correcciones de
+ * CIFRAS Y UNIDADES sobre el dictado del médico no se podían ver ni deshacer.
+ *
+ * El módulo que las produce dice lo contrario con todas las letras
+ * (`src/lib/asr/cambios-visibles.ts`): «una corrección que el médico no puede
+ * ver ni revertir es una edición que alguien le hizo a su dictado sin
+ * decírselo… la de cifras y unidades es la que toca dosis. Eso se enseña, y él
+ * decide». Y es la regla 3 de seguridad clínica, que no admite excepción por
+ * pantalla. No había ninguna decisión del dueño detrás del filtro (no consta en
+ * `DECISION_LOG.md`).
+ *
+ * Lo que sí se conserva del razonamiento original es la CALMA: el panel llega
+ * plegado, con su conteo, y sólo se abre solo cuando algún cambio toca una
+ * cifra — que es cuando hay algo que mirar antes de firmar.
  */
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { ChevronDown, ChevronRight, RotateCcw, Hash } from 'lucide-react'
 import { cuantosTocanCifra, type CambioVisible } from '@/lib/asr/cambios-visibles'
 
@@ -24,7 +37,6 @@ interface Props {
 const VACIO: ReadonlySet<number> = new Set()
 
 export function CambiosCifrasPanel({ cambios, onRevertir }: Props) {
-  const pathname = usePathname()
   const conCifra = cuantosTocanCifra(cambios)
   /**
    * EL ESTADO VA ATADO A **ESTA** LISTA, no a un efecto que la persiga.
@@ -41,10 +53,6 @@ export function CambiosCifrasPanel({ cambios, onRevertir }: Props) {
   const abierto = plegado?.lista === cambios ? plegado.abierto : conCifra > 0
   const setAbierto = (v: boolean) => setPlegado({ lista: cambios, abierto: v })
 
-  // GP12: en la consulta ambulatoria el médico no audita normalizaciones seguras.
-  // No se borra `cambios`: la provenance permanece en el pipeline y las excepciones
-  // clínicamente materiales siguen su gate contextual. UCI conserva esta superficie.
-  if (pathname.startsWith('/consulta/')) return null
   if (cambios.length === 0) return null
   const activos = cambios.length - revertidos.size
 

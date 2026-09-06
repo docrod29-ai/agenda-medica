@@ -1,0 +1,153 @@
+{
+  "auditor": "Z-cierre-lib",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ZL-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/learning.ts:109-114 (`payload[key] = { nombre, dosis: m.dosis ?? '', via, frecuencia, duracion, count: increment(1) }`, con :98 «guarda su fila COMPLETA mas reciente») + src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:570-581 (agregarMedDesde copia dosis/frecuencia/duracion tal cual). LO QUE LO CONTIENE, y por lo que NO sube a P1: page.tsx:196-251 (revisarDosis con `pesoParaDosis` pediatrico y `edadAnios` del paciente de HOY, recalculado por useMemo sobre `medicamentos`, o sea tambien sobre la fila que acaba de meter el chip) y page.tsx:767-788 («Revisa la dosis antes de imprimir»), mas page.tsx:754-765 (REG-524: sin edad se DICE que no hay red pediatrica).",
+      "nota": "La lectura del auditor es correcta en lo que importa: no es la dosis «habitual» sino la ULTIMA, la escribe el paciente anterior y el chip la ensena sin decir de quien salio (learning.ts:74 lo dice con todas las letras: «la fila COMPLETA mas reciente de ese farmaco»). Pero refuto el «con un clic y SIN AVISO» que justificaria P1: el chip solo existe en la pantalla de receta (grep: los otros dos importadores de learning.ts —Copiloto.tsx:18 y consulta/page.tsx:146— solo usan ordenarPorPreferencia/registrarAceptacion, no hay chip alli), y esa pantalla vuelve a correr el verificador determinista sobre la lista entera con el peso y la edad de ESTE paciente; una dosis de adulto sobre un nino de 12 kg con un farmaco que tenga `pedMaxMgKgToma` sale como alerta critica (src/lib/seguridad/dosis.ts:248-258). Hueco real que dejo apuntado y que el auditor no vio: page.tsx:241 filtra `codigo !== 'sin_referencia'`, asi que para un farmaco fuera del catalogo la pantalla no ensena NADA —ni el «ausencia de alerta != dosis segura»— y ahi el chip si viaja mudo; eso es MP-004, no ZL-001. Se queda en P2."
+    },
+    {
+      "id": "ZL-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/print-element.ts:77 (`if (ahora - ultimaImpresion < 1200) return`), :98 (`if (!el) { avisar(...); return }`), :101 (`if (!win) { avisar(...); return }`) — la funcion es `: void` (:70) y no distingue las tres salidas de una impresion hecha. Los tres llamadores asientan ANTES: receta page:697 (`receta_descargada`), :702 (`receta_generada` + aprenderDeReceta + imprimirElemento) y orden page:609/614/617 (`orden_generada` + crearPendientesDeLaOrden).",
+      "nota": "Abri las tres lineas y coinciden literalmente; no existe reconciliacion posterior de ninguna clase: `win.onafterprint` (:204) solo cierra la ventana y no notifica al llamador, y no hay ningun evento de bitacora emitido despues del dialogo (grep de receta_generada/orden_generada: solo esos cuatro sitios, todos previos). O sea: la bitacora NOM-004 acredita intencion, no emision, y el aprendizaje de learning.ts cuenta como recetada una receta que pudo no salir. REFUTO una parte del impacto: los pendientes de la orden NO se duplican con el doble clic — crearTareas deriva un id determinista y lee antes de escribir (src/lib/tareas-clinicas/firestore.ts:100-104), asi que el segundo clic reescribe el mismo documento; lo que si se duplica es el asiento de audit_log, que no tiene esa proteccion. P2 correcto."
+    },
+    {
+      "id": "ZL-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/fhir-export.ts:113 (`const practitionerId = 'Practitioner/' + (config?.cedulaProfesional || 'unknown')`), :260 (`requester`), :321 (`author`), :323-328 (`attester` … `party: { reference: practitionerId }` aunque el `if` lea `nota.firma`). ESTA CONECTADO —no baja a P3—: src/app/(dashboard)/expediente/[patientId]/page.tsx:778-784 (boton «FHIR R4», import dinamico + descarga), src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:461, y la ruta HTTP viva src/app/api/fhir/paciente/[patientId]/route.ts:13 -> src/lib/fhir/recursos.ts:162.",
+      "nota": "Comprobe primero la premisa que me pediste tumbar («si nadie lo llama, baja a P3») y es FALSA en tres sitios, uno de ellos una ruta de API que consulta un tercero. La segunda mitad tambien se sostiene: `nota.firma` trae nombre y cedula del firmante (src/types/expediente.ts:217-219) y el repositorio ya resolvio exactamente este defecto en la superficie hermana —src/lib/receta-certificado.ts:16-20 lo narra («si el medico B imprimia la receta de una nota firmada por A, el QR salia con la identidad de B») y :50-59 `emisorDeNota` es el arreglo, con su origen declarado 'firma'|'metadata'|'ninguno'—; y el portal del paciente ya lo hace bien (api/portal/route.ts, caso `documentos`: «QUIEN PRESCRIBIO, DE LA FIRMA Y DE NINGUN OTRO SITIO»). No esta cerrado por REG-125 (regression-ledger.md:210): aquel cerro que la API no emitiera NINGUN Practitioner, no de donde sale su identidad. P2 correcto: hace falta un consultorio con dos medicos, pero el archivo se entrega fuera."
+    },
+    {
+      "id": "ZL-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/fhir-export.ts:186 y :208 (`verificationStatus … code: 'confirmed'` en las dos ramas, estructurada y texto libre) · :255 (`status: 'active'` en todo MedicationRequest) · contraste real: :237-238 usan `clinicalStatusDe`/`verificationStatusDe` (src/lib/fhir/la-certeza-que-sale-al-mundo.ts:61 y :83) para los diagnosticos.",
+      "nota": "Las cuatro citas coinciden. La asimetria es real y no hay dato que sostenga el 'confirmed': `AlergiaEstructurada` (src/types/index.ts:230-235) no tiene ningun campo de verificacion —solo alergeno/tipo/severidad/reaccion—, asi que el mapeo afirma una certeza que el expediente nunca capturo (regla 4). Busque una linea que lo impidiera aguas abajo y no existe. Matiz a favor del codigo, que el auditor ya recoge: la criticidad si se declara solo cuando el expediente la trae (:189), o sea que quien escribio esto conocia la regla y la aplico a un campo y no al otro. P3 correcto: el dano necesita un receptor externo que lea el bundle."
+    },
+    {
+      "id": "ZL-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "MITAD REFUTADA: src/lib/fhir-export.ts:283-284 —el comentario inmediatamente anterior a la linea citada— dice «SpO2 unificado con la API FHIR (fhir/recursos.ts): LOINC 2708-6 canonico de signos vitales (antes 59408-5 aqui -> conflicto de codigo entre mappers)». MITAD CONFIRMADA: src/lib/dispositivos/vitales-hl7.ts:48-49 (`'2708-6' -> spo2` y `'59408-5' -> spo2`).",
+      "nota": "La propuesta del auditor («usar 59408-5 en la exportacion») deshace una decision tomada a proposito y documentada en la linea de al lado: los dos mapeadores FHIR se unificaron en 2708-6 precisamente porque tenerlos distintos era el defecto (mismo espiritu que REG-125, una sola implementacion). Ademas 2708-6 es el codigo que el perfil de signos vitales de FHIR fija para la saturacion —NEEDS_CLINICAL_REVIEW: no lo verifico contra LOINC/HL7 desde aqui, y por eso no lo uso como unico argumento—. Lo que si queda en pie es la segunda mitad: el adaptador HL7 funde gasometria y pulsioximetria en el mismo campo `spo2` sin declararlo. Es modulo hospital (`RegistroSignos` de types/hospital) y D-030, con un unico consumidor (api/hl7/convertir/route.ts:15). P3, como mejora del adaptador y no de la exportacion."
+    },
+    {
+      "id": "ZL-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/firestore.ts:56-66 (`addClinicMember` -> `setDoc(doc(db,'clinic_members',uid), {clinicId, role, createdAt})`) · `grep -rn addClinicMember src scripts` devuelve UNICAMENTE la definicion · src/lib/invitations.ts:96-98 («El cliente ya NO escribe clinic_members directo … cerraba la escalada de privilegios»).",
+      "nota": "Reproduje el grep en todo `src` y `scripts` (no solo en app/hooks/components, como hizo el auditor): cero llamadores, ni siquiera en pruebas. La funcion ademas moriria contra las reglas para casi cualquiera —firestore.rules:1159-1165 solo deja crear al ownerId de la clinica o a un admin de ella—, asi que hoy no es un agujero: es una puerta tapiada que sigue teniendo pomo. `innecesario` y P3, exactamente como lo clasifico el auditor."
+    },
+    {
+      "id": "ZL-007",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/modulos-sin-conectar.test.ts:121 — `'src/lib/branches.ts': 'Multi-sucursal: el modelo existe, la interfaz y el motor de agenda no. Desde v847 la API TAMPOCO acepta branchId…'` — dentro de `HUERFANOS_ACEPTADOS`, con el trinquete de :235-249 (un huerfano nuevo pone el CI en rojo; un aceptado que ya se conecto tambien) · src/app/api/appointments/route.ts:72 (la API declara por que no acepta `branchId`).",
+      "nota": "El hecho (0 importadores) es cierto, pero el hallazgo no aporta nada accionable: su `prueba_que_faltaria` —«guardian de modulos sin importador»— YA EXISTE, resuelve especificadores de verdad y hasta descarta los `import type` (:183-193), y branches.ts esta declarado ahi con su razon desde antes de esta auditoria. La deuda esta declarada y con trinquete, no escondida. La segunda mitad (firestore.rules:790-791 `allow read, write: if isMember(clinicId)`) es la MISMA forma que time_blocks (:794-796), que este mismo auditor paso como «sin hallazgo» dos lineas mas arriba en su propia lista de revisados; y el censo de `hasOnly` ya quedo dictaminado P3 en R-S-ciberseguridad (S-012), asi que no se duplica."
+    },
+    {
+      "id": "ZL-008",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/compliance/country-profiles.ts:88 (`ehrRetentionYears: 5,   // NOM-004 minimo`), :137 (`breachNotificationDeadlineDays: 15,   // SIC`), :107-112 (`regulatoryReferences: ['NOM-004-SSA3-2012…','NOM-024-SSA3-2012…','LFPDPPP…']`), :113-114 (`lastReviewedDate` + `needsLegalReview: true`) y el centinela `'requires_legal_review'` en todo lo que no esta decidido (:89, :94, :100, :103) · src/__tests__/modulos-sin-conectar.test.ts:117 declara `compliance/policy.ts` como huerfano aceptado.",
+      "nota": "Dos premisas falsas. (1) «Cifras normativas SIN fuente por linea»: la propia evidencia que cita el auditor lleva la fuente en la misma linea («NOM-004 minimo», «SIC»), hay una lista de referencias por pais y —lo que mas cuenta aqui— donde no hay decision no hay cifra inventada sino el centinela `requires_legal_review`, que es la regla 1 de seguridad clinica aplicada a lo legal. (2) «prueba_que_faltaria: guardian de modulos sin importador»: existe y ya declara este paquete. Queda la observacion de producto (nadie lo lee todavia), que es cierta y esta declarada; no hay defecto que arreglar ni prueba que escribir."
+    },
+    {
+      "id": "ZL-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "La linea citada NO EXISTE: `src/lib/voz/comandos-uci.ts` tiene 138 lineas y el hallazgo apunta a :160 (y la regex a :179). Lo real esta en :102 (`export function interpretarComandoUCI`) y :121 (`const corr = t.match(/\\b(correg\\w*|corrig\\w*|corrij\\w*|cambi\\w*|ajust\\w*)…/)`).",
+      "nota": "Refutable de oficio por la regla 1 del briefing (evidencia fuera de +-5, y de hecho fuera del archivo), pero el fondo si lo verifique en las lineas verdaderas: `interpretarComandoUCI` solo aparece en src/__tests__/uci-comandos-voz.test.ts (0 llamadores de produccion) y la regex si capturaria dictado clinico («cambiamos ceftriaxona por meropenem»). No llega a produccion por dos motivos independientes: nadie lo llama y UCI esta en pausa D-030. Se queda `parcial` en P3: la observacion es util para el dia que se cablee, la cita no se sostiene."
+    },
+    {
+      "id": "ZL-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/firestore.ts:768-777 (`sinUndefined`: `if (v === undefined) continue`) y :779-785 (`saveConfig` … `{ merge: true }`) · src/app/(dashboard)/configuracion/secciones-recetas.tsx:585-592 («'' en vez de delete: Firestore con merge:true NO elimina campos ausentes — el diseno viejo 'reaparecia'») con `disenoMargenes: undefined` y `disenoCampos: undefined` · y la herencia se cierra en :452 (`disenoCampos: { ...(prev.disenoCampos ?? {}), ...leido.campos }`) y :453 (`...(leido.margenes ? { disenoMargenes: leido.margenes } : {})`): el diseno nuevo MEZCLA la calibracion vieja y solo pisa margenes si el nuevo trae los suyos.",
+      "nota": "Todo coincide y el circuito cierra del otro lado, que es lo que exige «el dato tiene que LLEGAR»: no solo el borrado es no-op, sino que la calibracion superviviente se hereda al siguiente diseno. Refuto un matiz de la evidencia: si hay `deleteField()` en el repositorio —src/lib/firma-protegida.ts:95-96 lo usa para borrar la firma— asi que el patron correcto existe y esta a mano; el auditor acoto bien su grep a app/components, pero eso hace la propuesta mas barata de lo que sugiere. P3 correcto: el desborde se ve en la vista previa antes de imprimir."
+    },
+    {
+      "id": "ZL-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/invitations.ts:43 (`Math.floor(Math.random()*…)`) y :69 (`setDoc(doc(db, COL, code), data)`) · firestore.rules:1124-1127 (`allow create: if isMedico(request.resource.data.clinicId) && (role != 'admin' || isAdmin(...))`, sin `hasOnly` y sin exigir expiresAt/used/creadoPor) · src/app/api/clinic/unirse/route.ts:73 (`if (inv.expiresAt && new Date() > new Date(inv.expiresAt))`).",
+      "nota": "Las tres lineas coinciden. Contengo el impacto con lo que el auditor no leyo: la invitacion es de UN SOLO USO y el servidor lo cierra en transaccion (unirse/route.ts:72 `if (inv.used === true)` y :82 `tx.update(invRef,{used:true,usedBy,usedAt})`), el rol no puede ser 'admin' salvo que quien invita ya lo sea (rules:1127), la regla de update congela con hasOnly(['used','usedBy','usedAt']) (:1136) y cualquier miembro puede revocarla con delete (:1138-1140). O sea: un enlace que no caduca, pero que admite exactamente a una persona con un rol que el atacante ya podia conceder. Y el cliente legitimo si escribe `expiresAt`, `used:false` y `creadoPor` (invitations.ts:58-67); el hueco solo se abre por consola, con sesion de medico del propio consultorio. P3 correcto."
+    },
+    {
+      "id": "ZL-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/chat.ts:43-50 (`addDoc(… senderId, senderEmail, senderName: sender.nombre, senderRol: sender.rol …)`) · firestore.rules:1004 (`allow create: if isMember(clinicId) && request.auth.uid == request.resource.data.senderId;` — solo el id) · y la pantalla pinta lo que trae el documento: src/app/(dashboard)/chat/page.tsx:281 (`<span>{m.senderName}</span>`) y :231-232 (`ROL_COLOR[m.senderRol]` / `ROL_LABEL[m.senderRol]`).",
+      "nota": "Coincide literalmente y va un paso mas alla de lo que dice el auditor: la mitad del NOMBRE ni siquiera necesita consola. `members/{uid}.displayName` es texto libre que cada quien edita desde la propia pantalla (chat/page.tsx:64-70, regla firestore.rules:1024-1029 con hasOnly(['displayName']) pero sin control de unicidad) y es lo que viaja como `senderName` (:104-108); nada impide teclear el nombre del medico. El ROL si exige consola: en el camino de la interfaz sale de `role` de la sesion. No duplica S-012 de R-S-ciberseguridad, que dictamino el CENSO de hasOnly (y alli el chat figura como «congelado por campo» precisamente por atar senderId); esto es el campo concreto que queda suelto. P3."
+    },
+    {
+      "id": "ZL-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/memoria-medico.ts:43-50 (`textoMemoria` … `'Lo aprendido de este medico:\\n- ' + m.notas.slice(-25).join(…)`) y :53-79 (`aprenderDeMedico`) · unico lector de produccion: src/app/api/consultor-evidencia/route.ts:400 (`textoMemoria(await leerMemoriaMedico(clinicId, acceso.uid))`) · firestore.rules:1047-1049 (`allow read, write: if false`) · grep en src/app, src/components y src/hooks: ninguna pantalla la lee ni la borra, y no hay ruta DELETE.",
+      "nota": "Verificado: lo aprendido entra al prompt del consultor en cada consulta y no existe superficie donde el medico lo vea o lo borre. Como el cliente no puede leer la coleccion (write y READ en false), ni siquiera cabe un apano desde la pantalla: hace falta una ruta de servidor. Es `mejora` con evidencia y lectura razonable —regla 3 (nada cambia en silencio) y REVERSIBILIDAD del sistema de diseno—, y su alcance depende de una decision de producto, no de un defecto: P3, como lo puso el auditor. Los controles que cita (seguroParaMemoria, tope de notas) existen y no cubren la visibilidad."
+    },
+    {
+      "id": "ZL-014",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/errores/route.ts:65 (`mensaje: redactarString(mensaje)`), :67 (`stack: redactarString(String(body.stack ?? '').slice(0,1500))`) y :69 (`ruta: redactarRuta(String(body.ruta ?? '').slice(0,200))`), con el comentario :60-64 («Mensaje y traza pasan por el redactor … esta coleccion es RAIZ — se lee desde fuera del consultorio»).",
+      "nota": "Fui a mirar del otro lado, que es justo lo que el auditor declara no haber hecho («control_existente: lo que haga /api/errores en el servidor … no se verifico aqui»). Su reproduccion es falsa donde importa: lo que se conserva 180 dias NO es el mensaje crudo, es el redactado; el unico destinatario del cuerpo sin sanear es nuestro propio servidor por TLS, que lo redacta antes del `add()`. La coleccion `errores` nunca recibe la version cruda. Refutado: no hay PHI en la coleccion. Queda, si acaso, una preferencia de defensa en profundidad (sanear tambien en el cliente), sin defecto que la sostenga."
+    },
+    {
+      "id": "ZL-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/miembros.ts:35-37 (`removerMiembro` -> `deleteDoc`) y :40-45 (`cambiarRolMiembro` -> `updateDoc({role})`) · firestore.rules:1174 (`allow delete: if isAdmin(resource.data.clinicId) && request.auth.uid != uid;`) con el comentario :1171-1173 («nadie puede eliminar al admin original (creador) — esa restriccion se hace en UI por ahora») · src/app/(dashboard)/configuracion/secciones-cuenta.tsx:638-642 (`soloUnAdmin`, lectura en memoria).",
+      "nota": "La cita es exacta y el propio archivo de reglas admite el hueco. Contengo el impacto: el consultorio no queda necesariamente «bloqueado hasta soporte» — firestore.rules:1160-1165 deja que el ownerId de la clinica vuelva a crear SU PROPIA membresia (`request.auth.uid == uid && clinics/{clinicId}.ownerId == request.auth.uid`), y la regla no le acota el `role`, asi que el dueno puede reponerse a si mismo como admin. El escenario sin salida queda reducido a que ninguno de los dos admins que se borran sea el ownerId. P3, como lo puso el auditor; hace falta que dos admins actuen a la vez o una consola."
+    },
+    {
+      "id": "ZL-016",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/modulos-sin-conectar.test.ts:114 (`'src/lib/clinical-fact/schema.ts': 'Nexus OS E1-01: validacion de ClinicalFact. La fase que lo consume no ha llegado.'`) y :115 (`vocabulario.ts`, «del mismo bloque pendiente»), con el trinquete de :235-249.",
+      "nota": "El hecho es cierto y esta declarado desde antes: los dos archivos figuran nominalmente en HUERFANOS_ACEPTADOS, con razon y con un guardian que pone el CI en rojo si aparece uno nuevo O si uno de estos se conecta y nadie actualiza la lista (:245-249). La `prueba_que_faltaria` que propone el hallazgo —«guardian de modulos sin importador con lista de excepciones fechadas»— es, literalmente, ese archivo. No hay nada que arreglar ni que probar; la unica parte viva («que no se conecte a medias y se vuelva una segunda fuente de verdad») es una advertencia para el futuro, no un hallazgo de hoy."
+    },
+    {
+      "id": "ZL-017",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/modulos-sin-conectar.test.ts:89 (`'src/lib/evidencia/pico.ts': 'Extractor PICO … ninguna pantalla lo llama todavia. Trabajo terminado esperando donde ensenarse.'`) y :116 (`'src/lib/evidencia/buscar-con-pico.ts': 'Puente PICO -> PubMed (E2-02): el extractor existe, falta engancharlo al Consultor.'`) · la unica otra evidencia del hallazgo es la autodeclaracion del propio archivo (buscar-con-pico.ts:19, «Sin callers todavia: el cableado de las rutas es E2-05»).",
+      "nota": "El hallazgo no descubre nada: cita el comentario en que el modulo se declara pendiente y propone como prueba que falta un guardian que ya existe y que ya tiene a los dos archivos en su lista con nombre y razon. Deuda declarada, fechada por el programa (E2-05) y con trinquete en CI. Refutado por premisa («trabajo hecho sin valor entregado, sin guardian») falsa en su segunda mitad; la primera mitad sigue siendo verdad y sigue estando escrita donde toca."
+    },
+    {
+      "id": "ZL-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/receta-paginacion.ts:200-209 — `if (usado + b.alturaMm > capacidadDe(idx) && (paginas[idx].meds.length > 0 || paginas[idx].ests.length > 0)) { paginas.push(...); usado = 0 }`: la segunda condicion hace que un bloque mas alto que la capacidad entre igual en una pagina vacia, sin partirse y sin marcarse · src/components/RecetaDocumento.tsx:484 y :687 (`overflow: 'hidden'`) · los clamps que el auditor cita bien son de area, no de bloque: RecetaDocumento.tsx:411 y :432 (`MIN_CONTENIDO_MM`).",
+      "nota": "Verificado en el codigo: `paginarReceta` no devuelve ninguna senal de desborde (su tipo de salida son paginas de meds/ests, nada mas) y la hoja recorta en silencio. Comprobe ademas que el escenario es alcanzable: ni MedRow ni la pantalla de receta ponen `maxLength` a la indicacion del medicamento (grep de maxLength: cero en los dos archivos). Y RecetaDocumento.tsx:428 ya conoce el modo de fallo por escrito («desaparecen sin aviso»), que es exactamente lo que aqui no se declara. P3 correcto: probabilidad baja (hace falta area util pequena + indicacion muy larga) y la vista previa ensena algo, aunque escalada."
+    },
+    {
+      "id": "ZL-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/calendario/ligar-en-servidor.ts:53-55 (`if (vinculo.medicoId && vinculo.como === 'por-correo') { await doctores.doc(vinculo.medicoId).set({ uid }, { merge: true }) }`) · src/lib/calendario/vinculo-medico.ts:85 (`doctores.filter(d => norm(d.email) === correo && (!d.uid || d.uid === uid))`) · firestore.rules:656-658 (`match /doctors/{docId} { allow read: if isMember(clinicId); allow write: if isMedico(clinicId); }`).",
+      "nota": "Las tres lineas coinciden (la escritura esta en :55 contando el bloque :53-55, dentro de +-5). El defecto de fondo es real: la identidad del vinculo sale de un campo que otro miembro puede editar. Pero el ataque necesita mas pasos de los que dice la reproduccion, y eso baja la probabilidad, no la prioridad (que ya era P3): vinculo-medico.ts:79-80 corta antes si A ya estaba ligado a su propia ficha (`yaEstaba` -> 'ya-estaba', no reescribe), y si A pone su correo en la ficha de B sin quitarlo de la suya hay DOS candidatos y la funcion devuelve 'sin-vinculo' por VARIOS (:87). O sea: exige que A no este ligado y que su correo quede en una sola ficha, la de B. Intra-consultorio, sin fuga entre consultorios, como el propio auditor declara."
+    }
+  ],
+  "ratio": {
+    "total": 19,
+    "confirmados": 12,
+    "refutados": 5,
+    "parciales": 2
+  },
+  "verificacion_de_la_afirmacion_en_positivo": {
+    "afirmacion": "coleccion:paquetes_visita — «El paciente NO lee de Firestore … DRAFT nunca sale. NO es P0.»",
+    "resultado": "SOSTENIDA. No se levanta RTZ-001: no encontre ningun camino por el que un paquete DRAFT llegue al paciente.",
+    "evidencia": "firestore.rules:288-291 (`read: if isMedico(clinicId); write: if false`) · src/app/api/portal/route.ts:764-769 (caso `paquetes`) y :816-822 (caso `preguntar`), los dos con `.filter(visibleParaElPaciente)` sobre el Admin SDK y detras del gate `alcance !== 'clinico'` (:754-759 y :799-804) · src/lib/paciente/paquete-de-visita.ts:206-208 (`estado === 'RELEASED' && !!approvedBy && !!approvedAt`, las tres a la vez) · src/lib/paciente/entrega-del-paquete.ts:61 vuelve a exigirla en la entrega.",
+    "por_que_no_hay_fuga": "Ademas del filtro, comprobe que un DRAFT NI SIQUIERA SE PERSISTE: el unico escritor es src/app/api/expediente/paquete-de-visita/route.ts (grep: no hay otro), exige capacidad `firmar` (:136), la accion `previsualizar` devuelve el paquete SIN escribir (:199-201), y las dos ramas que escriben pasan siempre por `liberar(...)` (:222 y :227), que lanza si falta `approvedBy` o `approvedAt` (paquete-de-visita.ts:188-192). `retirar` (:288) es idempotente y deja el paquete fuera de la compuerta. Las otras superficies del portal no tocan la coleccion: `documentos` lee `notas` con `where('estado','==','firmada')` (portal/route.ts:1051-1056).",
+    "unico_matiz": "src/lib/expediente/exportacion.ts:87 incluye `paquetes_visita` en el expediente completo, que /api/arco/acceso entrega al titular — pero esa ruta exige capacidad `administrar` y `identidadVerificada === true` (arco/acceso/route.ts:68 y :105-110): es un acto del responsable del tratamiento, no una superficie del portal. No es fuga; se deja apuntado por si el dueno quiere excluir borradores del acuse ARCO."
+  },
+  "observaciones_del_auditor": "Auditor de inventario, no de explotacion: sus hechos de un solo archivo son casi siempre exactos (learning.ts:109, print-element.ts:77/98/101, fhir-export.ts:113/186/255, firestore.ts:56 y :768, chat.ts:43, miembros.ts:35, receta-paginacion.ts:202 coinciden al numero), y sus notas de la seccion `revisado` son de una honestidad util —declara «no se verifico aqui» cuando no lo hizo—. Cuatro patrones. (1) NO CRUZA LA FRONTERA QUE EL MISMO SENALA: en ZL-014 el hallazgo entero se cae al abrir la ruta receptora, que redacta; es su unico refutado por evidencia contraria y es justo el caso donde el escribio «no se verifico aqui». (2) PIDE PRUEBAS QUE YA EXISTEN: en ZL-007, ZL-008, ZL-016 y ZL-017 la `prueba_que_faltaria` es literalmente src/__tests__/modulos-sin-conectar.test.ts, que ya tiene los cinco archivos en su lista con razon y trinquete — cuatro de sus cinco refutados salen de ahi; conviene que la proxima oleada consulte esa lista ANTES de levantar un huerfano. (3) NO LEE EL COMENTARIO DE AL LADO cuando propone: en ZL-005 propone volver a 59408-5, que es exactamente lo que fhir-export.ts:283-284 dice haber quitado para no tener dos mapeadores en desacuerdo. (4) UNA CITA FUERA DEL ARCHIVO: ZL-009 apunta a :160 y :179 de un archivo de 138 lineas (lo real es :102 y :121) — es la unica deriva de linea de las 19. En positivo: no infla prioridades (los tres P2 se sostienen los tres como P2, ninguno subio a P1 y ninguno bajo a P3), y sus secciones `que_no_cubre` son exactas. Sobre el encargo especifico: ZL-001 es «la ultima, no la habitual» y eso queda confirmado, pero NO sube a P1 porque el chip solo vive en la pantalla que reverifica dosis contra el peso y la edad de ESTE paciente; ZL-003 NO baja a P3 porque tiene tres llamadores, uno de ellos una ruta HTTP publica de FHIR."
+}

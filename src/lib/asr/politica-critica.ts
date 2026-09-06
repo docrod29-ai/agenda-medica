@@ -120,8 +120,76 @@ export const MOTIVOS_CONFIRMACION = [
    * documento y la corrección son distintos.
    */
   'estudio_solo_propuesto',
+  /**
+   * LATERALIDAD CONTRADICTORIA EN EL PROPIO DICTADO (Panel de Lujo, MO-001/MO-002).
+   *
+   * `lateralidad_incierta` sólo lo emitía el corrector cuando CAMBIABA la
+   * palabra — y el corrector no toca «derecho» ni «izquierdo», así que el motivo
+   * estaba muerto. Éste lo emite un detector determinista cuando el dictado
+   * trae los dos lados para la misma región, o «perdón / corrijo» junto a un
+   * lado. No decide cuál es el bueno: pregunta.
+   */
+  'lateralidad_contradictoria',
+  /**
+   * EL DICTADO NOMBRA A OTRO PACIENTE (Panel de Lujo, B-013).
+   *
+   * Un laboratorio no se archiva por tener un expediente abierto; un dictado sí
+   * se archivaba. Cuando la transcripción nombra a alguien que NO es el paciente
+   * del expediente abierto, se pregunta antes de guardar (PL-C17: preguntar,
+   * igual que el laboratorio). Es una red, no una garantía: la mayoría de las
+   * consultas no dicen el apellido en voz alta.
+   */
+  'paciente_nombrado_no_coincide',
 ] as const
 export type MotivoConfirmacion = (typeof MOTIVOS_CONFIRMACION)[number]
+
+/**
+ * VOCABULARIO DE POLARIDAD — lo que voltea una negación (clase `volteo_negacion`).
+ *
+ * Panel de Lujo, B-012: el aprendizaje del dictado prometía en su cabecera un
+ * guardián de negación y no lo tenía — `afebril → febril` y `niega → refiere`
+ * se aprendían. Aquí viven las palabras que NUNCA se aprenden como sustitución
+ * de otra, en ninguna dirección: las que niegan y sus contrarias afirmativas,
+ * porque «niega → refiere» es el mismo volteo que «no → sí».
+ *
+ * Es VOCABULARIO, no criterio: lo que no está no se vigila.
+ */
+export const PALABRAS_DE_POLARIDAD: readonly string[] = [
+  // niegan
+  'no', 'sin', 'niega', 'nunca', 'jamas', 'tampoco', 'ausencia', 'ausente', 'ausentes',
+  'negativo', 'negativa', 'negativos', 'negativas', 'descarta', 'descartado', 'descartada',
+  'ningun', 'ninguna', 'ninguno', 'nada', 'nadie',
+  // afirman
+  'si', 'con', 'refiere', 'presenta', 'afirma', 'positivo', 'positiva', 'positivos', 'positivas',
+  'presente', 'presentes', 'confirma', 'confirmado', 'confirmada',
+]
+
+/**
+ * Prefijos que convierten una palabra en su contraria: a-febril, in-doloro,
+ * des-hidratado, im-posible. Si un lado del par es el otro con uno de estos
+ * prefijos, es un volteo de negación y no se aprende.
+ */
+export const PREFIJOS_DE_NEGACION: readonly string[] = ['a', 'in', 'im', 'des']
+
+/** ¿Estas dos palabras son la misma con y sin prefijo de negación? */
+export function sonContrariasPorPrefijo(a: string, b: string): boolean {
+  const x = (a ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const y = (b ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  if (!x || !y || x === y) return false
+  return PREFIJOS_DE_NEGACION.some(p => x === p + y || y === p + x)
+}
+
+/** ¿Es una palabra de lateralidad, en cualquier género y número? */
+export function esPalabraDeLateralidad(s: string): boolean {
+  const x = (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+  return /^(derech[oa]s?|izquierd[oa]s?|bilateral(es)?)$/.test(x)
+}
+
+/** ¿Es una palabra de polaridad (niega o afirma)? */
+export function esPalabraDePolaridad(s: string): boolean {
+  const x = (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+  return PALABRAS_DE_POLARIDAD.includes(x)
+}
 
 export const NUNCA_POR_FONETICA =
   'Un corrector fonético SIEMPRE encontrará que «mcg» se parece a «mg», y entre ' +

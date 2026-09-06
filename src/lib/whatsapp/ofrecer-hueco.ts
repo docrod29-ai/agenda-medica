@@ -22,7 +22,7 @@ import { enviarProactivo } from '@/lib/whatsapp/proactivo'
 import { encolarReintento } from '@/lib/whatsapp/outbox'
 import { registrarNoEntregado } from '@/lib/whatsapp/no-entregados'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
-import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { claveTelefonoWa } from '@/lib/whatsapp/telefono'
 import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta'
 
 /**
@@ -243,7 +243,7 @@ export async function ofrecerHuecoLiberado(
         // dígitos). Antes se guardaba el teléfono crudo y el webhook buscaba por
         // el wa_id de Meta (formato 521…): no coincidían y la respuesta "SÍ" del
         // paciente caía al menú por defecto → el hueco se perdía en silencio.
-        const telNorm = normalizarTelefonoWa(entry.pacienteTelefono || '')
+        const telNorm = claveTelefonoWa(entry.pacienteTelefono || '')
         const sessionData = {
           telefono: telNorm,
           estado: 'esperando_lista',
@@ -297,7 +297,7 @@ export async function ofrecerHuecoLiberado(
           // y el "SÍ" del paciente sí agende el hueco (mismo efecto que el envío inline).
           meta: {
             sesionListaEspera: {
-              telefono: normalizarTelefonoWa(entry.pacienteTelefono || ''),
+              telefono: claveTelefonoWa(entry.pacienteTelefono || ''),
               nombre: entry.pacienteNombre,
               slotFecha: fecha,
               slotHora: hora,

@@ -18,6 +18,7 @@ import { fetchAutenticado } from '@/lib/auth-client'
 import { listarMiembros, removerMiembro, cambiarRolMiembro, type MiembroActivo } from '@/lib/miembros'
 import { type RolInvitacion } from '@/lib/invitations'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { auth } from '@/lib/firebase'
 import { Loader2, Upload, X as IconX, KeyRound, PenLine, FileText, Lightbulb } from 'lucide-react'
 
@@ -104,8 +105,8 @@ export function LlavesIASection({ clinicId }: { clinicId: string }) {
       } else {
         toast(d?.error ?? 'No se pudo guardar la llave', 'error')
       }
-    } catch {
-      toast('Error de red al guardar la llave', 'error')
+    } catch (e) {
+      toast(noSePudo('guardar la llave', e), 'error')
     } finally {
       setGuardando('')
     }
@@ -645,8 +646,8 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
       await removerMiembro(m.uid)
       toast('Miembro removido', 'info')
       recargar()
-    } catch {
-      toast('Error al remover (revisa que seas admin)', 'error')
+    } catch (e) {
+      toast(noSePudo('quitar a esta persona del consultorio', e), 'error')
     }
   }
 
@@ -657,8 +658,8 @@ export function MiembrosActivos({ clinicId, miUid }: { clinicId: string | null; 
       await cambiarRolMiembro(m.uid, nuevo)
       toast(`Rol actualizado a ${nuevo}`, 'success')
       recargar()
-    } catch {
-      toast('Error al cambiar rol', 'error')
+    } catch (e) {
+      toast(noSePudo('cambiar el rol de esta persona', e), 'error')
     }
   }
 

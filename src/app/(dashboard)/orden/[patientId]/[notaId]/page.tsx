@@ -5,7 +5,7 @@
  * Comparte el template visual con recetas pero pre-pobla con estudios sugeridos
  * según el contenido de la nota (signos vitales anormales, diagnósticos, etc.).
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useDoctors } from '@/hooks/useDoctors'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
@@ -25,15 +25,24 @@ import { getNota } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, avisoDeRecorte, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { hoyISO } from '@/lib/timezone'
 import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
+import { agregarAdenda } from '@/lib/expediente/firestore'
+import { claveDeIntento } from '@/lib/idempotencia'
+import { huellaContenido } from '@/lib/expediente/huella-impreso'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  estudiosSinLateralidad, faltaLateralidad, conLateralidad, LADOS,
+} from '@/lib/orden-estudio-imagen'
+import { textoDeLaOrdenEmitida, motivoDeLaOrdenEmitida } from '@/lib/orden-emitida'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
-  AlertTriangle,
+  AlertTriangle, Pill,
 } from 'lucide-react'
 import { diagnosticoQueSeImprime } from '@/lib/expediente/problemas-activos'
 import { Spinner } from '@/components/ui'
@@ -193,7 +202,8 @@ const SUGERENCIAS: Record<string, string[]> = {
     'Cultivo cervicovaginal / exudado vaginal',
     'Fracción beta de hCG cuantitativa',
     'Perfil hormonal (FSH, LH, estradiol, progesterona, prolactina)',
-    'Ultrasonido pélvico / transvaginal',
+    'Ultrasonido pélvico',
+    'Ultrasonido transvaginal',
     'Ultrasonido obstétrico',
     'Ultrasonido mamario',
     'Mastografía',
@@ -261,44 +271,78 @@ const SUGERENCIAS: Record<string, string[]> = {
     'Valoración preanestésica',
     'Serologías (VIH, VHB, VHC)',
   ],
+  /**
+   * MO-012 — el catálogo de imagen imprimía sus propias opciones.
+   *
+   * «Radiografía de columna (cervical / dorsal / lumbar)» se imprimía LITERAL,
+   * con los tres segmentos separados por barras: el gabinete podía tomar los
+   * tres (radiación y costo) o llamar para preguntar. El chip no se edita, así
+   * que para pedir «columna lumbar» había que quitarlo y teclear el estudio
+   * entero en «Personalizado» — justo lo que el catálogo prometía resolver.
+   *
+   * Las entradas con lista de opciones dentro del nombre se desdoblan en
+   * entradas concretas. «Radiografía de extremidades» —que no dice ni qué hueso
+   * ni qué lado (MO-003)— se sustituye por las regiones concretas; el lado lo
+   * pide la pantalla antes de dejar emitir.
+   */
   'Imagen — Radiografía': [
     'Radiografía de tórax (PA y lateral)',
     'Radiografía de abdomen (simple y de pie)',
-    'Radiografía de columna (cervical / dorsal / lumbar)',
+    'Radiografía de columna cervical',
+    'Radiografía de columna dorsal',
+    'Radiografía de columna lumbar',
     'Radiografía de cráneo',
     'Radiografía de pelvis',
-    'Radiografía de extremidades',
+    'Radiografía de hombro',
+    'Radiografía de codo',
+    'Radiografía de muñeca',
+    'Radiografía de mano',
+    'Radiografía de cadera',
+    'Radiografía de rodilla',
+    'Radiografía de tobillo',
+    'Radiografía de pie',
     'Serie ósea metastásica',
   ],
   'Imagen — Ultrasonido': [
     'Ultrasonido abdominal completo',
     'Ultrasonido hepático y de vías biliares',
     'Ultrasonido renal y de vías urinarias',
-    'Ultrasonido pélvico / transvaginal',
+    'Ultrasonido pélvico',
+    'Ultrasonido transvaginal',
     'Ultrasonido prostático',
     'Ultrasonido de tiroides',
     'Ultrasonido mamario',
-    'Ultrasonido Doppler venoso/arterial de miembros',
+    'Ultrasonido Doppler venoso de miembros',
+    'Ultrasonido Doppler arterial de miembros',
     'Ultrasonido Doppler carotídeo',
-    'Ultrasonido de partes blandas / articular',
+    'Ultrasonido de partes blandas',
+    'Ultrasonido articular',
   ],
   'Imagen — Tomografía (TC)': [
     'TC de cráneo simple',
     'TC de cráneo contrastada',
-    'TC de tórax (simple / contrastada)',
+    'TC de tórax simple',
+    'TC de tórax contrastada',
     'Angiotomografía pulmonar',
     'TC de abdomen y pelvis contrastada',
     'Urotomografía',
     'Angiotomografía coronaria',
     'TC de senos paranasales',
-    'TC de columna',
+    'TC de columna cervical',
+    'TC de columna dorsal',
+    'TC de columna lumbar',
   ],
   'Imagen — Resonancia (RM)': [
     'RM de cráneo',
-    'RM de columna (cervical / dorsal / lumbar)',
-    'RM de abdomen / colangiorresonancia',
+    'RM de columna cervical',
+    'RM de columna dorsal',
+    'RM de columna lumbar',
+    'RM de abdomen',
+    'Colangiorresonancia',
     'RM de pelvis',
-    'RM articular (rodilla / hombro / cadera)',
+    'RM de rodilla',
+    'RM de hombro',
+    'RM de cadera',
     'Angiorresonancia',
     'RM cardiaca',
   ],
@@ -334,6 +378,16 @@ export default function GeneradorOrdenPage() {
    */
   const { activeDoctors } = useDoctors()
   const unicoMedico = activeDoctors.length <= 1
+  const { user } = useAuth()
+  /** Quien asienta la adenda es el médico de la sesión, no el consultorio. */
+  const medicoEnSesion = useMemo(() => {
+    const uid = user?.uid
+    const correo = (user?.email ?? '').trim().toLowerCase()
+    const porUid = uid ? activeDoctors.filter(d => d.uid === uid) : []
+    if (porUid.length === 1) return porUid[0]
+    const porCorreo = correo ? activeDoctors.filter(d => (d.email ?? '').trim().toLowerCase() === correo) : []
+    return porCorreo.length === 1 ? porCorreo[0] : undefined
+  }, [activeDoctors, user?.uid, user?.email])
 
   const { toast } = useToast()
 
@@ -371,6 +425,20 @@ export default function GeneradorOrdenPage() {
       medicoNombre: config?.nombreMedico,
     }, ahora), 'orden', { avisar: m => toast(`La orden quedó emitida, pero ${m}`, 'error') })
   }
+  /**
+   * LA HUELLA DE LO ÚLTIMO QUE SE ASENTÓ — no un «ya está».
+   *
+   * Un booleano `asentada` evitaba enmendar dos veces por el mismo papel, pero
+   * también impedía asentar la SEGUNDA emisión cuando el médico añadía un
+   * estudio y volvía a imprimir: dos órdenes distintas con el mismo folio y
+   * ningún rastro de la segunda, que es el defecto que MO-005 denuncia.
+   *
+   * Guardar la huella del CONTENIDO lo resuelve sin estado y sin efecto: si lo
+   * que se va a asentar es idéntico a lo último asentado, no se repite; si
+   * cambió, es otra orden y se asienta.
+   */
+  const huellaAsentada = useRef<string | null>(null)
+  const claveAsiento = useRef<string | null>(null)
   const [indicaciones, setIndicaciones] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
@@ -475,6 +543,39 @@ export default function GeneradorOrdenPage() {
   /** La cédula es requisito del impreso; sin ella el documento no es válido. */
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
+  /**
+   * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
+   *
+   * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
+   * qué ahí y no en la nota ni en una colección nueva). Idempotente por
+   * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
+   * documento inmutable.
+   */
+  const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
+    if (!clinicId || !estudios.length) return
+    if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice
+    const texto = textoDeLaOrdenEmitida({ folio, estudios, diagnostico, indicaciones, formato })
+    const huella = huellaContenido([texto])
+    if (huellaAsentada.current === huella) return   // el mismo papel, otra vez
+    if (claveAsiento.current === null || huellaAsentada.current !== null) claveAsiento.current = claveDeIntento()
+    try {
+      await agregarAdenda(clinicId, patientId, notaId, {
+        texto,
+        motivo: motivoDeLaOrdenEmitida(folio, estudios.filter(e => e.trim()).length),
+        autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
+        autorEmail: user?.email || '',
+        autorCedula: medicoEnSesion
+          ? (medicoEnSesion.cedulaProfesional || undefined)
+          : (config?.cedulaProfesional || undefined),
+      }, claveAsiento.current)
+      huellaAsentada.current = huella
+    } catch {
+      // REG-411 — la orden ya salió y esto no puede tumbarla; pero perder el
+      // asiento sin decirlo es el defecto que se está cerrando.
+      toast('La orden se emitió, pero no se pudo asentar en el expediente. Vuelve a intentarlo.', 'error')
+    }
+  }
+
   const descargarWord = () => {
     void descargarRecetaWord(
       {
@@ -497,14 +598,18 @@ export default function GeneradorOrdenPage() {
     )
   }
 
-  const descargarPDF = async () => {
+  /** Devuelve `true` sólo si el PDF llegó a generarse (ZL-002). */
+  const descargarPDF = async (): Promise<boolean> => {
     const el = document.getElementById('receta-doc')
-    if (!el) return
+    if (!el) return false
     setDescargando(true)
     try {
       const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date().toISOString().slice(0, 10)
+      // C-015 — `new Date().toISOString().slice(0,10)` da el día en UTC: a las
+      // 19:00 de CDMX el archivo salía con la fecha de MAÑANA. `hoyISO()` usa la
+      // zona del consultorio (REG-067).
+      const fechaCorta = hoyISO()
       // PDF LIMPIO hoja-por-hoja (misma corrección que receta): sin "about:blank" ni
       // fecha del navegador, hoja física exacta, fiel al diseño.
       const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
@@ -515,9 +620,11 @@ export default function GeneradorOrdenPage() {
         altoMm: host.heightMm,
         onAvisoPapeleria: (m) => toast(m, 'error'),
       })
+      return true
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
+      return false
     } finally {
       setDescargando(false)
     }
@@ -556,6 +663,22 @@ export default function GeneradorOrdenPage() {
   // Sin estudios, la orden saldría en blanco (membrete + firma, sin contenido).
   // Se bloquea Imprimir / Word / PDF hasta que haya al menos un estudio.
   const ordenVacia = estudios.filter(e => e.trim()).length === 0
+  /**
+   * MO-003 · PO-015 — NO SE EMITE UNA ORDEN DE UNA REGIÓN PAR SIN DECIR EL LADO.
+   *
+   * `ordenVacia` era la única compuerta: se podía imprimir y firmar, con folio y
+   * cédula, «Radiografía de extremidades» — sin decir cuál, ni de qué lado. Del
+   * otro lado el técnico se lo pregunta al paciente (y en un niño, un anciano o
+   * un dolor bilateral se equivoca), y el portal contesta esa misma línea con
+   * sello de procedencia, prestándole autoridad a una orden incompleta.
+   *
+   * Se BLOQUEA en vez de avisar porque el dato falta y se sabe que falta: es la
+   * misma familia que la unidad ausente de una dosis. «Bilateral» es un valor
+   * válido y está a un clic.
+   */
+  const sinLado = estudiosSinLateralidad(estudios)
+  const ordenIncompleta = sinLado.length > 0
+  const noSePuedeEmitir = ordenVacia || ordenIncompleta
 
   return (
     <div className="nx-canvas">
@@ -593,6 +716,23 @@ export default function GeneradorOrdenPage() {
           </div>
         </div>
       )}
+      {/* MO-003 · PO-015 — falta el lado y por eso no se puede emitir. Se dice
+          QUÉ falta, en QUÉ estudio, y se resuelve aquí mismo en un clic. */}
+      {ordenIncompleta && (
+        <div className="no-print" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+          background: 'var(--badge-red-b)', border: '1px solid var(--badge-red-t)',
+          borderRadius: 14, padding: '13px 15px', marginBottom: 14,
+        }}>
+          <AlertTriangle size={17} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--text)' }}>
+            <strong>Falta decir de qué lado.</strong> {sinLado.length === 1 ? 'Un estudio pedido' : `${sinLado.length} estudios pedidos`} {sinLado.length === 1 ? 'es' : 'son'} de una
+            región que existe por partida doble, y sin el lado el gabinete lo adivina o llama por teléfono.
+            Elígelo en el estudio de abajo — «bilateral» también es una respuesta.
+          </div>
+        </div>
+      )}
+
       {/* Barra superior — habla el sistema de botones (§16): UNA primaria
           (Descargar PDF, el trabajo dominante), secundarias del sistema y
           Atrás fantasma. Mismo idioma y mismo orden que /nota y /receta. */}
@@ -607,16 +747,23 @@ export default function GeneradorOrdenPage() {
         <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
           {/* La primaria va PRIMERO, como en /nota y /receta: la familia
               documental habla el mismo orden. onClick/disabled intactos. */}
-          <button onClick={() => { if (configError || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarPDF() }} disabled={descargando || !!configError || ordenVacia} className="btn btn-primary">
+          {/* ZL-002 — el asiento, los pendientes y la adenda van DESPUÉS de que
+              la orden salió: antes se creaban pendientes de estudios de una
+              orden que el navegador nunca llegó a entregar. */}
+          <button onClick={() => { if (configError || noSePuedeEmitir) return; void descargarPDF().then(ok => { if (!ok) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'pdf' } }).catch(() => {}); crearPendientesDeLaOrden(); void asentarOrden('pdf') }) }} disabled={descargando || !!configError || noSePuedeEmitir} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); crearPendientesDeLaOrden(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={noSePuedeEmitir} onClick={() => { if (configError || descargando || noSePuedeEmitir) return; const h = dimensionesImpresion(recetaConfigOri); const resultado = imprimirElemento(document.getElementById('receta-doc'), 'Orden', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }); if (resultado === 'abierta') { logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length } }).catch(() => {}); crearPendientesDeLaOrden(); void asentarOrden('impresa') } }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
-          <button disabled={ordenVacia} onClick={() => { if (configError || descargando || ordenVacia) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); crearPendientesDeLaOrden(); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
+          <button disabled={noSePuedeEmitir} onClick={() => { if (configError || descargando || noSePuedeEmitir) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); crearPendientesDeLaOrden(); void asentarOrden('word'); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
+          </button>
+          {/* MO-011 — ver el comentario hermano en /receta. */}
+          <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} className="btn btn-secondary" title="Receta de esta misma nota">
+            <Pill size={14} /> Receta
           </button>
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
@@ -678,12 +825,31 @@ export default function GeneradorOrdenPage() {
                 {estudios.map((e, i) => (
                   <span key={i} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: 'color-mix(in srgb, var(--teal) 14%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--teal) 40%, transparent)',
+                    background: faltaLateralidad(e) ? 'var(--badge-red-b)' : 'color-mix(in srgb, var(--teal) 14%, transparent)',
+                    border: `1px solid ${faltaLateralidad(e) ? 'var(--badge-red-t)' : 'color-mix(in srgb, var(--teal) 40%, transparent)'}`,
                     color: 'var(--text)',
                     padding: '6px 10px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 600,
                   }}>
                     {e}
+                    {/* MO-003 · PO-015 — el chip que no dice el lado lo pide aquí
+                        mismo: tres botones, uno de ellos «bilateral». Antes había
+                        que quitar el chip y teclear el estudio entero. */}
+                    {faltaLateralidad(e) && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ color: 'var(--red)', fontWeight: 700 }}>¿de qué lado?</span>
+                        {LADOS.map(lado => (
+                          <button
+                            key={lado}
+                            onClick={() => setEstudios(estudios.map((x, idx) => idx === i ? conLateralidad(x, lado) : x))}
+                            style={{
+                              background: 'var(--s1)', border: '1px solid var(--border)', color: 'var(--text)',
+                              borderRadius: 'var(--r-pill)', padding: '3px 8px', fontSize: 10.5, fontWeight: 600,
+                              cursor: 'pointer', minHeight: 24,
+                            }}
+                          >{lado}</button>
+                        ))}
+                      </span>
+                    )}
                     {/* aria-label: icono solo no basta — y la fila se repite N veces. */}
                     <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} aria-label={`Quitar ${e}`} style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', padding: 0, display: 'inline-flex' }}>
                       <Trash2 size={11} />
@@ -776,7 +942,10 @@ export default function GeneradorOrdenPage() {
               indicaciones,
             }
             const host = dimensionesImpresion(recetaConfigOri)
-            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
+            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
+            // ZL-018 — un bloque más alto que la hoja se imprime cortado por
+            // abajo, en silencio. Aquí se dice, con el mismo cálculo que imprime.
+            const recorte = avisoDeRecorte(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
                 <div className="nx-meta" style={{ textAlign: 'center', marginBottom: 8 }}>
@@ -785,6 +954,13 @@ export default function GeneradorOrdenPage() {
                   {estudios.length > 6 && ' · checklist 2 columnas'}
                   {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>
+                {recorte && (
+                  <div role="status" style={{
+                    marginBottom: 8, padding: '8px 12px', borderRadius: 10,
+                    background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
+                    fontSize: 12, color: 'var(--text)', lineHeight: 1.45,
+                  }}>{recorte}</div>
+                )}
                 <RecetaPreviewWrapper
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}

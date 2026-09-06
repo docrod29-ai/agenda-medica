@@ -18,6 +18,7 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import type { Cobro, ConceptoCobro } from '@/lib/cobros'
+import { montoEfectivo } from '@/lib/cobros'
 
 export interface ConfigComisiones {
   /** % por médico (0–100), por medicoId. Ausente = usa `porDefecto`. */
@@ -90,16 +91,16 @@ export function calcularComisiones(cobros: Cobro[], config: ConfigComisiones): R
   for (const c of cobros) {
     if (excluidos.has(c.concepto)) continue
     if (!c.medicoId) {
-      sinAtribuir.monto += c.monto
+      sinAtribuir.monto += montoEfectivo(c)
       sinAtribuir.n += 1
       continue
     }
     if ((c as { medicoIdResuelto?: string }).medicoIdResuelto === 'sin-resolver') {
-      dudosos.monto += c.monto
+      dudosos.monto += montoEfectivo(c)
       dudosos.n += 1
     }
     const row = acc.get(c.medicoId) ?? { nombre: c.medicoNombre || 'Médico', base: 0, n: 0 }
-    row.base += c.monto
+    row.base += montoEfectivo(c)  // ASC-012: un REFUND resta de la base
     row.n += 1
     // El nombre más reciente no vacío gana (por si cambió de alias).
     if (c.medicoNombre) row.nombre = c.medicoNombre

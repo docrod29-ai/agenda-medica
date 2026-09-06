@@ -1,0 +1,106 @@
+{
+  "auditor": "M-internista",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "MI-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:284 (`return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)`) contra la línea 152 (`const meds = ... medicamentos.filter(...)`, sólo hoy) y la 166-167 (`medsDelCuadro = medicacionDelCuadro(medicamentos, vigentes)` → `interaccionesDelCuadro`)",
+      "nota": "La cita es literal y el eje queda abierto: REG-527 (regression-ledger.md:19698) cerró la creatinina y las interacciones y su «Qué NO cubre» no menciona el catálogo renal, así que no está cerrado en ningún REG. Ejecutado con jiti desde /tmp: `evaluarFuncionRenal(mgPorDl(1.9),78,'M',kg(62))` → `{\"crClCockcroft\":{\"valor\":28.099415204678365,\"unidad\":\"mL/min\"},\"depuracionParaDosis\":{\"base\":\"cockcroft-gault\",...}}`; `ajusteRenalFarmacos([{nombre:'Ciprofloxacino 500 mg'}], dep)` → sólo «Ciprofloxacino con CrCl 28 (<30): reducir dosis ~50%.»; con la metformina vigente añadida → además «Metformina con CrCl 28 (<30): contraindicada (acidosis láctica). 30-45: no iniciar, reducir si ya la toma.». MATIZ EN CONTRA DEL AUDITOR: en su propio caso el panel de interacciones NO ve la metformina — `interaccionesDelCuadro([{Ciprofloxacino,deHoy:true},{Metformina,deHoy:false}])` → `[]` (no hay regla cipro+metformina entre las diez); la frase del impacto «ve avisos de interacción sobre la metformina en la misma pantalla» no se sostiene en ese escenario. El defecto sí."
+    },
+    {
+      "id": "MI-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/components/RecetaDocumento.tsx:977 (`ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}`), alcanzada por la rama por omisión de la línea 449 (`: <HojaGenerada .../>`), mientras la 769 usa `alergiasParaImpreso(data.paciente) &&`",
+      "nota": "Las tres líneas son literales. La receta pasa el paciente en crudo (`paciente: patient`, receta/[patientId]/[notaId]/page.tsx:982), así que `data.paciente.alergias` es el texto libre. Evaluada desde /tmp la expresión de la 977 con el paciente del hallazgo (`alergias:''`, `alergiasEstructuradas:[{alergeno:'Penicilina'}]`) → \"Negadas / no referidas\". Y el guardián que debería impedirlo tiene un punto ciego demostrado: la regex de src/__tests__/alergias-impreso-fuente.test.ts:66 `/\\{\\s*(data\\.)?pa(ciente|tient)\\??\\.alergias\\s*\\}/` ejecutada contra la línea 977 → `false` (el `|| '...'` la esquiva) y contra el archivo entero → `false`; el `toContain('alergiasParaImpreso')` de la línea 64 pasa por HojaCustom. No hay REG que lo cierre. No pude renderizar el DOM headless (la paginación de RecetaDocumento no termina sin medición de navegador), y eso queda dicho."
+    },
+    {
+      "id": "MI-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:154 (`import { SelloMotor } from '@/components/SelloMotor'`) — `grep -rn '<SelloMotor' src/` sale VACÍO (código de salida 1) y `grep -rn 'SelloMotor' src/` sólo devuelve tres líneas: la definición (SelloMotor.tsx:66), ese import y `motoresSinValidar` en cumplimiento/page.tsx:26",
+      "nota": "Verificado con grep en TODO src/ como se pidió: el componente se importa y nunca se usa como elemento JSX ni por `createElement`. La afirmación de la pantalla de cumplimiento es literal («sus resultados salen en pantalla con una etiqueta ámbar junto al dato», cumplimiento/motores/page.tsx:93) y los números también: `sellos.json` da {\"pendiente_validacion\":23,\"validado\":65,\"experimental\":1} sobre 89. El segundo defecto también es cierto: src/__tests__/modulos-sin-conectar.test.ts:196 `importados()` marca conectado cualquier archivo al que apunte un import de valor, sin mirar el uso. BAJO A P2: no hay daño clínico ni pérdida de dato — es una afirmación falsa en pantalla y un componente sin cablear, y una de las dos salidas (corregir el texto) es de una línea."
+    },
+    {
+      "id": "MI-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/medical-dictionary.ts:147-149 contra la lista FAMILIA_BETALACTAMICOS de la línea 69, que sólo tiene principios activos; el disparador de clase 'cefalosporina' sí existe en el otro motor, copiloto.ts:143 (`dispara: [... 'betalactam', 'cefalosporina', 'peni']`)",
+      "nota": "Reproducido con jiti desde /tmp: `validarAlergiasVsMedicamentos([{alergeno:'Cefalosporinas'}],[{nombre:'Ceftriaxona 1 g'}])` → `[]`. Comprobé además que no hay red de respaldo: la compuerta por token de nom004.ts:57-72 hace `'Ceftriaxona 1 g'.includes('cefalosporinas')` → false. El plural que sí funciona es 'Penicilinas' (→ 'critica'), y sólo porque 'penicilina' es subcadena suya; con las cefalosporinas no hay subcadena posible. Dos vocabularios sobre la misma entidad, y el débil es el que imprime y el que gatea la firma."
+    },
+    {
+      "id": "MI-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/medical-dictionary.ts:148 (`FAMILIA_BETALACTAMICOS.some(f => a.includes(f) || a.includes('beta'))` — el segundo término no depende de `f`) → nom004.ts:95-102 (`detiene(clase)` → `errores`) → consulta/[patientId]/page.tsx:4077 («No se puede firmar»)",
+      "nota": "Reproducido de punta a punta con jiti desde /tmp, salida literal: `alergiasDe({alergias:'Betametasona'})` → `[{\"alergeno\":\"Betametasona\"}]`; `validarAlergiasVsMedicamentos` → `[{\"severidad\":\"critica\",\"mensaje\":\"Paciente con alergia documentada a beta-lactámicos y se prescribe Amoxicilina 500 mg. Reacción cruzada posible — verificar.\"}]`; y la compuerta completa `validarNOM004` con una nota mínima válida: `Betametasona -> valida: false | errores: [\"⚠️ [Contraindicado] Paciente con alergia documentada a beta-lactámicos...\"]`, igual con `Betabloqueadores`, `Penicilina -> valida:false` (correcto) y `Polen -> valida: true` (control). No hay vía de paso por encima. D-033 está escrita para la PANTALLA DE RECETA (DECISION_REGISTER.md:38, «on the prescription screen»), así que la pregunta al dueño está bien planteada y no la resuelve el registro."
+    },
+    {
+      "id": "MI-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/seguridad/dosis.ts:293 (`const masa = t.match(/(\\d+(?:[.,]\\d+)?)\\s*(mcg|...|mg|gramos?|gr|g)\\b/)`): en «325/37.5 mg» la unidad sólo está pegada al segundo componente",
+      "nota": "Reproducido con jiti desde /tmp: `extraerMg('325/37.5 mg')` → 37.5; `extraerMg('500/5 mg')` → 5; `extraerMg('100/25 mg')` → 25; `buscarFarmaco('Paracetamol/tramadol')` → «Paracetamol». Y la cifra falsa llega al médico tal cual la escribió el auditor: `terapiaDuplicadaDeLaLista([{Paracetamol 500 mg, 1 g, c/6h},{Paracetamol/tramadol, 325/37.5 mg, c/8h}], [])` → «Paracetamol: 4000 mg + 112.5 mg = 4112.5 mg/día sumando los renglones supera el máximo diario de referencia (4000 mg).» El módulo declara `QUE_NO_CUBRE` (terapia-duplicada.ts:163) y esta limitación no está dentro."
+    },
+    {
+      "id": "MI-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/farmacovigilancia.ts:46 (`const REGLAS: ReglaInteraccion[] = [`) — diez títulos contados en el bloque; sus exports son sólo `detectarInteracciones, interaccionesDelCuadro, detectarControlados`, sin nada equivalente a `LO_QUE_NO_DISTINGUE` (temporalidad.ts:249) ni a `QUE_NO_CUBRE` (terapia-duplicada.ts:163)",
+      "nota": "Ejecutado con los ocho fármacos del hallazgo (metformina, losartán, amlodipino, atorvastatina, ASA, furosemida, levotiroxina, omeprazol): `detectarInteracciones` → `[]` e `interaccionesDelCuadro` → `[]`, sin ninguna declaración de cobertura acompañando al silencio. El filtro citado existe: receta/[patientId]/[notaId]/page.tsx:241 `.filter(a => a.codigo !== 'sin_referencia')`. Es la regla 5 de clinical-safety.md aplicada al pie de la letra; se queda en P2 porque no hay cifra equivocada, hay silencio sin etiqueta, y la mitad depende de la decisión del dueño que el propio hallazgo formula."
+    },
+    {
+      "id": "MI-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/el-farmaco-que-ya-no-toma.ts:88-94 (CESACION; la última alternativa `\\bno\\s+(?:la|lo|las|los)\\s+(?:toma|est[aá]\\s+tomando)\\b` exige pronombre) y su consumidor real, consulta/[patientId]/page.tsx:1392",
+      "nota": "Reproducido con jiti desde /tmp, mismas nueve frases: detecta «Ya no toma el losartán», «Dejó de tomar…», «se le acabó…», «Se le suspendió la metformina»; NO detecta «No toma el losartán desde hace un mes», «No se ha tomado el losartán desde hace un mes», «Nunca se tomó el losartán que le receté», «Abandonó el losartán hace un mes». Con la firma real (`farmacosSoloMencionadosEnPasado(vigentes, texto)`): «Ya no toma el losartán» → [\"Losartán 50 mg\"], los cuatro fallidos → []. Control REG-374 intacto: «le receté amoxicilina hace tres días» → false. BAJO A P3 PORQUE LA PREMISA DEL IMPACTO ES FALSA: el módulo NUNCA suspende nada por su cuenta (POR_QUE_NO_LO_SUSPENDE_SOLO, líneas 190-196), así que el fármaco sigue vigente y alimenta los cruces exactamente igual cuando la frase SÍ se detecta. Lo que se pierde es un aviso, no un dato."
+    },
+    {
+      "id": "MI-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/negaciones.ts:364-372 (`primeraMencionSinEscudo(textoNota, formas, NIEGA_EN_LINEA)`; el escudo es NIEGA_EN_LINEA, línea 219, que sólo conoce negaciones)",
+      "nota": "Reproducido con jiti desde /tmp con el dictado y la nota del hallazgo. Salida literal: `condicionesNegadas` → `[{\"condicion\":\"diabetes\",\"cita\":\"Doctor: ¿usted tiene diabetes? Paciente: No, yo no.\"}]`; `contradicciones` → una, con `enLaNota: \"s heredofamiliares: madre y hermana con diabetes mellitus tipo 2.\"`; el aviso al médico sale «…pero la nota lo afirma…»; y `corregirCertezaPorNegacion([{texto:'Diabetes mellitus tipo 2 en la madre',certeza:'confirmado'}], negadas)` → `certeza: \"descartado\"` con la entrada listada en `corregidas`. Falso positivo puro sobre una nota bien escrita, en el momento de firmar. Se queda en P2: la reclasificación se enseña y se cita (no es silenciosa), y el dato no se borra del expediente."
+    },
+    {
+      "id": "MI-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:685 (`if (h && h.riesgo === 'evitar') {`) y `grep -rn 'RIESGO_HEPATICO' src/` → sólo copiloto.ts:18/684, registry.ts:1725/1729 y un comentario en laboratorio/lo-que-ya-esta-medido.ts:28; ninguna pantalla",
+      "nota": "Verificado: la tabla ejecutada desde /tmp tiene nueve entradas con riesgos `['evitar','ajustar','evitar','ajustar','vigilar','vigilar','evitar','evitar','evitar']` — cuatro de nueve (los 'ajustar'/'vigilar') no pueden producir ninguna sugerencia por la condición de la línea 685. El eje hepático no llega a receta ni a orden. Es simétrico a lo que ya se corrigió en el eje renal, y la propia auditoría 2026-07 citada arriba de la línea 675 cerró la mitad."
+    },
+    {
+      "id": "MI-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/templates.ts:9-20 (historia_clinica) y 21-28 (primera_vez) sin `pronostico`, contra templates.ts:48 e :63 donde `ingreso` y `egreso` lo llevan con `obligatorio: true`; `grep -n 'pronostico' nom004.ts` → cero",
+      "nota": "El hecho está verificado y la asimetría es real. Queda PARCIAL porque la premisa que lo convierte en defecto —que NOM-004-SSA3-2012 exija pronóstico en la historia clínica y la nota de evolución AMBULATORIAS— no está demostrada en ningún sitio del repositorio ni por el auditor, que él mismo lo marca NEEDS_CLINICAL_REVIEW y lo deja como decisión del dueño. Sin el texto de la norma citado, esto es una pregunta legal abierta, no un defecto; por eso baja a P3. Lo que falta para cerrarlo: la cita del artículo aplicable."
+    },
+    {
+      "id": "MI-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/clinical/registry.ts:1732 (`entryPoints: ['revisarFarmaco', 'ajustePorTFG', 'revisarListaRenal', 'estadioERC']`); `grep -rn 'revisarFarmaco\\b' src/` → sólo su definición (prescripcion-segura.ts:306), el registro y src/__tests__/prescripcion-segura.test.ts; `revisarListaRenal` sólo aparece en un comentario (copiloto.ts:405); `estadioERC`, cero fuera de su módulo",
+      "nota": "Los tres símbolos están vivos y probados —`estadioERC(35.7)` devuelve `{\"estadio\":\"G3b\",\"descripcion\":\"Disminución moderada a severa (30-44).\"}`— y ninguna pantalla los llama. También verificada la segunda mitad: `grep -rn 'reasoning' src/app src/hooks src/components` sólo devuelve la propia route.ts; ningún componente la invoca. Es `innecesario` con evidencia y lectura razonable (briefing §7): confirmado, P3, sin daño clínico."
+    },
+    {
+      "id": "MI-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/farmacia/page.tsx:593 (`if (tipo === 'salida' && estaCaducado(item))`, única guarda clínica de la salida) y `grep -in 'alergia' src/app/(dashboard)/farmacia/page.tsx src/lib/farmacia.ts` → sin resultados",
+      "nota": "Comprobado el grep y comprobado que la ruta NO está en pausa (`MODULOS_EN_PAUSA = ['hospitalizacion','uci']`, src/lib/navegacion/modulos-en-pausa.ts:34), así que sí llega a producción. BAJO A P3: la propia probabilidad declarada es «baja», la dispensación normal va detrás de una receta que sí cruza alergias (receta/[patientId]/[notaId]/page.tsx:141-148) y la salida exige elegir paciente, de modo que el hueco es el camino excepcional. La propuesta sigue siendo barata y sin motores nuevos."
+    },
+    {
+      "id": "MI-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/funcion-renal.ts:222-263 (REGLAS_RENALES: dieciocho entradas, ninguna de AINE, digoxina, litio, colchicina ni alopurinol) contra src/lib/expediente/prescripcion-segura.ts:122-133 (entrada «Antiinflamatorios no esteroideos», `{ desde: 0, hasta: 30, ... contraindicado: true }`)",
+      "nota": "Reproducido con jiti desde /tmp sobre EL MISMO paciente sintético (creatinina 1.9, 78 años, 62 kg → CrCl Cockcroft 28.1 mL/min, CKD-EPI 35.7 mL/min/1.73m²), salida literal: RECETA `ajusteRenalFarmacos([Ketorolaco 30 mg, Metformina 850 mg, Gabapentina 300 mg], dep)` → `[\"Metformina 850 mg\",\"Gabapentina 300 mg\"]`; CONSULTA `revisarListaRenal([...], 35.7)` → `[\"Antiinflamatorios no esteroideos\",\"Metformina\",\"Gabapentina\"]`. Exactamente el conjunto que el auditor predijo. Confirmada también la doble escala: la receta compara contra CrCl de Cockcroft (funcion-renal.ts:283-286) y el copiloto corta en `tfg >= 60` indexada (copiloto.ts:378). Rompe el invariante de CLAUDE.md; la pregunta ya está abierta en registry.ts:1729."
+    }
+  ],
+  "ratio": { "total": 14, "confirmados": 13, "refutados": 0, "parciales": 1 },
+  "observaciones_del_auditor": "No encontré una sola línea mal citada: comprobé al carácter las catorce (receta:284/152/166-167, RecetaDocumento:977/769/449, consulta:154 y :4077, medical-dictionary:147-148, dosis:293, farmacovigilancia:46, el-farmaco-que-ya-no-toma:88, negaciones:364, copiloto:685 y :378, templates:9/48/63, registry:1732, farmacia:593, funcion-renal:222) y todas existen donde dice. Repetí con jiti las ejecuciones de MI-001, MI-002, MI-005, MI-014 —y de propina MI-004, MI-006, MI-008, MI-009, MI-010, MI-012— y las salidas coinciden literalmente con lo que reportó, incluida la cifra «4000 mg + 112.5 mg = 4112.5 mg/día». Sus patrones de error son otros, y son de RELATO, no de evidencia: (1) infla la NARRATIVA del impacto más allá de lo que su propio caso demuestra — en MI-001 afirma que el médico ve avisos de interacción sobre la metformina y en ese escenario `interaccionesDelCuadro` devuelve `[]` (no hay regla cipro+metformina); en MI-008 dice que el fármaco «sigue como vigente y alimenta los cruces» cuando eso pasa igual si la frase SÍ se detecta, porque el módulo nunca suspende solo. (2) Etiqueta como `defecto` cosas que dependen de una decisión que él mismo declara pendiente (MI-011, sin la cita de la NOM que sostendría el requisito). (3) Tiende a P1 para hallazgos de transparencia sin daño clínico (MI-003). Contra eso: es honesto sobre su cobertura parcial (consultor, antibiograma, parser-clinico declarados como revisión superficial), no reclama hallazgos donde el repositorio ya se defiende (alergias.ts, temporalidad.ts, edad-para-dosificar.ts, /uci en pausa), y encontró el punto ciego real de un guardián verde (alergias-impreso-fuente.test.ts:66 y modulos-sin-conectar.test.ts:196). Bajé cuatro prioridades (MI-003, MI-008, MI-013 y MI-011 con `parcial`); no subí ninguna, aunque MI-005 roza P0 por bloquear la firma sin vía de paso."
+}

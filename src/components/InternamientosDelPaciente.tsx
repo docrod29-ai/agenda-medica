@@ -28,8 +28,11 @@
  * cifra derivada: esos motores existen aparte, con sus reglas, y duplicarlos
  * aquí sería crear una segunda verdad para el mismo dato.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BedDouble, ChevronRight } from 'lucide-react'
+import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
+import { plural } from '@/lib/texto-es'
+import { fechaCorta } from '@/lib/formato/fecha'
 import type { Internamiento } from '@/types/hospital'
 
 export interface InternamientosDelPacienteProps {
@@ -46,12 +49,20 @@ export interface InternamientosDelPacienteProps {
   onCargado?: (lista: Internamiento[] | null) => void
 }
 
-const fecha = (iso?: string) =>
-  iso ? new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+/**
+ * La fecha va por el formateador ÚNICO del producto (ZC-019): `toLocaleDateString`
+ * a secas usaba la zona del navegador, y el mismo ingreso cambiaba de día según
+ * desde dónde se mirara. `fechaCorta` formatea en la zona del consultorio.
+ */
+const fecha = (iso?: string) => fechaCorta(iso) || '—'
 
 export function InternamientosDelPaciente(p: InternamientosDelPacienteProps) {
   const [lista, setLista] = useState<Internamiento[] | null>(null)
+  /** El fallo de lectura es un estado propio — Panel de Lujo ZC-005. */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [intento, setIntento] = useState(0)
   const { clinicId, patientId, cargar } = p
+  const reintentar = useCallback(() => { setFalloAlLeer(undefined); setIntento(n => n + 1) }, [])
 
   /* Ref, no dependencia del efecto: ver la misma razón en
      CabosSueltosDelPaciente.tsx — `onCargado` no debe redisparar la lectura. */
@@ -64,13 +75,22 @@ export function InternamientosDelPaciente(p: InternamientosDelPacienteProps) {
     if (!clinicId || !patientId) return
     let vivo = true
     cargar(clinicId, patientId)
-      .then(r => { if (vivo) { setLista(r); onCargadoRef.current?.(r) } })
-      /* `null` es «no se pudo leer», que NO es «nunca estuvo ingresado».
-         Enseñar una lista vacía ante un fallo de red afirmaría algo falso
-         sobre la historia del paciente. */
-      .catch(() => { if (vivo) { setLista(null); onCargadoRef.current?.(null) } })
+      .then(r => { if (vivo) { setLista(r); setFalloAlLeer(undefined); onCargadoRef.current?.(r) } })
+      /* «No se pudo leer» NO es «nunca estuvo ingresado». El fallo se guarda
+         aparte y se PINTA: una lista ausente ante un fallo de red afirmaría
+         algo falso sobre la historia del paciente. */
+      .catch((e: unknown) => {
+        if (!vivo) return
+        setLista(null)
+        setFalloAlLeer(e ?? new Error('lectura fallida'))
+        onCargadoRef.current?.(null)
+      })
     return () => { vivo = false }
-  }, [clinicId, patientId, cargar])
+  }, [clinicId, patientId, cargar, intento])
+
+  if (falloAlLeer !== undefined) {
+    return <NoSePudoLeer que="sus ingresos hospitalarios" error={falloAlLeer} alReintentar={reintentar} />
+  }
 
   if (!lista || lista.length === 0) return null
 
@@ -88,7 +108,7 @@ export function InternamientosDelPaciente(p: InternamientosDelPacienteProps) {
           Ingresos hospitalarios
         </span>
         <span style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--text3)' }}>
-          {lista.length === 1 ? '1 episodio' : `${lista.length} episodios`}
+          {plural(lista.length, 'episodio', 'episodios')}
         </span>
       </header>
 
@@ -134,4 +154,6 @@ export const POR_QUE_NO_CALCULA_NADA =
 
 export const POR_QUE_NULL_NO_ES_VACIO =
   'Si la lectura falla, no se enseña una lista vacía: eso afirmaría que el ' +
-  'paciente nunca estuvo ingresado.'
+  'paciente nunca estuvo ingresado. Hasta ZC-005 el fallo y el vacío ' +
+  'compartían el mismo `return null`, así que la afirmación falsa se hacía ' +
+  'igual, sólo que en silencio.'

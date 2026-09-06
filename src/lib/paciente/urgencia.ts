@@ -44,11 +44,33 @@
  * ── LO QUE ESTE MÓDULO NO VIGILA (clinical-safety.md §5) ────────────────────
  *
  * Esto es VOCABULARIO, no criterio. Que una forma de decirlo no esté aquí
- * significa que **ese caso no se vigila**, no que sea benigno. No cubre, entre
- * otros: hemorragia, trauma, dolor abdominal agudo, fiebre en el lactante,
- * reacción alérgica/anafilaxia, ideación suicida, complicaciones del embarazo,
- * ni ninguna lengua distinta del español. Ampliar la lista es trabajo con
- * nombre, no una regla que se pueda dar por hecha.
+ * significa que **ese caso no se vigila**, no que sea benigno.
+ *
+ * ── PL-C9 · LO QUE CINCO ESPECIALIDADES PIDIERON EL MISMO DÍA ───────────────
+ *
+ * El Panel de Lujo (sep-2026) trajo el mismo hallazgo por cinco caminos
+ * distintos: obstetricia (MG-013, PG-001), pediatría (PP-001, PP-002),
+ * postoperatorio (PC-003), ortopedia/vascular (PO-003) e interna (PI-011).
+ * Todos decían lo mismo: a las 2 a.m. la paciente escribe «estoy sangrando» o
+ * «no siento al bebé» y el sistema le contesta que «el consultorio la va a
+ * ver».
+ *
+ * Ampliar ESTE vocabulario es el lado seguro y no inventa ninguna cifra: lo
+ * único que hace escalar de más es un mensaje diciéndole a alguien que llame.
+ * Por eso se amplía sin esperar a nadie. **Lo que sí dependería de una cifra
+ * —la temperatura y la edad exactas del lactante febril, el corte de glucosa
+ * baja— NO se fija aquí**: la regla se dispara por la MENCIÓN (fiebre en un
+ * bebé, glucosa con síntomas), no por un umbral, y el umbral queda marcado
+ * `NEEDS_CLINICAL_REVIEW` para el internista real. Una regla que espera a un
+ * número que nadie ha dado es una regla que no vigila nada.
+ *
+ * ── LO QUE SIGUE SIN VIGILARSE, Y HAY QUE DECIRLO ───────────────────────────
+ *
+ * No cubre, entre otros: trauma craneal, dolor abdominal agudo, reacción
+ * alérgica/anafilaxia, ideación suicida, deshidratación del lactante,
+ * convulsión febril dicha con otras palabras, contracciones antes de término,
+ * ni ninguna lengua distinta del español. Ampliar la lista sigue siendo
+ * trabajo con nombre.
  *
  * Módulo PURO: sin Firestore, sin red, sin reloj.
  */
@@ -70,19 +92,71 @@ export const CLASES_RESPUESTA_PACIENTE = [
 
 export type ClaseRespuestaPaciente = (typeof CLASES_RESPUESTA_PACIENTE)[number]
 
-/** Las categorías del §6, con el nombre que se guarda en la bitácora. */
+/**
+ * Las categorías. Las cuatro primeras son las del §6 de `patient-facing-ai.md`;
+ * las seis siguientes las pidió el Panel de Lujo por cinco especialidades
+ * distintas (PL-C9) y **amplían el vocabulario, no el criterio**: todas acaban
+ * en la misma acción —escalar y enseñar la vía— y ninguna calcula nada.
+ */
 export type MotivoUrgencia =
   | 'dolor_toracico'
   | 'dificultad_respiratoria'
   | 'sintomas_neurologicos_agudos'
   | 'ingesta_accidental_o_sobredosis'
+  /* PL-C9 · obstetricia (MG-013, PG-001) */
+  | 'sangrado_que_no_para'
+  | 'urgencia_del_embarazo'
+  /* PL-C9 · pediatría (PP-001) */
+  | 'no_despierta_o_no_reacciona'
+  | 'fiebre_en_un_bebe'
+  /* PL-C9 · postoperatorio (PC-003) */
+  | 'herida_con_pus_o_fiebre'
+  /* PL-C9 · ortopedia y vascular (PO-003) */
+  | 'extremidad_fria_o_morada'
+  /* PL-C9 · interna (PI-011) */
+  | 'glucosa_con_sintomas'
 
 export const MOTIVO_LABEL: Record<MotivoUrgencia, string> = {
   dolor_toracico: 'dolor en el pecho',
   dificultad_respiratoria: 'dificultad para respirar',
   sintomas_neurologicos_agudos: 'síntomas neurológicos',
   ingesta_accidental_o_sobredosis: 'ingesta accidental o sobredosis',
+  sangrado_que_no_para: 'sangrado que no para',
+  urgencia_del_embarazo: 'problemas en el embarazo (sangrado, el bebé no se mueve, se rompió la fuente)',
+  no_despierta_o_no_reacciona: 'alguien que no despierta o no reacciona',
+  fiebre_en_un_bebe: 'fiebre en un bebé',
+  herida_con_pus_o_fiebre: 'una herida con pus, abierta o con fiebre',
+  extremidad_fria_o_morada: 'un pie o una mano fríos, morados o sin sensibilidad',
+  glucosa_con_sintomas: 'azúcar baja con sudor frío, temblor o confusión',
 }
+
+/**
+ * LO QUE ESTE MÓDULO **NO** DECIDE, Y HAY QUE PEDIRLE AL MÉDICO.
+ *
+ * Dos de las reglas nuevas viven donde habría que poner una cifra —la edad y la
+ * temperatura del lactante febril; el corte de glucosa baja— y **aquí no se
+ * pone ninguna**: la regla se dispara por la MENCIÓN, que es el lado seguro, y
+ * el umbral queda pendiente con nombre y con dueño. Rellenarlo con «lo
+ * habitual» sería exactamente el fallo que `clinical-safety.md` §1 llama el más
+ * caro posible.
+ *
+ * Se exporta para que la pantalla pueda decirlo y para que una prueba pueda
+ * exigir que siga dicho.
+ */
+export const UMBRALES_PENDIENTES = [
+  {
+    motivo: 'fiebre_en_un_bebe' as MotivoUrgencia,
+    falta: 'NEEDS_CLINICAL_REVIEW: edad máxima en días/meses y temperatura a partir de la cual la fiebre del lactante es urgencia',
+    quienLoDecide: 'el médico responsable (pediatría)',
+    mientrasTanto: 'cualquier mención de fiebre en un bebé o lactante escala; escalar de más es el lado seguro',
+  },
+  {
+    motivo: 'glucosa_con_sintomas' as MotivoUrgencia,
+    falta: 'NEEDS_CLINICAL_REVIEW: cifra de glucosa capilar que se considera hipoglucemia grave',
+    quienLoDecide: 'el médico responsable (medicina interna)',
+    mientrasTanto: 'la mención de azúcar o glucosa junto a síntomas escala, sin mirar ninguna cifra',
+  },
+] as const
 
 /**
  * EL NÚMERO DE EMERGENCIAS, EN UN SOLO SITIO.
@@ -175,10 +249,110 @@ const REGLAS: ReadonlyArray<{ motivo: MotivoUrgencia; prueba: (t: string) => boo
      */
     prueba: t =>
       /sobredosis|se intoxic|me intoxiq|envenen/.test(t) ||
-      (/((me |se )?(tome|tomo|trague|trago|bebi|bebio|comi|comio)|tome de mas|tomo de mas|tome todas|tomo todas)\b/.test(t) &&
-        /(pastilla|medicamento|medicina|tableta|jarabe|frasco|cloro|veneno|pila|caja)/.test(t)),
+      (TOMO_YA.test(t) && SUSTANCIA.test(t)) ||
+      /*
+       * ── PP-002 · «SE TOMÓ DOBLE DOSIS SIN QUERER» ────────────────────────
+       *
+       * La regla exigía que la frase nombrara «pastilla / jarabe / frasco», y
+       * la palabra que la gente usa —«dosis»— no estaba. «Se tomó doble dosis
+       * sin querer, ¿qué hago?» caía en escalación ordinaria.
+       *
+       * Se añade la CANTIDAD DE MÁS como segunda señal… y con un freno: la
+       * misma frase en futuro es una PREGUNTA de permiso, no un accidente.
+       * «¿Puedo tomarme el doble?» es la primera de las doce del §0 y tiene que
+       * seguir siendo una escalación por `cambio_de_dosis`, no una urgencia:
+       * contestar el 911 a quien pregunta antes de hacerlo rompe el canal.
+       */
+      (TOMO_YA.test(t) && DE_MAS.test(t) && !PIDE_PERMISO.test(t)),
+  },
+
+  /* ── PL-C9 · OBSTETRICIA (MG-013, PG-001) ─────────────────────────────── */
+  {
+    motivo: 'sangrado_que_no_para',
+    /*
+     * «Sangre» a secas NO entra: «me van a sacar sangre», «estudio de sangre»
+     * y «biometría» son la conversación normal de un consultorio, y escalar eso
+     * enseña a ignorar el aviso. Lo que entra es el sangrado como HECHO.
+     */
+    prueba: t =>
+      (/\bsangrado\b|\bsangrando\b|hemorragia|no para de sangrar|no deja de sangrar|no me para la sangre|perdi mucha sangre|sangro mucho/.test(t)) &&
+      !/(estudio|analisis|laboratorio|muestra|me sacan|sacar sangre|toma de sangre|examen de sangre|donar sangre|banco de sangre)/.test(t),
+  },
+  {
+    motivo: 'urgencia_del_embarazo',
+    prueba: t =>
+      /no siento (al |a mi )?(bebe|nino|nina|producto)|no siento que se mue|no lo siento mover|no la siento mover|ya no siento que se mue|no lo siento mover|no la siento mover|ya no se mueve|no se mueve (el |mi )?(bebe|nino|nina)|no siento movimient|dejo de moverse/.test(t) ||
+      /se me rompio la fuente|rompi la fuente|se me rompieron las membranas|se me sale liquido|estoy botando liquido/.test(t),
+  },
+
+  /* ── PL-C9 · PEDIATRÍA (PP-001) ───────────────────────────────────────── */
+  {
+    motivo: 'no_despierta_o_no_reacciona',
+    /*
+     * «Mucho sueño desde que empecé el tratamiento» NO es esto, y está en el
+     * fixture como caso NO urgente: es un efecto adverso que se escala, no una
+     * urgencia. Por eso «muy dormido» sólo cuenta acompañado de que no
+     * despierta, de que no responde, o de que se habla de un niño.
+     */
+    prueba: t =>
+      /no (lo |la |le |se )?(puedo )?(despiert|despertar)|no quiere despertar|no reacciona|esta inconsciente|no me contesta ni se mueve/.test(t) ||
+      (/(muy dormid|somnolient|adormilad|bien dormid)/.test(t) &&
+        /(no (se )?despiert|no responde|no reacciona|bebe|lactante|nino|nina|mi hijo|mi hija|recien nacid)/.test(t)),
+  },
+  {
+    motivo: 'fiebre_en_un_bebe',
+    /*
+     * NEEDS_CLINICAL_REVIEW (ver `UMBRALES_PENDIENTES`): la edad y la
+     * temperatura exactas las decide el médico. Mientras no las dé, cualquier
+     * fiebre dicha sobre un bebé o un lactante escala — que es lo que se puede
+     * hacer sin inventar una cifra.
+     */
+    prueba: t =>
+      /(fiebre|calentura|temperatura|febril)/.test(t) &&
+      /(bebe|bebito|lactante|recien nacid|neonato|mi nene|mi nena|de \d+ (dias|semanas|meses)\b)/.test(t),
+  },
+
+  /* ── PL-C9 · POSTOPERATORIO (PC-003) ──────────────────────────────────── */
+  {
+    motivo: 'herida_con_pus_o_fiebre',
+    prueba: t =>
+      /(herida|cicatriz|puntos|sutura|incision|operad|cirugia|me operaron)/.test(t) &&
+      /(pus|supura|infectad|huele mal|se abrio|se me abrio|se abrieron|roja y caliente|caliente y roja|hinchada y roja|fiebre|calentura)/.test(t),
+  },
+
+  /* ── PL-C9 · ORTOPEDIA Y VASCULAR (PO-003) ────────────────────────────── */
+  {
+    motivo: 'extremidad_fria_o_morada',
+    prueba: t =>
+      /(pie|pies|mano|manos|dedo|dedos|pierna|brazo|extremidad|tobillo)/.test(t) &&
+      /(morad|azul|amoratad|frio|fria|helad|sin sensibilidad|no siento los dedos|no los siento|palid|blanquec)/.test(t),
+  },
+
+  /* ── PL-C9 · MEDICINA INTERNA (PI-011) ────────────────────────────────── */
+  {
+    motivo: 'glucosa_con_sintomas',
+    /*
+     * NEEDS_CLINICAL_REVIEW (ver `UMBRALES_PENDIENTES`): aquí NO hay ninguna
+     * cifra de corte. Lo que dispara es la MENCIÓN del azúcar junto a síntomas,
+     * que no exige decidir a partir de cuánto es grave.
+     */
+    prueba: t =>
+      /(glucosa|glucometr|azucar|hipoglucem|glicemia)/.test(t) &&
+      /(baja|bajo|bajita|sudo frio|sudor frio|sudando|tembl|mareo|maread|confundid|vision borrosa|me siento mal|no responde|desmay|debil)/.test(t),
   },
 ]
+
+/** «Ya me lo tomé» — el acto CONSUMADO, no la pregunta de si puede. */
+const TOMO_YA = /((me |se )?(tome|tomo|trague|trago|bebi|bebio|comi|comio)|tome de mas|tomo de mas|tome todas|tomo todas)\b/
+
+/** De qué se habla cuando se habla de haberse tomado algo. */
+const SUSTANCIA = /(pastilla|medicamento|medicina|tableta|jarabe|frasco|gotas|capsula|comprimido|suspension|ampolleta|inyeccion|dosis|cloro|veneno|pila|caja)/
+
+/** La cantidad de más, dicha sin nombrar el envase. */
+const DE_MAS = /(doble|dos veces|dos dosis|dos pastillas|dos tabletas|de mas|de sobra|todas juntas)/
+
+/** Modales de permiso: «¿puedo…?» es una pregunta, no un accidente. */
+const PIDE_PERMISO = /(puedo|podria|debo|deberia|se puede|es correcto|esta bien si|me toca)/
 
 /**
  * ¿Lo que escribió el paciente es una de las urgencias del §6?
@@ -206,17 +380,53 @@ export function urgenciaDelMensaje(texto: string): Urgencia | null {
  * prometerle atención en un canal que nadie está mirando es lo que hace que se
  * quede esperando.
  */
-export function mensajeDeUrgencia(telefonoConsultorio: string): string {
+export type CanalDelPaciente = 'whatsapp' | 'portal'
+
+export function mensajeDeUrgencia(
+  telefonoConsultorio: string,
+  canal: CanalDelPaciente = 'whatsapp',
+): string {
   const tel = String(telefonoConsultorio ?? '').trim()
+
+  /**
+   * ── PC-005 · EL FORMATO DE WHATSAPP SE PINTABA CRUDO EN LA WEB ───────────
+   *
+   * El portal enseñaba literalmente «*Esto puede ser una urgencia médica.*» y
+   * «Llame al *911*»: los asteriscos de WhatsApp, tal cual, dentro de una
+   * página web. Y decía «este canal es para citas» estando el paciente en la
+   * pestaña **Preguntar**, que existe justo para preguntar.
+   *
+   * Un mismo texto no puede servir a los dos canales: en WhatsApp el número es
+   * texto y los asteriscos son negritas; en el portal el número es un botón que
+   * marca (`ViaDeUrgencia`) y los asteriscos son basura. Se separan.
+   *
+   * ── PI-014 · Y NO SE PROMETE LO QUE NO PASA ─────────────────────────────
+   *
+   * Decía «Avisamos al consultorio». Lo que ocurre de verdad es que la pregunta
+   * queda en el worklist y —si hay teléfono— sale un WhatsApp: nadie garantiza
+   * que alguien lo lea de madrugada. Se dice así.
+   */
+  if (canal === 'portal') {
+    return [
+      'Esto puede ser una urgencia médica.',
+      '',
+      'No esperes respuesta aquí: nadie está leyendo esta pantalla ahora mismo.',
+      `Marca el ${TELEFONO_EMERGENCIAS} o ve al servicio de urgencias más cercano.`,
+      ...(tel ? [`El teléfono de tu consultorio es ${tel}.`] : []),
+      '',
+      'Tu pregunta quedó anotada para tu consultorio, pero puede que nadie la lea hasta que abran.',
+    ].join('\n')
+  }
+
   return [
     '🚨 *Esto puede ser una urgencia médica.*',
     '',
-    'No espere respuesta por este medio: este canal es para citas y no hay nadie leyéndolo ahora mismo.',
+    'No espere respuesta por este medio: no hay nadie leyéndolo ahora mismo.',
     '',
     `📞 Llame al *${TELEFONO_EMERGENCIAS}* o acuda al servicio de urgencias más cercano.`,
     ...(tel ? [`📞 Consultorio: ${tel}`] : []),
     '',
-    'Avisamos al consultorio de que usted escribió.',
+    'Su mensaje quedó anotado para el consultorio, pero puede que nadie lo lea hasta que abran.',
   ].join('\n')
 }
 
@@ -247,6 +457,22 @@ export function avisoDeUrgenciaAlConsultorio(
     `Se le respondió que llame al ${TELEFONO_EMERGENCIAS} o acuda a urgencias. Nadie lo ha atendido.`,
   ].join('\n')
 }
+
+/**
+ * LO QUE ESTA LISTA **NO** VIGILA, DICHO EN LA PANTALLA (PL-C9).
+ *
+ * La recomendación por omisión del dueño para PL-C9 pedía que, mientras el
+ * vocabulario definitivo no esté firmado por especialidad, «el portal diga qué
+ * NO vigila — hoy no lo dice». Esto es esa frase, en un solo sitio, para que la
+ * pantalla no la copie a mano y se quede vieja.
+ *
+ * Es `clinical-safety.md` §5 dicho de cara al paciente: que un cuadro no esté
+ * nombrado significa que no se nombra, no que sea benigno.
+ */
+export const LO_QUE_NO_SE_VIGILA =
+  'Esta lista no es una lista de todo lo grave: no incluye golpes en la cabeza, ' +
+  'dolor de barriga fuerte, reacciones alérgicas ni pensamientos de hacerte daño. ' +
+  'Si algo te asusta y no está aquí, llama igual.'
 
 export const POR_QUE_VA_PRIMERO =
   'Porque el detector de preguntas frecuentes trabaja por subcadena y «me duele ' +

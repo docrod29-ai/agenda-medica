@@ -34,7 +34,55 @@ export interface Gestacion {
   trimestre: 1 | 2 | 3
   /** Días desde la FUM. */
   diasTotales: number
+  /**
+   * LA CUENTA NO CUADRA CON UN EMBARAZO EN CURSO — Panel de Lujo MG-010.
+   *
+   * Texto listo para pintar cuando el resultado sale de un dato implausible.
+   * Ausente = la cuenta es plausible. Nunca se corrige la cifra en silencio: se
+   * devuelve lo calculado Y el aviso, para que el médico vea las dos cosas y
+   * decida (regla 3 de seguridad clínica).
+   */
+  aviso?: string
 }
+
+/**
+ * PLAUSIBILIDAD DE LA CUENTA GESTACIONAL — Panel de Lujo MG-010 (P2).
+ *
+ * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ *
+ * `gestacionPorFUM` no tenía techo ni acotaba el ciclo. Reproducido por el
+ * equipo rojo, literalmente:
+ *
+ *     gestacionPorFUM('2024-09-01', '2026-09-06')
+ *       → { semanas: 105, dias: 0, trimestre: 3, fpp: '2025-06-08' }
+ *
+ * «105 semanas · 3.º trimestre» sale con la misma cara de dato bueno que
+ * «32.4», y se puede pegar a la nota. Y el rojo encontró algo peor de lo
+ * reportado: un ciclo NEGATIVO no sólo desplaza la fecha probable de parto,
+ * **infla la edad gestacional**:
+ *
+ *     gestacionPorFUM('2026-07-01', '2026-09-06', -5)
+ *       → 14 semanas 2 días sobre un embarazo real de 67 días (9.4)
+ *
+ * ── DE DÓNDE SALEN LOS LÍMITES, Y POR QUÉ NO SON CLÍNICOS ───────────────────
+ *
+ * Ninguno de estos números es un punto de corte clínico y por eso se pueden
+ * escribir aquí sin `NEEDS_CLINICAL_REVIEW`:
+ *
+ *  · El techo de 45 semanas NO dice cuándo un embarazo es prolongado —de eso ya
+ *    habla `HITOS_PRENATALES` con su ventana [41, 42], que es la cifra clínica y
+ *    no se toca—. Dice hasta dónde una CUENTA sigue siendo una cuenta de
+ *    embarazo: por encima, lo que hay es una FUM mal capturada.
+ *  · El rango de ciclo 21-45 días es el rango de entrada del propio dato, no un
+ *    criterio de normalidad: fuera de él el ajuste de Naegele deja de tener
+ *    sentido aritmético. Un ciclo negativo o de 90 días no es una paciente: es
+ *    un teclado.
+ *
+ * Si el Dr. quiere otros límites, se cambian aquí y en ningún otro sitio.
+ */
+export const TECHO_SEMANAS_PLAUSIBLES = 45
+export const CICLO_MINIMO_DIAS = 21
+export const CICLO_MAXIMO_DIAS = 45
 
 /**
  * Regla de Naegele: FPP = FUM + 280 días, corregida por la duración del ciclo
@@ -43,11 +91,43 @@ export interface Gestacion {
 export function gestacionPorFUM(fumISO: string, hoyISO: string, cicloDias = 28): Gestacion | null {
   const fum = fecha(fumISO), hoy = fecha(hoyISO)
   if (isNaN(fum.getTime()) || isNaN(hoy.getTime())) return null
-  const ajuste = Math.round(cicloDias) - 28
+
+  /**
+   * MG-010 — el ciclo se ACOTA antes de usarlo, y se dice que se acotó.
+   *
+   * Un ciclo fuera de rango entra por `Number(ciclo) || 28` desde el panel
+   * (`PanelGineco.tsx:42`), así que «90» o «-5» llegaban tal cual y contaminaban
+   * la edad gestacional. Aquí se ignora el valor imposible —se usa el ciclo
+   * estándar— y el aviso lo dice: nada se corrige en silencio.
+   */
+  const cicloRedondeado = Math.round(cicloDias)
+  const cicloFueraDeRango =
+    !Number.isFinite(cicloRedondeado) ||
+    cicloRedondeado < CICLO_MINIMO_DIAS ||
+    cicloRedondeado > CICLO_MAXIMO_DIAS
+  const cicloUsado = cicloFueraDeRango ? 28 : cicloRedondeado
+
+  const ajuste = cicloUsado - 28
   const fpp = new Date(fum.getTime() + (280 + ajuste) * DIA)
   const diasTotales = Math.floor((hoy.getTime() - fum.getTime()) / DIA) - ajuste
   if (diasTotales < 0) return null
-  return armar(fpp, diasTotales)
+
+  const g = armar(fpp, diasTotales)
+
+  const avisos: string[] = []
+  if (cicloFueraDeRango) {
+    avisos.push(
+      `El ciclo de ${cicloDias} días queda fuera del rango que esta cuenta admite ` +
+      `(${CICLO_MINIMO_DIAS}-${CICLO_MAXIMO_DIAS}): se calculó con 28 días. Revisa el dato.`,
+    )
+  }
+  if (g.semanas > TECHO_SEMANAS_PLAUSIBLES) {
+    avisos.push(
+      `Esta FUM da ${g.semanas} semanas, que no corresponde a un embarazo en curso. ` +
+      `Revisa la fecha de la última menstruación antes de usar esta cuenta.`,
+    )
+  }
+  return avisos.length ? { ...g, aviso: avisos.join(' ') } : g
 }
 
 /**
@@ -88,21 +168,64 @@ export interface HitoPrenatal {
   ventana: [number, number]
   titulo: string
   detalle: string
+  /**
+   * DE DÓNDE SALE ESTE RENGLÓN — Panel de Lujo MG-021 (P2).
+   *
+   * ── QUÉ FALLABA ──────────────────────────────────────────────────────────
+   *
+   * Tres hitos llevan una DOSIS dentro del texto —ácido fólico 400 µg/día,
+   * aspirina 81-162 mg/día, inmunoglobulina anti-D 300 µg— y la única fuente
+   * estaba en la cabecera del archivo y en `registry.ts`, en una referencia
+   * global para los once renglones. El panel los pintaba a pelo, sin fuente y
+   * sin decir que el motor está `pendiente_validacion_clinica`.
+   *
+   * Una cifra de dosis sin fuente al lado, en una pantalla que el médico usa
+   * con la paciente delante, es lo que la regla 1 de seguridad clínica prohíbe.
+   *
+   * ── QUÉ SE HIZO, Y QUÉ **NO** ────────────────────────────────────────────
+   *
+   * NO se ha cambiado, añadido ni confirmado ninguna cifra: son las mismas que
+   * ya estaban. Lo que se añade es de dónde viene cada renglón, repartiendo por
+   * hito la referencia que `registry.ts` ya declaraba para el conjunto
+   * («NOM-007 / OMS (control prenatal); ACOG-USPSTF…»). Cuál norma respalda
+   * cada cifra EXACTA sigue siendo `NEEDS_CLINICAL_REVIEW`: lo decide el Dr., y
+   * hasta que lo decida, el panel enseña el estado «pendiente de validación» en
+   * vez de callárselo.
+   */
+  fuente: string
+  /**
+   * true cuando el renglón lleva una CANTIDAD dentro del detalle: una dosis
+   * (ácido fólico, aspirina, anti-D) o una carga de una prueba (los 75 g de la
+   * curva de tolerancia). Se marcan las dos porque el guardián que las vigila no
+   * puede distinguirlas mirando el texto, y la que importa es la que se le
+   * administra a la paciente — que son las cuatro.
+   */
+  llevaDosis?: boolean
 }
+
+/**
+ * Estado de validación del bloque prenatal, tal y como lo declara el registro
+ * de motores (`registry.ts`: `estado: 'pendiente_validacion'`). Se exporta para
+ * que la PANTALLA pueda decirlo — que era la mitad que faltaba de MG-021.
+ */
+export const HITOS_PRENATALES_ESTADO = 'pendiente_validacion' as const
+export const HITOS_PRENATALES_AVISO =
+  'Estas recomendaciones y sus dosis están pendientes de validación clínica final. ' +
+  'Cada renglón indica su fuente; confírmala antes de prescribir.'
 
 /** Estudios y acciones del control prenatal (NOM-007-SSA2-2016 + recomendaciones OMS). */
 export const HITOS_PRENATALES: HitoPrenatal[] = [
-  { ventana: [0, 13], titulo: 'Laboratorios de primera consulta', detalle: 'Biometría hemática, grupo y Rh, glucosa, VDRL/sífilis, VIH (con consentimiento), examen general de orina y urocultivo.' },
-  { ventana: [0, 12], titulo: 'Ácido fólico', detalle: '400 µg/día (4 mg si antecedente de defecto del tubo neural). Idealmente desde antes del embarazo hasta la semana 12.' },
-  { ventana: [11, 14], titulo: 'Ultrasonido del primer trimestre', detalle: 'Fecha la gestación con la mayor precisión (LCC) y evalúa translucencia nucal para tamizaje de aneuploidías.' },
-  { ventana: [12, 28], titulo: 'Aspirina si hay riesgo de preeclampsia', detalle: 'Iniciar 81-162 mg/día, idealmente antes de la semana 16, hasta el parto. Ver el evaluador de riesgo.' },
-  { ventana: [18, 22], titulo: 'Ultrasonido estructural', detalle: 'Anatomía fetal completa y localización placentaria.' },
-  { ventana: [24, 28], titulo: 'Tamizaje de diabetes gestacional', detalle: 'Curva de tolerancia a la glucosa (75 g en un paso o 50 g/100 g en dos pasos). Repetir biometría hemática.' },
-  { ventana: [28, 28], titulo: 'Inmunoglobulina anti-D si Rh negativo', detalle: 'En madre Rh negativa no sensibilizada: 300 µg a las 28 semanas y otra dosis posparto si el recién nacido es Rh positivo. Coombs indirecto previo.' },
-  { ventana: [27, 36], titulo: 'Vacuna Tdpa', detalle: 'Una dosis en CADA embarazo entre las semanas 27 y 36 para proteger al recién nacido de tosferina. Influenza en temporada, en cualquier trimestre.' },
-  { ventana: [35, 37], titulo: 'Cultivo para estreptococo del grupo B', detalle: 'Cultivo vaginal y rectal; si es positivo, profilaxis antibiótica intraparto.' },
-  { ventana: [36, 41], titulo: 'Vigilancia de término', detalle: 'Consulta semanal, valorar presentación, movimientos fetales y bienestar. Plan de nacimiento.' },
-  { ventana: [41, 42], titulo: 'Embarazo prolongado', detalle: 'Vigilancia fetal estrecha y valorar inducción del trabajo de parto.' },
+  { ventana: [0, 13], titulo: 'Laboratorios de primera consulta', detalle: 'Biometría hemática, grupo y Rh, glucosa, VDRL/sífilis, VIH (con consentimiento), examen general de orina y urocultivo.' , fuente: 'NOM-007-SSA2-2016 (control prenatal)' },
+  { ventana: [0, 12], titulo: 'Ácido fólico', detalle: '400 µg/día (4 mg si antecedente de defecto del tubo neural). Idealmente desde antes del embarazo hasta la semana 12.' , fuente: 'NOM-007-SSA2-2016 · OMS (suplementación periconcepcional)', llevaDosis: true },
+  { ventana: [11, 14], titulo: 'Ultrasonido del primer trimestre', detalle: 'Fecha la gestación con la mayor precisión (LCC) y evalúa translucencia nucal para tamizaje de aneuploidías.' , fuente: 'OMS (atención prenatal, 2016)' },
+  { ventana: [12, 28], titulo: 'Aspirina si hay riesgo de preeclampsia', detalle: 'Iniciar 81-162 mg/día, idealmente antes de la semana 16, hasta el parto. Ver el evaluador de riesgo.' , fuente: 'ACOG · USPSTF (profilaxis de preeclampsia)', llevaDosis: true },
+  { ventana: [18, 22], titulo: 'Ultrasonido estructural', detalle: 'Anatomía fetal completa y localización placentaria.' , fuente: 'OMS (atención prenatal, 2016)' },
+  { ventana: [24, 28], titulo: 'Tamizaje de diabetes gestacional', detalle: 'Curva de tolerancia a la glucosa (75 g en un paso o 50 g/100 g en dos pasos). Repetir biometría hemática.' , fuente: 'NOM-007-SSA2-2016 · NOM-015-SSA2-2010', llevaDosis: true },
+  { ventana: [28, 28], titulo: 'Inmunoglobulina anti-D si Rh negativo', detalle: 'En madre Rh negativa no sensibilizada: 300 µg a las 28 semanas y otra dosis posparto si el recién nacido es Rh positivo. Coombs indirecto previo.' , fuente: 'ACOG (aloinmunización Rh D)', llevaDosis: true },
+  { ventana: [27, 36], titulo: 'Vacuna Tdpa', detalle: 'Una dosis en CADA embarazo entre las semanas 27 y 36 para proteger al recién nacido de tosferina. Influenza en temporada, en cualquier trimestre.' , fuente: 'NOM-007-SSA2-2016 · Cartilla Nacional de Salud' },
+  { ventana: [35, 37], titulo: 'Cultivo para estreptococo del grupo B', detalle: 'Cultivo vaginal y rectal; si es positivo, profilaxis antibiótica intraparto.' , fuente: 'ACOG (prevención de infección neonatal por EGB)' },
+  { ventana: [36, 41], titulo: 'Vigilancia de término', detalle: 'Consulta semanal, valorar presentación, movimientos fetales y bienestar. Plan de nacimiento.' , fuente: 'NOM-007-SSA2-2016' },
+  { ventana: [41, 42], titulo: 'Embarazo prolongado', detalle: 'Vigilancia fetal estrecha y valorar inducción del trabajo de parto.' , fuente: 'NOM-007-SSA2-2016' },
 ]
 
 export interface HitoEstado { hito: HitoPrenatal; estado: 'vigente' | 'proximo' | 'vencido' }

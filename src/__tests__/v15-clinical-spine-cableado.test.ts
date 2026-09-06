@@ -98,18 +98,33 @@ describe('V15-PATIENT-WORKSPACE-001 — ClinicalSpine no abre fuente propia', ()
 })
 
 describe('V15-PATIENT-WORKSPACE-001 — los callbacks que alimentan el riel no relanzan la lectura', () => {
+  /**
+   * ── LA ASERCIÓN SE AJUSTÓ (Panel de Lujo ZC-004 / ZC-005) ────────────────
+   *
+   * Lo que este caso protege sigue intacto y es lo importante: el callback que
+   * reporta hacia arriba **no puede estar en las dependencias del efecto**,
+   * porque llega como una función nueva en cada render y volvería a leer
+   * Firestore sin que nada haya cambiado.
+   *
+   * Lo que cambió es que ahora hay una cuarta dependencia, `intento`: el
+   * contador del botón «Reintentar» que ZC-004/ZC-005 añadieron para poder
+   * volver a leer cuando la lectura falla. Es una dependencia por VALOR igual
+   * que las otras tres — sólo cambia cuando alguien pulsa — así que no reabre el
+   * problema que este caso vigila.
+   */
   it('CabosSueltosDelPaciente: onResumen NO está en las dependencias del efecto de carga', () => {
-    expect(CABOS).toMatch(/\}, \[clinicId, patientId, cargar\]\)/)
-    expect(CABOS).not.toMatch(/\[clinicId, patientId, cargar, onResumen\]/)
+    expect(CABOS).toMatch(/\}, \[clinicId, patientId, cargar, intento\]\)/)
+    expect(CABOS).not.toMatch(/cargar, onResumen/)
   })
 
   it('CabosSueltosDelPaciente: reporta el resultado ya cargado via ref, no vía dependencia', () => {
     expect(CABOS).toMatch(/onResumenRef\.current\?\.\(/)
   })
 
+  /** Mismo ajuste y misma razón que el de `CabosSueltosDelPaciente`, arriba. */
   it('InternamientosDelPaciente: onCargado NO está en las dependencias del efecto de carga', () => {
-    expect(INTERNAMIENTOS).toMatch(/\}, \[clinicId, patientId, cargar\]\)/)
-    expect(INTERNAMIENTOS).not.toMatch(/\[clinicId, patientId, cargar, onCargado\]/)
+    expect(INTERNAMIENTOS).toMatch(/\}, \[clinicId, patientId, cargar, intento\]\)/)
+    expect(INTERNAMIENTOS).not.toMatch(/cargar, onCargado/)
   })
 
   it('InternamientosDelPaciente: reporta el resultado ya cargado via ref, no vía dependencia', () => {

@@ -405,9 +405,25 @@ describe('elegir expediente para una cita del asistente', () => {
     expect(r).toBeNull()
   })
 
-  it('si al existente le falta el teléfono, no hay contradicción: se funde', () => {
-    const existentes = [{ id: 'p1', nombre: 'Ana Ruiz Peña', telefono: '' }]
-    const r = elegirExpedienteParaCita({ nombre: 'Ana Ruiz Peña', telefono: '6647778899' }, existentes)
+  it('si al existente le falta el teléfono y hay una SEGUNDA señal, se funde', () => {
+    /**
+     * RT-001 (Panel de Lujo 2026-09) — ESTE CASO SE REESCRIBIÓ, no se borró.
+     *
+     * Decía «si al existente le falta el teléfono, no hay contradicción: se
+     * funde», con el nombre como única señal. La lectura que quería fijar —el
+     * paciente que vuelve y ahora sí da su número— es cierta y sigue aquí; lo
+     * que era falso es que el NOMBRE A SECAS bastara para sostenerla: con esa
+     * regla, «Juan Pérez Ramírez» de 68 años sin teléfono se quedaba con la
+     * cita de su hijo homónimo. Ahora la identidad la sostiene la fecha de
+     * nacimiento y el teléfono sólo confirma. El caso sin segunda señal —que
+     * hoy devuelve `null`— vive en
+     * `un-homonimo-no-se-cuelga-del-expediente-sin-telefono.test.ts`.
+     */
+    const existentes = [{ id: 'p1', nombre: 'Ana Ruiz Peña', telefono: '', fechaNacimiento: '1980-03-15' }]
+    const r = elegirExpedienteParaCita(
+      { nombre: 'Ana Ruiz Peña', telefono: '6647778899', fechaNacimiento: '1980-03-15' },
+      existentes,
+    )
     expect(r?.id).toBe('p1')
   })
 

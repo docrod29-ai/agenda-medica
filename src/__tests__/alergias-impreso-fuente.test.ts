@@ -61,7 +61,16 @@ describe('TODOS los caminos de impresión usan el helper', () => {
   for (const [nombre, ruta] of CAMINOS) {
     it(`${nombre} lee de la misma fuente que la pantalla`, () => {
       const s = leer(...ruta)
-      expect(s, `${nombre} no importa alergiasParaImpreso`).toContain('alergiasParaImpreso')
+      /**
+       * MI-002 (Panel de Lujo, 6-sep-2026) — `alergiasParaElPapel` es
+       * `alergiasParaImpreso` MÁS la frase de los tres estados (alérgeno /
+       * «Sin registro en el expediente» / «NO DISPONIBLE»). Vive en
+       * `impreso-medico.ts` y llama al helper de seguridad por dentro, así que
+       * cualquiera de los dos nombres satisface esta regla: lo que se exige es
+       * que el impreso NO se invente la fuente, no cómo se llama la función.
+       */
+      expect(s, `${nombre} no lee las alergias del helper compartido`)
+        .toMatch(/alergiasParaImpreso|alergiasParaElPapel/)
       // Y ya no lee el texto libre por su cuenta.
       expect(s).not.toMatch(/\{\s*(data\.)?pa(ciente|tient)\??\.alergias\s*\}/)
     })

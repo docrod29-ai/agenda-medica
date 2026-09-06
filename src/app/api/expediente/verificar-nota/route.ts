@@ -114,7 +114,9 @@ export async function POST(req: NextRequest) {
   const mensajeDe = (tramo: string, i: number) =>
     `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\n\n` +
     (tramos.length > 1 ? `TRAMO ${i + 1} DE ${tramos.length} DE LA CONSULTA (la nota va completa; señala sólo lo que puedas juzgar con este tramo):\n` : 'TRANSCRIPCIÓN DE LA CONSULTA:\n') +
-    `${delimitar(tramo)}\n\nNOTA GENERADA A REVISAR:\n${notaTexto}\n\nDevuelve solo el JSON de hallazgos.`
+    // B-005 (nota del equipo rojo): la NOTA iba entera FUERA de la valla. Se
+    // redactó a partir del dictado, así que hereda lo que éste traiga.
+    `${delimitar(tramo)}\n\nNOTA GENERADA A REVISAR:\n${delimitar(notaTexto, 'NOTA')}\n\nDevuelve solo el JSON de hallazgos.`
 
   /**
    * Por el gateway (§P–T): aquí vivía la misma cascada de modelos y el mismo

@@ -3,15 +3,18 @@
 /**
  * CorreccionesPanel — transparencia de las correcciones léxicas automáticas.
  *
- * La lista de correcciones sigue existiendo para provenance/auditoría y para
- * superficies especializadas que sí la necesiten. En el Golden Path de
- * Consultorio, sin embargo, una corrección léxica rutinaria no debe convertirse
- * en una tarea de depuración para el médico. Las excepciones que pueden cambiar
- * significado clínico siguen escalando por AlertasDictado / motivos materiales.
+ * ── POR QUÉ VUELVE A VERSE EN LA CONSULTA (D-001, Panel de Lujo 2026-09) ────
+ *
+ * Igual que su hermano `CambiosCifrasPanel`: se apagaba solo en `/consulta/`,
+ * así que el médico de consultorio no podía ver —ni deshacer— qué palabras le
+ * cambió el corrector a su dictado. Seguridad clínica §3 no tiene una excepción
+ * por ruta, y no hay decisión del dueño que respalde el filtro.
+ *
+ * Llega PLEGADO y con su conteo: enseñarlo no es abrir una tarea, es dejar la
+ * puerta a la vista para quien quiera abrirla.
  */
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
 import { ChevronDown, ChevronRight, RotateCcw, Wand2 } from 'lucide-react'
 import type { CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 
@@ -29,7 +32,6 @@ interface CorreccionesPanelProps {
 }
 
 export function CorreccionesPanel({ correcciones, onRevertir }: CorreccionesPanelProps) {
-  const pathname = usePathname()
   const [abierto, setAbierto] = useState(false)
   const [revertidas, setRevertidas] = useState<Set<number>>(new Set())
 
@@ -40,10 +42,6 @@ export function CorreccionesPanel({ correcciones, onRevertir }: CorreccionesPane
   // cambia la lista.
   useEffect(() => { setRevertidas(new Set()) }, [correcciones])
 
-  // GP12/GP4: el médico de Consultorio no audita el ledger de correcciones
-  // rutinarias. No se borra ninguna corrección: sólo se elimina esta superficie
-  // del flujo primario. Lo clínicamente material conserva su canal de revisión.
-  if (pathname.startsWith('/consulta/')) return null
   if (correcciones.length === 0) return null
   const activas = correcciones.length - revertidas.size
 

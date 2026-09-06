@@ -159,8 +159,16 @@ describe('V15 /orden — el cromo habla tokens POR TEMA (el trinquete de color n
 })
 
 describe('V15 /orden — freeze funcional del editor', () => {
-  it('la primaria conserva sus guardas: descarga en curso, config y orden vacía', () => {
-    expect(src).toContain('disabled={descargando || !!configError || ordenVacia}')
+  it('la primaria conserva sus guardas: descarga en curso, config y orden incompleta', () => {
+    /**
+     * MO-003 · PO-015 (Panel de Lujo, sep-2026): la compuerta creció. `ordenVacia`
+     * sigue existiendo y sigue bloqueando; ahora va dentro de `noSePuedeEmitir`,
+     * que además exige el LADO cuando la región es par — no se emite una
+     * radiografía de rodilla sin decir cuál. Lo que esta prueba congela es que la
+     * primaria no pierda ninguna de sus guardas, y no ha perdido ninguna.
+     */
+    expect(src).toContain('disabled={descargando || !!configError || noSePuedeEmitir}')
+    expect(src).toContain('const noSePuedeEmitir = ordenVacia || ordenIncompleta')
   })
 
   it('EMITIR (imprimir/Word/PDF) sigue creando los pendientes y auditando — los tres caminos', () => {
@@ -170,7 +178,9 @@ describe('V15 /orden — freeze funcional del editor', () => {
 
   it('la orden-en-blanco sigue bloqueada (membrete firmado sin contenido)', () => {
     expect(src).toContain("const ordenVacia = estudios.filter(e => e.trim()).length === 0")
-    expect((src.match(/disabled=\{ordenVacia\}/g) ?? []).length).toBe(2)
+    // Los otros dos caminos que producen papel (Imprimir y Word) siguen
+    // bloqueados por la misma condición, ahora ampliada con la lateralidad.
+    expect((src.match(/disabled=\{noSePuedeEmitir\}/g) ?? []).length).toBe(2)
   })
 
   it('el folio sigue derivado de la nota (OM- estable, no del reloj)', () => {

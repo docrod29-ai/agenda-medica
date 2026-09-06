@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { safeLog } from '@/lib/security/sanitize'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { acotarMeta } from '@/lib/expediente/meta-de-bitacora'
 
 /**
@@ -31,7 +33,7 @@ const EVENTOS = new Set([
   'consentimiento_grabacion', 'expediente_lectura', 'nota_lectura', 'nota_impresion',
   'receta_generada', 'receta_descargada', 'orden_generada',
   'paciente_creado', 'paciente_modificado', 'paciente_borrado',
-  'aviso_privacidad_aceptado', 'arco_solicitud_recibida', 'arco_solicitud_resuelta',
+  'aviso_privacidad_aceptado', 'arco_solicitud_recibida', 'arco_solicitud_resuelta', 'arco_solicitud_ligada',
   'login_exitoso', 'login_fallido', 'export_datos',
   'hosp_ingreso', 'hosp_egreso', 'hosp_administracion', 'hosp_traslado', 'hosp_lab_resultado',
   // 'cobro_exento' EXISTÍA en el tipo pero faltaba aquí: la marca de cortesía se
@@ -105,9 +107,9 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message.slice(0, 160) : 'error al registrar' },
-      { status: 502 },
-    )
+    // El texto del Admin SDK trae la ruta del documento con el id del paciente
+    // dentro: al log redactado, no al navegador (S-006 · REG-534).
+    safeLog.error('[auditoria/registrar]', e)
+    return errorAlCliente('No se pudo registrar el asiento en la bitácora. Se reintenta solo.', 502)
   }
 }

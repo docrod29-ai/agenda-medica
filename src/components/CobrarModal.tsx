@@ -5,12 +5,15 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import {
-  registrarCobro, exentarCobro, cobrosDeCita, METODO_LABEL, CONCEPTO_LABEL,
+  registrarCobroDetallado, exentarCobro, cobrosDeCita, METODO_LABEL, CONCEPTO_LABEL,
+  CobroPosiblementeDuplicado, fmtMXN,
   type MetodoPago, type ConceptoCobro,
 } from '@/lib/cobros'
 import { situacionDeCobro, type SituacionCobro } from '@/lib/finanzas/estado-cobro'
 import { decidirMedicoDelCobroSuelto, type MedicoElegible } from '@/lib/finanzas/cobro-suelto'
-import { updateAppointment, getDoctors } from '@/lib/firestore'
+import { desvioDeImporte } from '@/lib/finanzas/desvio-de-importe'
+import { nombreDelOperador } from '@/lib/finanzas/nombre-del-operador'
+import { getDoctors } from '@/lib/firestore'
 import { auth } from '@/lib/firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { DollarSign, HeartHandshake } from 'lucide-react'
@@ -37,7 +40,7 @@ export interface CobrarModalProps {
 }
 
 export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }: CobrarModalProps) {
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const [monto, setMonto] = useState(String(prefill?.monto ?? ''))
   /**
    * LO QUE YA ABONÓ ESTE PACIENTE POR ESTA CITA.
@@ -100,13 +103,21 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
    * Con un solo médico no se pregunta nada. Ver `lib/finanzas/cobro-suelto.ts`.
    */
   const [doctores, setDoctores] = useState<MedicoElegible[]>([])
+  /**
+   * El equipo completo (con uid y correo) sirve además para ponerle NOMBRE a
+   * quien opera sin caer al correo (ASC-015). Se carga siempre, no sólo cuando
+   * hay que elegir médico.
+   */
+  const [equipo, setEquipo] = useState<{ uid?: string; email?: string; nombre?: string }[]>([])
   const [medicoElegido, setMedicoElegido] = useState(prefill?.medicoId ?? '')
   useEffect(() => {
-    if (!clinicId || prefill?.medicoId) return
+    if (!clinicId) return
     let vivo = true
     getDoctors(clinicId)
       .then(ds => {
         if (!vivo) return
+        setEquipo(ds.map(d => ({ uid: (d as { uid?: string }).uid, email: d.email, nombre: d.nombre })))
+        if (prefill?.medicoId) return
         setDoctores(ds)
         const d = decidirMedicoDelCobroSuelto(ds)
         if (d.medicoId) setMedicoElegido(d.medicoId)
@@ -117,6 +128,15 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     return () => { vivo = false }
   }, [clinicId, prefill?.medicoId])
   const decisionMedico = decidirMedicoDelCobroSuelto(doctores, prefill?.medicoId)
+  /**
+   * Quien OPERA (autoriza la cortesía, registra el cobro), con nombre de
+   * persona: displayName, o su nombre en el equipo, o «usuario xxxxxx…».
+   * Nunca el correo: acaba impreso en el corte de caja (ASC-015).
+   */
+  const nombreOperador = () => nombreDelOperador(
+    { uid: creadoPor || auth.currentUser?.uid, displayName: auth.currentUser?.displayName, email: auth.currentUser?.email },
+    equipo,
+  )
 
   const confirmarCortesia = async () => {
     if (!prefill?.citaId) { toast('La cortesía se marca sobre una cita', 'error'); return }
@@ -127,8 +147,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       // Quien AUTORIZA la cortesía es el operador logueado, NO el médico de la cita
       // (antes se guardaba prefill.medicoNombre → bitácora anti-fraude mal atribuida
       // cuando la asistente exentaba). El uid (creadoPor) ya era correcto.
-      const autorNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''
-      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, autorNombre)
+      // Y con NOMBRE, no con correo: `displayName || email` imprimía el correo
+      // en el corte cuando la cuenta no tenía nombre (ASC-015).
+      await exentarCobro(clinicId, prefill.citaId, m, creadoPor, nombreOperador())
       // Bitácora inmutable (best-effort): quién autorizó no cobrar y por qué.
       logAudit({
         evento: 'cobro_exento', clinicId, patientId: prefill.patientId,
@@ -157,6 +178,17 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
     if (decisionMedico.hayQuePreguntar && !medicoElegido) {
       toast('Elige de qué médico es este cobro', 'error'); return
     }
+    /**
+     * ASC-010: SI EL IMPORTE SE ALEJA DEL PRECIO DE LISTA, SE PREGUNTA.
+     * $8,000 por una consulta de $800 pasaba sin freno; ahora cuesta un clic
+     * más y atrapa el cero de más. Sin precio de lista no hay pregunta.
+     * (El saldo ya abonado NO es desvío: se compara contra el precio.)
+     */
+    const desvio = desvioDeImporte(prefill?.monto, n)
+    if (desvio.preguntar) {
+      const seguro = await confirm(desvio.pregunta, { titulo: 'Confirma el importe', confirmar: `Sí, son ${fmtMXN(n)}`, cancelar: 'Corregir' })
+      if (!seguro) return
+    }
     setGuardando(true)
     /**
      * GOLDEN PATH 9 — LA CLAVE DEL INTENTO SOBREVIVE AL REINTENTO.
@@ -172,74 +204,86 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
      * reintento, ni del médico cobrando en otra pantalla, ni del refresh.
      */
     claveIntentoRef.current ??= claveDeIntento()
+    const datos = {
+      monto: n,
+      metodo,
+      concepto,
+      descripcion: descripcion.trim() || undefined,
+      citaId: prefill?.citaId,
+      patientId: prefill?.patientId,
+      patientNombre: prefill?.patientNombre,
+      medicoId: prefill?.medicoId || medicoElegido || undefined,
+      medicoNombre: prefill?.medicoNombre
+        || doctores.find(d => d.id === medicoElegido)?.nombre
+        || undefined,
+      referenciaExterna: referencia.trim() || undefined,
+      notas: notas.trim() || undefined,
+      creadoPor,
+      creadoPorNombre: nombreOperador(),
+    }
     try {
-      const id = await registrarCobro(clinicId, {
-        monto: n,
-        metodo,
-        concepto,
-        descripcion: descripcion.trim() || undefined,
-        citaId: prefill?.citaId,
-        patientId: prefill?.patientId,
-        patientNombre: prefill?.patientNombre,
-        medicoId: prefill?.medicoId || medicoElegido || undefined,
-        medicoNombre: prefill?.medicoNombre
-          || doctores.find(d => d.id === medicoElegido)?.nombre
-          || undefined,
-        referenciaExterna: referencia.trim() || undefined,
-        notas: notas.trim() || undefined,
-        creadoPor,
-      }, { claveIdempotencia: claveIntentoRef.current })
-      // El cobro ya está registrado: lo que venga después es otra intención.
-      claveIntentoRef.current = null
-      // Marca la cita con el cobro para EVITAR DOBLE COBRO (el botón se oculta si ya tiene cobroId).
-      let marcadaLaCita = true
-      if (prefill?.citaId) {
-        try {
-          /**
-           * COBRAR CIERRA LA CONSULTA.
-           *
-           * Antes solo se marcaba el `cobroId`. El estado de la cita había que
-           * cambiarlo a mano después, en OTRA pantalla: ir a Citas, abrir el menú
-           * ⋮ y elegir "atendida" de una lista sin traducir. Dos clics por
-           * paciente, y en el lado contrario al que te lleva el flujo tras firmar.
-           *
-           * Y de `atendida` dependen SIETE cosas: el embudo del corte de caja,
-           * cuentas por cobrar, el CRM, la campaña de reactivación, los
-           * recordatorios post-visita y las reseñas. Si se olvida, todas se
-           * degradan en silencio.
-           *
-           * Cobrar es la señal inequívoca de que el paciente fue atendido, así que
-           * es el momento correcto para marcarlo. No se pisa un estado más
-           * avanzado (finalizada, pagada) si ya lo tenía.
-           */
-          const avanzados = ['atendida', 'finalizada', 'pagada']
-          /**
-           * Un ABONO (pago parcial) o un REEMBOLSO NO saldan la cita. `registrarCobro`
-           * a propósito NO reserva `cita.cobroId` en un abono, para que la cita SIGA
-           * "por cobrar" por el saldo restante. Si aquí escribiéramos `cobroId`, el
-           * botón "Cobrar" desaparecería (se oculta con `cobroId`) y el saldo quedaría
-           * imposible de cobrar — ingreso perdido en silencio y corte de caja que sigue
-           * marcándola pendiente. Solo un cobro que SALDA cierra la cita.
-           */
-          const salda = concepto !== 'abono' && concepto !== 'reembolso'
-          await updateAppointment(clinicId, prefill.citaId, {
-            ...(salda ? { cobroId: id, cobradoEn: new Date().toISOString() } : {}),
-            ...(prefill.estadoActual && avanzados.includes(prefill.estadoActual) ? {} : { estado: 'atendida' as const }),
-          })
-        } catch {
-          // El cobro YA quedó registrado, pero la cita no se marcó. Como el botón
-          // "Cobrar" se oculta justo con ese cobroId, callarlo hacía que el botón
-          // siguiera visible y se cobrara dos veces al mismo paciente.
-          marcadaLaCita = false
+      /**
+       * LA CITA SE MARCA DENTRO DE LA TRANSACCIÓN DEL COBRO — ASC-003.
+       *
+       * Aquí había un `updateAppointment` suelto que escribía `cobroId` y
+       * `cobradoEn` DESPUÉS de registrar el cobro (y `estado: 'atendida'`, la
+       * señal de la que dependen el embudo del corte, cuentas por cobrar, el
+       * CRM, la reactivación, los recordatorios post-visita y las reseñas).
+       * Un update suelto de `cobroId` es justo lo que la regla de `appointments`
+       * no podía vigilar: cualquier miembro puede escribir un `cobroId`
+       * inventado y hacer desaparecer una deuda. Ahora `registrarCobro` escribe
+       * cobro + marca + estado en UNA escritura atómica, y la regla puede
+       * exigir que el cobro exista en esa misma escritura. El modal ya no toca
+       * la cita. Y como es atómico, desaparece el caso «cobro registrado pero
+       * cita sin marcar».
+       */
+      let resultado
+      try {
+        resultado = await registrarCobroDetallado(clinicId, datos, {
+          claveIdempotencia: claveIntentoRef.current, estadoActual: prefill?.estadoActual,
+        })
+      } catch (e) {
+        /**
+         * RT-005: HAY UN COBRO IGUAL DE HOY. NO SE DECIDE SOLO: SE PREGUNTA.
+         * Un abono o un cobro suelto igual —misma cita/paciente, mismo
+         * concepto, mismo importe, mismo día— registrado desde otra pestaña u
+         * otro dispositivo. Puede ser el mismo billete o un segundo abono
+         * legítimo; sólo la persona lo sabe.
+         */
+        if (!(e instanceof CobroPosiblementeDuplicado)) throw e
+        const esOtro = await confirm(e.message, { titulo: 'Ya hay un cobro igual hoy', confirmar: 'Sí, es otro distinto', cancelar: 'No, era ése' })
+        if (!esOtro) {
+          claveIntentoRef.current = null
+          toast(`No se registró nada: ya existía el cobro ${e.existente.folio ?? e.existente.id} de ${fmtMXN(e.existente.monto)}.`, 'info')
+          onCobrado?.(e.existente.id)
+          onClose()
+          return
         }
+        resultado = await registrarCobroDetallado(clinicId, datos, {
+          claveIdempotencia: claveIntentoRef.current, estadoActual: prefill?.estadoActual, esOtroDistinto: true,
+        })
       }
-      const monto = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
-      if (marcadaLaCita) {
-        toast(`Cobro registrado: ${monto}`, 'success')
+      // El cobro ya está registrado (o ya estaba): lo que venga después es otra intención.
+      claveIntentoRef.current = null
+      /**
+       * ASC-009: SI YA EXISTÍA, SE DICE «YA ESTABA», NO «REGISTRADO».
+       * Antes el segundo intento desde otro dispositivo enseñaba «Cobro
+       * registrado: $X» con el importe TECLEADO aunque no hubiera registrado
+       * nada, y reescribía `cobradoEn` con la hora del intento fallido.
+       */
+      if (resultado.yaExistia) {
+        const ex = resultado.cobroExistente
+        const importe = typeof ex?.monto === 'number' ? fmtMXN(ex.monto) : 'importe no leído'
+        toast(
+          resultado.porQue === 'cita-ya-cobrada'
+            ? `Esta cita ya estaba cobrada (${ex?.folio ?? resultado.id}, ${importe}) desde otro dispositivo. No se registró un cobro nuevo.`
+            : 'Este cobro ya se había registrado. No se registró otro.',
+          'info',
+        )
       } else {
-        toast(`Cobro de ${monto} registrado, pero NO se pudo marcar la cita. El botón de cobrar seguirá visible: verifica en Finanzas antes de volver a cobrar.`, 'error')
+        toast(`Cobro registrado: ${fmtMXN(n)}`, 'success')
       }
-      onCobrado?.(id)
+      onCobrado?.(resultado.id)
       onClose()
     } catch (e) {
       console.error(e)
@@ -282,8 +326,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             cuándo y por qué</strong>. Se puede revertir después.
           </div>
           <div>
-            <label style={lbl}>Motivo de la cortesía *</label>
+            <label style={lbl} htmlFor="cobro-motivo-cortesia">Motivo de la cortesía *</label>
             <textarea
+              id="cobro-motivo-cortesia"
               value={motivoCortesia} onChange={e => setMotivoCortesia(e.target.value)}
               autoFocus rows={3} placeholder="Ej. familiar, cortesía profesional, paciente sin recursos…"
               style={{ ...inp, resize: 'vertical' }}
@@ -331,8 +376,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
         <div style={{ display: 'grid', gap: 12 }}>
           {/* Monto — grande y prominente */}
           <div>
-            <label style={lbl}>Monto MXN *</label>
+            <label style={lbl} htmlFor="cobro-monto">Monto MXN *</label>
             <input
+              id="cobro-monto"
               type="number" inputMode="decimal" step="0.01" min="0"
               value={monto} onChange={(e) => setMonto(e.target.value)}
               autoFocus placeholder="0.00"
@@ -365,8 +411,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
 
           {!prefill?.medicoId && decisionMedico.opciones.length > 1 && (
             <div>
-              <label style={lbl}>Médico *</label>
+              <label style={lbl} htmlFor="cobro-medico">Médico *</label>
               <select
+                id="cobro-medico"
                 value={medicoElegido}
                 onChange={(e) => setMedicoElegido(e.target.value)}
                 style={inp}
@@ -384,8 +431,8 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
 
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={lbl}>Concepto</label>
-              <select value={concepto} onChange={(e) => setConcepto(e.target.value as ConceptoCobro)} style={inp}>
+              <label style={lbl} htmlFor="cobro-concepto">Concepto</label>
+              <select id="cobro-concepto" value={concepto} onChange={(e) => setConcepto(e.target.value as ConceptoCobro)} style={inp}>
                 {/*
                   «Reembolso» NO se ofrece: no se puede registrar.
                   El selector lo listaba, aquí abajo se exige monto negativo, el
@@ -403,8 +450,8 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
               </select>
             </div>
             <div>
-              <label style={lbl}>Método de pago</label>
-              <select value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)} style={inp}>
+              <label style={lbl} htmlFor="cobro-metodo">Método de pago</label>
+              <select id="cobro-metodo" value={metodo} onChange={(e) => setMetodo(e.target.value as MetodoPago)} style={inp}>
                 {(Object.keys(METODO_LABEL) as MetodoPago[]).map(k => (
                   <option key={k} value={k}>{METODO_LABEL[k]}</option>
                 ))}
@@ -413,8 +460,9 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
           </div>
 
           <div>
-            <label style={lbl}>Descripción (opcional)</label>
+            <label style={lbl} htmlFor="cobro-descripcion">Descripción (opcional)</label>
             <input
+              id="cobro-descripcion"
               value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
               placeholder="Consulta de seguimiento"
               style={inp}
@@ -423,10 +471,11 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
 
           {(metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito' || metodo === 'transferencia' || metodo === 'cheque') && (
             <div>
-              <label style={lbl}>
+              <label style={lbl} htmlFor="cobro-referencia">
                 {metodo === 'cheque' ? 'Número de cheque' : metodo === 'transferencia' ? 'Folio de transferencia' : 'Autorización'}
               </label>
               <input
+                id="cobro-referencia"
                 value={referencia} onChange={(e) => setReferencia(e.target.value)}
                 placeholder={metodo === 'cheque' ? '12345' : metodo === 'transferencia' ? 'SPEI 0123456' : '6 dígitos del voucher'}
                 style={inp}
@@ -435,8 +484,8 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
           )}
 
           <div>
-            <label style={lbl}>Notas (opcional)</label>
-            <input value={notas} onChange={(e) => setNotas(e.target.value)} style={inp} />
+            <label style={lbl} htmlFor="cobro-notas">Notas (opcional)</label>
+            <input id="cobro-notas" value={notas} onChange={(e) => setNotas(e.target.value)} style={inp} />
           </div>
 
           {/* No cobrar (cortesía): solo cuando se cobra sobre una cita concreta. */}

@@ -1,0 +1,156 @@
+{
+  "auditor": "P-pediatria",
+  "fecha": "2026-09-06",
+  "metodo": "Se abrieron los 21 archivo:linea citados (todos coinciden a ±5; el peor desvio es PP-008, que cita 695 para un `merge: false` que esta en 698). Ejecutado con jiti desde /tmp, sin red y sin datos reales: `urgenciaDelMensaje` sobre 32 frases pediatricas (PP-001, PP-002) y una copia LITERAL de `detectFAQ` (webhook/route.ts:381-390) encadenada con el `intencionDelMensaje` real (PP-003). Seguido cada dato del otro lado: quien escribe la tarea de la pregunta escalada, quien prefilla el formulario previo, que devuelve la accion `documentos`, y si `obtenerSolicitudResena` distingue caducado de inexistente. Salidas literales en cada `nota`.",
+  "veredictos": [
+    {
+      "id": "PP-001",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/urgencia.ts:44-51 (declara literalmente que NO cubre «fiebre en el lactante») y :127-146 (la regla `sintomas_neurologicos_agudos` SI existe y cubre «no responde», «desmay», «perdio el conocimiento») · src/app/api/portal/route.ts:905-919 (la escalacion abre tarea igual) · src/components/portal/ViaDeUrgencia.tsx:66-78",
+      "nota": "MISMO patron ya adjudicado en MG-013 (parcial, P2): hueco de vocabulario en el mismo archivo y la misma linea 48, declarado a proposito, y ampliarlo es politica clinica que el propio auditor manda a NEEDS_CLINICAL_REVIEW. Reproducido con jiti (salida literal): 'tiene 39.5 y está muy dormido y no quiere despertar' -> null; 'no despierta' -> null; 'esta aletargado' -> null; 'no reacciona' -> null; 'tiene 3 meses y fiebre' -> null; 'no responde' -> URGENT/sintomas_neurologicos_agudos. PARCIAL y no confirmado porque el hallazgo mezcla DOS cosas de rango distinto: (a) la fiebre por edad esta declarada fuera del alcance por escrito (urgencia.ts:48) y escalar por fecha de nacimiento del token seria politica clinica NUEVA — decision del dueno; (b) «no despierta / no reacciona» son sinonimos coloquiales de «no responde», que YA esta dentro de una categoria cubierta, y eso si es ampliable sin inventar criterio. Correccion a la evidencia del auditor: dice que «le cuesta respirar» dispara urgencia hoy y NO la dispara — medido: 'le cuesta respirar' -> null, porque la regla pide 'me cuesta' (urgencia.ts:122). El error juega a su favor, pero es una cita mal verificada."
+    },
+    {
+      "id": "PP-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/urgencia.ts:161-164 (el segundo grupo exige `pastilla|medicamento|medicina|tableta|jarabe|frasco|cloro|veneno|pila|caja`; «dosis» no esta) · src/lib/paciente/urgencia.ts:149-160 (REG-362 ya amplio esta MISMA regla, asi que ampliarla no estrena politica)",
+      "nota": "Reproducido con jiti, salida literal: 'se tomó doble dosis sin querer, ¿qué hago?' -> null; 'se tomo doble dosis' -> null; 'tomo doble dosis de paracetamol' -> null; '¿puedo darle el doble?' -> null (correcto: permiso, no hecho). Y las formas vecinas SI disparan: 'se tomó dos pastillas de más' -> URGENT/ingesta_accidental_o_sobredosis; 'se tomo dos veces la medicina' -> URGENT; 'mi hijo se tomó el jarabe entero' -> URGENT. Es decir: el hueco es la PALABRA «dosis», no la categoria — `ingesta_accidental_o_sobredosis` es una de las cinco del §6 y ya esta implementada, asi que esto se arregla con vocabulario y no necesita NEEDS_CLINICAL_REVIEW (el auditor lo dice bien y no pide cifra). BAJO de P1 a P2: el fallo es de menos-escalacion, no de respuesta equivocada —cae en ESCALATE con tarea `alta` (de-una-pregunta.ts:83, verificado) y en el portal la tarjeta con «Llamar al 911» esta permanentemente arriba (ViaDeUrgencia)—; donde de verdad duele es en WhatsApp, que no tiene esa tarjeta."
+    },
+    {
+      "id": "PP-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/whatsapp/webhook/route.ts:384 `if (/costo|precio|cobr|cuanto|pag|consulta/.test(t)) return 'costo'` y :420-421 (la respuesta con `costoConsulta`) · :731 `const intencion = intencionDelMensaje(text, detectFAQ)` · la urgencia sigue PRIMERO en :550-566, asi que REG-326 no ha reaparecido",
+      "nota": "Reproducido con jiti sobre una copia LITERAL de detectFAQ (381-390) encadenada con el `intencionDelMensaje` real. Salida literal: '¿cuántos mL le doy de amoxicilina?' detectFAQ= costo intencion= {\"tipo\":\"faq\",\"clave\":\"costo\"}; '¿cuánto tiempo hasta que le baje la fiebre?' detectFAQ= costo intencion= {\"tipo\":\"faq\",\"clave\":\"costo\"}. Es exacto: el bot contesta la tarifa a una pregunta de mililitros. NO es reaparicion de REG-326 —comprobado que `urgenciaDelMensaje` sigue por encima de `getSession` (webhook:550) y el ledger:8360 acota su cierre al ORDEN, no a la subcadena—, asi que es un hermano nuevo, no una regresion. BAJO de P1 a P2 por dos frenos que el auditor no puso del otro lado: no se inventa ninguna cifra clinica (la respuesta es una tarifa, no una dosis) y el propio producto declara que este canal no es clinico («este canal es para citas», urgencia.ts:199). La mitad barata del arreglo —`\\bcuanto (cuesta|vale|es la consulta)\\b` en vez de `cuanto` suelto— no necesita decision de nadie; abrir una tarea `pregunta_paciente` desde el bot si es decision de producto."
+    },
+    {
+      "id": "PP-004",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/portal/route.ts:905-919 — la tarea `pregunta_paciente` se escribe con `if (r.avisarAlConsultorio)`, SIN `telConsultorio`, ANTES del WhatsApp y con `merge: true` · docs/audit/regression-ledger.md:19275-19341, REG-521 (CLOSED, con `la-pregunta-escalada-llega-al-worklist.test.ts`, 8 casos, probada al reves con 4 rojos), cuyo cierre dice literalmente: «Lo que NO cambia, a proposito: el texto que ve el paciente y el clasificador… «El consultorio la va a ver» es verdad desde hoy porque el worklist existe»",
+      "nota": "REFUTADO por la regla 5 del briefing. El auditor cita `if (r.avisarAlConsultorio && telConsultorio)` (route.ts:930) como si fuera el unico camino: es EXACTAMENTE la linea de la que nacio REG-521 el 5-sep-2026, y el arreglo —14 lineas mas arriba, en 905-919— ya desacoplo el rastro del telefono. La premisa «no se avisa a nadie» es falsa: se abre una `TareaClinica` de tipo `pregunta_paciente`, prioridad `critica` para urgente (verificado en de-una-pregunta.ts:82-83), que `/pendientes` lista y agrupa en «necesita revision». Y el texto del paciente NO se cambio a proposito, con la decision escrita en el ledger. Queda P3 informativo por lo unico que el auditor aporta de nuevo: «Avisamos» sugiere un empujon y lo que hay es una bandeja; exigir telefono para liberar el alcance clinico es decision del dueno, no defecto. No hubo reaparicion y el auditor no la demuestra."
+    },
+    {
+      "id": "PP-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/patient-token.ts:135-137 (`const alcance: AlcanceToken = payload.a === 'clinico' ? 'clinico' : ALCANCE_DEFECTO` — solo dos alcances, y el desconocido cae a `agenda`) · :26 `const DIAS_DEFECTO = 7` con su justificacion escrita en :15-25 (eran 30) · src/app/api/portal/route.ts:1088-1091 (`diagnostico` + `medicamentos` + cedula viajan con la accion `documentos`) · los controles que SI existen: src/app/api/portal/link/route.ts:38-43 (el alcance `clinico` se cobra con la capacidad `firmar`, no con membresia), src/lib/paciente/entrega-del-paquete.ts:76 y src/app/mi/[token]/page.tsx:1086-1088",
+      "nota": "Los hechos coinciden todos y la ausencia es total: `grep` de un tercer alcance no da nada, no hay `d: notaId` ni bitacora de aperturas, y la revocacion solo la pulsa el medico. PARCIAL, no confirmado, por tres cosas que el auditor no pesa. (1) No hay defecto de codigo: hay una funcion que no existe, y CUAL se construye —receta, justificante, constancia— es literalmente la pregunta que el propio auditor le manda al dueno. (2) Los 7 dias no son un descuido sino una decision ya tomada y razonada por escrito en el codigo (patient-token.ts:15-25, de 30 a 7 «porque ese enlace viaja en un mensaje que se reenvia»): no hay decision del dueno en agent-state/DECISION_LOG.md ni en OWNER_DECISIONS_REQUIRED.md —grep de `7 dias|vigencia|alcance|cuidador` = CERO en los dos—, pero si en el modulo. (3) El alcance ya esta partido en dos niveles con guarda de servidor (E0-06): el enlace que reparte el mostrador NO abre nada clinico. BAJO a P2: lo que queda es una carencia de producto, no una ruta abierta. La mitad «cuidador» duplica PG-011 (parcial P2)."
+    },
+    {
+      "id": "PP-006",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/como-se-lo-explico.ts:115-136 (`comoTomarlo` compone nombre · dosis · via · frecuencia · duracion y nada mas; :132-133 literal) · src/lib/paciente/paquete-de-visita.ts:327-329 (`recetados.map(m => ({ nombre, instruccion: comoTomarlo(m) }))`) · `grep -n 'peso|edad|concentracion' src/lib/receta-word.ts` = CERO resultados, como decia el auditor",
+      "nota": "Todo lo citado es literal. PARCIAL y BAJO de P1 a P3 para no contar dos veces el mismo dano: la pieza peligrosa —«5 mL» sin concentracion llegando al cuidador— ya esta adjudicada como MP-005 confirmado P0, con la cadena entera medida (dosis.ts:476, extraerMg null, comoTomarlo literal). Lo que PP-006 anade por encima de MP-005 son dos comodidades: la fecha de fin y el peso de referencia. La primera el propio auditor la condiciona a que exista `fechaInicio` explicita y `duracion` en dias enteros —dato que hoy no viaja en `MedicamentoParaExplicar`—, y la segunda la manda a decision del dueno («¿La hoja del paciente muestra el peso con que se calculo la dosis?»). Ninguna de las dos se puede escribir sin esa decision, y ninguna cambia la seguridad: la cambia MP-005."
+    },
+    {
+      "id": "PP-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/public/booking/route.ts:34-39 — el tipo `paciente` declara exactamente `{ nombre, telefono, email?, motivo? }`: no hay `fechaNacimiento` que aceptar · :272-297 el alta crea `{ nombre, telefono, avisoPrivacidad, email, noShowCount, cancelacionCount, createdAt, updatedAt, creadoPor }`, sin edad ni fecha de nacimiento · src/app/reservar/[clinicId]/page.tsx:303-313 (los cuatro campos, literales) · src/app/(dashboard)/consulta/[patientId]/page.tsx:744 `const esPediatrico = patient?.edad != null && patient.edad < 18`",
+      "nota": "Confirmado del otro lado, que es donde el auditor tenia razon y no lo demostro: no es que la pantalla no pregunte la fecha de nacimiento, es que la RUTA no la aceptaria aunque la pantalla la mandara. El expediente del menor nace sin edad y `esPediatrico` queda en false. P2 como propuso: el control que cita (REG-524, la receta lo dice en ambar en vez de suponer adulto) existe y evita el dano de dosis, asi que esto es alta de datos, no seguridad. La parte «la cita del nino cae bajo el nombre de la madre» no es un defecto de `elegirExpedienteParaCita` (duplicados.ts:451, que hace lo correcto con lo que recibe) sino consecuencia de lo mismo: el formulario no pregunta para quien es."
+    },
+    {
+      "id": "PP-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/portal/route.ts:698 `.set({ respuestas, enviadoEn: ahora, origen: 'paciente' }, { merge: false })` · el agravante que el auditor NO vio: src/app/mi/[token]/page.tsx:1208 `const [valores, setValores] = useState<Record<string, string>>({})` — el formulario NUNCA se prefilla con lo ya guardado (no hay ninguna accion `formulario` de lectura en la ruta; el unico lector es el medico, consulta/[patientId]/page.tsx:1701)",
+      "nota": "Confirmado y MAS GRANDE de lo que dice el hallazgo. `merge: false` sobre un doc unico (`formularios_previos/actual`) mas un formulario que arranca vacio significa que el borrado no necesita dos cuidadores: basta con que la MISMA madre vuelva a abrirlo para corregir un campo —cosa que la pantalla la invita a hacer, «Puedes volver a llenarlo si algo cambia» (page.tsx:1229)— para que los demas campos desaparezcan. El comentario de la ruta (:691-694) justifica el doc unico («si se guardara uno por envio, el medico tendria que adivinar cual es el bueno»), lo cual es razonable, pero razona sobre un envio COMPLETO que la interfaz no garantiza. P2 se sostiene. La mitad «no existe el cuidador como entidad» duplica PG-011 (parcial P2) y alli queda; lo nuevo y confirmable es la perdida de datos."
+    },
+    {
+      "id": "PP-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:7459-7463 (texto literal, «Confirme que el paciente fue informado…») y :7466 · :1916 `consentimientoGrabacion: { fecha: new Date().toISOString(), medicoId: auth.currentUser?.uid }` · src/types/index.ts:264-267 · la pantalla YA sabe si es menor: :744 `esPediatrico`",
+      "nota": "Los hechos coinciden a la letra y el matiz es correcto: en pediatria quien consiente es el tutor y el registro no lo dice. PARCIAL y BAJO a P3, alineado con PG-004 (parcial P3) sobre este mismo modal y este mismo campo de dos claves. Razones: (1) lo que decide el caso es la REDACCION LEGAL del consentimiento por representante, que el propio auditor manda a decision del dueno y que es NEEDS_LEGAL_REVIEW; (2) no hay dano clinico ni fuga de PHI —el asiento en `audit_log` (:1903) y la trazabilidad del acto existen—; (3) el dato que haria falta (`esPediatrico`) ya esta calculado en la misma pantalla, asi que el trabajo pendiente es de texto y de un campo, no de arquitectura."
+    },
+    {
+      "id": "PP-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:258, :276 y :289 — TRES `fetch` de acciones clinicas (`documentos`, `paquetes`, `preguntas`) por cada apertura · src/app/api/portal/route.ts:56 y :330-334 `limitarEstricto('portal:clinico:…', 15, 600, 'Demasiadas consultas a tus documentos en poco tiempo…')` · :292 `if (!res.ok) return` deja `preguntas` en `null` · :775 `{preguntas && preguntas.length > 0 && (` — la unica rama; con `null` no se pinta ninguna otra",
+      "nota": "Confirmado, y la aritmetica del auditor es exacta: 15/600 s ÷ 3 por apertura = 5 aperturas. Lo verificado del otro lado es peor que lo que el hallazgo dice: el comentario del propio codigo (:286-288 y :771-774) AFIRMA que «un fallo de red deja `preguntas` en `null` —«no se sabe»— y la pantalla lo dice», y la pantalla NO lo dice — no hay ninguna rama para `null`, solo para `preguntasBloqueadas` (:710). Es «escrito y sin conectar» en su variante de comentario que promete una rama inexistente, mientras que las hermanas `docsError` (:1029-1037) y `paquetesError` (:879) si la tienen. P2 se mantiene: molesta, no filtra ni afirma nada clinico falso."
+    },
+    {
+      "id": "PP-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:1039 `{!docsError && docs && docs.length > 0 && (` — leidas las tres ramas del destino `documentos` (:1015 `docsBloqueados`, :1029 `docsError`, :1039 la lista): con `docs = []` y sin error ninguna se cumple, y no hay `else`",
+      "nota": "Confirmado tal cual, con el patron hermano ya escrito una pestana mas alla (`paquetes?.length === 0` tiene su estado vacio en :895-903), asi que el arreglo es copiar una rama que ya existe en el mismo archivo. P2 como propuso el auditor: la lectura «no tienes receta» que hace el cuidador de una pantalla muda es justo lo que el comentario de :1030-1033 dice que hay que evitar («esa es una afirmacion clinica que nadie comprobo»), aplicado al caso vacio en vez de al caso de error."
+    },
+    {
+      "id": "PP-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:151 `const tiposCita = info?.tiposCita.filter(t => Number(t.duracion) > 0) ?? []` y :202-206 `<Card title=\"¿Qué tipo de consulta deseas?\">` con `{tiposCita.map(...)}` y ninguna rama para longitud 0; los unicos returns tempranos son :152 cargando, :162 error y :166 `!info`",
+      "nota": "DUPLICADO de PG-007, ya adjudicado (confirmado, P2): misma pantalla, mismas dos lineas, mismo callejon. Se mantiene el veredicto de aquel y no se re-verifica mas alla de comprobar que las lineas siguen donde estaban. El auditor de pediatria aporta el sintoma del lado del cuidador (recarga y gasta datos) sin cambiar la conclusion."
+    },
+    {
+      "id": "PP-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/privacidad/[clinicId]/page.tsx:197-201 (los cinco campos, literales, con «Como aparece en tu INE» y «CURP (opcional, ayuda a localizar tu expediente)») · src/lib/arco.ts:26 `oposicion: 'Oposición (no usar para X)'` · el control que si existe: src/lib/arco.ts:47 `identidadVerificada`, que deja la comprobacion en manos del consultorio",
+      "nota": "Las cinco citas coinciden. BAJO de P2 a P3 y confirmo el resto. Motivos: el formulario tiene un campo libre «Describe tu solicitud *» donde el representante puede declararse, la clinica verifica identidad fuera de banda (`identidadVerificada`) y el plazo legal se cumple con revision humana — asi que no hay ninguna solicitud que hoy se pierda ni se resuelva mal por esto, solo mas ida y vuelta. La «X» de :26 pintada literal es un defecto de texto de una linea. La parte «el portal del nino ni siquiera enlaza a /privacidad» es cierta y es DUPLICADO parcial de PG-016 (confirmado P2), que ya pide ese enlace desde el portal y la reserva."
+    },
+    {
+      "id": "PP-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/receta-word.ts:3 y :11 (comentario de cabecera literal) · src/lib/receta-word.ts:235 `new Blob(['\\ufeff', html], { type: 'application/msword' })` y :241 `a.download = ….doc` · src/app/mi/[token]/page.tsx:1055 (unico control de descarga)",
+      "nota": "DUPLICADO de PG-015, ya adjudicado (confirmado, P3, tras bajarlo de P2). Mismo archivo, misma unica salida, misma propuesta. Se mantiene ese veredicto: el contenido clinico SI esta legible en pantalla —el plan de cuidado lista los medicamentos con su instruccion (mi:924-928) y la tarjeta de la receta muestra fecha, diagnostico y medico (mi:1044-1050)—, asi que lo que el .doc anade es el documento formal, y cambiarlo a HTML/PDF es decision de producto con implicaciones de papeleria (REG-507)."
+    },
+    {
+      "id": "PP-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:496 (`Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}`) y :724-726 · :803-805 `<p style={{ … whiteSpace: 'pre-line' }}>{p.respuesta}</p>` — el texto se pinta CRUDO · src/lib/paciente/urgencia.ts:194-206, cuya salida literal medida con jiti es «🚨 *Esto puede ser una urgencia médica.*\\n\\nNo espere respuesta por este medio…\\n\\n📞 Llame al *911*…»",
+      "nota": "Confirmado en las dos mitades: el tuteo al menor y los asteriscos de WhatsApp renderizados tal cual en el historial (medido, no leido: la cadena que devuelve `mensajeDeUrgencia('')` lleva `*` y `📞`, y :803 la pinta sin transformar). P3, con un atenuante que el auditor no anota y que evita que esto sea un fallo de comunicacion urgente: la tarjeta del historial YA pinta el aviso de forma nativa encima del texto crudo —«⚠ Esto puede ser una urgencia» con icono, 14 px y peso 700 (:795-798)—, asi que el mensaje llega aunque los asteriscos se lean raros."
+    },
+    {
+      "id": "PP-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:979 (`fontSize: 12` para nombre y cedula del prescriptor), :800 («Preguntaste: «…»», 12 px), :818 («Tu consultorio la tiene pendiente de revisar», 12 px), :1101 (11.5 px del pie) — las cuatro literales",
+      "nota": "Las cuatro citas coinciden. P3 y no P3-por-cortesia: mismo criterio con el que se adjudico PG-010 (confirmado, bajado a P3) sobre el pie de esta misma pantalla. La regla que el auditor invoca (design-system.md) fija minimos de CONTRASTE (4.5:1) y de objetivo tactil (44×44), no de tamano de letra; poner un piso de 14 px en el portal es decision de diseno del dueno. El propio auditor declara que no midio el contraste, que es lo unico que seria incumplimiento de una regla escrita."
+    },
+    {
+      "id": "PP-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:1105 `</main>` y :1120 `<nav aria-label=\"Secciones\">` — la barra va DESPUES del contenido · `grep -n 'ir al contenido|skip|#contenido|#secciones'` sobre ese archivo = CERO · :780 `<div key={…}>` para cada pregunta, sin `<article>` ni encabezado",
+      "nota": "Confirmado, y con una ironia que refuerza el hallazgo: el comentario de :470-482 justifica haber puesto `<main>` diciendo que antes no habia «ni punto al que saltar con «ir al contenido»» — y el enlace de salto sigue sin existir (grep vacio). Es WCAG 2.4.1, criterio A, en la unica pantalla que ve un paciente. P3 y no mas alto porque el orden observado deja lo importante primero (la urgencia y el 911 encabezan el documento) y todos los controles tienen nombre accesible, como el propio auditor comprueba."
+    },
+    {
+      "id": "PP-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/PanelPediatria.tsx:282-286 (el comentario de la auditoria 2026-07, literal: «la app NO tiene registro de que se aplico… se dejo de afirmar un hecho clinico que nunca se verifico») y :65-68 · src/lib/paciente/paquete-de-visita.ts:344-345 `warningSigns: []`, `educationalMaterial: []` · src/app/mi/[token]/page.tsx:136-142 (los cinco destinos, sin vacunas)",
+      "nota": "Confirmado como mejora, con la evidencia literal donde dice. P3 y bien tipificado por el propio auditor: lo que hoy hace el producto es lo CORRECTO segun clinical-safety.md §4 (no afirmar «atrasada» sin registro de lo aplicado), y su propia `prueba_que_faltaria` reconoce que «hoy no llega nada, que es lo correcto hasta que exista el registro». El trabajo previo es el registro de vacunas aplicadas en el expediente, que es una unidad con nombre y decision del dueno, no un defecto de la superficie del paciente."
+    },
+    {
+      "id": "PP-019",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/resena/[token]/page.tsx:20-22 — las TRES ramas: `if (!r) setError('Enlace no válido')` · `else if (r.used) setError('Esta reseña ya fue enviada. ¡Gracias!')` · `else if (new Date() > new Date(r.expiresAt)) setError('Este enlace ha expirado')` · src/lib/reviews.ts:96-100 (`obtenerSolicitudResena` devuelve el documento si existe; la caducidad NO la resuelve ella, la resuelve la pantalla)",
+      "nota": "REFUTADO por evidencia que no coincide con la tesis. El titulo afirma que «el enlace de resena VENCIDO … dice solo 'Enlace no valido', sin decir si caduco», y la linea 22 dice exactamente «Este enlace ha expirado» — hay una rama propia para el vencimiento y otra para la resena ya enviada. La reproduccion del auditor lo delata: uso `/resena/invalido`, un token INEXISTENTE, y generalizo al caducado sin probarlo; `obtenerSolicitudResena` devuelve `null` solo cuando el documento no existe, asi que la rama que el vio es la del token mal copiado, no la del vencido. Queda en pie una fraccion —ninguna de las tres ramas ofrece telefono ni salida— que es fricción P3 informativa, no el defecto descrito."
+    },
+    {
+      "id": "PP-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:1079-1090 (el destino `perfil` entero: `<h2>Tu perfil</h2>`, la fila «Idioma / Español (México)» sin control, y el parrafo «todavía no podemos darle acceso desde aquí») · :141 `{ id: 'perfil', etiqueta: 'Perfil', pista: 'Tu enlace, tu consultorio y tus datos.' }`",
+      "nota": "Confirmado: leido el bloque completo, el destino no tiene un solo control interactivo y la pista promete «tus datos» que no estan. P3 y con la matizacion que el propio auditor hace y con la que estoy de acuerdo: el texto es HONESTO sobre lo que no existe (el comentario de :1065-1078 lo razona: «un selector de idioma con un solo idioma… le miente al paciente sobre lo que puede esperar»), asi que la recomendacion correcta es esconder, no retirar, y eso es decision del dueno. Marcado `innecesario` por el auditor y no se refuta por «no es defecto»: la evidencia existe y la lectura es razonable."
+    },
+    {
+      "id": "PP-021",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:450-452 (`TEXTO_ESCALACION`, literal, sin parametros) · lo que el auditor no puso del otro lado: src/app/mi/[token]/page.tsx:843-852 — el destino «Preguntar» YA resuelve el «llámales», con `<a href={`tel:${sesion.clinica.telefono}`}>` cuando hay telefono y con el texto honesto de :850 cuando no lo hay, y el comentario de :835-842 explica que esa rama nacio justamente porque la pantalla «pintaba cero botones y cero enlaces»",
+      "nota": "PARCIAL. Es cierto que la constante no acepta parametros y no dice plazo. Pero la afirmacion fuerte del titulo —«en un consultorio sin telefono cargado, 'llámales' no lleva a ningún sitio»— ya esta atendida en la pantalla que muestra ese texto: o hay boton marcable, o hay una frase que dice donde conseguir el numero. Lo que queda es el PLAZO («el consultorio lee de 9 a 18 h»), y eso es exactamente lo que el auditor manda a decision del dueno: prometer una ventana de lectura obliga a alguien a cumplirla, y el propio hallazgo reconoce que «no cubre que alguien de verdad lea de noche: eso es politica del consultorio». BAJO de P2 a P3."
+    }
+  ],
+  "ratio": { "total": 21, "confirmados": 14, "refutados": 2, "parciales": 5 },
+  "observaciones_del_auditor": "Auditor fuerte y muy trazable: las 21 citas archivo:linea coinciden a ±5 (el peor desvio son 3 lineas en PP-008), distingue `recorrido: sí/parcial/no` paso a paso, no inventa ninguna cifra clinica y descarta el unico P0 posible tras probarlo («¿alguna respuesta la originó el modelo general? Ninguna»). Sus patrones de error son cuatro. (1) NO MIRA EL ARREGLO QUE YA ESTA UNAS LINEAS MAS ARRIBA: es lo que hunde PP-004 — cita `if (r.avisarAlConsultorio && telConsultorio)` (portal:930) como unico camino cuando REG-521 desacoplo el rastro del telefono catorce lineas antes (portal:905-919) y dejo por escrito en el ledger que el texto del paciente NO se cambia a proposito. (2) GENERALIZA DESDE UNA REPRODUCCION QUE NO ES LA DEL CASO: en PP-019 prueba con un token inexistente y titula sobre el token VENCIDO, que tiene su propia rama con su propio texto (resena:22). (3) CITA DE MEMORIA LO QUE NO EJECUTO: en la evidencia de PP-001 afirma que «le cuesta respirar» dispara urgencia hoy, y medido devuelve `null` (la regla pide «me cuesta», urgencia.ts:122); el error va a su favor, pero es una lista de «lo que SI dispara» sin correr. (4) EMPAQUETA EN UN HALLAZGO DOS COSAS DE RANGO DISTINTO: PP-001 mezcla un hueco declarado fuera de alcance (fiebre del lactante, urgencia.ts:48) con sinonimos coloquiales de una categoria que SI esta cubierta; PP-005 mezcla una ruta abierta que no lo esta con una funcion que no existe; PP-006 arrastra el P0 de MP-005 para sostener dos comodidades P3. Cuatro rasgos a su favor: cuando duplica (PP-012≈PG-007, PP-014≈PG-015, PP-013⊂PG-016, la mitad de PP-005 y PP-008 ⊂ PG-011) lo dice el mismo en `revisado`; sus dos hallazgos reproducibles —PP-002 y PP-003— se reprodujeron literalmente con jiti y son ciertos; en PP-010 y PP-008 se queda CORTO respecto de lo que hay (el comentario del codigo promete una rama de `null` que no existe; el formulario previo se borra a si mismo con un solo cuidador porque nunca se prefilla); y su vocabulario de PP-002 no exige politica clinica nueva, porque `ingesta_accidental_o_sobredosis` ya es una de las cinco categorias del §6."
+}

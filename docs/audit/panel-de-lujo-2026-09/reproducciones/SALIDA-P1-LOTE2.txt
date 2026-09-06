@@ -1,0 +1,1621 @@
+
+ RUN  v4.1.10 /home/user/agenda-medica
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-035-telefono-corregido-no-llega-a-las-citas.test.ts (2 tests | 1 failed) 13ms
+     × HOY FALLA: tras corregir el teléfono, la cita FUTURA lo lleva (o el cron lo lee del expediente) 9ms
+stderr | docs/audit/panel-de-lujo-2026-09/reproducciones/REP-031-anular-cobro-suelto-permission-denied.test.ts > REP-031 · un miembro puede anular un cobro suelto (sin citaId ni patientId) > HOY FALLA: anular un cobro SUELTO con autor, fecha y motivo debe estar permitido
+[2026-09-06T08:05:09.301Z]  @firebase/firestore: Firestore (12.13.0): GrpcConnection RPC 'Write' stream 0x14372f2e error. Code: 7 Message: 7 PERMISSION_DENIED: 
+evaluation error at L912:26 for 'update' @ L912, false for 'update' @ L1211, Property citaId is undefined on object. for 'update' @ L912, false for 'update' @ L1211
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-031-anular-cobro-suelto-permission-denied.test.ts (3 tests | 1 failed) 871ms
+     × HOY FALLA: anular un cobro SUELTO con autor, fecha y motivo debe estar permitido 101ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-030-anular-cobro-lee-la-cita-despues-de-escribir.test.ts (4 tests | 1 failed) 485ms
+     × HOY FALLA: anular un cobro CON cita no lanza y libera la cita 12ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts (4 tests | 2 failed) 1174ms
+     × HOY FALLA: `cobroId` inventado, sin documento en cobros, debe NEGARSE 150ms
+     × HOY FALLA: borrar `cobroId` de una cita ya cobrada (para cobrarla otra vez) debe NEGARSE 152ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts (4 tests | 3 failed) 23ms
+     × HOY FALLA: sin motivo, quitar la cortesía debe RECHAZARSE (como cancelarCobro sin motivo) 7ms
+     × HOY FALLA: con motivo y autor, los dos LLEGAN al documento y no se vacía el sello original 9ms
+     × HOY FALLA: queda asiento en la bitácora (en la función o en su llamador) 3ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts (4 tests | 3 failed) 115ms
+     × si se promete escasez (N plazas), existe un tope/cupo de fundadores en el código (hoy: no) 69ms
+     × si se promete permanencia, existe la marca de tarifa congelada por consultorio (hoy: no) 42ms
+     × si se promete el aviso, algún cron DECLARADO en vercel.json mira trialEndsAt (hoy: ninguno) 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-020-sello-motor-importado-nunca-pintado.test.ts (2 tests | 1 failed) 161ms
+     × hay al menos un archivo de src/ (fuera de tests) que lo usa como elemento 78ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts (5 tests | 3 failed) 57ms
+     × el Word (construirNotaHTML) con tipo consentimiento trae «Firma del paciente» (hoy: sólo el médico) 50ms
+     × … y trae «Testigo» 2ms
+     × la página de impresión de la nota contempla la firma del paciente y los testigos (hoy: un solo bloque, page.tsx:548) 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts (4 tests | 2 failed) 20ms
+     × ninguna regla del bloque ordena asumir/suponer un factor de riesgo 11ms
+     × en particular, «cirugía en las piernas sin más» no puede marcar caprini.cirugiaMenor=true 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts (5 tests | 2 failed) 23ms
+     × EL CASO: portal:clinico agotado → «preguntar» urgente NO devuelve 429 (hoy: 429 «Demasiadas consultas a tus documentos») 7ms
+     × … y la tarea crítica queda escrita: el consultorio se entera 4ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts (5 tests | 2 failed) 49ms
+     × FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo 8ms
+     × FALLA HOY · o la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance` 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts (6 tests | 4 failed) 35ms
+     × FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dosis es un volumen sin concentración 8ms
+     × FALLA HOY · en conjunto — entre TODOS los tramos hay al menos un aviso (hoy son cero) 3ms
+     × FALLA HOY · `comoTomarlo` no compone una línea con un volumen sin concentración 7ms
+     × FALLA HOY · `componerPaquete` no deja en `medicationInstructions` un volumen sin concentración 11ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts (7 tests | 5 failed) 17ms
+     × FALLA HOY · un diagnóstico DESCARTADO no baja al paciente 6ms
+     × FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente 2ms
+     × FALLA HOY · un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente 1ms
+     × FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el confirmado 1ms
+     × FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts (15 tests | 6 failed) 23ms
+     × FALLA HOY · la expresión `vacio` de la página da la MISMA respuesta que hayAlgoQuePerder para un formulario con sólo signos 7ms
+     × FALLA HOY · la decisión de restauración con el `vacio` de la página NO es «aplicar el respaldo encima» 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «signos» escrito ⇒ la página no lo llama vacío 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «estudiosOrden» escrito ⇒ la página no lo llama vacío 1ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «preop» escrito ⇒ la página no lo llama vacío 4ms
+     × FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «proximoSeguimiento» escrito ⇒ la página no lo llama vacío 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts (4 tests | 3 failed) 19ms
+     × guardián del hallazgo: ≥2 llamadores de revisarPesoPediatrico en app/+components/ (hoy 1) 4ms
+     × la consulta, que alimenta dosisPeligrosasDeLaLista con signosNum.peso, revisa ese peso 6ms
+     × la receta, que alimenta revisarDosis con el peso de la nota, revisa ese peso 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts (5 tests | 3 failed) 20ms
+     × PI-001: «si no como, ¿me tomo la metformina?» ESCALA y avisa (hoy: cita la pauta, avisa:false) 11ms
+     × PI-001: «¿Puedo saltarme el paracetamol hoy? como poco por las tardes» ESCALA (hoy: cita la pauta) 2ms
+     × PI-002: «cuando tomo la furosemida me da mucha sed, ¿es normal?» ESCALA y avisa (hoy: «Una tableta por la mañana.») 2ms
+stdout | docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts > REP-002 · N-001 — al cambiar de plan, la suscripción anterior no se cancela sin abono > FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono
+[Stripe Webhook] checkout.session.completed
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts (2 tests | 1 failed) 27ms
+     × FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono 12ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts (4 tests | 2 failed) 20ms
+     × betametasona + amoxicilina → cero alertas críticas 14ms
+     × betabloqueadores + amoxicilina → cero alertas críticas 3ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts (5 tests | 3 failed) 22ms
+     × ninguna sugerencia pediátrica del escolar habla de la pauta neonatal (hoy: «Gentamicina neonatal (≤7 días): …») 14ms
+     × 140 mg a 20 kg (7 mg/kg, dentro del tope 7.5) NO es crítico (hoy: falsa alarma crítica) 1ms
+     × el motor no devuelve la pauta neonatal como usable a los 8 años (hoy: 50 mg c/12 h) 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts (2 tests | 1 failed) 19ms
+     × FALLA HOY · la sesión se abre en la cuenta del consultorio, con destino al consultorio, o no se abre (409) 9ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts (6 tests | 4 failed) 16ms
+     × extraerMg(325/37.5 mg) no opina (hoy devuelve el segundo componente) 7ms
+     × extraerMg(500/5 mg) no opina (hoy devuelve el segundo componente) 1ms
+     × extraerMg(100/25 mg) no opina (hoy devuelve el segundo componente) 1ms
+     × Paracetamol 1 g c/6 h + Paracetamol/tramadol 325/37.5 mg c/8 h: no se imprime una suma (hoy «4112.5 mg/día») 5ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-019-dando-pecho-no-escala.test.ts (5 tests | 3 failed) 16ms
+     × «estoy dando pecho, ¿cómo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia 10ms
+     × «le doy leche a mi bebé, ¿cada cuándo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia 2ms
+     × «estoy en cinta, ¿cómo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts (6 tests | 5 failed) 16ms
+     × revisarFarmaco(«Valproato de magnesio 200 mg») → entrada «Ácido valproico» 7ms
+     × revisarFarmaco(«Divalproato de sodio 500 mg») → entrada «Ácido valproico» 1ms
+     × revisarFarmaco(«Metotrexate 2.5 mg») → entrada «Metotrexato» 1ms
+     × copiloto: mujer de 25 años con «Valproato de magnesio 200 mg» recibe el aviso crítico de contraindicación en embarazo 3ms
+     × copiloto: mujer de 25 años con «Metotrexate 2.5 mg» recibe el aviso crítico de contraindicación en embarazo 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-013-dos-catalogos-renales.test.ts (4 tests | 2 failed) 18ms
+     × ketorolaco con depuración < 30: la consulta avisa (contraindicado) y la receta también debe avisar 9ms
+     × para cada fármaco del caso, los dos motores dan la misma respuesta (hay aviso / no hay aviso) 4ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts (4 tests | 2 failed) 14ms
+     × Cefalosporinas + Ceftriaxona 1 g → al menos una alerta crítica (hoy: ninguna) 6ms
+     × la compuerta de firma (validarNOM004) lo dice en sus errores (hoy: calla) 4ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts (6 tests | 4 failed) 22ms
+     × Meta / WhatsApp declara tocaDatosDeSalud: true (hoy: false, con un comentario que ya no es verdad) 10ms
+     × 360dialog, por el que pasan esos mismos mensajes, también (hoy: false) 2ms
+     × la lista en texto no dice «No trata datos de salud» junto a Meta / WhatsApp 1ms
+     × el aviso de privacidad publicado (generarAvisoPrivacidad) tampoco lo afirma 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts (4 tests | 3 failed) 18ms
+     × hay una sugerencia CRÍTICA sobre ibuprofeno (hoy: nivel «accion» con el rango 30 a 60 mg) 8ms
+     × y esa sugerencia dice que es por la EDAD, con el texto de restricción del catálogo 1ms
+     × ninguna sugerencia le presenta un rango válido como si fuera correcto 4ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-014-recepcion-escribe-alergias.test.ts (3 tests | 2 failed) 12ms
+     × el update de patients/{id} no puede tocar los campos clínicos bajo isMember mientras sigan ahí 9ms
+     × la matriz no puede declarar `patients` administrativo y escribible por isMember con alergias dentro 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts (4 tests | 3 failed) 14ms
+     × RecetaDocumento.tsx no rellena ALERGIAS con una negación cuando no hay dato 8ms
+     × RecetaDocumento.tsx no lee `paciente.alergias` a secas en ningún renderizador (ni con `||` detrás) 1ms
+     × el vecino que el auditor nombra sin corregir: la carta de referencia tampoco debe afirmar «Negadas» 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-015-consultor-ordena-ajustar-dosis.test.ts (3 tests | 1 failed) 11ms
+     × no contiene una orden de ajustar/calcular/estimar dosis por función renal/hepática, peso o edad 6ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts (4 tests | 3 failed) 15ms
+     × cada fila de ANTIBIOTICOS_PROFILAXIS lleva `fuente` no vacía (hoy: ninguna) 8ms
+     × cada fila de ESQUEMAS_POR_CIRUGIA lleva `fuente` no vacía (hoy: ninguna) 1ms
+     × el motor está validado con fuente real, O PanelCirugia pinta SelloMotor (hoy: ni lo uno ni lo otro) 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-011-ajuste-renal-receta-solo-hoy.test.ts (2 tests | 1 failed) 10ms
+     × contrato: `ajusteRenalFarmacos(` en la página recibe lo derivado de `medsDelCuadro`, no `meds` (sólo hoy) 7ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts (3 tests | 2 failed) 11ms
+     × HOY FALLA: «+1 619 555 1234» (EE.UU.) no puede salir como 526195551234 6ms
+     × HOY FALLA: «+34 600 000 000» (España) no puede salir como 5234600000000 1ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-017-carta-de-referencia-no-se-persiste.test.ts (2 tests | 1 failed) 32ms
+     × la pantalla invoca alguna persistencia o bitácora (logAudit / setDoc / addDoc / fetch a /api) 28ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 85 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — un volumen SIN concentración no puede quedar sin ningún aviso > FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dosis es un volumen sin concentración
+AssertionError: expected null not to be null
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:101:23
+     99|   it('FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dos…
+    100|     const aviso = revisarUnidadDosis(RENGLON.nombre, RENGLON.dosis)
+    101|     expect(aviso).not.toBeNull()
+       |                       ^
+    102|     expect(aviso?.mensaje ?? '').toMatch(/concentraci[óo]n/i)
+    103|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — un volumen SIN concentración no puede quedar sin ningún aviso > FALLA HOY · en conjunto — entre TODOS los tramos hay al menos un aviso (hoy son cero)
+AssertionError: expected 0 to be greater than 0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:116:27
+    114|     if (unidad) avisos.push(unidad)
+    115|     for (const h of dosisPeligrosasDeLaLista([RENGLON], CONTEXTO)) avi…
+    116|     expect(avisos.length).toBeGreaterThan(0)
+       |                           ^
+    117|   })
+    118|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — el paquete del paciente no entrega «5 mL» sin concentración > FALLA HOY · `comoTomarlo` no compone una línea con un volumen sin concentración
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:152:46
+    150|     const linea = comoTomarlo(RENGLON)
+    151|     // Hoy: «Amoxicilina · 5 mL · por la boca · cada 8 horas (3 veces …
+    152|     expect(esVolumenSinConcentracion(linea)).toBe(false)
+       |                                              ^
+    153|   })
+    154|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — el paquete del paciente no entrega «5 mL» sin concentración > FALLA HOY · `componerPaquete` no deja en `medicationInstructions` un volumen sin concentración
+AssertionError: expected [ { nombre: 'Amoxicilina', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "instruccion": "Amoxicilina · 5 mL · por la boca · cada 8 horas (3 veces al día) · durante 7 días",
++     "nombre": "Amoxicilina",
++   },
++ ]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:163:40
+    161|     // O el renglón lleva su concentración, o no baja al paciente (se …
+    162|     // se le dice al médico). Lo que no puede es bajar así.
+    163|     expect(conVolumenSinConcentracion).toEqual([])
+       |                                        ^
+    164|   })
+    165| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts > REP-002 · N-001 — al cambiar de plan, la suscripción anterior no se cancela sin abono > FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono
+Error: hoy: {"cancelaConProrrateo":false,"actualizaEnVezDeCancelar":false,"abonoEnStripe":false,"constanciaEnClinica":false} · cancel se llamó con [["sub_sintetica_clinica_anual"]]: expect(received).toSatisfy()
+
+Expected value to satisfy:
+[Function anonymous]
+
+Received:
+Object {
+  "abonoEnStripe": false,
+  "actualizaEnVezDeCancelar": false,
+  "cancelaConProrrateo": false,
+  "constanciaEnClinica": false,
+}
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts:225:8
+    223|     const visto = { cancelaConProrrateo, actualizaEnVezDeCancelar, abo…
+    224|     expect(visto, `hoy: ${JSON.stringify(visto)} · cancel se llamó con…
+    225|       .toSatisfy((v: typeof visto) => v.cancelaConProrrateo || v.actua…
+       |        ^
+    226|   })
+    227| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts > REP-003 · N-002 — el anticipo del paciente no se cobra en la cuenta de la plataforma > FALLA HOY · la sesión se abre en la cuenta del consultorio, con destino al consultorio, o no se abre (409)
+Error: hoy: {"status":200,"rechazadaPorBandera":false,"enCuentaDelConsultorio":false,"sesionesAbiertas":1} · create se llamó con [[{"mode":"payment","line_items":[{"price_data":{"currency":"mxn","product_data":{"name":"Anticipo de cita · Consultorio Sintético","description":"Cita en Consultorio Sintético"},"unit_amount":80000},"quantity":1}],"success_url":"https://agenda-medica-one.vercel.app/pago/exito?cita=cita-sintetica-n002","cancel_url":"https://agenda-medica-one.vercel.app/pago/cancelado?cita=cita-sintetica-n002","metadata":{"clinicId":"clinica-sintetica-n002","citaId":"cita-sintetica-n002","tipo":"paciente_anticipo"}}]]: expect(received).toSatisfy()
+
+Expected value to satisfy:
+[Function anonymous]
+
+Received:
+Object {
+  "enCuentaDelConsultorio": false,
+  "rechazadaPorBandera": false,
+  "sesionesAbiertas": 1,
+  "status": 200,
+}
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts:190:8
+    188|     const visto = { status: res.status, rechazadaPorBandera, enCuentaD…
+    189|     expect(visto, `hoy: ${JSON.stringify(visto)} · create se llamó con…
+    190|       .toSatisfy((v: typeof visto) => v.rechazadaPorBandera || v.enCue…
+       |        ^
+    191|   })
+    192| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts > REP-010 · la receta impresa por omisión no afirma «Negadas» con el campo vacío > RecetaDocumento.tsx no rellena ALERGIAS con una negación cuando no hay dato
+AssertionError: relleno que afirma negación: ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}: expected [ …(2), index: 43479, …(2) ] to be null
+
+- Expected:
+null
+
++ Received:
+[
+  "ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}",
+  "no refer",
+]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts:57:57
+     55|   it('RecetaDocumento.tsx no rellena ALERGIAS con una negación cuando …
+     56|     const m = receta.match(RELLENO_QUE_NIEGA)
+     57|     expect(m, `relleno que afirma negación: ${m?.[0]}`).toBeNull()
+       |                                                         ^
+     58|   })
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts > REP-010 · la receta impresa por omisión no afirma «Negadas» con el campo vacío > RecetaDocumento.tsx no lee `paciente.alergias` a secas en ningún renderizador (ni con `||` detrás)
+AssertionError: lee el texto libre por su cuenta: {data.paciente?.alergias ||: expected [ Array(4) ] to be null
+
+- Expected:
+null
+
++ Received:
+[
+  "{data.paciente?.alergias ||",
+  "data.",
+  "ciente",
+  "||",
+]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts:62:62
+     60|   it('RecetaDocumento.tsx no lee `paciente.alergias` a secas en ningún…
+     61|     const m = receta.match(LEE_TEXTO_LIBRE)
+     62|     expect(m, `lee el texto libre por su cuenta: ${m?.[0]}`).toBeNull()
+       |                                                              ^
+     63|   })
+     64|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts > REP-010 · la receta impresa por omisión no afirma «Negadas» con el campo vacío > el vecino que el auditor nombra sin corregir: la carta de referencia tampoco debe afirmar «Negadas»
+AssertionError: referencia rellena con negación: ALERGIAS: {alergiasParaImpreso(patient) || 'Negadas / no referidas'}: expected [ …(2), index: 14262, …(2) ] to be null
+
+- Expected:
+null
+
++ Received:
+[
+  "ALERGIAS: {alergiasParaImpreso(patient) || 'Negadas / no referidas'}",
+  "no refer",
+]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-010-receta-impresa-afirma-negadas.test.ts:76:61
+     74|     const ref = leer('src', 'app', '(dashboard)', 'referencia', '[pati…
+     75|     const m = ref.match(RELLENO_QUE_NIEGA)
+     76|     expect(m, `referencia rellena con negación: ${m?.[0]}`).toBeNull()
+       |                                                             ^
+     77|   })
+     78| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-011-ajuste-renal-receta-solo-hoy.test.ts > REP-011 · el ajuste renal de la receta mira el cuadro completo > contrato: `ajusteRenalFarmacos(` en la página recibe lo derivado de `medsDelCuadro`, no `meds` (sólo hoy)
+AssertionError: argumento «meds»: es la receta de hoy, no el cuadro: expected 'meds' not to be 'meds' // Object.is equality
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-011-ajuste-renal-receta-solo-hoy.test.ts:59:80
+     57|     expect(llamadas.length, 'la página ya no llama a ajusteRenalFarmac…
+     58|     for (const arg of llamadas) {
+     59|       expect(arg, `argumento «${arg}»: es la receta de hoy, no el cuad…
+       |                                                                                ^
+     60|       expect(arg, `argumento «${arg}» no deriva de medsDelCuadro`).toM…
+     61|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts > REP-012 · «beta» dentro de otro alérgeno no es alergia a betalactámicos > betametasona + amoxicilina → cero alertas críticas
+AssertionError: Paciente con alergia documentada a beta-lactámicos y se prescribe Amoxicilina 500 mg. Reacción cruzada posible — verificar.: expected [ { severidad: 'critica', …(2) } ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts:45:50
+     43|   it('betametasona + amoxicilina → cero alertas críticas', () => {
+     44|     const c = criticas('Betametasona')
+     45|     expect(c, c.map(a => a.mensaje).join(' | ')).toHaveLength(0)
+       |                                                  ^
+     46|   })
+     47|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts > REP-012 · «beta» dentro de otro alérgeno no es alergia a betalactámicos > betabloqueadores + amoxicilina → cero alertas críticas
+AssertionError: Paciente con alergia documentada a beta-lactámicos y se prescribe Amoxicilina 500 mg. Reacción cruzada posible — verificar.: expected [ { severidad: 'critica', …(2) } ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-012-betametasona-bloquea-como-betalactamico.test.ts:50:50
+     48|   it('betabloqueadores + amoxicilina → cero alertas críticas', () => {
+     49|     const c = criticas('Betabloqueadores')
+     50|     expect(c, c.map(a => a.mensaje).join(' | ')).toHaveLength(0)
+       |                                                  ^
+     51|   })
+     52|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-013-dos-catalogos-renales.test.ts > REP-013 · receta y consulta coinciden en qué fármaco lleva aviso renal > ketorolaco con depuración < 30: la consulta avisa (contraindicado) y la receta también debe avisar
+AssertionError: la receta no tiene AINE en su catálogo: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-013-dos-catalogos-renales.test.ts:59:87
+     57|   it('ketorolaco con depuración < 30: la consulta avisa (contraindicad…
+     58|     expect(avisaConsulta('Ketorolaco 30 mg')).toBe(true)
+     59|     expect(avisaReceta('Ketorolaco 30 mg'), 'la receta no tiene AINE e…
+       |                                                                                       ^
+     60|   })
+     61|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-013-dos-catalogos-renales.test.ts > REP-013 · receta y consulta coinciden en qué fármaco lleva aviso renal > para cada fármaco del caso, los dos motores dan la misma respuesta (hay aviso / no hay aviso)
+AssertionError: receta=Metformina 850 mg,Gabapentina 300 mg · consulta=Ketorolaco 30 mg,Metformina 850 mg,Gabapentina 300 mg: expected [ 'Metformina 850 mg', …(1) ] to deeply equal [ 'Ketorolaco 30 mg', …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "Ketorolaco 30 mg",
+    "Metformina 850 mg",
+    "Gabapentina 300 mg",
+  ]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-013-dos-catalogos-renales.test.ts:66:63
+     64|     const receta = caso.filter(avisaReceta)
+     65|     const consulta = caso.filter(avisaConsulta)
+     66|     expect(receta, `receta=${receta} · consulta=${consulta}`).toEqual(…
+       |                                                               ^
+     67|   })
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-014-recepcion-escribe-alergias.test.ts > REP-014 · un rol no clínico no puede escribir alergias > el update de patients/{id} no puede tocar los campos clínicos bajo isMember mientras sigan ahí
+AssertionError: alergias sigue en patients y la regla es: allow update: if isMember(clinicId);: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-014-recepcion-escribe-alergias.test.ts:72:99
+     70|     expect(update, 'no hay regla de update para patients').not.toBe('')
+     71|     const protegido = /isMedico\(/.test(update) || /affectedKeys\(\)\s…
+     72|     expect(protegido, `alergias sigue en patients y la regla es: ${upd…
+       |                                                                                                   ^
+     73|     if (/affectedKeys\(\)\s*\.hasAny\(/.test(update)) {
+     74|       for (const c of ['alergias', 'alergiasEstructuradas']) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-014-recepcion-escribe-alergias.test.ts > REP-014 · un rol no clínico no puede escribir alergias > la matriz no puede declarar `patients` administrativo y escribible por isMember con alergias dentro
+AssertionError: CAMPOS_CLINICOS_PACIENTE=["alergias","alergiasEstructuradas","notas","txValoracion","txValoracionAt","txValoracionHist"] y patients es guardaEscritura=isMember: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-014-recepcion-escribe-alergias.test.ts:88:7
+     86|       escribeCualquierMiembro,
+     87|       `CAMPOS_CLINICOS_PACIENTE=${JSON.stringify(campos)} y patients e…
+     88|     ).toBe(false)
+       |       ^
+     89|   })
+     90|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-015-consultor-ordena-ajustar-dosis.test.ts > REP-015 · el prompt del consultor no ordena calcular ni ajustar dosis > no contiene una orden de ajustar/calcular/estimar dosis por función renal/hepática, peso o edad
+AssertionError: el prompt ordena: «ajústala a función renal/hepática y peso»: expected [ …(6), index: 936, …(2) ] to be null
+
+- Expected:
+null
+
++ Received:
+[
+  "ajústala a función renal/hepática y peso",
+  "ajústala",
+  "ala",
+  undefined,
+  undefined,
+  "peso",
+]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-015-consultor-ordena-ajustar-dosis.test.ts:61:48
+     59|   it('no contiene una orden de ajustar/calcular/estimar dosis por func…
+     60|     const m = system!.match(ORDEN_DE_AJUSTAR)
+     61|     expect(m, `el prompt ordena: «${m?.[0]}»`).toBeNull()
+       |                                                ^
+     62|   })
+     63|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts > REP-016 · el prompt de valoración preoperatoria no ordena asumir factores de Caprini > ninguna regla del bloque ordena asumir/suponer un factor de riesgo
+AssertionError: ordena asumir:
+- Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).: expected [ Array(1) ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts:56:60
+     54|   it('ninguna regla del bloque ordena asumir/suponer un factor de ries…
+     55|     const lineas = bloque.split('\n').filter(l => ASUME.test(l))
+     56|     expect(lineas, `ordena asumir:\n${lineas.join('\n')}`).toHaveLengt…
+       |                                                            ^
+     57|   })
+     58|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts > REP-016 · el prompt de valoración preoperatoria no ordena asumir factores de Caprini > en particular, «cirugía en las piernas sin más» no puede marcar caprini.cirugiaMenor=true
+AssertionError: regla encontrada: «- Si dice "le hicieron cirugía en las piernas" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).»: expected '- Si dice "le hicieron cirugía en las…' not to match /sin m[aá]s/i
+
+- Expected:
+/sin m[aá]s/i
+
++ Received:
+"- Si dice \"le hicieron cirugía en las piernas\" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle)."
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-016-prompt-asume-punto-de-caprini.test.ts:61:62
+     59|   it('en particular, «cirugía en las piernas sin más» no puede marcar …
+     60|     const regla = bloque.split('\n').find(l => /cirugiaMenor\s*=\s*tru…
+     61|     expect(regla, `regla encontrada: «${regla.trim()}»`).not.toMatch(/…
+       |                                                              ^
+     62|   })
+     63|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-017-carta-de-referencia-no-se-persiste.test.ts > REP-017 · la carta de referencia deja rastro en el expediente > la pantalla invoca alguna persistencia o bitácora (logAudit / setDoc / addDoc / fetch a /api)
+AssertionError: la carta de referencia no escribe ni registra nada: expected null not to be null
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-017-carta-de-referencia-no-se-persiste.test.ts:56:73
+     54|   it('la pantalla invoca alguna persistencia o bitácora (logAudit / se…
+     55|     const m = pagina.match(PERSISTE_O_REGISTRA)
+     56|     expect(m, 'la carta de referencia no escribe ni registra nada').no…
+       |                                                                         ^
+     57|   })
+     58| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts > REP-018 · las presentaciones mexicanas de valproato y metotrexato casan con la entrada gestacional > revisarFarmaco(«Valproato de magnesio 200 mg») → entrada «Ácido valproico»
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts > REP-018 · las presentaciones mexicanas de valproato y metotrexato casan con la entrada gestacional > revisarFarmaco(«Divalproato de sodio 500 mg») → entrada «Ácido valproico»
+AssertionError: expected undefined to be 'Ácido valproico' // Object.is equality
+
+- Expected:
+"Ácido valproico"
+
++ Received:
+undefined
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts:51:29
+     49|     ['Metotrexate 2.5 mg', 'Metotrexato'],
+     50|   ])('revisarFarmaco(«%s») → entrada «%s»', (nombre, esperado) => {
+     51|     expect(gestaDe(nombre)).toBe(esperado)
+       |                             ^
+     52|   })
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts > REP-018 · las presentaciones mexicanas de valproato y metotrexato casan con la entrada gestacional > revisarFarmaco(«Metotrexate 2.5 mg») → entrada «Metotrexato»
+AssertionError: expected undefined to be 'Metotrexato' // Object.is equality
+
+- Expected:
+"Metotrexato"
+
++ Received:
+undefined
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts:51:29
+     49|     ['Metotrexate 2.5 mg', 'Metotrexato'],
+     50|   ])('revisarFarmaco(«%s») → entrada «%s»', (nombre, esperado) => {
+     51|     expect(gestaDe(nombre)).toBe(esperado)
+       |                             ^
+     52|   })
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts > REP-018 · las presentaciones mexicanas de valproato y metotrexato casan con la entrada gestacional > copiloto: mujer de 25 años con «Valproato de magnesio 200 mg» recibe el aviso crítico de contraindicación en embarazo
+AssertionError: sin aviso gesta para Valproato de magnesio 200 mg: expected undefined to be 'critico' // Object.is equality
+
+- Expected:
+"critico"
+
++ Received:
+undefined
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts:57:58
+     55|     'copiloto: mujer de 25 años con «%s» recibe el aviso crítico de co…
+     56|       const s = avisoGesta(nombre)
+     57|       expect(s?.nivel, `sin aviso gesta para ${nombre}`).toBe('critico…
+       |                                                          ^
+     58|     })
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts > REP-018 · las presentaciones mexicanas de valproato y metotrexato casan con la entrada gestacional > copiloto: mujer de 25 años con «Metotrexate 2.5 mg» recibe el aviso crítico de contraindicación en embarazo
+AssertionError: sin aviso gesta para Metotrexate 2.5 mg: expected undefined to be 'critico' // Object.is equality
+
+- Expected:
+"critico"
+
++ Received:
+undefined
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-018-valproato-y-metotrexate-sin-sinonimos.test.ts:57:58
+     55|     'copiloto: mujer de 25 años con «%s» recibe el aviso crítico de co…
+     56|       const s = avisoGesta(nombre)
+     57|       expect(s?.nivel, `sin aviso gesta para ${nombre}`).toBe('critico…
+       |                                                          ^
+     58|     })
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-019-dando-pecho-no-escala.test.ts > REP-019 · lactancia + fármaco del plan se escala, nunca se contesta desde el plan > «estoy dando pecho, ¿cómo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-019-dando-pecho-no-escala.test.ts > REP-019 · lactancia + fármaco del plan se escala, nunca se contesta desde el plan > «le doy leche a mi bebé, ¿cada cuándo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-019-dando-pecho-no-escala.test.ts > REP-019 · lactancia + fármaco del plan se escala, nunca se contesta desde el plan > «estoy en cinta, ¿cómo tomo el ibuprofeno?» → escalación con motivo embarazo_o_lactancia
+AssertionError: clase=ANSWER_FROM_APPROVED_PLAN · motivo=null · texto=«Tomar 1 tableta cada 8 horas con alimentos, por 5 días.»: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-019-dando-pecho-no-escala.test.ts:63:95
+     61|   ])('«%s» → escalación con motivo embarazo_o_lactancia', texto => {
+     62|     const r = clasificarPregunta(texto, { plan: PLAN })
+     63|     expect(ESCALA.has(r.clase), `clase=${r.clase} · motivo=${r.motivo}…
+       |                                                                                               ^
+     64|     expect(r.clase).not.toBe('ANSWER_FROM_APPROVED_PLAN')
+     65|     expect(r.procedencia).toBeNull()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-020-sello-motor-importado-nunca-pintado.test.ts > REP-020 · SelloMotor se pinta en alguna pantalla > hay al menos un archivo de src/ (fuera de tests) que lo usa como elemento
+AssertionError: SelloMotor está importado pero nunca renderizado: expected 0 to be greater than 0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-020-sello-motor-importado-nunca-pintado.test.ts:64:77
+     62|   it('hay al menos un archivo de src/ (fuera de tests) que lo usa como…
+     63|     const usos = todos.filter(f => usa(readFileSync(f, 'utf8')) && !f.…
+     64|     expect(usos.length, 'SelloMotor está importado pero nunca renderiz…
+       |                                                                             ^
+     65|   })
+     66| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-030-anular-cobro-lee-la-cita-despues-de-escribir.test.ts > REP-030 · anular un cobro con cita no puede lanzar por el orden de la transacción > HOY FALLA: anular un cobro CON cita no lanza y libera la cita
+AssertionError: promise rejected "Error: Firestore transactions require all… { code: '…' }" instead of resolving
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-030-anular-cobro-lee-la-cita-despues-de-escribir.test.ts:137:79
+    135|     docs['clinics/C/appointments/A1'] = { estado: 'atendida', cobroId:…
+    136|
+    137|     await expect(cancelarCobro('C', 'cb1', 'se cobró dos veces', 'u1',…
+       |                                                                               ^
+    138|
+    139|     expect(docs['clinics/C/cobros/cb1']).toMatchObject({ cancelado: tr…
+
+Caused by: Error: Firestore transactions require all reads to be executed before all writes.
+ ❯ Object.get docs/audit/panel-de-lujo-2026-09/reproducciones/REP-030-anular-cobro-lee-la-cita-despues-de-escribir.test.ts:78:37
+ ❯ src/lib/cobros.ts:467:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'invalid-argument' }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-031-anular-cobro-suelto-permission-denied.test.ts > REP-031 · un miembro puede anular un cobro suelto (sin citaId ni patientId) > HOY FALLA: anular un cobro SUELTO con autor, fecha y motivo debe estar permitido
+FirebaseError: 7 PERMISSION_DENIED: 
+evaluation error at L912:26 for 'update' @ L912, false for 'update' @ L1211, Property citaId is undefined on object. for 'update' @ L912, false for 'update' @ L1211
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts > REP-032 · `cobroId` en la cita no lo puede inventar (ni borrar) un update suelto > HOY FALLA: `cobroId` inventado, sin documento en cobros, debe NEGARSE
+Error: Expected request to fail, but it succeeded.
+ ❯ node_modules/@firebase/rules-unit-testing/src/util.ts:137:8
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts:106:5
+    104|   it('HOY FALLA: `cobroId` inventado, sin documento en cobros, debe NE…
+    105|     const db = env.authenticatedContext('u1').firestore()
+    106|     await assertFails(updateDoc(doc(db, 'clinics', 'C', 'appointments'…
+       |     ^
+    107|   })
+    108|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts > REP-032 · `cobroId` en la cita no lo puede inventar (ni borrar) un update suelto > HOY FALLA: borrar `cobroId` de una cita ya cobrada (para cobrarla otra vez) debe NEGARSE
+Error: Expected request to fail, but it succeeded.
+ ❯ node_modules/@firebase/rules-unit-testing/src/util.ts:137:8
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-032-cobroid-inventado-en-la-cita.test.ts:111:5
+    109|   it('HOY FALLA: borrar `cobroId` de una cita ya cobrada (para cobrarl…
+    110|     const db = env.authenticatedContext('u1').firestore()
+    111|     await assertFails(updateDoc(doc(db, 'clinics', 'C', 'appointments'…
+       |     ^
+    112|   })
+    113|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts > REP-033 · quitar una cortesía exige motivo, conserva el sello y deja bitácora > HOY FALLA: sin motivo, quitar la cortesía debe RECHAZARSE (como cancelarCobro sin motivo)
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+undefined
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts:105:36
+    103|
+    104|   it('HOY FALLA: sin motivo, quitar la cortesía debe RECHAZARSE (como …
+    105|     await expect(quitar('C', 'A1')).rejects.toThrow()
+       |                                    ^
+    106|     expect(escrituras.filter(e => e.path === 'clinics/C/appointments/A…
+    107|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts > REP-033 · quitar una cortesía exige motivo, conserva el sello y deja bitácora > HOY FALLA: con motivo y autor, los dos LLEGAN al documento y no se vacía el sello original
+AssertionError: el motivo del retiro no llega al documento: expected '[{"cobroExento":false,"exentoMotivo":…' to contain 'se cobró en efectivo al final'
+
+Expected: "se cobró en efectivo al final"
+Received: "[{"cobroExento":false,"exentoMotivo":"","exentoPor":"","exentoPorNombre":"","exentoEn":""}]"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts:113:65
+    111|     const cita = escrituras.filter(e => e.path === 'clinics/C/appointm…
+    112|     const texto = JSON.stringify(cita.map(e => e.d))
+    113|     expect(texto, 'el motivo del retiro no llega al documento').toCont…
+       |                                                                 ^
+    114|     expect(texto, 'el autor del retiro no llega al documento').toConta…
+    115|     const vaciaElSello = cita.some(e => e.d.exentoPor === '' && e.d.ex…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts > REP-033 · quitar una cortesía exige motivo, conserva el sello y deja bitácora > HOY FALLA: queda asiento en la bitácora (en la función o en su llamador)
+AssertionError: ni quitarExencion ni su llamador dejan asiento en logAudit: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-033-quitar-cortesia-sin-motivo-ni-bitacora.test.ts:123:103
+    121|     const enLaFuncion = asientos.some(a => /cortes|exen/i.test(String(…
+    122|     const enElLlamador = /logAudit\(/.test(bloqueDelLlamador())
+    123|     expect(enLaFuncion || enElLlamador, 'ni quitarExencion ni su llama…
+       |                                                                                                       ^
+    124|   })
+    125| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts > REP-034 · un país explícito no se convierte en México > HOY FALLA: «+1 619 555 1234» (EE.UU.) no puede salir como 526195551234
+AssertionError: «+1 619 555 1234» se convirtió en el número mexicano 526195551234: expected '526195551234' not to be '526195551234' // Object.is equality
+ ❯ salidaSegura docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts:53:69
+     51|   try { r = normalizarTelefonoWa(raw) } catch { return }   // rechazar…
+     52|   if (r === '') return                                     // rechazar…
+     53|   expect(r, `«${raw}» se convirtió en el número mexicano ${r}`).not.to…
+       |                                                                     ^
+     54|   expect(r.startsWith('52'), `«${raw}» no es mexicano y salió como ${r…
+     55|   expect(r).toBe(e164)
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts:66:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts > REP-034 · un país explícito no se convierte en México > HOY FALLA: «+34 600 000 000» (España) no puede salir como 5234600000000
+AssertionError: «+34 600 000 000» se convirtió en el número mexicano 5234600000000: expected '5234600000000' not to be '5234600000000' // Object.is equality
+ ❯ salidaSegura docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts:53:69
+     51|   try { r = normalizarTelefonoWa(raw) } catch { return }   // rechazar…
+     52|   if (r === '') return                                     // rechazar…
+     53|   expect(r, `«${raw}» se convirtió en el número mexicano ${r}`).not.to…
+       |                                                                     ^
+     54|   expect(r.startsWith('52'), `«${raw}» no es mexicano y salió como ${r…
+     55|   expect(r).toBe(e164)
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-034-telefono-extranjero-se-vuelve-mexicano.test.ts:70:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-035-telefono-corregido-no-llega-a-las-citas.test.ts > REP-035 · el teléfono corregido llega a las citas futuras (o el cron lo resuelve del expediente) > HOY FALLA: tras corregir el teléfono, la cita FUTURA lo lleva (o el cron lo lee del expediente)
+AssertionError: pacienteTelefono de la cita futura sigue en 5551112233; escrituras a citas: false; el cron cae al expediente: false: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-035-telefono-corregido-no-llega-a-las-citas.test.ts:157:7
+    155|       propagado || elCronCaeAlExpediente(),
+    156|       `pacienteTelefono de la cita futura sigue en ${citaFutura.pacien…
+    157|     ).toBe(true)
+       |       ^
+    158|   })
+    159| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts > REP-050 · «Cefalosporinas» como alérgeno dispara contra una cefalosporina en la receta > Cefalosporinas + Ceftriaxona 1 g → al menos una alerta crítica (hoy: ninguna)
+AssertionError: sin alerta: el vocabulario de la receta no conoce la clase: expected 0 to be greater than 0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts:72:84
+     70|   it('Cefalosporinas + Ceftriaxona 1 g → al menos una alerta crítica (…
+     71|     const c = criticas('Cefalosporinas', 'Ceftriaxona 1 g')
+     72|     expect(c.length, 'sin alerta: el vocabulario de la receta no conoc…
+       |                                                                                    ^
+     73|   })
+     74|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts > REP-050 · «Cefalosporinas» como alérgeno dispara contra una cefalosporina en la receta > la compuerta de firma (validarNOM004) lo dice en sus errores (hoy: calla)
+AssertionError: expected [] to not have a length of +0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-050-alergia-a-cefalosporinas-no-dispara.test.ts:78:49
+     76|     const r = validarNOM004(nota('Cefalosporinas', 'Ceftriaxona 1 g'))
+     77|     const menciona = r.errores.filter(e => /ceftriaxona/i.test(e))
+     78|     expect(menciona, r.errores.join(' | ')).not.toHaveLength(0)
+       |                                                 ^
+     79|   })
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts > REP-051 · «n/m unidad» es un combinado y el motor no puede repartirlo > extraerMg(325/37.5 mg) no opina (hoy devuelve el segundo componente)
+AssertionError: devolvió 37.5: expected 37.5 to be null
+
+- Expected:
+null
+
++ Received:
+37.5
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts:49:58
+     47| describe('REP-051 · «n/m unidad» es un combinado y el motor no puede r…
+     48|   it.each(['325/37.5 mg', '500/5 mg', '100/25 mg'])('extraerMg(%s) no …
+     49|     expect(extraerMg(txt), `devolvió ${extraerMg(txt)}`).toBeNull()
+       |                                                          ^
+     50|   })
+     51|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts > REP-051 · «n/m unidad» es un combinado y el motor no puede repartirlo > extraerMg(500/5 mg) no opina (hoy devuelve el segundo componente)
+AssertionError: devolvió 5: expected 5 to be null
+
+- Expected:
+null
+
++ Received:
+5
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts:49:58
+     47| describe('REP-051 · «n/m unidad» es un combinado y el motor no puede r…
+     48|   it.each(['325/37.5 mg', '500/5 mg', '100/25 mg'])('extraerMg(%s) no …
+     49|     expect(extraerMg(txt), `devolvió ${extraerMg(txt)}`).toBeNull()
+       |                                                          ^
+     50|   })
+     51|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts > REP-051 · «n/m unidad» es un combinado y el motor no puede repartirlo > extraerMg(100/25 mg) no opina (hoy devuelve el segundo componente)
+AssertionError: devolvió 25: expected 25 to be null
+
+- Expected:
+null
+
++ Received:
+25
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts:49:58
+     47| describe('REP-051 · «n/m unidad» es un combinado y el motor no puede r…
+     48|   it.each(['325/37.5 mg', '500/5 mg', '100/25 mg'])('extraerMg(%s) no …
+     49|     expect(extraerMg(txt), `devolvió ${extraerMg(txt)}`).toBeNull()
+       |                                                          ^
+     50|   })
+     51|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts > REP-051 · «n/m unidad» es un combinado y el motor no puede repartirlo > Paracetamol 1 g c/6 h + Paracetamol/tramadol 325/37.5 mg c/8 h: no se imprime una suma (hoy «4112.5 mg/día»)
+AssertionError: el médico ve una cifra que no es la suya: expected [ Array(1) ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-051-combinado-lee-el-numero-equivocado.test.ts:58:85
+     56|     ], [])
+     57|     const conSuma = r.flatMap(g => g.alertas).filter(a => SUMAS.has(a.…
+     58|     expect(conSuma.map(a => a.mensaje), 'el médico ve una cifra que no…
+       |                                                                                     ^
+     59|     // El aviso de duplicado en sí puede (y debe) seguir saliendo: es …
+     60|     expect(r.flatMap(g => g.alertas).some(a => a.codigo === 'terapia_d…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts > REP-052 · un escolar con «gentamicina» no casa la pauta neonatal > ninguna sugerencia pediátrica del escolar habla de la pauta neonatal (hoy: «Gentamicina neonatal (≤7 días): …»)
+AssertionError: eligió la entrada neonatal por subcadena: expected [ Array(1) ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts:62:80
+     60|   it('ninguna sugerencia pediátrica del escolar habla de la pauta neon…
+     61|     const neo = ped.filter(s => /neonatal/i.test(s.id) || /neonatal/i.…
+     62|     expect(neo.map(s => s.titulo), 'eligió la entrada neonatal por sub…
+       |                                                                                ^
+     63|   })
+     64|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts > REP-052 · un escolar con «gentamicina» no casa la pauta neonatal > 140 mg a 20 kg (7 mg/kg, dentro del tope 7.5) NO es crítico (hoy: falsa alarma crítica)
+AssertionError: crítico falso: expected [ Array(1) ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts:67:78
+     65|   it('140 mg a 20 kg (7 mg/kg, dentro del tope 7.5) NO es crítico (hoy…
+     66|     const criticos = ped.filter(s => s.nivel === 'critico')
+     67|     expect(criticos.map(s => `${s.titulo} — ${s.detalle}`), 'crítico f…
+       |                                                                              ^
+     68|   })
+     69|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts > REP-052 · un escolar con «gentamicina» no casa la pauta neonatal > el motor no devuelve la pauta neonatal como usable a los 8 años (hoy: 50 mg c/12 h)
+AssertionError: devolvió {"min":50,"max":50}: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-052-gentamicina-neonatal-para-un-escolar.test.ts:74:62
+     72|       (ReturnType<typeof calcularDosisPediatrica> & { noAplicaPorEdad?…
+     73|     const usable = d != null && !d.contraindicadoPorEdad && !d.noAplic…
+     74|     expect(usable, `devolvió ${JSON.stringify(d?.porToma)}`).toBe(fals…
+       |                                                              ^
+     75|   })
+     76|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts > REP-053 · el peso de signos vitales pasa por revisarPesoPediatrico antes de mg/kg > guardián del hallazgo: ≥2 llamadores de revisarPesoPediatrico en app/+components/ (hoy 1)
+AssertionError: sólo src/components/PanelPediatria.tsx: expected 1 to be greater than or equal to 2
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts:79:50
+     77|     const rel = llamadores.map(f => path.relative(raiz, f))
+     78|     expect(rel, `llamadores: ${rel.join(', ') || 'ninguno'}`).not.toHa…
+     79|     expect(rel.length, `sólo ${rel.join(', ')}`).toBeGreaterThanOrEqua…
+       |                                                  ^
+     80|   })
+     81|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts > REP-053 · el peso de signos vitales pasa por revisarPesoPediatrico antes de mg/kg > la consulta, que alimenta dosisPeligrosasDeLaLista con signosNum.peso, revisa ese peso
+AssertionError: src/app/(dashboard)/consulta/[patientId]/page.tsx no menciona revisarPesoPediatrico: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts:83:107
+     81|
+     82|   it('la consulta, que alimenta dosisPeligrosasDeLaLista con signosNum…
+     83|     expect(/revisarPesoPediatrico/.test(leer(CONSULTA)), `${CONSULTA} …
+       |                                                                                                           ^
+     84|   })
+     85|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts > REP-053 · el peso de signos vitales pasa por revisarPesoPediatrico antes de mg/kg > la receta, que alimenta revisarDosis con el peso de la nota, revisa ese peso
+AssertionError: src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx no menciona revisarPesoPediatrico: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-053-peso-de-signos-sin-plausibilidad.test.ts:87:103
+     85|
+     86|   it('la receta, que alimenta revisarDosis con el peso de la nota, rev…
+     87|     expect(/revisarPesoPediatrico/.test(leer(RECETA)), `${RECETA} no m…
+       |                                                                                                       ^
+     88|   })
+     89| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts > REP-054 · lactante de 4 meses + ibuprofeno: el copiloto avisa la contraindicación por edad > hay una sugerencia CRÍTICA sobre ibuprofeno (hoy: nivel «accion» con el rango 30 a 60 mg)
+AssertionError: expected 'hoy: accion: Ibuprofeno para 6 kg' to match /critico/
+
+- Expected:
+/critico/
+
++ Received:
+"hoy: accion: Ibuprofeno para 6 kg"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts:73:8
+     71|     const crit = ped.filter(s => /ibuprofeno/i.test(s.id) && s.nivel =…
+     72|     expect(crit.map(s => `${s.nivel}: ${s.titulo} — ${s.detalle}`).joi…
+     73|       .toMatch(/critico/)
+       |        ^
+     74|   })
+     75|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts > REP-054 · lactante de 4 meses + ibuprofeno: el copiloto avisa la contraindicación por edad > y esa sugerencia dice que es por la EDAD, con el texto de restricción del catálogo
+AssertionError: expected 'Ibuprofeno para 6 kg 30 a 60 mg c/6-8…' to match /No usar en menores de 6 meses/i
+
+- Expected:
+/No usar en menores de 6 meses/i
+
++ Received:
+"Ibuprofeno para 6 kg 30 a 60 mg c/6-8 h."
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts:78:19
+     76|   it('y esa sugerencia dice que es por la EDAD, con el texto de restri…
+     77|     const texto = ped.map(s => `${s.titulo} ${s.detalle}`).join(' ')
+     78|     expect(texto).toMatch(new RegExp(ibu.restriccionEdad!.split(';')[0…
+       |                   ^
+     79|   })
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts > REP-054 · lactante de 4 meses + ibuprofeno: el copiloto avisa la contraindicación por edad > ninguna sugerencia le presenta un rango válido como si fuera correcto
+AssertionError: le confirma el rango a un contraindicado: expected [ '30 a 60 mg c/6-8 h.' ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-054-copiloto-sin-edad-no-ve-contraindicacion.test.ts:83:83
+     81|   it('ninguna sugerencia le presenta un rango válido como si fuera cor…
+     82|     const rango = ped.filter(s => s.nivel !== 'critico' && /\d+ a \d+ …
+     83|     expect(rango.map(s => s.detalle), 'le confirma el rango a un contr…
+       |                                                                                   ^
+     84|   })
+     85| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts > REP-055 · el consentimiento impreso lleva renglón de firma del paciente y de testigos > el Word (construirNotaHTML) con tipo consentimiento trae «Firma del paciente» (hoy: sólo el médico)
+AssertionError: el Word sólo trae la firma del médico: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts:77:80
+     75|   it('el Word (construirNotaHTML) con tipo consentimiento trae «Firma …
+     76|     const html = construirNotaHTML(nota('consentimiento'), null)
+     77|     expect(FIRMA_PACIENTE.test(html), 'el Word sólo trae la firma del …
+       |                                                                                ^
+     78|   })
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts > REP-055 · el consentimiento impreso lleva renglón de firma del paciente y de testigos > … y trae «Testigo»
+AssertionError: el Word no tiene renglón de testigos: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts:82:72
+     80|   it('… y trae «Testigo»', () => {
+     81|     const html = construirNotaHTML(nota('consentimiento'), null)
+     82|     expect(TESTIGO.test(html), 'el Word no tiene renglón de testigos')…
+       |                                                                        ^
+     83|   })
+     84|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts > REP-055 · el consentimiento impreso lleva renglón de firma del paciente y de testigos > la página de impresión de la nota contempla la firma del paciente y los testigos (hoy: un solo bloque, page.tsx:548)
+AssertionError: no hay «Firma del paciente» en la página: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-055-consentimiento-sin-firma-del-paciente.test.ts:87:82
+     85|   it('la página de impresión de la nota contempla la firma del pacient…
+     86|     const src = readFileSync(path.join(raiz, PAGINA), 'utf8')
+     87|     expect(FIRMA_PACIENTE.test(src), 'no hay «Firma del paciente» en l…
+       |                                                                                  ^
+     88|     expect(TESTIGO.test(src), 'no hay «Testigo» en la página').toBe(tr…
+     89|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts > REP-056 · la profilaxis quirúrgica cita su fuente o se pinta como SIN VALIDAR > cada fila de ANTIBIOTICOS_PROFILAXIS lleva `fuente` no vacía (hoy: ninguna)
+AssertionError: sin fuente: Cefazolina, Cefuroxima, Cefoxitina, Ampicilina-sulbactam, Clindamicina, Metronidazol, Vancomicina, Gentamicina, Ciprofloxacino: expected [ 'Cefazolina', 'Cefuroxima', …(7) ] to have a length of +0 but got 9
+
+- Expected
++ Received
+
+- 0
++ 9
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts:66:50
+     64|   it('cada fila de ANTIBIOTICOS_PROFILAXIS lleva `fuente` no vacía (ho…
+     65|     const sin = ANTIBIOTICOS_PROFILAXIS.filter(f => !fuenteDe(f)).map(…
+     66|     expect(sin, `sin fuente: ${sin.join(', ')}`).toHaveLength(0)
+       |                                                  ^
+     67|   })
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts > REP-056 · la profilaxis quirúrgica cita su fuente o se pinta como SIN VALIDAR > cada fila de ESQUEMAS_POR_CIRUGIA lleva `fuente` no vacía (hoy: ninguna)
+AssertionError: sin fuente: Herniorrafia y cirugía de mama (limpia), Colecistectomía y vía biliar, Gastroduodenal, Apendicectomía no complicada, Colorrectal, Cesárea, Histerectomía, Ortopedia con implante o prótesis, Cardiaca y vascular, Urología con instrumentación: expected [ …(10) ] to have a length of +0 but got 10
+
+- Expected
++ Received
+
+- 0
++ 10
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts:71:50
+     69|   it('cada fila de ESQUEMAS_POR_CIRUGIA lleva `fuente` no vacía (hoy: …
+     70|     const sin = ESQUEMAS_POR_CIRUGIA.filter(f => !fuenteDe(f)).map(f =…
+     71|     expect(sin, `sin fuente: ${sin.join(', ')}`).toHaveLength(0)
+       |                                                  ^
+     72|   })
+     73|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts > REP-056 · la profilaxis quirúrgica cita su fuente o se pinta como SIN VALIDAR > el motor está validado con fuente real, O PanelCirugia pinta SelloMotor (hoy: ni lo uno ni lo otro)
+AssertionError: estado=pendiente_validacion, rangoValido.fuente=pendiente_validacion_clinica, SelloMotor en PanelCirugia=false: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-056-profilaxis-quirurgica-sin-fuente-ni-sello.test.ts:79:7
+     77|     expect(validado || sellado,
+     78|       `estado=${motor?.estado}, rangoValido.fuente=${motor?.rangoValid…
+     79|     ).toBe(true)
+       |       ^
+     80|   })
+     81| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts > REP-057 · «como» y «cuando» dentro de otra pregunta no son una pregunta de toma > PI-001: «si no como, ¿me tomo la metformina?» ESCALA y avisa (hoy: cita la pauta, avisa:false)
+Error: {"clase":"ANSWER_FROM_APPROVED_PLAN","texto":"Metformina 850 mg, una tableta con la comida y otra con la cena.","motivo":null,"procedencia":{"nivel":2,"notaId":"nota-sintetica-001","fechaConsulta":"2026-08-15","version":1,"campo":"medicationInstructions"},"avisarAlConsultorio":false}: expect(received).toSatisfy()
+
+Expected value to satisfy:
+[Function escala]
+
+Received:
+Object {
+  "avisarAlConsultorio": false,
+  "clase": "ANSWER_FROM_APPROVED_PLAN",
+  "motivo": null,
+  "procedencia": Object {
+    "campo": "medicationInstructions",
+    "fechaConsulta": "2026-08-15",
+    "nivel": 2,
+    "notaId": "nota-sintetica-001",
+    "version": 1,
+  },
+  "texto": "Metformina 850 mg, una tableta con la comida y otra con la cena.",
+}
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts:75:34
+     73|   it('PI-001: «si no como, ¿me tomo la metformina?» ESCALA y avisa (ho…
+     74|     const r = clasificarPregunta('si no como, ¿me tomo la metformina?'…
+     75|     expect(r, JSON.stringify(r)).toSatisfy(escala)
+       |                                  ^
+     76|     expect(r.avisarAlConsultorio).toBe(true)
+     77|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts > REP-057 · «como» y «cuando» dentro de otra pregunta no son una pregunta de toma > PI-001: «¿Puedo saltarme el paracetamol hoy? como poco por las tardes» ESCALA (hoy: cita la pauta)
+Error: {"clase":"ANSWER_FROM_APPROVED_PLAN","texto":"Paracetamol · 1 g · por la boca · cada 8 horas · durante 5 días","motivo":null,"procedencia":{"nivel":2,"notaId":"nota-sintetica-001","fechaConsulta":"2026-08-15","version":1,"campo":"medicationInstructions"},"avisarAlConsultorio":false}: expect(received).toSatisfy()
+
+Expected value to satisfy:
+[Function escala]
+
+Received:
+Object {
+  "avisarAlConsultorio": false,
+  "clase": "ANSWER_FROM_APPROVED_PLAN",
+  "motivo": null,
+  "procedencia": Object {
+    "campo": "medicationInstructions",
+    "fechaConsulta": "2026-08-15",
+    "nivel": 2,
+    "notaId": "nota-sintetica-001",
+    "version": 1,
+  },
+  "texto": "Paracetamol · 1 g · por la boca · cada 8 horas · durante 5 días",
+}
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts:81:34
+     79|   it('PI-001: «¿Puedo saltarme el paracetamol hoy? como poco por las t…
+     80|     const r = clasificarPregunta('¿Puedo saltarme el paracetamol hoy? …
+     81|     expect(r, JSON.stringify(r)).toSatisfy(escala)
+       |                                  ^
+     82|     expect(r.avisarAlConsultorio).toBe(true)
+     83|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts > REP-057 · «como» y «cuando» dentro de otra pregunta no son una pregunta de toma > PI-002: «cuando tomo la furosemida me da mucha sed, ¿es normal?» ESCALA y avisa (hoy: «Una tableta por la mañana.»)
+Error: {"clase":"ANSWER_FROM_APPROVED_PLAN","texto":"Una tableta por la mañana.","motivo":null,"procedencia":{"nivel":2,"notaId":"nota-sintetica-001","fechaConsulta":"2026-08-15","version":1,"campo":"medicationInstructions"},"avisarAlConsultorio":false}: expect(received).toSatisfy()
+
+Expected value to satisfy:
+[Function escala]
+
+Received:
+Object {
+  "avisarAlConsultorio": false,
+  "clase": "ANSWER_FROM_APPROVED_PLAN",
+  "motivo": null,
+  "procedencia": Object {
+    "campo": "medicationInstructions",
+    "fechaConsulta": "2026-08-15",
+    "nivel": 2,
+    "notaId": "nota-sintetica-001",
+    "version": 1,
+  },
+  "texto": "Una tableta por la mañana.",
+}
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-057-como-y-cuando-contestan-desde-el-plan.test.ts:87:34
+     85|   it('PI-002: «cuando tomo la furosemida me da mucha sed, ¿es normal?»…
+     86|     const r = clasificarPregunta('cuando tomo la furosemida me da much…
+     87|     expect(r, JSON.stringify(r)).toSatisfy(escala)
+       |                                  ^
+     88|     expect(r.avisarAlConsultorio).toBe(true)
+     89|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts > REP-058 · el cupo clínico agotado no tumba la pregunta urgente > EL CASO: portal:clinico agotado → «preguntar» urgente NO devuelve 429 (hoy: 429 «Demasiadas consultas a tus documentos»)
+AssertionError: el freno de documentos se cobró a la urgencia: expected 429 not to be 429 // Object.is equality
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts:147:77
+    145|     agotados.push(`portal:clinico:${CLINICA}:${PACIENTE}`)
+    146|     const res = await pedir({ action: 'preguntar', texto: URGENTE })
+    147|     expect(res.status, 'el freno de documentos se cobró a la urgencia'…
+       |                                                                             ^
+    148|     expect(res.status).toBe(200)
+    149|     expect((await res.json()).clase).toBe('URGENT_REVIEW_REQUIRED')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts > REP-058 · el cupo clínico agotado no tumba la pregunta urgente > … y la tarea crítica queda escrita: el consultorio se entera
+AssertionError: la pregunta ni siquiera se guardó: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-058-cupo-clinico-agotado-tumba-la-urgencia.test.ts:155:68
+    153|     agotados.push(`portal:clinico:${CLINICA}:${PACIENTE}`)
+    154|     await pedir({ action: 'preguntar', texto: URGENTE })
+    155|     expect(preguntasEscritas, 'la pregunta ni siquiera se guardó').toH…
+       |                                                                    ^
+    156|     const tareas = [...tareasEscritas.values()]
+    157|     expect(tareas, 'sin tarea: nadie del consultorio la ve').toHaveLen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts > REP-059 · lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp > Meta / WhatsApp declara tocaDatosDeSalud: true (hoy: false, con un comentario que ya no es verdad)
+AssertionError: Meta / WhatsApp: Mensajes y recordatorios al paciente: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts:65:66
+     63|
+     64|   it('Meta / WhatsApp declara tocaDatosDeSalud: true (hoy: false, con …
+     65|     expect(meta.tocaDatosDeSalud, `${meta.nombre}: ${meta.uso}`).toBe(…
+       |                                                                  ^
+     66|   })
+     67|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts > REP-059 · lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp > 360dialog, por el que pasan esos mismos mensajes, también (hoy: false)
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts:69:37
+     67|
+     68|   it('360dialog, por el que pasan esos mismos mensajes, también (hoy: …
+     69|     expect(dialog.tocaDatosDeSalud).toBe(true)
+       |                                     ^
+     70|   })
+     71|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts > REP-059 · lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp > la lista en texto no dice «No trata datos de salud» junto a Meta / WhatsApp
+AssertionError: expected ' • Meta / WhatsApp (Estados Unidos) —…' not to match /No trata datos de salud/
+
+- Expected:
+/No trata datos de salud/
+
++ Received:
+" • Meta / WhatsApp (Estados Unidos) — Mensajes y recordatorios al paciente. No trata datos de salud."
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts:74:25
+     72|   it('la lista en texto no dice «No trata datos de salud» junto a Meta…
+     73|     const renglon = listaEnTexto().split('\n').find(l => l.includes(me…
+     74|     expect(renglon).not.toMatch(/No trata datos de salud/)
+       |                         ^
+     75|   })
+     76|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts > REP-059 · lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp > el aviso de privacidad publicado (generarAvisoPrivacidad) tampoco lo afirma
+AssertionError: el regulador lee esto primero: expected ' • Meta / WhatsApp (Estados Unidos) —…' not to match /No trata datos de salud/
+
+- Expected:
+/No trata datos de salud/
+
++ Received:
+" • Meta / WhatsApp (Estados Unidos) — Mensajes y recordatorios al paciente. No trata datos de salud."
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-059-whatsapp-declara-no-tratar-salud.test.ts:80:58
+     78|     const aviso = generarAvisoPrivacidad(null)
+     79|     const renglon = aviso.split('\n').find(l => l.includes(meta.nombre…
+     80|     expect(renglon, 'el regulador lee esto primero').not.toMatch(/No t…
+       |                                                          ^
+     81|   })
+     82|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts > REP-060 · N-004 · «los primeros 50 médicos congelan su tarifa de por vida» > si se promete escasez (N plazas), existe un tope/cupo de fundadores en el código (hoy: no)
+AssertionError: la escasez sólo vende si es verdad y se ve agotarse: expected [] to not have a length of +0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts:79:78
+     77|     if (!prometeEscasez) return
+     78|     const donde = contiene(/(tope|cupo|plazas)\w*fundador|fundador\w*(…
+     79|     expect(donde, 'la escasez sólo vende si es verdad y se ve agotarse…
+       |                                                                              ^
+     80|   })
+     81|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts > REP-060 · N-004 · «los primeros 50 médicos congelan su tarifa de por vida» > si se promete permanencia, existe la marca de tarifa congelada por consultorio (hoy: no)
+AssertionError: «de por vida» dura hasta la próxima edición del catálogo: expected [] to not have a length of +0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts:85:83
+     83|     if (!prometePermanencia) return
+     84|     const donde = contiene(/tarifaCongelada/)
+     85|     expect(donde, '«de por vida» dura hasta la próxima edición del cat…
+       |                                                                                   ^
+     86|   })
+     87| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts > REP-060 · N-005 · «Te avisamos tres días antes» > si se promete el aviso, algún cron DECLARADO en vercel.json mira trialEndsAt (hoy: ninguno)
+AssertionError: crons: /api/cron/reminders, /api/cron/limpiar-audio, /api/cron/vigilante, /api/cron/retencion, /api/cron/asientos — ninguno mira trialEndsAt: expected [] to not have a length of +0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-060-promesas-de-la-landing-sin-mecanismo.test.ts:104:117
+    102|       return existsSync(ruta) && /trialEndsAt/.test(readFileSync(ruta,…
+    103|     })
+    104|     expect(conAviso.map(c => c.path), `crons: ${crons.map(c => c.path)…
+       |                                                                                                                     ^
+    105|   })
+    106| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[69/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · ASN-001 — un respaldo de hace una tecla no se aplica encima de un formulario con signos > FALLA HOY · la expresión `vacio` de la página da la MISMA respuesta que hayAlgoQuePerder para un formulario con sólo signos
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:134:25
+    132|   it('FALLA HOY · la expresión `vacio` de la página da la MISMA respue…
+    133|     // Hoy: vacio(VIVO) === true aunque hay «154» escrito.
+    134|     expect(vacio(VIVO)).toBe(!hayAlgoQuePerder(VIVO))
+       |                         ^
+    135|   })
+    136|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[70/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · ASN-001 — un respaldo de hace una tecla no se aplica encima de un formulario con signos > FALLA HOY · la decisión de restauración con el `vacio` de la página NO es «aplicar el respaldo encima»
+AssertionError: expected 'APLICAR_SOLO' not to be 'APLICAR_SOLO' // Object.is equality
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:146:26
+    144|     })
+    145|     // Con «154» en pantalla, lo único aceptable es OFRECER (visible y…
+    146|     expect(decision).not.toBe('APLICAR_SOLO')
+       |                          ^
+    147|   })
+    148|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[71/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «signos» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «signos»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[72/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «estudiosOrden» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «estudiosOrden»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[73/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «preop» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «preop»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[74/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts > REP-070 · propiedad de simetría — cada campo que cuenta para «hay algo que perder» cuenta para «está vacío» > FALLA HOY para signos/estudiosOrden/preop/proximoSeguimiento · sólo «proximoSeguimiento» escrito ⇒ la página no lo llama vacío
+AssertionError: la página considera vacío un formulario con sólo «proximoSeguimiento»: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-070-asn-001-primer-signo-pierde-segunda-tecla.test.ts:186:85
+    184|     const e = formulario(extra)
+    185|     expect(hayAlgoQuePerder(e), 'el motor canónico debe contarlo (cont…
+    186|     expect(vacio(e), `la página considera vacío un formulario con sólo…
+       |                                                                                     ^
+    187|   })
+    188| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[75/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts > REP-071 · PO-010 — la URL de Google Calendar no lleva el motivo clínico > FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo
+AssertionError: PHI en parámetro de URL hacia un tercero: expected 'https://calendar.google.com/calendar/…' not to contain 'VIH'
+
+Expected: "VIH"
+Received: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Cita médica — Dra. Ficticia Prueba&dates=20260910T160000Z/20260910T163000Z&details=Valoración de VIH sintética y ajuste de metformina"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts:98:65
+     96|   it('FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) co…
+     97|     const url = decodeURIComponent(gcalLink(CITA, 'America/Mexico_City…
+     98|     expect(url, 'PHI en parámetro de URL hacia un tercero').not.toCont…
+       |                                                                 ^
+     99|     expect(url).not.toContain('metformina')
+    100|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[76/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts > REP-071 · PO-010 — la respuesta `session` con alcance `agenda` no devuelve `motivo` (contrato textual, declarado) > FALLA HOY · o la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance`
+AssertionError: route.ts:118 devuelve `motivo: a.motivo` a cualquier alcance, y `session` no lo filtra: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-071-po-010-motivo-clinico-en-url-de-google-calendar.test.ts:124:7
+    122|       decidePorAlcance && !exponeMotivoSinCondicion,
+    123|       'route.ts:118 devuelve `motivo: a.motivo` a cualquier alcance, y…
+    124|     ).toBe(true)
+       |       ^
+    125|   })
+    126| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[77/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un diagnóstico DESCARTADO no baja al paciente
+AssertionError: el paciente leería como suyo un dx que su cirujano descartó: expected 'Colecistitis crónica litiásica sintét…' not to contain 'DESCARTADA'
+
+Expected: "DESCARTADA"
+Received: "Colecistitis crónica litiásica sintética, Neoplasia maligna sintética DESCARTADA"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:109:88
+    107|     const resumen = resumenDelPaquete([CONFIRMADO, DESCARTADO])
+    108|     expect(resumen).toContain('Colecistitis crónica litiásica sintétic…
+    109|     expect(resumen, 'el paciente leería como suyo un dx que su cirujan…
+       |                                                                                        ^
+    110|   })
+    111|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[78/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' not to contain 'Pancreatitis sintética'
+
+Expected: "Pancreatitis sintética"
+Received: "Colecistitis crónica litiásica sintética, Pancreatitis sintética (diferencial)"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:114:25
+    112|   it('FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, …
+    113|     const resumen = resumenDelPaquete([CONFIRMADO, DIFERENCIAL])
+    114|     expect(resumen).not.toContain('Pancreatitis sintética')
+       |                         ^
+    115|   })
+    116|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[79/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' not to contain 'propuesta por el modelo'
+
+Expected: "propuesta por el modelo"
+Received: "Colecistitis crónica litiásica sintética, Sospecha sintética propuesta por el modelo"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:120:25
+    118|     // patient-facing-ai §1: el nivel 9 nunca origina un dato del paci…
+    119|     const resumen = resumenDelPaquete([CONFIRMADO, PROPUESTO_POR_IA])
+    120|     expect(resumen).not.toContain('propuesta por el modelo')
+       |                         ^
+    121|   })
+    122|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[80/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó > FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el confirmado
+AssertionError: expected 'Colecistitis crónica litiásica sintét…' to be 'Colecistitis crónica litiásica sintét…' // Object.is equality
+
+Expected: "Colecistitis crónica litiásica sintética"
+Received: "Colecistitis crónica litiásica sintética, Neoplasia maligna sintética DESCARTADA, Pancreatitis sintética (diferencial), Sospecha sintética propuesta por el modelo"
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:125:8
+    123|   it('FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el …
+    124|     expect(resumenDelPaquete([CONFIRMADO, DESCARTADO, DIFERENCIAL, PRO…
+    125|       .toBe('Colecistitis crónica litiásica sintética')
+       |        ^
+    126|   })
+    127| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[81/85]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts > REP-072 · PC-001 — la acción `documentos` del portal no vuelca los diagnósticos en crudo (contrato textual, declarado) > FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo
+AssertionError: route.ts:1090 vuelca todos los diagnósticos de la nota al .doc del paciente: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-072-pc-001-diagnostico-descartado-llega-al-paciente.test.ts:140:100
+    138|   it('FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` …
+    139|     const enCrudo = /diagnostico:\s*\(n\.diagnosticos\s*\?\?\s*\[\]\)\…
+    140|     expect(enCrudo, 'route.ts:1090 vuelca todos los diagnósticos de la…
+       |                                                                                                    ^
+    141|   })
+    142| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[82/85]⎯
+
+
+ Test Files  34 failed | 1 passed (35)
+      Tests  85 failed | 64 passed (149)
+   Start at  02:05:07
+   Duration  6.48s (transform 3.56s, setup 402ms, import 6.52s, tests 3.42s, environment 5ms)
+

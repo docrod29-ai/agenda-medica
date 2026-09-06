@@ -159,7 +159,12 @@ describe('el aviso llega a los caminos que producen papel', () => {
      */
     const src = await leer('src/lib/print-element.ts')
     expect(src).toContain('onIncompleto:')
-    expect(src.indexOf('onIncompleto:')).toBeLessThan(src.indexOf('esperarImagenesEImprimir)\n}'))
+    /* Se ancla a la LLAMADA final, no al cierre del archivo: desde ZL-002
+       `imprimirElemento` devuelve su resultado, así que después de
+       `.finally(esperarImagenesEImprimir)` ya no está la llave de cierre. Lo
+       que esta prueba congela es el ORDEN —avisar antes de disparar la
+       impresión—, y eso no cambió. */
+    expect(src.indexOf('onIncompleto:')).toBeLessThan(src.indexOf('.finally(esperarImagenesEImprimir)'))
     expect(src).toContain('onAvisoPapeleria')
     // Y si nadie pasó canal, cae a `alert` en vez de callarse.
     expect(src).toContain('window.alert(msg)')

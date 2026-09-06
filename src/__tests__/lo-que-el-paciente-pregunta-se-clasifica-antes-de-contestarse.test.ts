@@ -189,17 +189,28 @@ describe('LA ESCALACIÓN ES EL PRODUCTO, NO EL FALLO', () => {
     expect(r.avisarAlConsultorio).toBe(false)
   })
 
-  it('el aviso al consultorio lleva qué preguntó y por qué llegó, sin opinión', () => {
-    const aviso = avisoDePreguntaAlConsultorio('Paciente Sintético', 'cambio_de_dosis', '¿Puedo tomarme el doble?')
+  it('el aviso al consultorio dice quién preguntó y dónde leerlo — y NO lleva la pregunta', () => {
+    /**
+     * ── ESTE CASO EXIGÍA LO CONTRARIO, Y POR ESO SE DEJA DICHO ─────────────
+     *
+     * Pedía que el aviso contuviera el texto literal del paciente. Era D-034
+     * (5-sep-2026), y el Panel de Lujo encontró el precio: ese texto sale por
+     * el WhatsApp del consultorio —o sea por Meta y 360dialog— mientras el
+     * aviso de privacidad publicado declaraba que Meta «no trata datos de
+     * salud» (PG-005, P1). La reparación aplica el valor seguro: el aviso ya no
+     * puede llevar el texto, porque la función ya no lo recibe.
+     */
+    const aviso = avisoDePreguntaAlConsultorio('Paciente Sintético', false)
     expect(aviso).toContain('Paciente Sintético')
-    expect(aviso).toContain('cambiar una dosis')
-    expect(aviso).toContain('¿Puedo tomarme el doble?')
     expect(aviso).toContain('Nadie le ha contestado')
+    expect(aviso, 'la pregunta es dato de salud y este canal es un tercero').toContain('NO viaja por aquí')
   })
 
-  it('y recorta el texto del paciente: un mensaje kilométrico no revienta el aviso', () => {
-    const largo = 'a'.repeat(5000)
-    expect(avisoDePreguntaAlConsultorio('X', 'cambio_de_dosis', largo).length).toBeLessThan(600)
+  it('y una posible urgencia se distingue de un «¿a qué hora abren?»', () => {
+    // Sin esta bandera, el aviso de las 2 a.m. es indistinguible del trivial, y
+    // un aviso que no se puede priorizar es un aviso que se lee mañana.
+    expect(avisoDePreguntaAlConsultorio('X', true)).toContain('urgencia')
+    expect(avisoDePreguntaAlConsultorio('X', false)).not.toContain('urgencia')
   })
 })
 

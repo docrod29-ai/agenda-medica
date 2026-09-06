@@ -5,7 +5,7 @@ import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
-import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
+import { filtrarHerramientas, troncoDe } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, identidadDe, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
@@ -19,7 +19,7 @@ import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { usePatientAppointments } from '@/hooks/useAppointments'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, zonaActiva } from '@/lib/timezone'
 import type { Appointment, AlergiaEstructurada } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
@@ -44,6 +44,14 @@ import {
   hayAlgoQuePerder, guardarRespaldoLocal, signosConValor,
   AVISO_SIN_ESPACIO, type EstadoDelBorrador,
 } from '@/lib/expediente/el-borrador-no-se-pierde'
+import {
+  avisosDeCaptura, leerCifraTecleada, pareceLibras, pareceKilos,
+  SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
+} from './signos-que-se-capturan'
+import { comprobarCitasDelAnalisis } from './citas-del-analisis'
+import { imc as imcDeterminista } from '@/lib/expediente/cardiometabolico/obesidad'
+import { avisoDeCirugiaYAnticoagulante, prellenadoPreoperatorio } from './anticoagulantes-y-cirugia'
+import { textoDelConsentimiento, puntosDelConsentimiento, VERSION_DEL_CONSENTIMIENTO } from './consentimiento-de-grabacion'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -66,6 +74,7 @@ import {
   farmacosSoloMencionadosEnPasado, avisoDeFarmacoEnPasado,
 } from '@/lib/expediente/el-farmaco-que-ya-no-toma'
 import { textoDeLaNota } from '@/lib/expediente/texto-de-la-nota'
+import { verificarLateralidad, describirDiscrepancia } from '@/lib/asr/lateralidad'
 import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
@@ -137,7 +146,7 @@ import { alergenosDe, alergiasDe, laLecturaAnadeAlgo } from '@/lib/seguridad/ale
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
-import { vacunasSegunEdad, edadEnAnios } from '@/lib/expediente/pediatria'
+import { vacunasSegunEdad, edadEnAnios, edadEnMeses, libraAKg, revisarPesoPediatrico } from '@/lib/expediente/pediatria'
 import { rotulo } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 
@@ -230,6 +239,7 @@ import { fechaCorta } from '@/lib/formato/fecha'
 const PanelPediatria = dynamic(() => import('@/components/PanelPediatria').then(m => m.PanelPediatria), { ssr: false })
 const PanelGineco = dynamic(() => import('@/components/PanelGineco').then(m => m.PanelGineco), { ssr: false })
 const PanelCirugia = dynamic(() => import('@/components/PanelCirugia').then(m => m.PanelCirugia), { ssr: false })
+import type { EstadoDelPanelDeCirugia } from '@/components/PanelCirugia'
 const PanelCardiometabolico = dynamic(() => import('@/components/PanelCardiometabolico').then(m => m.PanelCardiometabolico), { ssr: false })
 const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').then(m => m.PanelPreventivo), { ssr: false })
 /**
@@ -364,6 +374,20 @@ function conLaEdadAlDia(p: Patient | null): Patient | null {
   const derivada = edadEnAnios(p.fechaNacimiento)
   return derivada != null && derivada !== p.edad ? { ...p, edad: derivada } : p
 }
+
+/**
+ * LAS SECCIONES QUE SON INDICACIONES PARA EL PACIENTE (MC-002).
+ *
+ * Por clave de la plantilla (`templates.ts`), no por heurística sobre el
+ * rótulo: una plantilla nueva que quiera aparecer en la hoja se añade aquí a
+ * propósito, y ninguna aparece por accidente.
+ */
+/** Cómo se llama cada signo cuando hay que nombrarlo en una frase (ASN-012). */
+const ETIQUETA_DE_SIGNO: Record<string, string> = {
+  ta: 'TA', fc: 'FC', fr: 'FR', temperatura: 'Temperatura', spo2: 'SpO₂', peso: 'Peso', talla: 'Talla',
+}
+
+const CLAVES_DE_INDICACIONES: readonly string[] = ['planPostop', 'signosAlarma', 'indicacionesAlta', 'indicacionesEgreso', 'planTratamiento', 'plan']
 
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -742,8 +766,63 @@ export default function ConsultaActivaPage() {
       const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
       out[k] = Number.isFinite(n) ? n : undefined
     }
+    /**
+     * ── EL IMC SE CALCULA Y SE GUARDA (ASN-007, handoff de EXPEDIENTES) ──────
+     *
+     * El copiloto ya lo calculaba con motor determinista y lo ofrecía a la nota,
+     * pero `signos.imc` no lo escribía NADIE —cero escrituras de `imc:` en
+     * `src/`—, así que el expediente no podía pintarlo nunca. Se deriva aquí, de
+     * peso y talla, con el mismo motor que usa el panel cardiometabólico y con
+     * su fuente; si falta alguno de los dos, no se inventa.
+     */
+    const kg = Number(out.peso), cm = Number(out.talla)
+    const indice = imcDeterminista(kg, cm)
+    if (indice != null) out.imc = indice
     return out as SignosVitales
   }, [signos])
+  /**
+   * ── EL PESO SE TECLEA CON SU UNIDAD A LA VISTA (MP-006 · ASN-005) ─────────
+   *
+   * `signos.peso` guarda SIEMPRE kilos —lo dice el tipo y lo asume todo lo que
+   * hay aguas abajo: la hoja del paciente, la nota, la receta y la verificación
+   * mg/kg—. Lo que faltaba era decir en qué unidad se está tecleando: la única
+   * pista era el marcador de posición «kg», que desaparece con el primer
+   * dígito, así que «154 lb» entraba como 154 kilos sin que nadie lo dijera.
+   *
+   * El selector es el mismo patrón que el panel de pediatría resolvió en L6.2
+   * (decisión del Dr.): unidad EXPLÍCITA, conversión visible, sin auto-detectar
+   * por magnitud. Lo tecleado vive aquí; lo convertido va a `signos`.
+   */
+  const [unidadPeso, setUnidadPeso] = useState<UnidadDePeso>('kg')
+  const [pesoEntrada, setPesoEntrada] = useState('')
+  /** Último valor en kg que escribió esta pantalla: distingue lo propio de lo ajeno. */
+  const pesoEscritoRef = useRef('')
+  /** Lo que se descartó al teclear, para poder decirlo (nada cambia en silencio). */
+  const [avisoDeTecla, setAvisoDeTecla] = useState<{ campo: string; texto: string; libras?: boolean } | null>(null)
+  const [pesoConfirmado, setPesoConfirmado] = useState(false)
+  /**
+   * EL PESO PREVIO ES EL PREVIO, NO EL DE HOY (MP-006).
+   *
+   * `revisarPesoPediatrico` detecta el error lb→kg comparando con la medición
+   * anterior. El panel recibía como «previo» el peso de HOY, así que la razón
+   * era 1 y la detección ×2.2 no podía saltar nunca. Sale de la última nota
+   * firmada que traiga peso, con su fecha para poder enseñarla.
+   */
+  const [pesoPrevio, setPesoPrevio] = useState<{ kg: number; fecha: string } | null>(null)
+
+  /**
+   * MG-022 — lo capturado en el panel de gineco vive aquí mientras dura la
+   * consulta, no dentro del panel: cerrar la herramienta ya no borra la FUM.
+   * (Persistirla en el expediente para la visita siguiente necesita un campo
+   * en la paciente: está en el handoff.)
+   */
+  const [gestacionDeLaConsulta, setGestacionDeLaConsulta] = useState<{
+    metodo: 'fum' | 'us'; fum: string; ciclo: string; fechaUS: string; semUS: string; diasUS: string
+  } | null>(null)
+
+  /** MC-017 — ídem para el panel de cirugía (ASA y factores marcados). */
+  const [estadoDeCirugia, setEstadoDeCirugia] = useState<EstadoDelPanelDeCirugia | null>(null)
+
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
 
   // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
@@ -759,7 +838,96 @@ export default function ConsultaActivaPage() {
    * control prenatal · Bishop". Se acota a edad fértil y se exige que el sexo esté
    * capturado: sin dato no se asume.
    */
-  const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10 && (patient?.edad ?? 0) <= 60
+  /**
+   * ── EL PANEL DE GINECO NO SE APAGA A LOS 61 (MG-017) ──────────────────────
+   *
+   * El corte 10-60 era de la pestaña de GESTACIÓN, pero apagaba el panel
+   * entero: a los 61 desaparecían también la citología —cuyo tamizaje llega a
+   * los 65 en el propio motor— y el climaterio, que no tiene tope. Y como la
+   * herramienta ni siquiera entraba en la lista, tampoco la encontraba el
+   * buscador de «Herramientas», que es la salida que el código presume.
+   *
+   * Ahora: pertinencia por sexo capturado y edad mínima (sin dato no se asume);
+   * el tope superior desaparece. La ventana de la gestación la juzga el médico
+   * dentro del panel, que es donde está el contexto.
+   */
+  const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10
+
+  /**
+   * El campo de peso se resincroniza cuando el valor viene de FUERA (respaldo
+   * restaurado, dictado, nota recargada): eso siempre son kilos, así que el
+   * selector vuelve a kg. Si el valor lo escribió esta misma pantalla no se
+   * toca — sería pisarle la unidad al médico mientras teclea.
+   */
+  useEffect(() => {
+    const kg = signos.peso == null || signos.peso === ('' as unknown) ? '' : String(signos.peso)
+    if (kg === pesoEscritoRef.current) return
+    pesoEscritoRef.current = kg
+    setPesoEntrada(kg)
+    setUnidadPeso('kg')
+  }, [signos.peso])
+
+  /** Escribe el peso en kilos a partir de lo tecleado y de la unidad elegida. */
+  const escribirPeso = useCallback((texto: string, unidad: UnidadDePeso) => {
+    const n = Number(texto)
+    const kg = texto === '' || !Number.isFinite(n) || n <= 0
+      ? texto
+      : unidad === 'lb' ? String(Math.round(libraAKg(n) * 100) / 100) : texto
+    pesoEscritoRef.current = kg
+    setPesoEntrada(texto)
+    setPesoConfirmado(false)
+    setSignos(s => ({ ...s, peso: (kg === '' ? undefined : kg) as unknown as number }))
+  }, [])
+
+  /**
+   * ── EL ALTO EN SECO DEL PESO, TAMBIÉN AQUÍ (MP-006) ───────────────────────
+   *
+   * `revisarPesoPediatrico` (REG-013) tenía UN llamador en toda la aplicación:
+   * el panel de pediatría. El peso que de verdad alimenta la verificación mg/kg
+   * de esta pantalla —y el que la receta lee de la nota— es éste, y no pasaba
+   * por ninguna guarda. Se revisa antes de usarlo y, mientras no esté
+   * confirmado, NO se calcula nada por kilo: el hueco se ve, no se rellena.
+   */
+  const revisionDelPeso = useMemo(() => {
+    const kg = typeof signosNum.peso === 'number' ? signosNum.peso : NaN
+    if (!esPediatrico || !(kg > 0)) return { ok: true } as ReturnType<typeof revisarPesoPediatrico>
+    return revisarPesoPediatrico(kg, pesoPrevio?.kg)
+  }, [signosNum.peso, esPediatrico, pesoPrevio])
+  const pesoBloqueado = !revisionDelPeso.ok && !pesoConfirmado
+  /** El peso que sale de la pantalla hacia los motores por kilo. */
+  const pesoParaDosis = pesoBloqueado ? undefined : (signosNum.peso ?? undefined)
+
+  /**
+   * Los signos tal como venían de la nota guardada — la línea base de ASN-012.
+   *
+   * Es ESTADO y no un ref a propósito: lo lee un `useMemo` durante el render, y
+   * leer `ref.current` ahí es exactamente lo que el compilador de React prohíbe
+   * (y lo que el trinquete de lint cuenta como error).
+   */
+  const [signosGuardados, setSignosGuardados] = useState<Record<string, unknown>>({})
+  const [motivoDeCorreccion, setMotivoDeCorreccion] = useState('')
+  /**
+   * ── QUÉ SIGNO YA GUARDADO SE ESTÁ CAMBIANDO (ASN-012) ─────────────────────
+   *
+   * Sólo cuenta lo que YA tenía valor en la nota guardada: capturar por primera
+   * vez no es corregir. Cuando la constancia se deja en la nota, la línea base
+   * se mueve y la caja ámbar desaparece sola.
+   */
+  const correccionesDeSignos = useMemo(() => (
+    (['ta', 'fc', 'fr', 'temperatura', 'spo2', 'peso', 'talla'] as const)
+      .map(k => ({
+        campo: k,
+        antes: String(signosGuardados[k] ?? '').trim(),
+        despues: String((signos as Record<string, unknown>)[k] ?? '').trim(),
+      }))
+      .filter(c => c.antes !== '' && c.antes !== c.despues)
+  ), [signos, signosGuardados])
+
+  /** Lo que hay que preguntarle al médico sobre lo que acaba de capturar (ASN-002). */
+  const avisosDeSignos = useMemo(
+    () => avisosDeCaptura(signos as unknown as Record<string, unknown>),
+    [signos],
+  )
 
   /** Pega un texto en su sección de la nota (crea la sección si no existía). */
   /**
@@ -841,8 +1009,19 @@ export default function ConsultaActivaPage() {
     return true
   }, [toast])
 
+  /**
+   * ── «ES CASO QUIRÚRGICO» LO DECIDE EL TRONCO (MC-008) ─────────────────────
+   *
+   * Aquí había una regex propia SIN frontera de palabra: «neurología» contiene
+   * «urolog» (ne-UROLOG-ía), así que a un neurólogo se le forzaba el panel de
+   * cirugía en cada consulta; y traumatología, coloproctología o angiología no
+   * lo encontraban ni en el buscador. `troncoDe` ya había reparado exactamente
+   * ese defecto en su lado, con `\b` y con esas especialidades dentro. Se usa
+   * ésa, que es la canónica, y se conservan las señales CLÍNICAS —tipo de nota
+   * y diagnóstico—, que son de este encuentro y no de la especialidad.
+   */
   const esCasoQuirurgico = useMemo(() => {
-    const esp = /cirug|ortopedia|ginecolog|urolog|neurocirug|otorrino|oftalmolog|anestesi/i.test(especialidadEfectiva)
+    const esp = troncoDe(especialidadEfectiva) === 'cirugia'
     const tip = /postop|preop|quirurg|anestes|consentimiento/i.test(tipo)
     const dx = diagnosticos.some(d => /cirug|quir[úu]rgic|postoperator|preoperator|hernia|apendic|colecistect|fractura/i.test(d.descripcion))
     return esp || tip || dx
@@ -859,10 +1038,41 @@ export default function ConsultaActivaPage() {
 
   // Vacunas atrasadas para la edad: se calcula aquí para que la barra lo avise
   // SIN tener que abrir la herramienta (es lo que no se debe pasar por alto).
-  const vacunasAtrasadas = useMemo(() => {
-    if (!esPediatrico || patient?.edad == null) return 0
-    return vacunasSegunEdad(Math.round(patient.edad * 12)).filter(v => v.estado === 'atrasada').length
-  }, [esPediatrico, patient?.edad])
+  /**
+   * HOY, EN LA ZONA DEL CONSULTORIO — una sola vez y compartido.
+   *
+   * Lo usan la cita de hoy, la edad en meses del paciente y los paneles de
+   * gineco y pediatría (C-014): con la fecha del navegador en UTC, después de
+   * las 18:00 en México ya es «mañana» y la edad gestacional se corre un día.
+   */
+  const hoyDeLaConsulta = useMemo(() => hoyISO(zonaActiva()), [])
+  /**
+   * ── LA EDAD EN MESES, DE VERDAD (MP-002) ──────────────────────────────────
+   *
+   * `Math.round(edad * 12)` colapsa a 0 en todo lactante —un niño de 11 meses
+   * tiene `edad: 0`— y `vacunasSegunEdad(0)` no devuelve nada: la barra callaba
+   * justo en la franja con más vacunas, mientras el panel, abierto a mano, decía
+   * otra cifra. El propio `PanelPediatria` ya lo evitaba con `edadEnMeses`; la
+   * barra no. Ahora las dos derivan igual, y con la fecha del consultorio.
+   */
+  const edadEnMesesDelPaciente = useMemo(() => {
+    if (patient?.fechaNacimiento) return edadEnMeses(patient.fechaNacimiento, hoyDeLaConsulta)
+    return patient?.edad != null ? Math.round(patient.edad * 12) : null
+  }, [patient?.fechaNacimiento, patient?.edad, hoyDeLaConsulta])
+
+  /**
+   * ── «CORRESPONDEN POR EDAD», NO «ATRASADAS» (MP-011) ──────────────────────
+   *
+   * La app NO tiene registro de qué se aplicó (`vacunasSegunEdad` se llama
+   * siempre sin `aplicadas`), así que afirmar «atrasadas» en rojo es afirmar un
+   * hecho clínico que nadie verificó — regla 4: ausencia de dato no es dato de
+   * ausencia. El panel ya había corregido ese texto en la auditoría de 2026-07;
+   * la barra seguía diciendo lo contrario dos centímetros más arriba.
+   */
+  const vacunasQueCorresponden = useMemo(() => {
+    if (!esPediatrico || edadEnMesesDelPaciente == null) return 0
+    return vacunasSegunEdad(edadEnMesesDelPaciente).filter(v => v.estado === 'atrasada').length
+  }, [esPediatrico, edadEnMesesDelPaciente])
   const [medicamentos, setMedicamentos] = useState<Medicamento[]>([])
 
   /**
@@ -876,11 +1086,10 @@ export default function ConsultaActivaPage() {
    */
   const { appointments: citasDelPaciente } = usePatientAppointments(patientId)
   const citaDeHoy = useMemo(() => {
-    const hoy = hoyISO()
     return citasDelPaciente
-      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
+      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoyDeLaConsulta && !['cancelada', 'reagendada'].includes(c.estado))
       .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
-  }, [citasDelPaciente])
+  }, [citasDelPaciente, hoyDeLaConsulta])
 
   /**
    * ═══ GOLDEN PATH 9 — EL NOMBRE DE ESTE ENCUENTRO ═══
@@ -1157,6 +1366,19 @@ export default function ConsultaActivaPage() {
   }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta, vigenciaRenal])
   const [resumen, setResumen] = useState('')
   /**
+   * ── CIRUGÍA PROGRAMADA + ANTICOAGULANTE (MC-015) ──────────────────────────
+   *
+   * El sistema tenía los dos datos y no los cruzaba fuera de la valoración
+   * preoperatoria, y ahí sólo si el médico marcaba la casilla a mano. Se mira
+   * TODO lo que hay escrito hoy —resumen, secciones y diagnósticos— contra la
+   * lista de medicamentos de la consulta y la vigente del expediente.
+   */
+  const avisoQuirurgicoAnticoagulante = useMemo(() => avisoDeCirugiaYAnticoagulante(
+    [...medicamentos, ...vigentes.map(v => ({ nombre: v.medicamento.nombre }))],
+    [resumen, ...secciones.map(s => s.value ?? ''), ...diagnosticos.map(d => d.descripcion)].join(' · '),
+  ), [medicamentos, vigentes, resumen, secciones, diagnosticos])
+
+  /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
    *
    * Había dos listas: la del guardado (que incluía la prosa y por eso el sello
@@ -1234,6 +1456,19 @@ export default function ConsultaActivaPage() {
   // Material de origen (dictado): colapsado por defecto: NO forma parte de la nota
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
+  /**
+   * ── LA CONSULTA SIN CERRAR QUE ESTÁ EN EL SERVIDOR (ASN-003) ──────────────
+   *
+   * Entrar por «Iniciar consulta» desde la agenda abre `/consulta/<id>` SIN
+   * `?nota=`, y esta pantalla sólo miraba memoria y `localStorage`: los signos
+   * que la enfermera capturó en su equipo no estaban delante del médico, aunque
+   * el borrador con esos signos existía en Firestore. La ruta que sí funciona
+   * —«Consulta sin cerrar — continuar» del expediente— lleva el `?nota=`.
+   *
+   * Se OFRECE, no se adopta solo: adoptar a ciegas pisaría lo que el médico ya
+   * hubiera tecleado, que es el defecto hermano (ASN-001).
+   */
+  const [borradorDelServidor, setBorradorDelServidor] = useState<{ id: string; fecha: string; conSignos: boolean } | null>(null)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
   /**
    * DE QUÉ NOTA ES EL RESPALDO, Y DE CUÁNDO. Sin esto el aviso no puede
@@ -1504,6 +1739,28 @@ export default function ConsultaActivaPage() {
    *
    * No se escribe solo: se señala antes de firmar y decide el médico.
    */
+  /**
+   * ── EL LADO DE LA NOTA CONTRA EL LADO QUE SE DICTÓ — MO-001 ────────────────
+   *
+   * `contradiccionesDeLateralidad` ya vigilaba el dictado consigo mismo («el
+   * derecho… perdón, el izquierdo»). Lo que faltaba es lo que de verdad sale
+   * impreso: que la NOTA diga un lado que el dictado no dijo, o que diga el
+   * contrario. Una rodilla equivocada en una orden de imagen es la clase de
+   * error que nadie relee porque la nota se ve impecable.
+   *
+   * No decide cuál es el lado bueno: dice dónde no coinciden, y decide el
+   * médico. Las regiones que el vocabulario no conoce NO se vigilan, y eso es
+   * lo que `regionesCotejadas` deja dicho: que falte una región significa que
+   * ese caso no se mira, no que esté bien (regla 5 de seguridad clínica).
+   */
+  const discrepanciasDeLado = useMemo(() => {
+    const dictado = voz.transcripcion ?? ''
+    if (!dictado.trim()) return []
+    return verificarLateralidad(dictado, textoDeLaNota(resumen, diagnosticos, secciones))
+      .discrepancias
+      .filter(d => !avisosRevisados.includes(`lado:${d.region}`))
+      .map(d => ({ region: d.region, mensaje: describirDiscrepancia(d) }))
+  }, [voz.transcripcion, resumen, diagnosticos, secciones, avisosRevisados])
   const procedimientosPerdidos = useMemo(() => {
     const oidos = (entidades as { procedures?: { texto: string; fecha?: string; lateralidad?: string }[] } | null)?.procedures
     if (!oidos?.length) return []
@@ -1940,6 +2197,13 @@ export default function ConsultaActivaPage() {
      * volverá a pedir la próxima vez, que es el lado seguro del error.
      */
     if (clinicId) {
+      /**
+       * PC-012 · PI-008 — QUÉ TEXTO SE LEYÓ. Hoy sólo se guardan fecha y médico,
+       * así que un cambio de redacción deja consentimientos que no se pueden
+       * reproducir. `VERSION_DEL_CONSENTIMIENTO` ya viaja con el texto; guardarla
+       * exige un campo en `Patient.consentimientoGrabacion` (src/types/index.ts)
+       * y su regla de Firestore, que son de otra rebanada: está en el handoff.
+       */
       void updatePatient(clinicId, patientId, {
         consentimientoGrabacion: { fecha: new Date().toISOString(), medicoId: auth.currentUser?.uid },
       }).catch(() => { /* se volverá a pedir: es el lado seguro */ })
@@ -2087,6 +2351,38 @@ export default function ConsultaActivaPage() {
         const ultima = firmadas.map(n => n.fecha).filter(Boolean).sort().pop()
         setUltimaVisita(ultima)
         /**
+         * EL PESO DE LA CONSULTA ANTERIOR (MP-006). La comparación lb/kg de
+         * `revisarPesoPediatrico` sólo dice algo si el «previo» es de verdad
+         * previo: la nota abierta se excluye arriba, en `firmadas`.
+         */
+        const conPeso = ns
+          .filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
+          .map(n => ({
+            fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
+            kg: Number(n.signosVitales?.peso ?? NaN),
+          }))
+          .filter(n => Number.isFinite(n.kg) && n.kg > 0 && !!n.fecha)
+          .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        setPesoPrevio(conPeso.length ? conPeso[conPeso.length - 1] : null)
+        /**
+         * ASN-003 — ¿hay una consulta de este paciente sin firmar que no sea la
+         * que tengo abierta? `PatientAnchor` ya usa esta misma regla
+         * (`orden.find(n => n.estado !== 'firmada')`).
+         */
+        if (!notaIdParam) {
+          const sinCerrar = ns
+            .filter(n => n.estado !== 'firmada' && n.id !== notaIdRef.current)
+            .sort((a, b) => String(a.fechaConsulta ?? '').localeCompare(String(b.fechaConsulta ?? '')))
+            .pop()
+          setBorradorDelServidor(sinCerrar
+            ? {
+              id: sinCerrar.id,
+              fecha: sinCerrar.fechaConsulta ?? sinCerrar.metadata?.fechaCreacion ?? '',
+              conSignos: !!sinCerrar.signosVitales && Object.values(sinCerrar.signosVitales).some(v => v != null && String(v).trim() !== ''),
+            }
+            : null)
+        }
+        /**
          * LEARN — lo que el médico corrigió a mano deja de perderse.
          *
          * La nota guarda las DOS versiones desde la v996: lo que el reconocedor
@@ -2166,6 +2462,16 @@ export default function ConsultaActivaPage() {
        */
       setSecciones(seccionesSanas(n.secciones))
       setSignos(n.signosVitales ?? {})
+      /**
+       * ASN-012 — LA LÍNEA BASE DE LOS SIGNOS YA GUARDADOS.
+       *
+       * Corregir un signo que ya está en el expediente no es capturarlo: es
+       * cambiar un dato que alguien más (la enfermera, o uno mismo hace una
+       * hora) escribió. En Hospital eso pide motivo y se pinta en ámbar desde
+       * C-5; en Practice no existía, y es justo donde dos personas tocan el
+       * mismo campo.
+       */
+      setSignosGuardados({ ...(n.signosVitales ?? {}) } as Record<string, unknown>)
       setDiagnosticos(diagnosticosSanos(n.diagnosticos))
       setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
@@ -2356,6 +2662,25 @@ export default function ConsultaActivaPage() {
       if (!d.texto.trim()) { toast(d.error || 'No se pudo generar el análisis', 'error'); return }
       let texto = limpiarMarkdown(d.texto)
       const articulos = (d.meta?.articulos ?? []) as { titulo: string; revista: string; anio: string; pmid: string }[]
+      /**
+       * ── LA CITA SE COMPRUEBA ANTES DE ENTRAR A LA NOTA (RT-004) ───────────
+       *
+       * Este bloque pegaba el texto del modelo con un bloque «Referencias:» de
+       * PMIDs reales debajo, y en el camino NADIE comprobaba los `[n]`: un
+       * «[4]» con dos fuentes entraba literal a una nota que se firma y que es
+       * inmutable. `limpiarMarkdown` no lo toca (sólo colapsa enlaces), y la
+       * comprobación determinista existía... como función local de OTRA
+       * pantalla (`/consultor`), así que el segundo consumidor de la misma ruta
+       * —el que escribe en el expediente— nació sin ella.
+       *
+       * Se MARCA, no se borra: una afirmación sin respaldo puede seguir siendo
+       * buen razonamiento clínico, pero no puede seguir pareciendo respaldada
+       * (`verificar-la-cita.ts`). Y si PubMed no contestó, la sección lo dice en
+       * su primera línea, que es lo que queda en el papel.
+       */
+      const comprobacion = comprobarCitasDelAnalisis(texto, articulos.length)
+      texto = comprobacion.texto
+      const citasSinFuente = comprobacion.fueraDeRango.length > 0 || comprobacion.sinFuentes
       if (articulos.length > 0) {
         texto += '\n\nReferencias:\n' + articulos.map((a, i) =>
           `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
@@ -2364,7 +2689,12 @@ export default function ConsultaActivaPage() {
         const sin = prev.filter(s => s.key !== 'analisis_evidencia')
         return [...sin, { key: 'analisis_evidencia', label: 'Análisis basado en evidencia', value: texto }]
       })
-      toast('Análisis de evidencia agregado a la nota ✓', 'success')
+      toast(
+        citasSinFuente
+          ? 'Análisis agregado — hay citas sin fuente, marcadas en la nota. Revísalas antes de firmar.'
+          : 'Análisis de evidencia agregado a la nota ✓',
+        citasSinFuente ? 'info' : 'success',
+      )
     } catch { toast('Sin conexión', 'error') }
     finally { setGenerandoAnalisis(false) }
   }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
@@ -3501,6 +3831,20 @@ export default function ConsultaActivaPage() {
   }, [searchParams, internamientoParam, notaIdParam, toast, voz, audio])
 
   const autoRestRef = useRef(false)
+  /**
+   * ── ¿ESTE ESPEJO LO ESCRIBIÓ ESTE MISMO MONTAJE? (ASN-001) ────────────────
+   *
+   * El espejo en memoria se reescribe en CADA render con lo que hay vivo en
+   * pantalla. Un espejo escrito por este montaje no es un respaldo que
+   * recuperar: es el estado de hace un instante, siempre más viejo que el que
+   * se está pintando. Reponerlo encima es, literalmente, deshacerle una tecla
+   * al médico.
+   *
+   * Con esta marca la restauración sólo puede leer lo que dejó OTRO montaje —
+   * volver de otra pantalla, una recarga, un cierre inesperado—, que es para
+   * lo que se escribió.
+   */
+  const espejoPropioRef = useRef(false)
   useEffect(() => {
     if (uciSeedRef.current) return   // la semilla de UCI manda sobre el respaldo vacío
     if (!patientId || autoRestRef.current) return
@@ -3508,6 +3852,8 @@ export default function ConsultaActivaPage() {
     //   la nota estaba viva en memoria y se pone tal cual la dejaste.
     // 2º localStorage: respaldo tras recarga/crash (con aviso).
     const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
+    /* Nunca reponer sobre el estado vivo el espejo que este montaje escribió. */
+    if (mem && espejoPropioRef.current) { autoRestRef.current = true; return }
     let b = mem
     if (!b) {
       try {
@@ -3522,9 +3868,32 @@ export default function ConsultaActivaPage() {
         }
       } catch { /* */ }
     }
-    if (!b) return
-    const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
-      diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
+    /**
+     * Sin respaldo NO hay nada que restaurar, ni ahora ni después: lo único que
+     * podría aparecer más tarde es el espejo de este mismo montaje, y ése no se
+     * repone jamás. Se marca la decisión como tomada para que el efecto deje de
+     * correr en cada commit (ASN-001).
+     */
+    if (!b) { autoRestRef.current = true; return }
+    /**
+     * ── ¿ESTÁ VACÍO? LA MISMA LISTA QUE «¿HAY ALGO QUE PERDER?» (ASN-001) ────
+     *
+     * Esto era una SEXTA copia escrita a mano de la pregunta que
+     * `CAMPOS_DEL_BORRADOR` unificó (REG-300/REG-392), y la copia estaba
+     * incompleta: no miraba signos, estudios, preop ni próxima consulta. Con
+     * eso, un formulario donde el médico ya había tecleado «154» de peso se
+     * declaraba vacío, `queHacerConElRespaldoLocal` contestaba `APLICAR_SOLO` y
+     * el espejo de hace una tecla se reponía ENCIMA de lo vivo: «154» quedaba
+     * «14» sin aviso (Panel de Lujo 2026-09, ASN-001, reproducido 3/3 en vivo).
+     *
+     * Las dos preguntas tienen ahora UNA sola respuesta. Añadir un campo al
+     * borrador lo añade a las dos a la vez, que es justo lo que la lista
+     * canónica existía para garantizar.
+     */
+    const vacio = !hayAlgoQuePerder({
+      resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden,
+      preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+    })
     /**
      * APLICAR SOLO y OFRECER son dos decisiones, no una. Antes las gobernaba la
      * misma prueba (`vacio`) y por eso al reabrir una nota concreta el respaldo
@@ -3604,7 +3973,9 @@ export default function ConsultaActivaPage() {
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
     // `firmada` entra en las deps porque la decisión la mira: sobre una nota
     // firmada no se repone nada (es inmutable, NOM-024).
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem, firmada])
+    // `firmada` y los campos del borrador entran en las deps porque `vacio` los
+    // mira: la lista es la misma de `CAMPOS_DEL_BORRADOR` (ASN-001).
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -3659,7 +4030,12 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) {
+      // Queda constancia de que ESTE montaje escribió el espejo: la
+      // restauración no puede reponerlo encima de lo vivo (ASN-001).
+      espejoPropioRef.current = true
+      borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    }
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
@@ -3925,6 +4301,7 @@ export default function ConsultaActivaPage() {
    * que aparecen aquí, que es cuando sirven. Ver `lib/expediente/cuando-avisar.ts`.
    */
   const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
+    discrepanciasDeLado,
     dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
     contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
     desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
@@ -4960,7 +5337,7 @@ export default function ConsultaActivaPage() {
         {hayAlergias && laLecturaAnadeAlgo(String(patient?.alergias ?? ''), alergenosDelPaciente) && (
           <span
             className="nx-critico nx-lectura-alergenos"
-            style={{ fontSize: 12.5, fontWeight: 700 }}
+            style={{ fontSize: 12, fontWeight: 700 }}
             title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
           >
             se lee: {alergenosDelPaciente.join(' · ')}
@@ -5295,7 +5672,7 @@ export default function ConsultaActivaPage() {
 
       {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
       {contextoPrevio && (
-        <div className="nx-ctx" style={{ fontSize: 12.5, color: 'var(--text2)' }}>
+        <div className="nx-ctx" style={{ fontSize: 12, color: 'var(--text2)' }}>
           <FileText size={14} className="ds-icon" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
             <strong style={{ color: 'var(--text)' }}>Visitas anteriores:</strong> {contextoPrevio}
@@ -5305,7 +5682,7 @@ export default function ConsultaActivaPage() {
 
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--text2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12, color: 'var(--text2)' }}>
           <BedDouble size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
@@ -5338,7 +5715,7 @@ export default function ConsultaActivaPage() {
           background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+          <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
             Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo
             {respaldoMeta?.ts
               ? <> — guardado a las {new Date(respaldoMeta.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</>
@@ -5351,6 +5728,38 @@ export default function ConsultaActivaPage() {
             className="btn btn-sm btn-ghost"
           >
             Descartar
+          </button>
+        </div>
+      )}
+
+      {/*
+        ── LA CONSULTA QUE ALGUIEN MÁS DEJÓ ABIERTA (ASN-003) ─────────────────
+        Los signos que la enfermera capturó en su equipo viven en el servidor, no
+        aquí. Se ofrece continuarla; el médico decide. Empezar una nota nueva
+        sigue siendo válido —hay días en que eso es justo lo que se quiere—, así
+        que el aviso se puede cerrar sin consecuencias.
+      */}
+      {!firmada && borradorDelServidor && !notaIdParam && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
+        }}>
+          <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+            Este paciente tiene una <strong>consulta sin cerrar</strong>
+            {borradorDelServidor.fecha ? ` del ${formatDateMX(borradorDelServidor.fecha)}` : ''}
+            {borradorDelServidor.conSignos ? ', con signos vitales ya capturados' : ''}.
+            {' '}Si la abres, sigues sobre ella en vez de empezar una nota nueva.
+          </span>
+          <button
+            onClick={() => router.push(`/consulta/${patientId}?nota=${borradorDelServidor.id}`)}
+            className="btn btn-sm btn-primary"
+          >
+            Continuar esa consulta
+          </button>
+          <button onClick={() => setBorradorDelServidor(null)} className="btn btn-sm btn-ghost">
+            Empezar una nueva
           </button>
         </div>
       )}
@@ -5611,7 +6020,7 @@ export default function ConsultaActivaPage() {
                     Aquí sólo queda lo que ese panel NO tiene: lo que pasa
                     DESPUÉS de grabar. */}
                 {!mandaElPanelDeEscucha && (
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                     {audio.estado === 'listo' ? 'Transcripción lista'
                       : 'Grabar la conversación completa (médico + paciente)'}
                   </div>
@@ -6022,6 +6431,59 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/*
+        ── LOS ESTUDIOS DICTADOS LLEGAN A LA ORDEN (MO-004) ────────────────────
+
+        `estudiosOrden` sólo lo llenaba la Valoración del inmunocomprometido, así
+        que en una consulta normal el médico dictaba «solicito biometría y
+        radiografía» y la orden se quedaba en el tintero: con receta,
+        `aDondeIrDirecto` mandaba a /receta y la orden no se imprimía nunca.
+
+        La extracción ya devuelve los estudios (`entidades.tests`) y nadie los
+        recogía. NO se añaden solos: se enseñan y el médico elige — lo que el
+        modelo extrae se revisa antes de convertirse en una orden.
+      */}
+      {!firmada && (entidades?.tests?.length ?? 0) > 0 && (() => {
+        const nuevos = (entidades?.tests ?? [])
+          .map(t => String(t.texto ?? '').trim())
+          .filter(t => t.length > 1 && !estudiosOrden.some(e => e.toLowerCase() === t.toLowerCase()))
+        if (nuevos.length === 0) return null
+        return (
+          <div style={{
+            marginBottom: 14, borderRadius: 10, padding: '11px 13px',
+            border: '1px solid var(--nexus-borde)', background: 'var(--nexus-tenue)',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+              {nuevos.length === 1 ? 'Del dictado salió 1 estudio' : `Del dictado salieron ${nuevos.length} estudios`} que no están en la orden
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', margin: '3px 0 8px', lineHeight: 1.5 }}>
+              Revísalos: se agregan a la orden médica sólo si tú lo pides.
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 9 }}>
+              {nuevos.map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setEstudiosOrden(prev => [...prev, t])}
+                  title="Agregar este estudio a la orden"
+                  style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}
+                >
+                  + {t}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEstudiosOrden(prev => [...prev, ...nuevos]); toast(`${nuevos.length} ${nuevos.length === 1 ? 'estudio agregado' : 'estudios agregados'} a la orden`, 'success') }}
+              className="nx-acc-caja"
+              style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+            >
+              Agregarlos todos a la orden
+            </button>
+          </div>
+        )
+      })()}
+
       {/* Panel NER en vivo */}
       {(entidades || nerCargando || nerError) && (
         <div style={{ marginBottom: 18 }}>
@@ -6194,7 +6656,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -6357,6 +6819,7 @@ export default function ConsultaActivaPage() {
       {(() => {
         const alergiasPaciente = alergiasDe(patient ?? {})
         const avisos = construirAvisos({
+    discrepanciasDeLado,
           dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
           alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
@@ -6400,7 +6863,9 @@ export default function ConsultaActivaPage() {
             // REG-524: la fecha de nacimiento manda sobre la edad congelada, y
             // sin ninguna se pasa `undefined` — nunca se supone adulto.
             edadAnios: edadParaDosificar(patient).edad ?? undefined,
-            pesoKg: signosNum.peso ?? undefined,
+            // MP-006: el peso ya pasó por `revisarPesoPediatrico`; si está en
+            // duda llega `undefined` y el motor no calcula por kilo (lo dice).
+            pesoKg: pesoParaDosis,
             // REG-528: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
             yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
@@ -6631,6 +7096,24 @@ export default function ConsultaActivaPage() {
            * «lunes, 8 de septiembre», no «2026-09-08».
            */
           proximaCita={proximoSeguimiento.trim() ? formatDateMX(proximoSeguimiento) : undefined}
+          /**
+           * ── LAS INDICACIONES DEL MÉDICO, EN LA HOJA (MC-002) ─────────────
+           *
+           * `comoSeLoExplico` tiene el bloque «Indicaciones de su médico» desde
+           * que se escribió, y las pinta LITERALES (sin reescribirlas, que es
+           * donde se colaría un consejo que nadie dio). Tenía cero llamadores:
+           * el cuidado de la herida, los drenajes y los signos de alarma que el
+           * médico escribe en el plan no llegaban al papel que se lleva el
+           * paciente, aunque la pantalla del cierre marcara el paso como hecho.
+           *
+           * La selección es por CLAVE de la plantilla, no por heurística sobre
+           * el texto: sólo entran las secciones que son indicaciones para el
+           * paciente, en el orden en que se escriben.
+           */
+          indicacionesDelMedico={CLAVES_DE_INDICACIONES
+            .map(k => secciones.find(s => s.key === k)?.value?.trim())
+            .filter(Boolean)
+            .join('\n') || undefined}
           onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
         />
       )}
@@ -6817,7 +7300,7 @@ export default function ConsultaActivaPage() {
                 <label htmlFor={`signo-${k}`} style={S.miniLabel}>{label}</label>
                 <input
                   id={`signo-${k}`}
-                  value={(signos[k] as string | number | undefined) ?? ''}
+                  value={k === 'peso' ? pesoEntrada : ((signos[k] as string | number | undefined) ?? '')}
                   /**
                    * DECIMALES. Esto hacía `Number(e.target.value)` en cada tecla:
                    * al escribir "70." el valor pasaba a 70, el input controlado se
@@ -6829,22 +7312,199 @@ export default function ConsultaActivaPage() {
                    * construcción (se acepta la coma y se normaliza a punto), y la
                    * conversión a número ocurre al construir la nota.
                    */
-                  onChange={e => setSignos(s => {
-                    if (k === 'ta') return { ...s, [k]: e.target.value }
-                    const v = e.target.value.replace(',', '.')
-                    if (v === '') return { ...s, [k]: undefined }
-                    if (!/^\d*\.?\d*$/.test(v)) return s      // ignora la tecla inválida
-                    return { ...s, [k]: v }
-                  })}
+                  /**
+                   * LO QUE NO ENTRA, SE DICE (ASN-005). Antes la tecla inválida
+                   * se descartaba en silencio: «154 lb» quedaba «154» y viajaba
+                   * como kilos a la verificación mg/kg. Ahora se conserva el
+                   * número, se dice qué se quitó y —si eran libras— se ofrece
+                   * cambiar la unidad en vez de adivinarla.
+                   */
+                  onChange={e => {
+                    if (k === 'ta') { setSignos(s => ({ ...s, [k]: e.target.value })); return }
+                    const { valor, descartado } = leerCifraTecleada(e.target.value)
+                    if (descartado) {
+                      const libras = k === 'peso' && pareceLibras(descartado)
+                      setAvisoDeTecla({
+                        campo: k,
+                        texto: libras
+                          ? `Se ignoró «${descartado}»: el campo está en kilos.`
+                          : pareceKilos(descartado) && k === 'peso'
+                            ? 'Se ignoró «' + descartado + '»: el campo ya está en kilos.'
+                            : `Se ignoró «${descartado}»: aquí sólo van cifras.`,
+                        libras,
+                      })
+                    } else if (avisoDeTecla?.campo === k) setAvisoDeTecla(null)
+                    if (valor === null) return
+                    if (k === 'peso') { escribirPeso(valor, unidadPeso); return }
+                    setSignos(s => ({ ...s, [k]: (valor === '' ? undefined : valor) as unknown as number }))
+                  }}
                 // Teclado numérico en el teléfono: sin esto salía el QWERTY completo
                 // para capturar FC, peso o talla. La TA lleva 'numeric' y no 'decimal'
                 // porque necesita la diagonal de "120/80".
                 inputMode={k === 'ta' ? 'numeric' : ['temperatura', 'peso', 'talla'].includes(k) ? 'decimal' : 'numeric'}
                   placeholder={ph} disabled={firmada} style={S.miniInput}
                 />
+                {/* La unidad del peso, VISIBLE y elegida — no un marcador que
+                    desaparece (ASN-005 · MP-006). Se guarda siempre en kilos. */}
+                {k === 'peso' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                    <select
+                      aria-label="Unidad del peso"
+                      value={unidadPeso}
+                      disabled={firmada}
+                      onChange={e => { const u = e.target.value as UnidadDePeso; setUnidadPeso(u); escribirPeso(pesoEntrada, u) }}
+                      style={{ ...S.miniInput, width: 62, padding: '4px 6px' }}
+                    >
+                      <option value="kg">kg</option>
+                      <option value="lb">lb</option>
+                    </select>
+                    {unidadPeso === 'lb' && Number(pesoEntrada) > 0 && (
+                      <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>
+                        = {(Math.round(libraAKg(Number(pesoEntrada)) * 100) / 100)} kg (así se guarda)
+                      </span>
+                    )}
+                  </div>
+                )}
+                {avisoDeTecla?.campo === k && (
+                  <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 4, lineHeight: 1.4 }}>
+                    {avisoDeTecla.texto}{' '}
+                    {avisoDeTecla.libras && (
+                      <button
+                        type="button"
+                        onClick={() => { setUnidadPeso('lb'); escribirPeso(pesoEntrada, 'lb'); setAvisoDeTecla(null) }}
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--nexus)', fontWeight: 700, fontSize: 10.5, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        capturar en libras
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
+
+          {/*
+            ── ¿LO CAPTURASTE BIEN? (ASN-002) ───────────────────────────────
+            Pregunta, no corrige y no bloquea: el valor se queda tal como se
+            tecleó. Las bandas son de lo POSIBLE y salen de donde ya vivían en
+            el repositorio (ver `signos-que-se-capturan.ts`); no son criterio
+            clínico ni rango de normalidad.
+          */}
+          {avisosDeSignos.length > 0 && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '10px 12px',
+              border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+              background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--amber)' }}>
+                <AlertTriangle size={14} /> Revisa lo capturado antes de seguir
+              </div>
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                {avisosDeSignos.map((a, i) => <li key={`${a.campo}-${i}`}>{a.texto}</li>)}
+              </ul>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.45 }}>
+                {POR_QUE_LA_FC_NO_SE_VIGILA}
+              </div>
+            </div>
+          )}
+
+          {/*
+            ── CORREGIR UN SIGNO YA GUARDADO DEJA RASTRO (ASN-012) ───────────
+            En Hospital, cambiar un valor ya asentado pide motivo y se pinta en
+            ámbar (C-5). En Practice no existía —y el consultorio es justo donde
+            la enfermera y el médico tocan el mismo campo—. No bloquea: pide el
+            motivo y deja la constancia DENTRO de la nota, que es el único sitio
+            donde sobrevive y se puede leer dentro de seis meses.
+          */}
+          {!firmada && correccionesDeSignos.length > 0 && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '10px 12px',
+              border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+              background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--amber)' }}>
+                {correccionesDeSignos.length === 1
+                  ? 'Estás corrigiendo un signo que ya estaba guardado'
+                  : `Estás corrigiendo ${correccionesDeSignos.length} signos que ya estaban guardados`}
+              </div>
+              <ul style={{ margin: '6px 0 8px', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                {correccionesDeSignos.map(c => (
+                  <li key={c.campo}>{ETIQUETA_DE_SIGNO[c.campo]}: {c.antes} → {c.despues || '(sin valor)'}</li>
+                ))}
+              </ul>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  value={motivoDeCorreccion}
+                  onChange={e => setMotivoDeCorreccion(e.target.value)}
+                  placeholder="Motivo (ej. se volvió a tomar con brazalete adecuado)"
+                  aria-label="Motivo de la corrección de signos vitales"
+                  style={{ ...S.input, flex: 1, minWidth: 220 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                    const quien = identidadFirma.nombre || 'el médico de esta consulta'
+                    const texto = correccionesDeSignos
+                      .map(c => `${ETIQUETA_DE_SIGNO[c.campo]}: ${c.antes} → ${c.despues || 'sin valor'}`)
+                      .join('; ')
+                      + `. Corrección hecha a las ${hora} por ${quien}`
+                      + (motivoDeCorreccion.trim() ? `; motivo: ${motivoDeCorreccion.trim()}.` : '; sin motivo declarado.')
+                    if (agregarASeccion('correccionDeSignos', 'Correcciones de signos vitales')(texto)) {
+                      // La línea base se mueve: lo corregido ya consta en la nota.
+                      setSignosGuardados({ ...(signos as Record<string, unknown>) })
+                      setMotivoDeCorreccion('')
+                    }
+                  }}
+                  className="nx-acc-caja"
+                  style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+                >
+                  Dejar constancia en la nota
+                </button>
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.45 }}>
+                El motivo no es obligatorio: sin él la constancia dice «sin motivo declarado», que
+                también es información. Lo que no puede pasar es que el cambio no conste.
+              </div>
+            </div>
+          )}
+
+          {/*
+            ── EL ALTO EN SECO DEL PESO (MP-006 · REG-013) ───────────────────
+            Mientras el peso no esté confirmado NO se calcula nada por kilo, y
+            se dice que no se está calculando. No se corrige el valor: se
+            pregunta.
+          */}
+          {pesoBloqueado && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '11px 13px',
+              border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)',
+              background: 'color-mix(in srgb, var(--red) 7%, transparent)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>
+                    Verifica el peso antes de calcular dosis por kilo
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    {revisionDelPeso.motivo}
+                    {pesoPrevio && ` (el peso anterior es del ${formatDateMX(pesoPrevio.fecha)}).`}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
+                    Mientras tanto la revisión de dosis por kilo de esta consulta no corre.
+                  </div>
+                  {!firmada && (
+                    <button type="button" onClick={() => setPesoConfirmado(true)}
+                      className="nx-acc-caja"
+                      style={{ marginTop: 9, border: '1px solid var(--border)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}>
+                      Confirmar peso: {signosNum.peso} kg
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </Section>
       )}
 
@@ -6853,15 +7513,35 @@ export default function ConsultaActivaPage() {
         <PreopAssessment
           edadPaciente={patient?.edad}
           disabled={firmada}
-          initialInputs={preop?.inputs}
+          /**
+           * MC-015: la casilla del anticoagulante sale de la lista de fármacos,
+           * no de la memoria del médico. Lo que él ya guardó manda sobre esto.
+           */
+          initialInputs={{ ...prellenadoPreoperatorio(medicamentos), ...(preop?.inputs ?? {}) }}
+          /**
+           * ── LO QUE ESCRIBIÓ EL CIRUJANO NO SE PISA (MC-013) ──────────────
+           *
+           * Esto REEMPLAZABA «Conclusión de riesgo» y «Recomendaciones» sin
+           * preguntar: el párrafo que el médico había escrito a mano
+           * desaparecía al pulsar «Aplicar escalas». El patrón contrario vivía
+           * dos pantallas más arriba, en `agregarASeccion`, que anexa y
+           * deduplica. Se usa ése.
+           */
           onAplicar={(conclusion, recomendaciones, preopData) => {
             setPreop(preopData)
+            let anexado = false
             setSecciones(prev => prev.map(s => {
-              if (s.key === 'conclusionRiesgo') return { ...s, value: conclusion }
-              if (s.key === 'recomendaciones') return { ...s, value: recomendaciones }
-              return s
+              const nuevo = s.key === 'conclusionRiesgo' ? conclusion : s.key === 'recomendaciones' ? recomendaciones : null
+              if (nuevo === null) return s
+              const previo = (s.value ?? '').trim()
+              if (!previo) return { ...s, value: nuevo }
+              if (previo.includes(nuevo.trim())) return s      // ya estaba: no se duplica
+              anexado = true
+              return { ...s, value: `${previo}\n${nuevo}` }
             }))
-            toast('Escalas aplicadas a la nota', 'success')
+            toast(anexado
+              ? 'Escalas añadidas debajo de lo que ya habías escrito (no se borró nada)'
+              : 'Escalas aplicadas a la nota', 'success')
           }}
           onSinDatos={() => toast('Captura al menos una escala antes de aplicar (no se tocó la nota).', 'info')}
         />
@@ -7006,12 +7686,31 @@ export default function ConsultaActivaPage() {
 
       {/* ── Medicamentos ── */}
       <Section id="seccion-medicamentos" title="Medicamentos / Plan farmacológico" icon={<Pill size={15} />}>
+        {/*
+          ── LOS CAMPOS TIENEN NOMBRE, NO SÓLO MARCADOR (D-005) ───────────────
+          El marcador de posición desaparece con el primer carácter: con la fila
+          llena, ni el médico ni un lector de pantalla saben cuál es la dosis y
+          cuál la frecuencia. Un encabezado UNA vez encima de la lista (no en
+          cada fila: eso sería ruido) y `aria-label` por campo, que es lo que
+          anuncia el lector. La fila no cambia de forma.
+        */}
+        {medicamentos.length > 0 && (
+          <div aria-hidden="true" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
+            <span style={{ flex: 2, minWidth: 120 }}>Medicamento</span>
+            <span style={{ flex: 1, minWidth: 70 }}>Dosis</span>
+            <span style={{ flex: 1, minWidth: 92 }}>Vía</span>
+            <span style={{ flex: 1, minWidth: 90 }}>Frecuencia</span>
+            <span style={{ flex: 1, minWidth: 80 }}>Duración</span>
+          </div>
+        )}
         {medicamentos.map((m, i) => (
           <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
+              aria-label={`Medicamento ${i + 1}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
               style={{ ...S.input, flex: 2, minWidth: 120 }} />
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
+              aria-label={`Dosis${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
             {/*
@@ -7052,9 +7751,11 @@ export default function ConsultaActivaPage() {
               <option value="otra">Otra</option>
             </select>
             <input value={m.frecuencia} disabled={firmada} placeholder="Frecuencia"
+              aria-label={`Frecuencia${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, frecuencia: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 90 }} />
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
+              aria-label={`Duración${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
             {!firmada && (
@@ -7072,6 +7773,25 @@ export default function ConsultaActivaPage() {
           </button>
         )}
       </Section>
+
+      {/*
+        ── LA CIRUGÍA QUE VIENE Y EL FÁRMACO QUE SANGRA (MC-015) ──────────────
+        No propone conducta —los tiempos de suspensión viven en el motor de la
+        valoración preoperatoria, con su fuente— : enciende la luz y señala.
+      */}
+      {!firmada && avisoQuirurgicoAnticoagulante && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 4,
+          padding: '11px 13px', borderRadius: 10,
+          border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+            {avisoQuirurgicoAnticoagulante}
+          </div>
+        </div>
+      )}
 
       {/*
         ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
@@ -7142,24 +7862,40 @@ export default function ConsultaActivaPage() {
         ...(esCasoQuirurgico ? [{
           id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
           para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
-          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
+          contenido: <PanelCirugia embebido
+            /* MC-014: el panel ve las alergias del expediente antes de proponer. */
+            alergias={alergenosDe(patient ?? {})}
+            /* MC-017: lo capturado sobrevive a cerrar la herramienta. */
+            estadoInicial={estadoDeCirugia ?? undefined}
+            onCambioDeEstado={setEstadoDeCirugia}
+            /* MC-018: la lista de la OMS, sólo donde hay quirófano. */
+            mostrarChecklist={tipo === 'nota_postoperatoria' || !!internamientoActivo}
+            onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
         }] : []),
         ...(esGineco ? [{
           id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
           para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
           contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
+            hoy={hoyDeLaConsulta}
+            /* MG-022: la gestación capturada sobrevive a cerrar la herramienta. */
+            gestacionInicial={gestacionDeLaConsulta ?? undefined}
+            onCambioDeGestacion={setGestacionDeLaConsulta}
             onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
         }] : []),
         ...(esPediatrico ? [{
           id: 'pediatria', nombre: 'Pediatría', color: 'var(--purple)', icono: <Baby size={14} />,
           para: 'Dosis por peso con tope de adulto · vacunación',
-          aviso: vacunasAtrasadas > 0
-            ? { texto: `${vacunasAtrasadas} vacuna${vacunasAtrasadas > 1 ? 's' : ''} atrasada${vacunasAtrasadas > 1 ? 's' : ''}`, urgente: true }
+          aviso: vacunasQueCorresponden > 0
+            ? { texto: `${vacunasQueCorresponden} vacuna${vacunasQueCorresponden > 1 ? 's' : ''} corresponde${vacunasQueCorresponden > 1 ? 'n' : ''} por edad · verifica cartilla` }
             : undefined,
-          abrirPorDefecto: vacunasAtrasadas > 0,
+          abrirPorDefecto: false,
           contenido: <PanelPediatria embebido edadAnios={patient?.edad} sexo={patient?.sexo}
             fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
-            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')} />,
+            /* MP-006: el previo es el de la última nota firmada con peso, no el de hoy. */
+            pesoPrevio={pesoPrevio?.kg} fechaDelPesoPrevio={pesoPrevio?.fecha}
+            hoy={hoyDeLaConsulta}
+            onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}
+            onRecetar={med => setMedicamentos(prev => [...prev, med])} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{
           id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
@@ -7232,7 +7968,7 @@ export default function ConsultaActivaPage() {
         <>
           {/* ── Chat de corrección por IA ── */}
           {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 12, background: 'var(--nexus-tenue)', padding: 14 }}>
+            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
               </div>
@@ -7534,16 +8270,17 @@ export default function ConsultaActivaPage() {
           </>
         )}
       >
+        {/*
+          El texto vive en `consentimiento-de-grabacion.ts` para que una prueba
+          pueda comparar lo que AFIRMA con lo que el pipeline HACE (PG-003 ·
+          PI-003 · PO-016), y para que cambie a la vez su versión (PC-012).
+          En pediatría quien consiente es el tutor (PP-009).
+        */}
         <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
-          Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
-          estructurar la nota clínica con asistencia de IA. El audio se envía a un servicio de
-          transcripción para generar el texto y se conserva temporalmente en este dispositivo por si la
-          transcripción falla; el expediente guarda únicamente la transcripción de texto.
+          {textoDelConsentimiento(esPediatrico)}
         </p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
-          <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
-          <li>La nota final debe ser revisada y firmada por usted.</li>
-          <li>La IA NO guarda datos clínicos sin su aprobación.</li>
+          {puntosDelConsentimiento(esPediatrico).map(p => <li key={p}>{p}</li>)}
         </ul>
       </Modal>
 

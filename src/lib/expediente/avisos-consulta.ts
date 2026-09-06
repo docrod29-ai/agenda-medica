@@ -87,6 +87,18 @@ export type OrigenAviso =
    */
   | 'procedimiento_sin_escribir'
   /**
+   * ── LA NOTA DICE UN LADO Y EL DICTADO DIJO OTRO — MO-001 ──────────────────
+   *
+   * El aviso de lateralidad que ya existía miraba el dictado contra sí mismo
+   * («el derecho… perdón, el izquierdo»). Éste mira lo que de verdad sale
+   * impreso: la nota afirma un lado que el dictado no dijo, o el contrario.
+   *
+   * Una rodilla equivocada en una orden de imagen no se relee, porque la nota
+   * se ve impecable. `lado_sin_respaldo` es el caso silencioso: nadie dictó ese
+   * lado y aun así está escrito.
+   */
+  | 'lado_de_la_nota_sin_respaldo'
+  /**
    * Un fármaco figura como vigente y el dictado sólo lo nombra en pasado
    * (REG-373). «Le dieron warfarina cuando la operaron» entrando a la lista de
    * lo que toma, porque el esquema de extracción no tiene campo `estado` y la
@@ -171,6 +183,13 @@ export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
    */
   procedimiento_sin_escribir: 'revisa',
   /**
+   * `revisa`, no `bloquea`. La lateralidad se dicta muchas veces sin nombrarla
+   * («esta rodilla») y bloquear la firma por cada nota cuyo lado no se oyó
+   * convertiría la compuerta en algo que se aprende a esquivar — y entonces
+   * tampoco frenaría el lado de verdad equivocado.
+   */
+  lado_de_la_nota_sin_respaldo: 'revisa',
+  /**
    * `revisa`, no `bloquea`: «ya no la toma» y «se la suspendimos y la vamos a
    * reanudar» se dictan igual de pasado, y la diferencia la sabe el médico.
    */
@@ -224,6 +243,27 @@ export interface AvisoConsulta {
   descartable?: boolean
   /** El motor que lo emite está pendiente de validación y hay que decirlo. */
   sello?: 'farmacovigilancia'
+  /**
+   * ESTE AVISO VA PRIMERO Y PESA MÁS — Panel de Lujo MP-015 (P2).
+   *
+   * ── QUÉ FALLABA ──────────────────────────────────────────────────────────
+   *
+   * Una dosis pediátrica CRÍTICA —`pediatrico_sobre_mgkg`,
+   * `sobre_maximo_dosis`— salía como un renglón más de la barra, con el mismo
+   * peso visual que «medicamento controlado» y en el orden en que la lista lo
+   * fuera colocando. Una pediatra con prisa lo ve **si lee la barra entera**.
+   *
+   * ── LO QUE ESTO **NO** CAMBIA ────────────────────────────────────────────
+   *
+   * No bloquea. Que la dosis peligrosa no apague el botón de Firmar es una
+   * decisión del médico dueño, tomada el 5-ago con el dato delante
+   * (`dosis-de-la-lista.ts`), y esta reparación no la toca: sigue en nivel
+   * `revisa`, sigue sin bloquear y sigue sin plegarse. Lo único que cambia es
+   * DÓNDE se lee y con cuánto peso, que es lo que el hallazgo pedía.
+   *
+   * La pantalla lo usa para ordenar y para resaltar; el motor sólo lo declara.
+   */
+  manda?: boolean
 }
 
 export interface EntradaAvisos {
@@ -248,6 +288,15 @@ export interface EntradaAvisos {
    * dos se dicen; sólo una encabeza. Ver `interaccionesDelCuadro` (REG-410).
    */
   interacciones?: readonly { titulo: string; detalle: string; severidad: string; introducidaHoy?: boolean }[]
+  /**
+   * QUÉ SE CRUZÓ CUANDO NO SALTÓ NADA — Panel de Lujo MI-007.
+   *
+   * Lo calcula `coberturaDeclarada` en `farmacovigilancia.ts` y llega ya
+   * redactado: la decisión de cuándo el silencio significa algo vive junto al
+   * catálogo que lo produce, no aquí. Ausente = no procede decirlo (hay alertas,
+   * o no hay dos fármacos que cruzar).
+   */
+  coberturaInteracciones?: string | null
   controlados?: readonly { farmaco: string; requisito: string }[]
   /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
   dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
@@ -299,6 +348,15 @@ export interface EntradaAvisos {
    * no este constructor.
    */
   procedimientosSinEscribir?: readonly { texto: string; mensaje: string }[]
+  /**
+   * Regiones donde el lado de la NOTA no lo sostiene el dictado (MO-001).
+   *
+   * Lo calcula `verificarLateralidad` en `lib/asr/lateralidad.ts`, que sabe qué
+   * región reconoce y qué manda tras una retractación. Llega ya cotejado Y ya
+   * redactado por `describirDiscrepancia`: quien decide cómo se dice es el
+   * módulo que sabe qué es una discrepancia de lado, no este constructor.
+   */
+  discrepanciasDeLado?: readonly { region: string; mensaje: string }[]
   /**
    * Fármacos que figuran como vigentes y que el dictado sólo nombra en pasado
    * (REG-373). El texto viene redactado por `avisoDeFarmacoEnPasado`.
@@ -490,6 +548,25 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
+  /**
+   * EL SILENCIO DEL CRUCE DE INTERACCIONES SE ETIQUETA — Panel de Lujo MI-007.
+   *
+   * Con dos o más fármacos y CERO alertas, la barra no decía nada y el médico
+   * leía «no hay interacción». Lo que hay es que ninguna de las parejas
+   * VIGILADAS está presente, que es otra cosa. Se dice al nivel más bajo —es
+   * información de alcance, no una alarma— y sólo en el momento en que el
+   * silencio significa algo.
+   */
+  if (e.coberturaInteracciones) {
+    out.push({
+      id: 'interacciones:cobertura',
+      origen: 'interaccion', nivel: 'contexto',
+      texto: e.coberturaInteracciones,
+      ancla: { seccion: 'medicamentos' }, sello: 'farmacovigilancia',
+      descartable: true,
+    })
+  }
+
   for (const c of e.controlados ?? []) {
     out.push({
       id: `controlado:${c.farmaco}`,
@@ -509,6 +586,8 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       ancla: { seccion: 'medicamentos', nombre: d.med },
       /** Lo crítico no se descarta con un botón: se corrige o se decide. */
       descartable: !d.critica,
+      /** MP-015: lo crítico encabeza la barra en vez de esperar su turno. */
+      manda: d.critica,
     })
   }
 
@@ -609,6 +688,23 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
   }
 
   /**
+   * ── EL LADO DE LA NOTA QUE EL DICTADO NO SOSTIENE — MO-001 ───────────────
+   *
+   * Ancla en la nota: lo accionable es corregir el lado ahí, o volver a oír el
+   * dictado. No se corrige solo — la regla 3 de seguridad clínica.
+   */
+  for (const d of e.discrepanciasDeLado ?? []) {
+    out.push({
+      id: `lado:${d.region}`,
+      origen: 'lado_de_la_nota_sin_respaldo',
+      nivel: nivelDe('lado_de_la_nota_sin_respaldo'),
+      texto: `${d.mensaje} Confirma el lado antes de firmar.`,
+      ancla: { seccion: 'nota' },
+      descartable: true,
+    })
+  }
+
+  /**
    * ── LO QUE TOMÓ NO ES LO QUE TOMA (REG-373) ──────────────────────────────
    *
    * Ancla en los medicamentos: lo accionable es el botón «ya no» que está al
@@ -624,7 +720,16 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
-  return out
+  /**
+   * LO QUE MANDA VA PRIMERO — Panel de Lujo MP-015.
+   *
+   * `sort` estable sobre un solo criterio: lo marcado `manda` sube y el resto
+   * conserva el orden en que se construyó, que ya está pensado. No se reordena
+   * por nivel ni por gravedad: eso reabriría la discusión de los tres niveles
+   * que este módulo cerró, y aquí sólo se trata de que una dosis crítica no
+   * dependa de que alguien lea la barra entera.
+   */
+  return out.sort((a, b) => Number(b.manda ?? false) - Number(a.manda ?? false))
 }
 
 /** ¿Cuántos bloquean y cuántos piden un vistazo? Para el encabezado. */

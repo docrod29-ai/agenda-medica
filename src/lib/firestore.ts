@@ -2,7 +2,7 @@ import {
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc,
   getDocs, getDoc, query, orderBy, where, serverTimestamp,
   limit as limitarA, startAfter, documentId,
-  runTransaction, Timestamp, QueryConstraint,
+  runTransaction, Timestamp, QueryConstraint, writeBatch,
 } from 'firebase/firestore'
 import { idIdempotente } from '@/lib/idempotencia'
 import { claveDeEspera } from '@/lib/whatsapp/lista-espera'
@@ -661,7 +661,7 @@ export async function updatePatient(
    * `/consulta` no la necesitan y no pagan la lectura.
    */
   vistoEn?: string,
-): Promise<void> {
+): Promise<TelefonoPropagado> {
   const ref = d(clinicId, COLLECTIONS.patients, id)
 
   /**
@@ -715,6 +715,95 @@ export async function updatePatient(
     }
   }
   logAudit({ evento: 'paciente_modificado', clinicId, patientId: id, meta }).catch(() => {})
+
+  /**
+   * EL TELÉFONO NUEVO TIENE QUE LLEGAR A LAS CITAS (Panel de Lujo ASM-004).
+   *
+   * `pacienteTelefono` es un dato DESNORMALIZADO en la cita —útil para citas
+   * sin expediente, del bot antiguo— y nadie era dueño de mantenerlo: el editor
+   * del paciente escribía sólo `patients/{id}`, la pantalla decía «Paciente
+   * actualizado», y el recordatorio de mañana salía al número viejo, porque el
+   * cron lee el teléfono de la CITA. Se propaga aquí, en la misma operación, y
+   * el cron además cae al expediente (`api/cron/reminders`): dos redes.
+   */
+  if (typeof data.telefono === 'string') {
+    return propagarTelefonoACitas(clinicId, id, data.telefono)
+  }
+  return { citasActualizadas: 0, esperaActualizadas: 0, truncada: false }
+}
+
+export interface TelefonoPropagado {
+  /** Citas FUTURAS y aún recordables que ahora llevan el teléfono nuevo. */
+  citasActualizadas: number
+  /** Entradas activas de la lista de espera que ahora llevan el teléfono nuevo. */
+  esperaActualizadas: number
+  /**
+   * `true` = el paciente tiene MÁS citas o entradas de las que caben en el tope,
+   * así que puede haber alguna que se quedó con el teléfono viejo.
+   *
+   * Es la misma regla que `ListaDeEspera.truncada` (REG-351): un recorte sin
+   * etiqueta se lee como el trabajo completo. Aquí eso significa un recordatorio
+   * saliendo al número equivocado y nadie enterándose.
+   */
+  truncada: boolean
+}
+
+/**
+ * Cuántas citas y entradas de espera de UN paciente se leen para propagar.
+ *
+ * No es una cifra clínica: es el techo de una lectura. Doscientas cubren un
+ * historial largo de sobra; lo que importa no es acertar el número sino DECIR
+ * cuándo se alcanzó, que es lo que hace `truncada`.
+ */
+export const TOPE_CITAS_AL_PROPAGAR = 200
+
+/** Estados en los que una cita todavía puede recibir un recordatorio o una llamada. */
+const ESTADOS_CITA_CON_TELEFONO_VIVO = ['confirmada', 'pendiente-confirmar', 'solicitada', 'recordatorio-enviado', 'en-sala']
+
+/**
+ * Lleva el teléfono corregido a las citas futuras del paciente y a su lista de
+ * espera. Consulta por `pacienteId` a solas (índice automático) y filtra fecha y
+ * estado en memoria: un paciente tiene decenas de citas, no miles.
+ *
+ * A prueba de fallos en la LECTURA (si no se pueden leer las citas, el
+ * expediente ya quedó actualizado y se devuelve 0, que la pantalla enseña como
+ * «sólo en el expediente»), pero no en la ESCRITURA: si el lote falla, el
+ * llamador se entera.
+ */
+export async function propagarTelefonoACitas(clinicId: string, pacienteId: string, telefono: string): Promise<TelefonoPropagado> {
+  const ahora = new Date()
+  const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+  const nuevo = String(telefono ?? '').trim()
+  const digitos = (t: unknown) => String(t ?? '').replace(/\D/g, '')
+  let citas: { id: string; pacienteTelefono?: string; fechaHora?: string; estado?: string }[] = []
+  let espera: { id: string; pacienteTelefono?: string; estado?: string }[] = []
+  let truncada = false
+  try {
+    const [cs, es] = await Promise.all([
+      // Acotadas, y con UNA DE MÁS para poder distinguir «cabían justas» de
+      // «hay más y no las veo».
+      getDocs(query(col(clinicId, COLLECTIONS.appointments), where('pacienteId', '==', pacienteId), limitarA(TOPE_CITAS_AL_PROPAGAR + 1))),
+      getDocs(query(col(clinicId, COLLECTIONS.waitlist), where('pacienteId', '==', pacienteId), limitarA(TOPE_CITAS_AL_PROPAGAR + 1))),
+    ])
+    truncada = cs.size > TOPE_CITAS_AL_PROPAGAR || es.size > TOPE_CITAS_AL_PROPAGAR
+    citas = cs.docs.slice(0, TOPE_CITAS_AL_PROPAGAR).map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
+    espera = es.docs.slice(0, TOPE_CITAS_AL_PROPAGAR).map(x => ({ id: x.id, ...(x.data() as Record<string, unknown>) }))
+  } catch {
+    return { citasActualizadas: 0, esperaActualizadas: 0, truncada: false }
+  }
+  const citasPorTocar = citas.filter(c =>
+    String(c.fechaHora ?? '') >= hoy
+    && ESTADOS_CITA_CON_TELEFONO_VIVO.includes(String(c.estado ?? ''))
+    && digitos(c.pacienteTelefono) !== digitos(nuevo))
+  const esperaPorTocar = espera.filter(e => String(e.estado ?? '') === 'activo' && digitos(e.pacienteTelefono) !== digitos(nuevo))
+  if (citasPorTocar.length === 0 && esperaPorTocar.length === 0) return { citasActualizadas: 0, esperaActualizadas: 0, truncada }
+
+  const lote = writeBatch(db)
+  const updatedAt = ahora.toISOString()
+  for (const c of citasPorTocar) lote.update(d(clinicId, COLLECTIONS.appointments, c.id), { pacienteTelefono: nuevo, updatedAt })
+  for (const e of esperaPorTocar) lote.update(d(clinicId, COLLECTIONS.waitlist, e.id), { pacienteTelefono: nuevo })
+  await lote.commit()
+  return { citasActualizadas: citasPorTocar.length, esperaActualizadas: esperaPorTocar.length, truncada }
 }
 
 // ── Waitlist ──────────────────────────────────────────────────

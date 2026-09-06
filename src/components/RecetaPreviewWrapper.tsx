@@ -126,7 +126,9 @@ export function RecetaPreviewWrapper({
       overflow: 'hidden',
       position: 'relative',
       margin: '0 auto',
-      background: '#1a2333',
+      /* ZC-023 — era '#1a2333' fijo: en tema claro la hoja blanca salía sobre
+             un azul noche que no pinta nada más del producto. */
+        background: 'var(--s3)',
       borderRadius: 6,
     }}>
       <div

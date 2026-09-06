@@ -143,6 +143,19 @@ export interface PaqueteDeVisita {
   followUp: string
   /** Indicación médica: o la escribió el médico, o va vacío. Nunca se compone. */
   warningSigns: string[]
+  /**
+   * LO QUE EL MÉDICO INDICÓ, EN SUS PALABRAS — PC-020, MO-016.
+   *
+   * Ayuno, qué suspender antes de la cirugía, cuidado de la herida, baño,
+   * reposo, restricciones de actividad, ejercicios: nada de eso tenía sitio en
+   * el paquete, que se componía sólo de diagnósticos, medicamentos, estudios y
+   * próxima cita. «¿Puedo comer antes de la cirugía?» sólo podía escalar aunque
+   * el cirujano lo hubiera escrito en su nota.
+   *
+   * Son líneas LITERALES de las secciones de indicaciones y plan. No se
+   * reescriben: reescribir la indicación de un médico es editarla.
+   */
+  indicaciones: string[]
   /** Evidencia curada. Vacío hasta que exista de dónde sacarlo. */
   educationalMaterial: string[]
   /** Identificadores de documentos de la cartera. Los llena `DOCUMENTS-001`. */
@@ -227,8 +240,140 @@ export interface NotaParaElPaquete {
   /** La lista CRUDA de la nota. La puerta de prescripción se aplica aquí dentro. */
   medicamentos?: readonly Medicamento[]
   estudiosOrden?: readonly unknown[]
-  diagnosticos?: readonly { descripcion?: unknown }[]
+  /**
+   * `tipo` y `tipoOrigen` NO ESTABAN, Y POR ESO NO SE PODÍA FILTRAR (PC-001).
+   *
+   * Este tipo enumeraba `{ descripcion }` y nada más: el módulo no podía
+   * distinguir un diagnóstico confirmado de uno descartado ni aunque quisiera,
+   * y `encounterSummary` los concatenaba todos. Ampliar la vista es ampliar
+   * este tipo, o sea decidirlo — y aquí está decidido.
+   */
+  diagnosticos?: readonly { descripcion?: unknown; tipo?: unknown; tipoOrigen?: unknown }[]
+  /**
+   * Las secciones de la nota, de donde salen las INDICACIONES del médico.
+   *
+   * La pantalla de entrega le dice al médico «si quieres que los lea,
+   * escríbelos en tus indicaciones» — y nadie leía esas indicaciones (PC-002,
+   * MG-015). Están aquí porque el médico ya las escribió: no se compone nada,
+   * se copia lo suyo.
+   */
+  secciones?: readonly { key?: unknown; label?: unknown; value?: unknown }[]
   firma?: { nombreMedico?: unknown; cedulaProfesional?: unknown; especialidad?: unknown } | null
+}
+
+/**
+ * ¿ESTE DIAGNÓSTICO ES DEL PACIENTE, O ERA UNA HIPÓTESIS DEL MÉDICO?
+ *
+ * ── QUÉ PASABA (PC-001 · PO-001 · PO-002, P1) ───────────────────────────────
+ *
+ * `encounterSummary` era `(n.diagnosticos ?? []).map(d => d.descripcion)`. Todo.
+ * Al paciente le bajaba, en un documento con cédula profesional, la lista
+ * entera de la nota: lo descartado, los diferenciales que el médico barajó en
+ * voz alta y lo que el modelo propuso y nadie confirmó.
+ *
+ * El lector no puede detectar el error. No sabe que «neoplasia maligna» estaba
+ * ahí porque su cirujano la DESCARTÓ.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * `patient-facing-ai.md` §1: un dato específico del paciente sólo sale de
+ * material aprobado por su médico, y el nivel 9 (el modelo) nunca origina uno.
+ * Un `tipoOrigen: 'extraccion'` es exactamente el nivel 9 firmando por el
+ * médico. Y la decisión del dueño para PL-P2 dice lo mismo con otras palabras:
+ * «sólo confirmados/definitivos; descartados, diferenciales y extracciones sin
+ * confirmar, nunca».
+ *
+ * ── DÓNDE ESTÁ LA LÍNEA, Y POR QUÉ AHÍ ──────────────────────────────────────
+ *
+ * `tipo === 'definitivo'` **y** `tipoOrigen !== 'extraccion'`.
+ *
+ * Un `definitivo` con `tipoOrigen: 'por_defecto'` SÍ baja, y es una decisión
+ * con coste: `por_defecto` significa que lo puso el esquema porque nadie eligió
+ * (REG-372), así que no es una confirmación firmada. Dejarlo fuera vaciaría el
+ * resumen de toda nota anterior a ese campo — o sea, la mayoría — y un plan de
+ * cuidado sin motivo de consulta no es más seguro: es menos útil sin ser más
+ * verdadero. Lo que sí se excluye siempre es lo que el MODELO propuso, que es
+ * de donde viene el riesgo real.
+ *
+ * Si el dueño decide que `por_defecto` tampoco baja, se cambia AQUÍ y en un
+ * solo sitio.
+ */
+export function esDiagnosticoDelPaciente(d: { tipo?: unknown; tipoOrigen?: unknown }): boolean {
+  return texto(d?.tipo) === 'definitivo' && texto(d?.tipoOrigen) !== 'extraccion'
+}
+
+/**
+ * LA MISMA PUERTA PARA LAS DOS SUPERFICIES QUE BAJAN AL PACIENTE.
+ *
+ * El paquete de la visita y la receta que el portal descarga como `.doc` son
+ * dos pantallas del MISMO dato, y cada una hacía su propio `map`. Esa es
+ * literalmente la forma de REG-329 un campo más a la derecha: aquella
+ * regresión puso una sola puerta para los MEDICAMENTOS que bajan al paciente
+ * (`medicamentosDeLaReceta`) y dejó los DIAGNÓSTICOS bajando en crudo por las
+ * mismas dos superficies.
+ *
+ * Se escribe una vez, con nombre, para que una prueba pueda exigirla en los dos
+ * sitios y para que la tercera superficie que se escriba mañana la encuentre.
+ */
+export function resumenDeDiagnosticosParaElPaciente(
+  dxs: readonly { descripcion?: unknown; tipo?: unknown; tipoOrigen?: unknown }[] | undefined,
+): string {
+  return (dxs ?? [])
+    .filter(esDiagnosticoDelPaciente)
+    .map(d => texto(d?.descripcion))
+    .filter(Boolean)
+    .join(', ')
+}
+
+/**
+ * LAS INDICACIONES QUE EL MÉDICO ESCRIBIÓ, TAL CUAL — PC-002, MG-015, PC-020.
+ *
+ * ── QUÉ PASABA ──────────────────────────────────────────────────────────────
+ *
+ * `warningSigns` se componía SIEMPRE vacío, y la pantalla del médico le decía
+ * «si quieres que los lea, escríbelos en tus indicaciones». Ningún código leía
+ * esas indicaciones: la ginecóloga escribía los signos de alarma del embarazo y
+ * el cirujano los del postoperatorio, y no llegaban al paquete. Un camino
+ * prometido en la interfaz que no existía en el código.
+ *
+ * ── CÓMO SE LEE SIN INVENTAR NADA ───────────────────────────────────────────
+ *
+ * Se copian LÍNEAS LITERALES de las secciones de indicaciones y del plan. No se
+ * resume, no se reordena, no se traduce: reescribir la indicación de un médico
+ * es editarla (la misma razón por la que `como-se-lo-explico` no la toca).
+ *
+ * Los signos de alarma se separan del resto sólo cuando el médico los ROTULÓ
+ * («Signos de alarma:», «Datos de alarma:», «Regresa si:»). Si no los rotuló, no
+ * se adivinan: bajan como indicaciones, que es lo que son, y `warningSigns`
+ * sigue vacío — que es lo que la pantalla del médico enseña para que él lo
+ * llene.
+ */
+const SECCIONES_DE_INDICACIONES = /^(indicaciones|indicacionesalta|indicacionesegreso|plan|planmanejo|tratamiento)$/
+
+const ROTULO_DE_ALARMA = /^\s*(signos?|datos?|senales?|señales?)\s+de\s+alarma\s*:?\s*$|^\s*(regres[ae]|vuelv[ae]|acude|acuda)\s+(de inmediato\s+)?si\s*:?\s*$|^\s*cuando volver antes\s*:?\s*$/i
+
+const VINETA = /^\s*[-–—•*·]\s*/
+
+function lineasDeIndicaciones(n: NotaParaElPaquete): { indicaciones: string[]; alarma: string[] } {
+  const indicaciones: string[] = []
+  const alarma: string[] = []
+  for (const sec of n.secciones ?? []) {
+    const key = texto(sec?.key).toLowerCase().replace(/[^a-z]/g, '')
+    if (!SECCIONES_DE_INDICACIONES.test(key)) continue
+    let enAlarma = false
+    for (const cruda of texto(sec?.value).split('\n')) {
+      const linea = cruda.trim()
+      if (!linea) continue
+      if (ROTULO_DE_ALARMA.test(linea)) { enAlarma = true; continue }
+      // Un rótulo distinto cierra el bloque de alarma: lo que viene después ya
+      // no es «cuándo volver», y arrastrarlo sería cambiar lo que dijo.
+      if (/^[A-ZÁÉÍÓÚÑ][^.]{0,40}:$/.test(linea)) { enAlarma = false; continue }
+      const limpia = linea.replace(VINETA, '').trim()
+      if (!limpia) continue
+      ;(enAlarma ? alarma : indicaciones).push(limpia)
+    }
+  }
+  return { indicaciones, alarma }
 }
 
 export interface EntradaDelPaquete {
@@ -306,10 +451,14 @@ export function cambiosDeMedicacion(
  *
  * ── LO QUE NO COMPONE, Y POR QUÉ ────────────────────────────────────────────
  *
- * `warningSigns` y `educationalMaterial` siguen vacíos. Los signos de alarma son
- * indicación médica y el material educativo es evidencia curada: no hay de
- * dónde sacarlos sin inventarlos, y «lo habitual» impreso bajo una cédula
- * profesional es exactamente el fallo más caro posible aquí.
+ * `educationalMaterial` sigue vacío: es evidencia curada y no hay de dónde
+ * sacarla sin inventarla, y «lo habitual» impreso bajo una cédula profesional
+ * es exactamente el fallo más caro posible aquí.
+ *
+ * `warningSigns` YA NO está vacío, y el matiz es el que importa: no se compone,
+ * se COPIA. Si el médico escribió los signos de alarma en su nota firmada, bajo
+ * su rótulo, se transcriben tal cual (PC-002, MG-015). Si no los escribió, van
+ * vacíos — como antes. Lo que no ocurre nunca es que salgan de otro sitio.
  *
  * `encounterSummary` son los DIAGNÓSTICOS que el médico dejó en la nota, no el
  * `resumenEjecutivo`: ese lo redacta un modelo para el clínico, con su jerga y
@@ -329,19 +478,26 @@ export function componerPaquete(e: EntradaDelPaquete): Composicion {
     .filter(m => m.nombre && m.instruccion)
 
   const telefono = texto(e.telefonoDelConsultorio)
+  const { indicaciones, alarma } = lineasDeIndicaciones(n)
 
   return {
     ok: true,
     paquete: {
       notaId: n.id,
       fechaConsulta: texto(n.fechaConsulta),
-      encounterSummary: (n.diagnosticos ?? []).map(d => texto(d?.descripcion)).filter(Boolean).join(', '),
+      /* PC-001: sólo lo que el médico confirmó. Ver `esDiagnosticoDelPaciente`. */
+      encounterSummary: resumenDeDiagnosticosParaElPaciente(n.diagnosticos),
       medicationInstructions: instrucciones,
       medicationChanges: cambiosDeMedicacion(instrucciones.map(m => m.nombre), e.medicacionPrevia),
       orders: (n.estudiosOrden ?? []).map(texto).filter(Boolean),
       followUp: texto(e.proximaCita),
-      /* Indicación médica y evidencia curada. O las escribe alguien, o van vacías. */
-      warningSigns: [],
+      /*
+        Indicación médica: o la escribe el médico, o va vacía — pero ahora, si
+        la escribió, LLEGA (PC-002, MG-015). La evidencia curada sigue sin tener
+        de dónde salir y sigue vacía.
+      */
+      warningSigns: alarma,
+      indicaciones,
       educationalMaterial: [],
       documents: [],
       unansweredQuestions: [],
@@ -372,7 +528,7 @@ export function componerPaquete(e: EntradaDelPaquete): Composicion {
 function contenido(p: PaqueteDeVisita): unknown {
   return [
     p.notaId, p.fechaConsulta, p.encounterSummary, p.medicationInstructions,
-    p.medicationChanges, p.orders, p.followUp, p.warningSigns, p.educationalMaterial,
+    p.medicationChanges, p.orders, p.followUp, p.warningSigns, p.indicaciones, p.educationalMaterial,
     p.documents, p.unansweredQuestions, p.clinicianContactRules, p.prescriptor,
     p.alergias, p.language,
   ]

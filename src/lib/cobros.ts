@@ -10,13 +10,14 @@
  * Para corregir un error → registrar un cobro negativo (refund/ajuste).
  */
 import {
-  collection, addDoc, getDocs, query, where, orderBy, doc, updateDoc, runTransaction,
+  collection, addDoc, getDocs, query, where, orderBy, limit, doc, updateDoc, runTransaction,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT, zonaActiva } from '@/lib/timezone'
 import { elegirMedicoCanonico, type MedicoDelCobro } from '@/lib/finanzas/medico-del-cobro'
 import { idIdempotente } from '@/lib/idempotencia'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -32,6 +33,16 @@ import { idIdempotente } from '@/lib/idempotencia'
  * también LO YA GUARDADO: el instante siempre fue correcto, lo que estaba mal
  * era la etiqueta derivada. Sin migración y sin tocar un solo cobro histórico.
  */
+/**
+ * Topes de las dos lecturas que preguntan por un cobro concreto.
+ *
+ * No son cifras clínicas: son cotas de escala, y están puestas muy por encima
+ * de lo que ocurre en un consultorio real. Lo que impiden es que un defecto de
+ * datos convierta una pregunta puntual en una lectura de la colección entera.
+ */
+const TOPE_HUELLAS_IGUALES = 25
+const TOPE_DEVOLUCIONES_POR_COBRO = 50
+
 function limitesDelDia(desde: string, hasta: string, tz: string = TZ_DEFAULT): { ini: string; fin: string } {
   return {
     ini: instanteMX(desde, '00:00', tz).toISOString(),
@@ -153,13 +164,33 @@ export interface Cobro {
    * original — NO montos negativos, que descuadran el corte sin dejar rastro.
    */
   tipo?: 'PAYMENT' | 'REFUND' | 'CREDIT' | 'ADJUSTMENT'
+  /** REFUND/CREDIT: el cobro que devuelve. La traza a la operación original. */
+  cobroOriginalId?: string
+  motivoReembolso?: string
+  /** REFUND: ¿con esta devolución queda devuelto todo el cobro original? */
+  reembolsoTotal?: boolean
+  /** Nombre de quien registró, sellado (para el CSV y el corte). */
+  creadoPorNombre?: string
+  /** RT-005: huella de la intención, estable entre dispositivos. */
+  huella?: string
+  /** Cobros en línea: el PaymentIntent de Stripe (hilo del reembolso). */
+  stripePaymentIntentId?: string
+  /** REFUND automático al que no se le encontró su cobro original. */
+  huerfano?: boolean
 }
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'cobros')
 
-/** Genera folio único corto basado en timestamp */
-function generarFolio(): string {
-  return `CB-${Date.now().toString(36).toUpperCase().slice(-7)}`
+/**
+ * Folio corto para leer a ojo: base36 del instante + dos caracteres al azar.
+ *
+ * ASC-014: sólo con el instante, dos equipos cobrando en el MISMO milisegundo
+ * repetían folio. El sufijo al azar lo evita sin contador en transacción. El
+ * folio no es el id del documento: el id sigue siendo la identidad.
+ */
+function generarFolio(prefijo: 'CB' | 'RB' = 'CB'): string {
+  const azar = Math.random().toString(36).slice(2, 4).toUpperCase().padEnd(2, '0')
+  return `${prefijo}-${Date.now().toString(36).toUpperCase().slice(-7)}${azar}`
 }
 
 export interface OpcionesCobro {
@@ -172,13 +203,95 @@ export interface OpcionesCobro {
    * consultorio dentro.
    */
   claveIdempotencia?: string
+  /**
+   * RT-005: el médico o la asistente ya vio el aviso «hay un cobro igual de
+   * hoy» y confirmó que ESTE es otro distinto (un segundo abono legítimo del
+   * mismo importe, por ejemplo). Sin esta marca, un cobro con la misma huella
+   * que otro vivo del día se rechaza con `CobroPosiblementeDuplicado`.
+   */
+  esOtroDistinto?: boolean
+  /**
+   * Estado actual de la cita según la pantalla. Sólo para no RETROCEDER un
+   * estado más avanzado (finalizada/pagada) a «atendida» al cobrar; la
+   * transacción lee además el estado real.
+   */
+  estadoActual?: string
 }
 
+/**
+ * Lo que devuelve `registrarCobroDetallado`: el id y, sobre todo, si el cobro
+ * YA EXISTÍA (otro dispositivo, otra pestaña) y por tanto NO se registró nada.
+ *
+ * ── ASC-009 (Panel de Lujo 2026-09, P2) ──────────────────────────────────────
+ * `registrarCobro` devolvía sólo el id, así que el modal no podía distinguir
+ * «registré tu cobro» de «ya había uno y te devuelvo el suyo»: enseñaba
+ * «Cobro registrado: $X» con el importe tecleado aunque no hubiera registrado
+ * nada, y encima reescribía `cobradoEn` con la hora del intento fallido.
+ */
+export interface ResultadoCobro {
+  id: string
+  /** `true` = no se escribió nada: la cita ya tenía este cobro (o el intento ya se había aplicado). */
+  yaExistia: boolean
+  /** El cobro que ya estaba, cuando se pudo leer. */
+  cobroExistente?: { id: string; monto?: number; folio?: string; fecha?: string }
+  /** Qué candado lo detuvo. */
+  porQue?: 'mismo-intento' | 'cita-ya-cobrada'
+}
+
+/**
+ * RT-005: ya hay un cobro VIVO de hoy con la misma huella (misma cita o
+ * paciente, mismo concepto, mismo importe). No se decide solo: se pregunta.
+ */
+export class CobroPosiblementeDuplicado extends Error {
+  constructor(public readonly existente: { id: string; monto: number; folio?: string; fecha: string; concepto?: string }) {
+    super(
+      `Ya hay un cobro igual registrado hoy (${existente.folio ?? existente.id}, ${fmtMXN(existente.monto)}` +
+      `${existente.fecha ? ` a las ${horaLocal(existente.fecha)}` : ''}). ¿Es otro distinto?`,
+    )
+    this.name = 'CobroPosiblementeDuplicado'
+  }
+}
+
+/**
+ * LA HUELLA DE LA INTENCIÓN, ESTABLE ENTRE DISPOSITIVOS — RT-005.
+ *
+ * La clave de intento (`claveDeIntento`) nombra la intención dentro de UNA
+ * pestaña; en otra pestaña u otro dispositivo es distinta, así que un abono y
+ * un cobro suelto se registraban dos veces si los cobraban dos personas a la
+ * vez (ataque del equipo rojo, Panel de Lujo 2026-09). La huella nombra la
+ * intención con lo que es igual desde cualquier sitio: la cita (o el
+ * paciente), el concepto, el importe en centavos y el día local del
+ * consultorio. No es un candado que decida solo —el segundo abono legítimo del
+ * mismo importe existe—: es lo que permite PREGUNTAR.
+ */
+export function huellaDeCobro(d: { citaId?: string; patientId?: string; concepto: string; monto: number; dia: string }): string {
+  const sujeto = d.citaId ? `cita:${d.citaId}` : d.patientId ? `pac:${d.patientId}` : 'suelto'
+  return `${sujeto}|${d.concepto}|${Math.round(d.monto * 100)}|${d.dia}`
+}
+
+function horaLocal(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: zonaActiva() })
+  } catch { return '' }
+}
+
+/**
+ * Compatibilidad: los llamadores que sólo quieren el id siguen funcionando.
+ * Los que necesitan saber si de verdad se registró usan `registrarCobroDetallado`.
+ */
 export async function registrarCobro(
   clinicId: string,
   data: Omit<Cobro, 'id' | 'fecha' | 'dia' | 'mes' | 'createdAt' | 'folio'>,
   opciones: OpcionesCobro = {},
 ): Promise<string> {
+  return (await registrarCobroDetallado(clinicId, data, opciones)).id
+}
+
+export async function registrarCobroDetallado(
+  clinicId: string,
+  data: Omit<Cobro, 'id' | 'fecha' | 'dia' | 'mes' | 'createdAt' | 'folio'>,
+  opciones: OpcionesCobro = {},
+): Promise<ResultadoCobro> {
   const fecha = new Date()
   const isoFecha = fecha.toISOString()
   /**
@@ -318,46 +431,227 @@ export async function registrarCobro(
     ? idIdempotente(clinicId, 'cobro', opciones.claveIdempotencia)
     : null
 
+  const esAbono = data.concepto === 'abono'
+  /**
+   * RT-005 — LA HUELLA SE COMPRUEBA SÓLO DONDE EL CANDADO POR CITA NO LLEGA:
+   * el abono y el cobro suelto. El cobro que salda una cita ya tiene su
+   * candado (`cita.cobroId`) y no necesita preguntar. La lectura va fuera de
+   * la transacción a propósito: no es un candado, es una pregunta, y la
+   * respuesta («es otro distinto») viene con `esOtroDistinto`.
+   */
+  const huella = huellaDeCobro({ citaId: data.citaId, patientId: data.patientId, concepto: String(data.concepto), monto, dia })
+  if ((esAbono || !data.citaId) && !opciones.esOtroDistinto) {
+    /**
+     * Acotada, y aquí acotar es seguro: la pregunta es «¿existe ya uno vivo
+     * igual?», y más resultados sólo pueden reforzar el sí. La huella lleva el
+     * DÍA dentro, así que en un día no puede haber decenas del mismo cobro
+     * exacto; el tope está muy por encima de lo posible y sólo impide que una
+     * huella repetida por un defecto acabe leyendo la colección entera.
+     */
+    const iguales = await getDocs(query(COL(clinicId), where('huella', '==', huella), limit(TOPE_HUELLAS_IGUALES)))
+    const vivo = iguales.docs
+      .map(d => ({ id: d.id, ...(d.data() as Partial<Cobro>) }))
+      .find(c => !c.cancelado && c.id !== idDeterminista)
+    if (vivo) {
+      throw new CobroPosiblementeDuplicado({
+        id: vivo.id, monto: Number(vivo.monto) || 0, folio: vivo.folio, fecha: vivo.fecha ?? '', concepto: vivo.concepto,
+      })
+    }
+  }
+  const payloadConHuella = { ...payload, huella } as Omit<Cobro, 'id'>
+
   if (data.citaId) {
     const citaRef = doc(db, 'clinics', clinicId, 'appointments', data.citaId)
     const cobroRef = idDeterminista
       ? doc(COL(clinicId), idDeterminista)
       : doc(COL(clinicId))  // id pre-generado para usarlo en la tx
-    const esAbono = data.concepto === 'abono'
-    const idFinal = await runTransaction(db, async (tx) => {
+    return await runTransaction(db, async (tx): Promise<ResultadoCobro> => {
       const citaSnap = await tx.get(citaRef)
       // Se lee ANTES de cualquier escritura (Firestore lo exige) y antes de
       // decidir nada: si este intento ya quedó registrado, no hay cobro nuevo
       // que hacer ni cita que volver a marcar.
-      if (idDeterminista && (await tx.get(cobroRef)).exists()) return cobroRef.id
-      const cita = citaSnap.exists() ? (citaSnap.data() as { cobroId?: string; cobroExento?: boolean }) : undefined
+      if (idDeterminista && (await tx.get(cobroRef)).exists()) {
+        return { id: cobroRef.id, yaExistia: true, porQue: 'mismo-intento' }
+      }
+      const cita = citaSnap.exists() ? (citaSnap.data() as { cobroId?: string; cobroExento?: boolean; estado?: string }) : undefined
       // No se cobra una cita marcada como CORTESÍA: primero hay que quitar la cortesía.
       if (cita?.cobroExento) throw new Error('Esta cita está marcada como cortesía. Quita la cortesía antes de cobrar.')
       // ABONO (pago parcial): NO marca la cita como saldada ni bloquea — puede haber
       // varios abonos y la cita sigue "por cobrar" hasta el pago de cierre. Antes el
       // abono ponía cobroId y la cita desaparecía del worklist con saldo pendiente.
-      if (!esAbono && cita?.cobroId) return cita.cobroId   // ya hay cobro de cierre → idempotente
-      tx.set(cobroRef, payload)
-      // Solo se marca la cita si EXISTE: si se borró entre abrir el modal y cobrar,
-      // `tx.update` sobre un doc inexistente lanza NOT_FOUND y abortaría la tx →
-      // el cobro se perdería. Mejor registrar el cobro aunque la cita ya no esté.
-      if (!esAbono && citaSnap.exists()) tx.update(citaRef, { cobroId: cobroRef.id, cobradoEn: isoFecha })
-      return cobroRef.id
+      if (!esAbono && cita?.cobroId) {
+        // Ya hay cobro de cierre → idempotente. Se LEE el existente (todavía
+        // antes de escribir) para poder decirle a quien cobra qué había.
+        const existente = await tx.get(doc(COL(clinicId), cita.cobroId))
+        const e = existente.exists() ? (existente.data() as Partial<Cobro>) : {}
+        return {
+          id: cita.cobroId, yaExistia: true, porQue: 'cita-ya-cobrada',
+          cobroExistente: { id: cita.cobroId, monto: e.monto, folio: e.folio, fecha: e.fecha },
+        }
+      }
+      tx.set(cobroRef, payloadConHuella)
+      /**
+       * LA CITA SE MARCA AQUÍ, EN LA MISMA ESCRITURA ATÓMICA — ASC-003.
+       *
+       * `cobroId`/`cobradoEn` los escribía también el modal, con un
+       * `updateAppointment` suelto DESPUÉS del cobro: un update que cualquier
+       * miembro puede hacer desde la consola con un `cobroId` inventado y que
+       * hace desaparecer una deuda sin cobro real. La regla de `appointments`
+       * (SEGURIDAD) sólo puede exigir «cobroId apunta a un cobro que existe en
+       * esta misma escritura» si el cobro y la marca viajan juntos. Y «cobrar
+       * cierra la consulta» (estado → atendida) va en el mismo sitio por la
+       * misma razón: si viaja aparte, se olvida.
+       *
+       * Solo se marca la cita si EXISTE: si se borró entre abrir el modal y
+       * cobrar, `tx.update` sobre un doc inexistente lanza NOT_FOUND y
+       * abortaría la tx → el cobro se perdería.
+       */
+      if (citaSnap.exists()) {
+        const avanzados = ['atendida', 'finalizada', 'pagada']
+        const estadoReal = cita?.estado ?? opciones.estadoActual
+        tx.update(citaRef, {
+          ...(esAbono ? {} : { cobroId: cobroRef.id, cobradoEn: isoFecha }),
+          ...(estadoReal && avanzados.includes(estadoReal) ? {} : { estado: 'atendida' }),
+        })
+      }
+      return { id: cobroRef.id, yaExistia: false }
     })
-    return idFinal
   }
 
   if (idDeterminista) {
     const cobroRef = doc(COL(clinicId), idDeterminista)
-    return await runTransaction(db, async (tx) => {
-      if ((await tx.get(cobroRef)).exists()) return cobroRef.id
-      tx.set(cobroRef, payload)
-      return cobroRef.id
+    return await runTransaction(db, async (tx): Promise<ResultadoCobro> => {
+      if ((await tx.get(cobroRef)).exists()) return { id: cobroRef.id, yaExistia: true, porQue: 'mismo-intento' }
+      tx.set(cobroRef, payloadConHuella)
+      return { id: cobroRef.id, yaExistia: false }
     })
   }
 
-  const ref = await addDoc(COL(clinicId), payload)
-  return ref.id
+  const ref = await addDoc(COL(clinicId), payloadConHuella)
+  return { id: ref.id, yaExistia: false }
+}
+
+/**
+ * DEVOLUCIÓN DE VENTANILLA — la unidad REFUND que REG-015 dejó declarada.
+ *
+ * ── ASC-012 / PL-D5 (Panel de Lujo 2026-09) ──────────────────────────────────
+ * El concepto «Reembolso» y la fila `reembolsos` del corte existían sin que
+ * nadie pudiera emitir uno: el selector lo filtraba, el monto negativo se
+ * rechazaba en el origen y la única salida era la anulación, que además no
+ * funcionaba (ASC-001). Decisión por omisión: construir la unidad, porque
+ * `estado-cobro.ts` y el corte ya la consumían.
+ *
+ * Un REFUND es un documento PROPIO en `cobros`, con `monto` POSITIVO (lo que
+ * salió), `tipo: 'REFUND'` y `cobroOriginalId` con traza al cobro que
+ * devuelve. Nunca un signo menos: un negativo descuadra el corte sin dejar
+ * rastro de qué se devolvió. No puede devolverse más de lo que entró.
+ *
+ * El cobro original NO se anula: se cobró de verdad y se devolvió de verdad;
+ * las dos cosas quedan en el libro. Si la devolución es total y ese cobro
+ * tenía tomada la cita, la cita se libera en la misma transacción.
+ */
+export async function registrarReembolso(
+  clinicId: string,
+  d: { cobroOriginalId: string; monto: number; metodo: MetodoPago; motivo: string; autorNombre?: string },
+  opciones: OpcionesCobro = {},
+): Promise<string> {
+  const uid = auth.currentUser?.uid
+  if (!uid) throw new Error('No hay sesión: una devolución no puede registrarse sin autor autenticado.')
+  const motivo = (d.motivo || '').trim()
+  if (!motivo) throw new Error('La devolución requiere un motivo.')
+  const monto = Number(d.monto)
+  if (!Number.isFinite(monto) || monto <= 0) throw new Error('El importe a devolver debe ser mayor que cero.')
+  const originalRef = doc(COL(clinicId), d.cobroOriginalId)
+  /**
+   * Lo ya devuelto de ESE cobro, para no devolver de más. Lectura fuera de la
+   * transacción: acota, no cierra; el tope duro es el importe del original.
+   *
+   * La cota se pide con UNO DE MÁS a propósito. Truncar esta lista en silencio
+   * subestimaría lo ya devuelto y dejaría devolver por encima del original:
+   * dinero. Así que si llegan más de las que caben, no se calcula un total
+   * incompleto — se para y se dice.
+   */
+  const previas = await getDocs(query(
+    COL(clinicId),
+    where('cobroOriginalId', '==', d.cobroOriginalId),
+    limit(TOPE_DEVOLUCIONES_POR_COBRO + 1),
+  ))
+  if (previas.size > TOPE_DEVOLUCIONES_POR_COBRO) {
+    throw new Error(
+      `Este cobro ya tiene más de ${TOPE_DEVOLUCIONES_POR_COBRO} devoluciones registradas. ` +
+      'No puedo sumar lo ya devuelto sin arriesgarme a devolver de más: revísalo a mano.',
+    )
+  }
+  const yaDevuelto = previas.docs
+    .map(x => x.data() as Partial<Cobro>)
+    .filter(x => !x.cancelado && String(x.tipo) === 'REFUND')
+    .reduce((s, x) => s + (Number(x.monto) || 0), 0)
+
+  const fecha = new Date()
+  const iso = fecha.toISOString()
+  const dia = fechaISOLocal(fecha)
+  const refundRef = opciones.claveIdempotencia
+    ? doc(COL(clinicId), idIdempotente(clinicId, 'cobro', opciones.claveIdempotencia))
+    : doc(COL(clinicId))
+
+  return await runTransaction(db, async (tx) => {
+    const original = await tx.get(originalRef)
+    if (!original.exists()) throw new Error('El cobro que quieres devolver no existe.')
+    if ((await tx.get(refundRef)).exists()) return refundRef.id
+    const o = original.data() as Partial<Cobro>
+    if (o.cancelado) throw new Error('Ese cobro está anulado: no hay nada que devolver.')
+    if (String(o.tipo ?? 'PAYMENT') !== 'PAYMENT') throw new Error('Sólo se devuelve un cobro (pago), no otra devolución.')
+    const tope = Math.round(((Number(o.monto) || 0) - yaDevuelto) * 100) / 100
+    if (monto > tope + 0.005) {
+      throw new Error(`No se puede devolver ${fmtMXN(monto)}: de ese cobro de ${fmtMXN(Number(o.monto) || 0)} quedan ${fmtMXN(Math.max(0, tope))} por devolver.`)
+    }
+    const citaRef = o.citaId ? doc(db, 'clinics', clinicId, 'appointments', o.citaId) : null
+    const citaSnap = citaRef ? await tx.get(citaRef) : null
+    const total = Math.round((yaDevuelto + monto) * 100) / 100 >= (Number(o.monto) || 0)
+
+    tx.set(refundRef, {
+      tipo: 'REFUND',
+      cobroOriginalId: d.cobroOriginalId,
+      monto,
+      metodo: d.metodo,
+      concepto: 'reembolso',
+      descripcion: motivo,
+      motivoReembolso: motivo,
+      ...(o.citaId ? { citaId: o.citaId } : {}),
+      ...(o.patientId ? { patientId: o.patientId } : {}),
+      ...(o.patientNombre ? { patientNombre: o.patientNombre } : {}),
+      ...(o.medicoId ? { medicoId: o.medicoId } : {}),
+      ...(o.medicoNombre ? { medicoNombre: o.medicoNombre } : {}),
+      medicoUid: uid,
+      fecha: iso, dia, mes: dia.slice(0, 7),
+      folio: generarFolio('RB'),
+      reembolsoTotal: total,
+      createdAt: iso,
+      creadoPor: uid,
+      creadoPorNombre: (d.autorNombre || '').trim(),
+      cancelado: false,
+    })
+    if (total && citaRef && citaSnap?.exists() && citaSnap.data()?.cobroId === d.cobroOriginalId) {
+      tx.update(citaRef, { cobroId: '', cobradoEn: '', reembolsadoEn: iso, reembolsoCobroId: refundRef.id })
+    }
+    return refundRef.id
+  }).catch(e => { throw errorLegible(e, 'registrar la devolución') })
+}
+
+/**
+ * Cuánto ENTRA (o sale) con este movimiento, con signo. Un REFUND/CREDIT se
+ * guarda con monto positivo y resta; un monto negativo heredado también resta.
+ * Es la ÚNICA definición del signo: corte, resumen y comisiones la comparten.
+ */
+export function montoEfectivo(c: Pick<Cobro, 'monto' | 'tipo'>): number {
+  const t = String(c.tipo ?? 'PAYMENT')
+  const m = Number(c.monto) || 0
+  return t === 'REFUND' || t === 'CREDIT' ? -Math.abs(m) : m
+}
+
+/** ¿Es un movimiento de salida (devolución o nota de crédito)? */
+export function esDevolucion(c: Pick<Cobro, 'monto' | 'tipo'>): boolean {
+  return montoEfectivo(c) < 0
 }
 
 /**
@@ -399,15 +693,110 @@ export async function exentarCobro(
   })
 }
 
-/** Revertir la cortesía (vuelve a aparecer el botón "Cobrar"). Auditable. */
-export async function quitarExencion(clinicId: string, citaId: string): Promise<void> {
-  await updateDoc(doc(db, 'clinics', clinicId, 'appointments', citaId), {
-    cobroExento: false,
-    exentoMotivo: '',
-    exentoPor: '',
-    exentoPorNombre: '',
-    exentoEn: '',
-  })
+/**
+ * Un sello de cortesía ya retirado. Se CONSERVA en `historialCortesia` de la
+ * cita: la autorización original y su retiro, con quién y por qué en los dos
+ * sentidos.
+ */
+export interface SelloCortesiaRetirada {
+  motivo: string
+  autorizoPor: string
+  autorizoPorNombre: string
+  autorizadaEn: string
+  retiradaPor: string
+  retiradaPorNombre: string
+  retiradaMotivo: string
+  retiradaEn: string
+}
+
+/**
+ * Revertir la cortesía (vuelve a aparecer el botón "Cobrar").
+ *
+ * ── ASC-004 (Panel de Lujo 2026-09) ──────────────────────────────────────────
+ *
+ * Esto era un `updateDoc` que ponía `cobroExento:false` y VACIABA `exentoMotivo`,
+ * `exentoPor`, `exentoPorNombre` y `exentoEn`. Sin motivo, sin autor y sin
+ * bitácora: el reverso exacto del hueco que cerró REG-003, con el agravante de
+ * que borraba el sello original. Marcar cortesía, cobrar en efectivo por fuera,
+ * quitar la cortesía, volver a marcarla con otro motivo — y la primera
+ * autorización desaparecía.
+ *
+ * Ahora es simétrico a `exentarCobro`: motivo y autor obligatorios, el sello
+ * original se conserva en `historialCortesia`, el retiro queda sellado en
+ * `exencionRetirada*`, y se deja asiento en la bitácora desde aquí (no desde el
+ * llamador, para que ningún llamador futuro lo olvide).
+ *
+ * Los parámetros nuevos son opcionales EN EL TIPO para no romper la compilación
+ * del llamador de Citas (archivo de otra rebanada), pero obligatorios EN TIEMPO
+ * DE EJECUCIÓN: sin motivo no se escribe nada.
+ */
+export async function quitarExencion(
+  clinicId: string,
+  citaId: string,
+  motivo?: string,
+  autorUid?: string,
+  autorNombre = '',
+): Promise<void> {
+  const m = (motivo || '').trim()
+  if (!m) throw new Error('Para quitar la cortesía hay que escribir el motivo.')
+  if (!autorUid) throw new Error('No se pudo identificar quién quita la cortesía.')
+  const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
+  let patientId: string | undefined
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(citaRef)
+    if (!snap.exists()) throw new Error('La cita no existe.')
+    const c = snap.data() as {
+      cobroExento?: boolean; exentoMotivo?: string; exentoPor?: string; exentoPorNombre?: string
+      exentoEn?: string; historialCortesia?: SelloCortesiaRetirada[]; pacienteId?: string
+    }
+    patientId = c.pacienteId
+    if (!c.cobroExento) return  // ya no está exenta → idempotente
+    const en = new Date().toISOString()
+    const sello: SelloCortesiaRetirada = {
+      motivo: c.exentoMotivo ?? '',
+      autorizoPor: c.exentoPor ?? '',
+      autorizoPorNombre: c.exentoPorNombre ?? '',
+      autorizadaEn: c.exentoEn ?? '',
+      retiradaPor: autorUid,
+      retiradaPorNombre: (autorNombre || '').trim(),
+      retiradaMotivo: m,
+      retiradaEn: en,
+    }
+    tx.update(citaRef, {
+      cobroExento: false,
+      // Los campos VIVOS se vacían para que ninguna pantalla enseñe «autorizó X»
+      // sobre una cita que ya no es cortesía; el sello se conserva abajo.
+      exentoMotivo: '',
+      exentoPor: '',
+      exentoPorNombre: '',
+      exentoEn: '',
+      exencionRetiradaMotivo: m,
+      exencionRetiradaPor: autorUid,
+      exencionRetiradaPorNombre: (autorNombre || '').trim(),
+      exencionRetiradaEn: en,
+      historialCortesia: [...(Array.isArray(c.historialCortesia) ? c.historialCortesia : []), sello],
+    })
+  }).catch(e => { throw errorLegible(e, 'quitar la cortesía') })
+  // Bitácora inmutable (best-effort), con el mismo evento que la cortesía y la
+  // acción marcada: así una consulta de la bitácora enseña ida y vuelta juntas.
+  logAudit({
+    evento: 'cobro_exento', clinicId, patientId,
+    meta: { citaId, accion: 'retirada', motivo: m },
+  }).catch(() => {})
+}
+
+/**
+ * Traduce un error del SDK de Firestore a una frase que una persona entiende.
+ * Los errores que lanzamos nosotros (sin `code`) pasan tal cual: ya hablan.
+ */
+function errorLegible(e: unknown, accion: string): Error {
+  const code = (e as { code?: unknown })?.code
+  if (e instanceof Error && typeof code !== 'string') return e
+  if (code === 'permission-denied') return new Error(`No tienes permiso para ${accion}.`)
+  if (code === 'unavailable' || code === 'deadline-exceeded') {
+    return new Error(`Sin conexión con el servidor: no se pudo ${accion}. Inténtalo de nuevo.`)
+  }
+  return new Error(`No se pudo ${accion}; inténtalo de nuevo.`)
 }
 
 /**
@@ -435,9 +824,42 @@ export async function cancelarCobro(
    * fuera de "Por cobrar", mientras el corte la mostraba pendiente. Silencioso.
    */
   await runTransaction(db, async (tx) => {
+    /**
+     * ═══ TODAS LAS LECTURAS ANTES DE TODAS LAS ESCRITURAS — ASC-001 (P0) ═══
+     *
+     * Aquí se escribía el cobro y DESPUÉS, dentro del `if (citaId)`, se leía
+     * la cita. El SDK de Firestore rechaza toda transacción que lea tras
+     * escribir («Firestore transactions require all reads to be executed
+     * before all writes»), así que anular un cobro ligado a una cita fallaba
+     * SIEMPRE, con el mensaje crudo del SDK en el toast, y como `delete` está
+     * prohibido por reglas, un cobro equivocado no se podía corregir por
+     * ninguna vía. Panel de Lujo 2026-09, AS-cobros; el equipo rojo lo subió a
+     * P0 porque el fallo era determinista y nada ejercitaba la transacción.
+     *
+     * `registrarCobro` ya seguía la regla («se lee ANTES de cualquier
+     * escritura»); ésta no la siguió. Ahora las dos lecturas van primero.
+     */
     const snap = await tx.get(cobroRef)
     if (!snap.exists()) throw new Error('El cobro no existe.')
     const citaId = snap.data()?.citaId as string | undefined
+    /**
+     * SÓLO SE LIBERA LA CITA SI EL COBRO ANULADO ES EL QUE LA TENÍA TOMADA.
+     *
+     * Antes se limpiaba `cobroId` con sólo ver que el cobro apuntara a esa
+     * cita, sin comprobar que fuera EL MISMO. Y los abonos apuntan a la cita
+     * pero NO reservan `cobroId` (a propósito: un pago parcial no la salda).
+     *
+     * Camino real: el paciente abona $300, luego paga $500 de cierre
+     * (`cobroId = A`). Si se anula el abono por un error de captura, la cita
+     * perdía el vínculo con A: reaparecía el botón «Cobrar», volvía a cuentas
+     * por cobrar, y se le podía cobrar otra vez una consulta ya saldada.
+     *
+     * La lectura va dentro de la transacción, así que si otro cobro toma la
+     * cita mientras tanto, Firestore reintenta con el valor nuevo.
+     */
+    const citaRef = citaId ? doc(db, 'clinics', clinicId, 'appointments', citaId) : null
+    const citaSnap = citaRef ? await tx.get(citaRef) : null
+
     tx.update(cobroRef, {
       cancelado: true,
       motivoCancelacion: m,
@@ -447,30 +869,11 @@ export async function cancelarCobro(
       canceladoPorNombre: (autorNombre || '').trim(),
       canceladoEn: new Date().toISOString(),
     })
-    if (citaId) {
-      /**
-       * SÓLO SE LIBERA LA CITA SI EL COBRO ANULADO ES EL QUE LA TENÍA TOMADA.
-       *
-       * Antes se limpiaba `cobroId` con sólo ver que el cobro apuntara a esa
-       * cita, sin comprobar que fuera EL MISMO. Y los abonos apuntan a la cita
-       * pero NO reservan `cobroId` (a propósito: un pago parcial no la salda).
-       *
-       * Camino real: el paciente abona $300, luego paga $500 de cierre
-       * (`cobroId = A`). Si se anula el abono por un error de captura, la cita
-       * perdía el vínculo con A: reaparecía el botón «Cobrar», volvía a cuentas
-       * por cobrar, y se le podía cobrar otra vez una consulta ya saldada.
-       *
-       * La lectura va dentro de la transacción, así que si otro cobro toma la
-       * cita mientras tanto, Firestore reintenta con el valor nuevo.
-       */
-      const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
-      const citaSnap = await tx.get(citaRef)
-      if (citaSnap.exists() && citaSnap.data()?.cobroId === cobroId) {
-        // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
-        tx.update(citaRef, { cobroId: '', cobradoEn: '' })
-      }
+    if (citaRef && citaSnap?.exists() && citaSnap.data()?.cobroId === cobroId) {
+      // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
+      tx.update(citaRef, { cobroId: '', cobradoEn: '' })
     }
-  })
+  }).catch(e => { throw errorLegible(e, 'anular el cobro') })
 }
 
 /** Marcar cobro con factura SAT */
@@ -573,6 +976,9 @@ export interface ResumenMes {
   pacientesUnicos: number
 }
 
+/** Clave de la fila «Sin atribuir» de `porMedico` (cobros sin `medicoId`). */
+export const SIN_ATRIBUIR = 'sin-atribuir'
+
 export function agregarResumen(cobros: Cobro[]): ResumenMes {
   const inicial: ResumenMes = {
     totalIngresos: 0,
@@ -589,24 +995,45 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
   const porDiaMap = new Map<string, { monto: number; n: number }>()
   const porPacienteMap = new Map<string, { nombre: string; monto: number; n: number }>()
 
+  /**
+   * Un REFUND (ASC-012) RESTA de todo lo que suma: total, método, concepto,
+   * médico, día y paciente. Se guarda con monto positivo y tipo propio, así que
+   * el signo lo pone `montoEfectivo`, la única definición que hay.
+   */
+  let nPagos = 0
   for (const c of cobros) {
-    inicial.totalIngresos += c.monto
+    const m = montoEfectivo(c)
+    if (!esDevolucion(c)) nPagos += 1
+    inicial.totalIngresos += m
 
     if (!inicial.porMetodo[c.metodo]) inicial.porMetodo[c.metodo] = { monto: 0, n: 0 }
-    inicial.porMetodo[c.metodo].monto += c.monto
+    inicial.porMetodo[c.metodo].monto += m
     inicial.porMetodo[c.metodo].n += 1
 
     if (!inicial.porConcepto[c.concepto]) inicial.porConcepto[c.concepto] = { monto: 0, n: 0 }
-    inicial.porConcepto[c.concepto].monto += c.monto
+    inicial.porConcepto[c.concepto].monto += m
     inicial.porConcepto[c.concepto].n += 1
 
-    if (c.medicoId && c.medicoNombre) {
-      if (!inicial.porMedico[c.medicoId]) {
-        inicial.porMedico[c.medicoId] = { nombre: c.medicoNombre, monto: 0, n: 0 }
+    /**
+     * POR MÉDICO SE AGRUPA POR `medicoId`, CON NOMBRE DE RESPALDO — ASC-016.
+     *
+     * Esto exigía `medicoId && medicoNombre`: un cobro con médico pero sin
+     * nombre (el webhook lo escribe así cuando la cita no lo trae) se caía del
+     * desglose mientras Comisiones sí lo contaba. Dos pantallas, dos totales
+     * para el mismo médico. Ahora se agrupa igual que `calcularComisiones`
+     * (por id, «Médico sin nombre» de respaldo, el nombre más reciente gana) y
+     * los cobros sin médico van a «Sin atribuir», para que el desglose SUME el
+     * total en vez de perder filas en silencio.
+     */
+    const claveMedico = c.medicoId || SIN_ATRIBUIR
+    if (!inicial.porMedico[claveMedico]) {
+      inicial.porMedico[claveMedico] = {
+        nombre: c.medicoId ? (c.medicoNombre || 'Médico sin nombre') : 'Sin atribuir', monto: 0, n: 0,
       }
-      inicial.porMedico[c.medicoId].monto += c.monto
-      inicial.porMedico[c.medicoId].n += 1
     }
+    if (c.medicoId && c.medicoNombre) inicial.porMedico[claveMedico].nombre = c.medicoNombre
+    inicial.porMedico[claveMedico].monto += m
+    inicial.porMedico[claveMedico].n += 1
 
     /**
      * El día del bucket se DERIVA del instante, no se lee de la etiqueta `c.dia`.
@@ -616,19 +1043,22 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
      */
     const clave = fechaISOLocal(new Date(c.fecha))
     const dia = porDiaMap.get(clave) ?? { monto: 0, n: 0 }
-    dia.monto += c.monto
+    dia.monto += m
     dia.n += 1
     porDiaMap.set(clave, dia)
 
     if (c.patientId && c.patientNombre) {
       const p = porPacienteMap.get(c.patientId) ?? { nombre: c.patientNombre, monto: 0, n: 0 }
-      p.monto += c.monto
+      p.monto += m
       p.n += 1
       porPacienteMap.set(c.patientId, p)
     }
   }
 
-  inicial.ticketPromedio = cobros.length > 0 ? inicial.totalIngresos / cobros.length : 0
+  // El ticket promedio es de los PAGOS: una devolución no es un ticket.
+  inicial.ticketPromedio = nPagos > 0
+    ? cobros.filter(c => !esDevolucion(c)).reduce((s, c) => s + montoEfectivo(c), 0) / nPagos
+    : 0
   inicial.porDia = Array.from(porDiaMap.entries())
     .map(([dia, v]) => ({ dia, ...v }))
     .sort((a, b) => a.dia.localeCompare(b.dia))
@@ -640,20 +1070,63 @@ export function agregarResumen(cobros: Cobro[]): ResumenMes {
   return inicial
 }
 
-/** Convierte cobros a CSV para descargar (compatible con Excel) */
-export function cobrosACSV(cobros: Cobro[]): string {
+export interface OpcionesCSV {
+  /** Zona del consultorio para «Día» y «Hora». Por omisión, la publicada. */
+  tz?: string
+  /** uid → nombre del equipo, para la columna «Cobró». */
+  nombrePorUid?: Readonly<Record<string, string>>
+}
+
+/**
+ * Quién registró el cobro, para leerlo una persona. Nunca un correo.
+ * Los automáticos se dicen por su nombre; un uid sin traducción se recorta
+ * pero se enseña, porque un hueco se lee como «nadie».
+ */
+export function quienCobro(
+  c: Pick<Cobro, 'creadoPor' | 'creadoPorNombre' | 'medicoUid'>,
+  nombrePorUid: Readonly<Record<string, string>> = {},
+): string {
+  const sellado = (c.creadoPorNombre ?? '').trim()
+  if (sellado) return sellado
+  const uid = (c.creadoPor || c.medicoUid || '').trim()
+  if (!uid) return 'sin autor registrado'
+  if (uid === 'stripe:anticipo') return 'Stripe (anticipo en línea)'
+  if (uid === 'stripe:reembolso') return 'Stripe (reembolso en línea)'
+  const resuelto = (nombrePorUid[uid] ?? '').trim()
+  if (resuelto) return resuelto
+  return `usuario ${uid.slice(0, 6)}…`
+}
+
+/**
+ * Convierte cobros a CSV para descargar (compatible con Excel).
+ *
+ * ── ASC-014 (Panel de Lujo 2026-09) ──────────────────────────────────────────
+ * El archivo «para el contador» llevaba la fecha en ISO UTC crudo, no decía
+ * quién cobró ni el tipo de movimiento, y EXCLUÍA los anulados sin avisarlo.
+ * Ahora: día y hora en la zona del consultorio (además del instante ISO,
+ * que sigue siendo el dato), tipo, estado (vivo / anulado con motivo y quién),
+ * quién cobró, y los anulados SE EXPORTAN marcados: quien los quiera fuera
+ * filtra una columna; quien no sepa que existen no puede filtrar nada.
+ */
+export function cobrosACSV(cobros: Cobro[], opciones: OpcionesCSV = {}): string {
+  const tz = opciones.tz ?? zonaActiva()
   const header = [
-    'Folio', 'Fecha', 'Concepto', 'Descripción',
-    'Paciente', 'Médico', 'Método', 'Monto MXN',
-    'Cita ID', 'Factura UUID', 'Referencia externa', 'Notas',
+    'Folio', 'Día (consultorio)', 'Hora', 'Fecha ISO', 'Tipo', 'Estado', 'Concepto', 'Descripción',
+    'Paciente', 'Médico', 'Cobró', 'Método', 'Monto MXN',
+    'Cita ID', 'Cobro original', 'Factura UUID', 'Referencia externa', 'Notas', 'Motivo de anulación', 'Anuló',
   ].join(',')
   const rows = cobros.map(c => [
     c.folio ?? '',
+    diaLocalDe(c.fecha, tz),
+    horaLocalDe(c.fecha, tz),
     c.fecha,
+    TIPO_LABEL[String(c.tipo ?? 'PAYMENT')] ?? String(c.tipo),
+    c.cancelado ? 'anulado' : 'vivo',
     CONCEPTO_LABEL[c.concepto] ?? String(c.concepto ?? ''),
     csv(c.descripcion ?? ''),
     csv(c.patientNombre ?? ''),
     csv(c.medicoNombre ?? ''),
+    csv(quienCobro(c, opciones.nombrePorUid)),
     /**
      * UNA ETIQUETA QUE FALTA NO PUEDE TUMBAR LA EXPORTACIÓN ENTERA.
      *
@@ -668,13 +1141,51 @@ export function cobrosACSV(cobros: Cobro[]): string {
      * seguiría sin poder bajar los meses pasados.
      */
     (METODO_LABEL[c.metodo] ?? String(c.metodo ?? 'otro')).replace(/[💵💳🏦📃]/g, '').trim(),
-    c.monto.toFixed(2),
+    // Con signo: una devolución sale negativa para que la columna SUME sola.
+    montoEfectivo(c).toFixed(2),
     c.citaId ?? '',
+    c.cobroOriginalId ?? '',
     c.facturaUuid ?? '',
     csv(c.referenciaExterna ?? ''),
     csv(c.notas ?? ''),
+    csv(c.cancelado ? (c.motivoCancelacion ?? '') : ''),
+    csv(c.cancelado ? quienAnuloEnCSV(c, opciones.nombrePorUid) : ''),
   ].join(','))
   return [header, ...rows].join('\n')
+}
+
+const TIPO_LABEL: Record<string, string> = {
+  PAYMENT: 'Pago', REFUND: 'Devolución', CREDIT: 'Nota de crédito', ADJUSTMENT: 'Ajuste',
+}
+
+function quienAnuloEnCSV(c: Cobro, nombrePorUid: Readonly<Record<string, string>> = {}): string {
+  const sellado = (c.canceladoPorNombre ?? '').trim()
+  if (sellado) return sellado
+  const uid = (c.canceladoPor ?? '').trim()
+  if (!uid) return 'sin autor registrado'
+  return (nombrePorUid[uid] ?? '').trim() || `usuario ${uid.slice(0, 6)}…`
+}
+
+/** Día local del consultorio (YYYY-MM-DD) de un instante ISO; vacío si no es fecha. */
+export function diaLocalDe(iso: string, tz: string = zonaActiva()): string {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : fechaISOLocal(d, tz)
+}
+
+/** Hora local del consultorio (HH:mm) de un instante ISO; vacío si no es fecha. */
+export function horaLocalDe(iso: string, tz: string = zonaActiva()): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz }).format(d)
+}
+
+/** «5 sep 2026, 21:32» en la zona del consultorio — para las filas de Finanzas (ASC-008). */
+export function fechaConHoraDelConsultorio(iso: string, tz: string = zonaActiva()): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz,
+  }).format(d)
 }
 
 // Delega en celdaSegura: además de comillas, neutraliza inyección de fórmulas

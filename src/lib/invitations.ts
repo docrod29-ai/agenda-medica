@@ -15,6 +15,7 @@ import {
   query, where, orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { invitacionVigente } from '@/lib/security/invitacion-vigente'
 
 export type RolInvitacion = 'secretaria' | 'medico' | 'admin' | 'enfermeria' | 'farmacia' | 'laboratorio'
 
@@ -29,19 +30,63 @@ export interface Invitacion {
   creadoPorEmail: string
   createdAt: string
   expiresAt: string               // ISO
+  /**
+   * La MISMA caducidad en epoch-ms. Las reglas de Firestore no saben leer ISO,
+   * y sin un número no podían exigir que la invitación caducara (ZL-011): una
+   * invitación sin `expiresAt` era eterna. El servidor sigue leyendo `expiresAt`.
+   */
+  expiresAtMs: number
   used: boolean
   usedBy?: string                 // uid del que aceptó
   usedAt?: string                 // ISO
 }
 
 const COL = 'clinic_invitations'
-const DURACION_MS = 7 * 24 * 60 * 60 * 1000  // 7 días
+export const DURACION_MS = 7 * 24 * 60 * 60 * 1000  // 7 días
 
-function generarCodigo(): string {
-  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  // sin I,O,0,1 para no confundir
+const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  // sin I,O,0,1 para no confundir
+
+/**
+ * Código de invitación con azar CRIPTOGRÁFICO (Panel de Lujo ZL-011).
+ *
+ * `Math.random` no está pensado para secretos: es predecible si se observa la
+ * secuencia. El código es lo único que hace falta para unirse al consultorio,
+ * así que sale de `crypto.getRandomValues`. El alfabeto tiene 32 símbolos, que
+ * dividen exactamente los 256 valores de un byte: `% 32` no sesga.
+ */
+export function generarCodigo(azar: (n: number) => Uint8Array = bytesAleatorios): string {
+  const bytes = azar(10)
   let s = ''
-  for (let i = 0; i < 10; i++) s += alfabeto[Math.floor(Math.random() * alfabeto.length)]
+  for (let i = 0; i < 10; i++) s += ALFABETO[bytes[i] % ALFABETO.length]
   return s
+}
+
+function bytesAleatorios(n: number): Uint8Array {
+  const out = new Uint8Array(n)
+  globalThis.crypto.getRandomValues(out)
+  return out
+}
+
+/** Lo que se escribe al crear. Puro, para que la prueba lo fije sin Firestore. */
+export function documentoDeInvitacion(p: {
+  code: string; clinicId: string; clinicNombre: string; role: RolInvitacion
+  creador: { uid: string; email: string }; nombreInvitado?: string; especialidad?: string; ahoraMs: number
+}): Invitacion {
+  const data: Invitacion = {
+    code: p.code, clinicId: p.clinicId, clinicNombre: p.clinicNombre, role: p.role,
+    creadoPor: p.creador.uid,
+    creadoPorEmail: p.creador.email,
+    createdAt: new Date(p.ahoraMs).toISOString(),
+    expiresAt: new Date(p.ahoraMs + DURACION_MS).toISOString(),
+    expiresAtMs: p.ahoraMs + DURACION_MS,
+    used: false,
+  }
+  // Sólo si vienen: Firestore rechaza `undefined` y la regla congela la forma.
+  const nombre = p.nombreInvitado?.trim()
+  if (nombre) data.nombreInvitado = nombre
+  const esp = p.especialidad?.trim()
+  if (esp) data.especialidad = esp
+  return data
 }
 
 /** Crea una invitación y devuelve el código. */
@@ -54,17 +99,9 @@ export async function crearInvitacion(
   especialidad?: string,
 ): Promise<Invitacion> {
   const code = generarCodigo()
-  const now = new Date()
-  const data: Invitacion = {
-    code, clinicId, clinicNombre, role,
-    nombreInvitado: nombreInvitado?.trim() || undefined,
-    especialidad: especialidad?.trim() || undefined,
-    creadoPor: creador.uid,
-    creadoPorEmail: creador.email,
-    createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + DURACION_MS).toISOString(),
-    used: false,
-  }
+  const data = documentoDeInvitacion({
+    code, clinicId, clinicNombre, role, creador, nombreInvitado, especialidad, ahoraMs: Date.now(),
+  })
   // Usamos el code como ID del doc para lectura O(1) por código
   await setDoc(doc(db, COL, code), data)
   return data
@@ -85,10 +122,9 @@ export async function listarInvitaciones(clinicId: string): Promise<Invitacion[]
 }
 
 /** Verifica si la invitación es válida (no usada, no expirada). */
-export function esValida(inv: Invitacion): { ok: true } | { ok: false; motivo: string } {
-  if (inv.used) return { ok: false, motivo: 'Esta invitación ya fue usada.' }
-  if (new Date() > new Date(inv.expiresAt)) return { ok: false, motivo: 'Esta invitación ha expirado.' }
-  return { ok: true }
+export function esValida(inv: Invitacion, ahoraMs: number = Date.now()): { ok: true } | { ok: false; motivo: string } {
+  // Sin caducidad legible no es válida: una invitación eterna no existe (ZL-011).
+  return invitacionVigente(inv, ahoraMs)
 }
 
 /**

@@ -5,10 +5,25 @@
  * ── LA REBANADA ─────────────────────────────────────────────────────────────
  *
  * §21 del Master Loop V15 llama a la inspección de la fuente la interacción de
- * firma del producto. Estaba en 2 de 6 superficies: `/consulta` (la consulta
- * viva) y `/pendientes` (por qué está aquí una tarea). Esta pieza la lleva a
- * `/expediente`, la tercera — y la que importa el día de la discusión, porque
- * nadie audita una nota el día que la firma.
+ * firma del producto. Esta pieza la lleva a `/expediente` — la superficie que
+ * importa el día de la discusión, porque nadie audita una nota el día que la
+ * firma.
+ *
+ * ── DÓNDE ESTÁ HOY, MEDIDO (D-022, Panel de Lujo 2026-09) ───────────────────
+ *
+ * Este comentario decía «estaba en 2 de 6 superficies: /consulta y
+ * /pendientes», y el equipo rojo lo desmintió con `grep -c`: las tres que lo
+ * tienen son `/consulta`, `/expediente` y `/demo/razonamiento`; `/pendientes`
+ * NO. Y las tres que faltan son las DOCUMENTALES —la nota firmada
+ * (`/nota/[patientId]/[notaId]`), la receta y la orden—, que son justo las que
+ * salen impresas con una cédula profesional encima.
+ *
+ * Lo que falta ahí no es esta pieza: es MONTARLA. El componente no sabe nada
+ * del expediente ni de la lista de notas —recibe una `NotaMedica` y decide con
+ * `procedenciaDeLaNotaArchivada` qué puede afirmar—, así que las tres
+ * superficies documentales pueden montarlo tal cual. Esos tres archivos son de
+ * otra rebanada y el cambio va anotado en `handoff-EXPEDIENTES.md`; aquí queda
+ * corregido lo que este comentario afirmaba de más.
  *
  * ── NO CONSTRUYE NADA NUEVO: CONECTA ────────────────────────────────────────
  *

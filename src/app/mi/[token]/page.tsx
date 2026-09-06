@@ -13,6 +13,7 @@ import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
+import { TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'
 import ViaDeUrgencia from '@/components/portal/ViaDeUrgencia'
 import type { Medicamento } from '@/types/expediente'
 
@@ -94,6 +95,8 @@ interface PaqueteVisible {
   orders: string[]
   followUp: string
   warningSigns: string[]
+  /** Lo que el médico indicó, en sus palabras (PC-020, MO-016). */
+  indicaciones?: string[]
   /** `null` = el expediente no se pudo leer. Entonces no se dice NADA de alergias. */
   alergias: string | null
   prescriptor: { nombre: string; cedulaProfesional: string; especialidad: string }
@@ -112,6 +115,15 @@ interface Cita {
   lugar?: string
   confirmadoPaciente: boolean
 }
+interface CuidadorEnPantalla {
+  id: string
+  nombre: string
+  parentesco: string
+  alcance: 'agenda' | 'clinico'
+  autorizadoEn: string
+  ultimoAccesoEn: string | null
+}
+
 interface Sesion {
   paciente: string
   /** Para armar el enlace de la sala de teleconsulta. */
@@ -122,6 +134,17 @@ interface Sesion {
   citas: Cita[]
   /** Zona del consultorio: las horas de las citas son hora de pared, sin offset. */
   zonaHoraria?: string
+  /**
+   * QUÉ ABRE ESTE ENLACE — PP-005.
+   *
+   * La pantalla enseñaba lo mismo con cualquier enlace y dejaba que el servidor
+   * contestara 403 pestaña por pestaña. Ahora lo sabe desde el principio y lo
+   * dice: un enlace de un solo documento no finge ser el portal entero.
+   */
+  alcance?: 'agenda' | 'clinico' | 'documento'
+  documentoDelEnlace?: string | null
+  cuidadorId?: string | null
+  cuidadores?: CuidadorEnPantalla[]
 }
 
 const API = '/api/portal'
@@ -166,14 +189,34 @@ function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha:
   return { dia: conMayusculaInicial(dia), fecha, hora }
 }
 
+/**
+ * EL EVENTO QUE EL PACIENTE SE GUARDA EN SU CALENDARIO.
+ *
+ * ── PO-010 · MG-012 · PC-008 — EL MOTIVO CLÍNICO IBA EN LA URL ─────────────
+ *
+ * `details=${encodeURIComponent(c.motivo || …)}` mandaba a Google, en un
+ * PARÁMETRO DE URL, lo que el consultorio escribió como motivo de la cita:
+ * «control prenatal», «interrupción», «valoración de VIH», «ajuste de
+ * metformina». `security-tenant.md` no deja lugar a interpretación: PHI nunca
+ * en logs, nunca en parámetros de URL, nunca en un mensaje de error.
+ *
+ * El servidor ya no manda el motivo con alcance `agenda` (ver `route.ts`), pero
+ * eso no bastaría: con alcance clínico seguiría saliendo, y la regla no
+ * distingue alcances. Aquí el `details` es el TIPO de cita, que es dato
+ * administrativo —«Seguimiento», «Primera vez»— y es lo que el paciente
+ * necesita para reconocer el evento en su calendario.
+ *
+ * Lo que se pierde y por qué no importa: el paciente ya sabe a qué va. Quien no
+ * lo sabe es Google.
+ */
 function gcalLink(c: Cita, tz: string): string {
-  // El evento que el paciente se guarda en su calendario: con el offset fijo,
-  // un consultorio fuera del centro se lo agendaba a la hora equivocada.
+  // Con el offset fijo, un consultorio fuera del centro se lo agendaba a la
+  // hora equivocada.
   const start = instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tz)
   const end = new Date(start.getTime() + (c.duracion || 30) * 60000)
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   const txt = encodeURIComponent(`Cita médica — ${c.medicoNombre}`)
-  const det = encodeURIComponent(c.motivo || TIPO_LABEL[c.tipo] || 'Consulta')
+  const det = encodeURIComponent(TIPO_LABEL[c.tipo] || 'Consulta')
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${txt}&dates=${f(start)}/${f(end)}&details=${det}`
 }
 
@@ -228,7 +271,15 @@ export default function MiPortalPage() {
   /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
-  const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
+  /**
+   * EL DESTINO QUE EL PACIENTE ELIGIÓ. El que se PINTA se deriva de él más
+   * abajo, cuando ya se sabe qué abre este enlace (PP-005): con un enlace de un
+   * solo documento no hay cinco destinos que elegir, y el elegido por omisión
+   * («Hoy») estaría vacío por construcción. Derivarlo evita un `useEffect` que
+   * corrija el estado después de pintarlo, que es una cascada de renders y un
+   * parpadeo delante del paciente.
+   */
+  const [destinoElegido, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
 
   /**
    * PREGUNTAR — V9 · PATIENT-AI-001.
@@ -242,6 +293,13 @@ export default function MiPortalPage() {
    * `null` mientras no se sabe; `[]` cuando se leyó y no hay ninguna. Y el
    * error aparte, por lo mismo que `docsError`.
    */
+  const [cuidadores, setCuidadores] = useState<CuidadorEnPantalla[]>([])
+  const [enlaceNuevo, setEnlaceNuevo] = useState('')
+  const [recetaAbierta, setRecetaAbierta] = useState('')
+  const [enlaceDocumento, setEnlaceDocumento] = useState<Record<string, string>>({})
+  const [confirmandoCierre, setConfirmandoCierre] = useState(false)
+  const [cerrado, setCerrado] = useState(false)
+  const [trabajandoAcceso, setTrabajandoAcceso] = useState(false)
   const [preguntas, setPreguntas] = useState<PreguntaHecha[] | null>(null)
   const [preguntasBloqueadas, setPreguntasBloqueadas] = useState(false)
   const [borrador, setBorrador] = useState('')
@@ -249,51 +307,55 @@ export default function MiPortalPage() {
   const [errorPregunta, setErrorPregunta] = useState('')
   const idPregunta = useId()
 
+  /**
+   * UNA SOLA PETICIÓN POR APERTURA — PC-006 · PO-008 · PP-010 · PI-025.
+   *
+   * Esto pedía CUATRO cosas en paralelo (`session`, `documentos`, `paquetes`,
+   * `preguntas`). Tres de las cuatro cuentan contra la ventana clínica —quince
+   * en diez minutos—, así que a la quinta apertura del portal el paciente veía
+   * «No pudimos cargar tus recetas» sin haber hecho nada raro. Y en un teléfono
+   * con datos contados, pagaba cuatro veces lo mismo.
+   *
+   * `inicio` devuelve las cuatro y cobra un solo cupo. Cada trozo llega como
+   * lista o como `null`, y `null` sigue significando «no se sabe»: la distinción
+   * que impide pintar «no tienes recetas» sobre un fallo de red se conserva
+   * entera.
+   */
   const cargar = useCallback(async () => {
     try {
-      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'session', token }) })
-      if (!r.ok) { setError(r.status === 401 ? 'Este enlace ya no es válido o venció. Pide uno nuevo al consultorio.' : 'No pudimos cargar tu información.'); return }
-      setSesion(await r.json())
-      // Documentos (recetas) en paralelo — no bloquea la vista de citas
-      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'documentos', token }) })
-        .then(async res => {
-          // E0-06: 403 = el enlace no tiene alcance clínico (lo generó el mostrador,
-          // no el médico). No es un error de red ni «no tienes recetas»: se dice.
-          if (res.status === 403) { setDocsBloqueados(true); setDocs([]); return }
-          // Cualquier otro fallo se DICE. Devolver [] pintaría «no tienes
-          // recetas», que es una afirmación clínica que nadie comprobó.
-          if (!res.ok) { setDocsError(true); return }
-          const d = await res.json()
-          setDocs(d.documentos || [])
-          setAlergias(String(d.alergias ?? ''))
-          setAlergiasLeidas(d.alergiasLeidas === true)
-        })
-        .catch(() => setDocsError(true))
-      /*
-        EL PAQUETE DE LA VISITA (POSTVISIT-001). En paralelo y sin bloquear:
-        el paciente que entra a confirmar una cita no espera a esto.
-      */
-      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'paquetes', token }) })
-        .then(async res => {
-          if (res.status === 403) { setPaquetesBloqueados(true); setPaquetes([]); return }
-          if (!res.ok) { setPaquetesError(true); return }
-          const d = await res.json()
-          setPaquetes((d.paquetes || []) as PaqueteVisible[])
-        })
-        .catch(() => setPaquetesError(true))
-      /*
-        LO QUE YA PREGUNTÓ (PATIENT-AI-001). También en paralelo. Un fallo de
-        red deja `preguntas` en `null` —«no se sabe»— y la pantalla lo dice; no
-        se pinta un historial vacío, que se leería como «nunca he preguntado».
-      */
-      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'preguntas', token }) })
-        .then(async res => {
-          if (res.status === 403) { setPreguntasBloqueadas(true); setPreguntas([]); return }
-          if (!res.ok) return
-          const d = await res.json()
-          setPreguntas((d.preguntas || []) as PreguntaHecha[])
-        })
-        .catch(() => { /* se queda en null: «no se sabe» */ })
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'inicio', token }),
+      })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        setError(
+          r.status === 401
+            ? 'Este enlace ya no es válido o venció. Pide uno nuevo al consultorio.'
+            /* PC-006: el servidor dice «espera un momento» y la pantalla lo
+               tapaba con un mensaje genérico. Se enseña el suyo cuando lo hay. */
+            : String(d?.error || 'No pudimos cargar tu información.'),
+        )
+        return
+      }
+      const d = await r.json()
+      setSesion(d as Sesion)
+      setCuidadores((d.cuidadores ?? []) as CuidadorEnPantalla[])
+
+      const sinAlcanceClinico = d.alcance !== 'clinico'
+      setDocsBloqueados(sinAlcanceClinico && d.alcance !== 'documento')
+      setPaquetesBloqueados(sinAlcanceClinico)
+      setPreguntasBloqueadas(sinAlcanceClinico)
+
+      setDocsError(d.documentos === null)
+      setDocs(d.documentos ?? [])
+      setAlergias(String(d.alergias ?? ''))
+      setAlergiasLeidas(d.alergiasLeidas === true)
+
+      setPaquetesError(d.paquetes === null)
+      setPaquetes(d.paquetes ?? [])
+      setPreguntas(d.preguntas ?? null)
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -352,6 +414,58 @@ export default function MiPortalPage() {
     }
   }, [borrador, enviandoPregunta, token])
 
+  /**
+   * QUITARLE EL ACCESO A ALGUIEN, Y CERRAR EL ENLACE PROPIO.
+   *
+   * Las dos son escrituras del servidor: la pantalla no decide nada, sólo lo
+   * pide y pinta el resultado. Y las dos son REVERSIBLES en el sentido que
+   * importa aquí — quitar acceso no borra a nadie de la bitácora, y el enlace
+   * cerrado se sustituye por otro que pide el consultorio.
+   */
+  const revocarAcceso = useCallback(async (cuidadorId: string) => {
+    setTrabajandoAcceso(true); setAvisoAccion('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revocar-cuidador', token, cuidadorId }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setAvisoAccion(String(d?.error || 'No se pudo quitar el acceso. Vuelve a intentarlo.')); return }
+      setCuidadores((d.cuidadores ?? []) as CuidadorEnPantalla[])
+    } catch {
+      setAvisoAccion('Sin conexión. El acceso sigue como estaba: vuelve a intentarlo.')
+    } finally { setTrabajandoAcceso(false) }
+  }, [token])
+
+  const compartirDocumento = useCallback(async (documentoId: string) => {
+    setTrabajandoAcceso(true); setAvisoAccion('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'compartir-documento', token, documentoId }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setAvisoAccion(String(d?.error || 'No se pudo crear el enlace. Vuelve a intentarlo.')); return }
+      setEnlaceDocumento(e => ({ ...e, [documentoId]: String(d.url ?? '') }))
+    } catch {
+      setAvisoAccion('Sin conexión. No se creó ningún enlace: vuelve a intentarlo.')
+    } finally { setTrabajandoAcceso(false) }
+  }, [token])
+
+  const cerrarEnlace = useCallback(async () => {
+    setTrabajandoAcceso(true); setAvisoAccion('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cerrar-enlace', token }),
+      })
+      if (!r.ok) { setAvisoAccion('No se pudo cerrar el enlace. Vuelve a intentarlo.'); return }
+      setCerrado(true); setConfirmandoCierre(false)
+    } catch {
+      setAvisoAccion('Sin conexión. Tu enlace sigue abierto: vuelve a intentarlo.')
+    } finally { setTrabajandoAcceso(false) }
+  }, [token])
+
   // Título de pestaña con la marca de la clínica (confianza)
   useEffect(() => {
     const nombre = sesion?.clinica?.nombre
@@ -386,7 +500,37 @@ export default function MiPortalPage() {
     return <Centro><div role="status"><Loader2 size={26} aria-hidden="true" style={{ animation: 'spin 1s linear infinite', color: 'var(--nexus)' }} /><p style={{ color: 'var(--text3)', marginTop: 12 }}>Cargando tu información…</p></div></Centro>
   }
   if (error || !sesion) {
-    return <Centro><div role="alert"><AlertTriangle size={28} color="var(--amber)" aria-hidden="true" /><p style={{ color: 'var(--text2)', marginTop: 12, maxWidth: 320 }}>{error || 'No encontramos tu información.'}</p></div></Centro>
+    /**
+     * PG-020 — ENLACE VENCIDO: UNA LÍNEA, SIN ENCABEZADO Y SIN SALIDA.
+     *
+     * Era `<p>` con el texto del error y nada más. La paciente legítima cuyo
+     * enlace caducó —que es el caso normal a los siete días— no sabía si había
+     * hecho algo mal, si el consultorio la había bloqueado, ni cómo conseguir
+     * otro. El silencio se lee como «esto ya no es para ti».
+     *
+     * Ahora dice qué pasó, que es normal, y qué hacer. No se pinta el teléfono
+     * del consultorio porque aquí todavía no se sabe cuál es: sin sesión no hay
+     * configuración, y un número inventado es peor que ninguno.
+     */
+    return (
+      <Centro>
+        <div role="alert" style={{ maxWidth: 360 }}>
+          <AlertTriangle size={28} color="var(--amber)" aria-hidden="true" />
+          <h1 className="t-h2" style={{ marginTop: 12 }}>
+            {error.includes('venció') || error.includes('válido') ? 'Este enlace ya no sirve' : 'No pudimos abrir tu portal'}
+          </h1>
+          <p style={{ color: 'var(--text2)', marginTop: 10, fontSize: 16, lineHeight: 1.6 }}>{error || 'No encontramos tu información.'}</p>
+          <p style={{ color: 'var(--text2)', marginTop: 12, fontSize: 16, lineHeight: 1.6 }}>
+            Los enlaces caducan solos a los pocos días, por seguridad. Pídele uno
+            nuevo a tu consultorio por el mismo número por el que agendaste tu
+            cita: te lo mandan en un momento.
+          </p>
+          <button type="button" onClick={() => { setError(''); setCargando(true); cargar() }} className="btn btn-secondary" style={{ marginTop: 16 }}>
+            Volver a intentarlo
+          </button>
+        </div>
+      </Centro>
+    )
   }
 
   /**
@@ -466,6 +610,25 @@ export default function MiPortalPage() {
   const proximas = sesion.citas.filter(c => !ESTADO_TERMINAL.has(c.estado) && instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tzClinica).getTime() > ahora)
   const pasadas = sesion.citas.filter(c => !proximas.includes(c)).reverse()
 
+  /**
+   * ── PP-005 · UN ENLACE DE UN DOCUMENTO NO FINGE SER EL PORTAL ────────────
+   *
+   * Con alcance `documento` el servidor no devuelve citas, ni plan, ni
+   * preguntas: enseñar los cinco destinos sería ofrecerle a quien recibió la
+   * receta cuatro pantallas vacías y una tarjeta que le dice que le pida acceso
+   * a un médico que no es el suyo. Se enseña lo que este enlace abre.
+   *
+   * Con alcance `agenda` los destinos se quedan TODOS: las pestañas clínicas
+   * explican cómo conseguir el acceso, y esconderlas dejaría al paciente sin
+   * saber que existe. Mostrar en vez de esconder.
+   */
+  const destinosVisibles = sesion.alcance === 'documento'
+    ? DESTINOS.filter(d => d.id === 'documentos')
+    : DESTINOS
+  const destino = destinosVisibles.some(d => d.id === destinoElegido)
+    ? destinoElegido
+    : destinosVisibles[0].id
+
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 96px' }}>
       {/*
@@ -482,7 +645,21 @@ export default function MiPortalPage() {
         en verde. Del lado del médico eso se sortea; un paciente con lector de
         pantalla no tiene a dónde saltar.
       */}
-      <main style={{ maxWidth: 560, margin: '0 auto' }}>
+      {/*
+        ── PP-017 · «IR A LAS SECCIONES» ───────────────────────────────────
+
+        La barra de destinos vive al FINAL del documento (va fija abajo, y en el
+        orden del DOM eso es lo último). Con lector de pantalla, cambiar de
+        pestaña obligaba a atravesar la pantalla entera: las citas, el
+        formulario previo, el anticipo… y luego los cinco botones.
+
+        Dos enlaces de salto, visibles sólo al enfocarlos con el teclado. No es
+        una concesión de accesibilidad: es el atajo que en la pantalla táctil ya
+        existe (la barra está a la vista) y que en el teclado no existía.
+      */}
+      <a href="#contenido-portal" className="skip-link">Ir al contenido</a>
+      <a href="#secciones-portal" className="skip-link">Ir a las secciones</a>
+      <main id="contenido-portal" tabIndex={-1} style={{ maxWidth: 560, margin: '0 auto' }}>
         {/*
           EL ENCABEZADO DICE DÓNDE ESTÁS.
 
@@ -494,8 +671,8 @@ export default function MiPortalPage() {
         <div style={{ marginBottom: 20 }}>
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
           <h1 className="t-display" style={{ marginTop: 4 }}>Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}</h1>
-          <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>
-            {DESTINOS.find(d => d.id === destino)?.pista}
+          <p style={{ color: 'var(--text2)', fontSize: 16, marginTop: 4, lineHeight: 1.55 }}>
+            {destinosVisibles.find(d => d.id === destino)?.pista}
           </p>
         </div>
 
@@ -533,7 +710,7 @@ export default function MiPortalPage() {
                   <div className="t-num" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>{f.fecha.split(' ')[0]}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{f.dia} · {f.hora}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{f.dia} · {f.hora}</div>
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Stethoscope size={13} className="ds-icon" /> {c.medicoNombre}</div>
                   <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={13} className="ds-icon" /> {TIPO_LABEL[c.tipo] || 'Consulta'}{c.lugar ? ` · ${c.lugar}` : ''}</div>
                   {c.confirmadoPaciente && <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={13} className="ds-icon" /> Asistencia confirmada</div>}
@@ -588,8 +765,15 @@ export default function MiPortalPage() {
                     <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
                       <XCircle size={14} aria-hidden="true" /> Cancelar
                     </button>
+                    {/*
+                      PC-019: se llamaba «Agendar», junto a Confirmar ·
+                      Reagendar · Cancelar. Un adulto mayor lo lee como «agendar
+                      otra cita» y toca el único botón que no hace nada con su
+                      cita: lo que hace es copiarla a su calendario del teléfono.
+                      Se dice lo que hace.
+                    */}
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
-                      <CalendarPlus size={14} /> Agendar
+                      <CalendarPlus size={14} aria-hidden="true" /> Añadir a mi calendario
                     </a>
                   </div>
                   {/*
@@ -628,12 +812,42 @@ export default function MiPortalPage() {
                       </div>
                     </div>
                   )}
-                  {reagendando === c.id && <PanelReagenda cita={c} token={token} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
+                  {reagendando === c.id && <PanelReagenda cita={c} token={token} tz={tzClinica} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
               )}
             </div>
           )
         })}
+
+        {/*
+          ── PI-018 · MIS CITAS PASADAS NO ESTÁN EN «HOY» ────────────────────
+
+          Estaban al final de «Cuidado», debajo del plan de cada consulta: un
+          `<details>` que el paciente sólo encontraba por casualidad. «¿Cuándo
+          fue mi última consulta?» es una pregunta de agenda, y la agenda es
+          esta pestaña.
+
+          Sigue plegado, porque lo que importa al abrir son las PRÓXIMAS. Lo que
+          cambia es que ahora está donde se busca.
+        */}
+        {pasadas.length > 0 && (
+          <details style={{ marginTop: 24 }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--text2)', fontSize: 16, fontWeight: 600, padding: '10px 0', minHeight: 44 }}>
+              Mis citas anteriores ({pasadas.length})
+            </summary>
+            <div style={{ marginTop: 8 }}>
+              {pasadas.map(c => {
+                const f = fmtFecha(c.fechaHora, tzClinica)
+                return (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+                    <div style={{ color: 'var(--text3)', minWidth: 110 }} className="t-num">{f.fecha}</div>
+                    <div style={{ color: 'var(--text2)', flex: 1 }}>{TIPO_LABEL[c.tipo] || 'Consulta'} · {conMayusculaInicial(c.estado.replace('-', ' '))}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </details>
+        )}
 
         {/*
           FORMULARIO PREVIO A LA CONSULTA (P-019).
@@ -681,12 +895,32 @@ export default function MiPortalPage() {
               </div>
             </button>
             {errorPago && (
-              <div role="alert" style={{ fontSize: 12.5, color: 'var(--amber)', marginTop: 8, lineHeight: 1.5 }}>
+              <div role="alert" style={{ fontSize: 14, color: 'var(--amber-texto)', marginTop: 8, lineHeight: 1.55 }}>
                 {errorPago}
-                {sesion.anticipo.link && (
-                  <> <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--nexus)' }}>Pagar por el enlace del consultorio</a> — avísales para que lo registren.</>
-                )}
               </div>
+            )}
+            {/*
+              ── N-003 · LA LIGA QUE EL MÉDICO PEGÓ NO SE USABA NUNCA ─────────
+
+              La pantalla de configuración le pide al médico su liga de cobro
+              (MercadoPago, Clip, la que use), él la pega… y el portal cobraba
+              por otro sitio: la liga sólo aparecía si el pago en línea FALLABA.
+              O sea, el médico creía haber conectado su cobro y no lo había
+              conectado.
+
+              Ahora se ofrece siempre que exista, como lo que es: la otra forma
+              de pagar. Se dice claramente que ese pago NO queda registrado solo
+              —porque no pasa por el webhook— para que el paciente sepa que
+              tiene que avisar, en vez de descubrirlo en la recepción.
+            */}
+            {sesion.anticipo.link && (
+              <p style={{ fontSize: 14, color: 'var(--text3)', marginTop: 10, lineHeight: 1.6 }}>
+                También puedes{' '}
+                <a href={sesion.anticipo.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--nexus)' }}>
+                  pagar por la liga de tu consultorio
+                </a>
+                . Por ahí el pago no se registra solo: avísales para que lo apunten.
+              </p>
             )}
           </div>
         )}
@@ -738,7 +972,7 @@ export default function MiPortalPage() {
                 }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
-                <span style={{ fontSize: 12, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
+                <span style={{ fontSize: 14, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
                 <button
                   type="button"
                   onClick={enviarPregunta}
@@ -773,12 +1007,18 @@ export default function MiPortalPage() {
             he preguntado».
           */}
           {preguntas && preguntas.length > 0 && (
-            <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+            /*
+              PP-017: era una pila de bloques sin encabezado, así que con lector
+              de pantalla no había forma de saltar de una pregunta a otra.
+            */
+            <section aria-labelledby="tit-historial" style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+              <h3 id="tit-historial" className="t-h3" style={{ margin: '4px 0 0' }}>Lo que ya preguntaste</h3>
               {preguntas.map(p => {
                 const urgente = p.clase === 'URGENT_REVIEW_REQUIRED'
                 return (
-                  <div
+                  <article
                     key={p.id || String(p.creadaEn)}
+                    aria-label={`Pregunta: ${p.texto.slice(0, 60)}`}
                     style={{
                       padding: 14,
                       border: `1px solid ${urgente ? 'color-mix(in srgb, var(--red) 42%, transparent)' : 'var(--border)'}`,
@@ -793,11 +1033,16 @@ export default function MiPortalPage() {
                       porque el riesgo clínico nunca se pinta sólo con color.
                     */}
                     {urgente && (
-                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: 'var(--red-texto)' }}>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--red-texto)' }}>
                         <AlertTriangle size={16} aria-hidden="true" /> Esto puede ser una urgencia
                       </p>
                     )}
-                    <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.5 }}>
+                    {/*
+                      PP-016 · PI-017: «Preguntaste» iba a 12 px, la letra más
+                      pequeña de la tarjeta. Es lo que le dice a la abuela CUÁL
+                      de sus preguntas está leyendo.
+                    */}
+                    <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.55 }}>
                       Preguntaste: «{p.texto}»
                     </p>
                     <p style={{ fontSize: 16, color: 'var(--text)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
@@ -808,21 +1053,42 @@ export default function MiPortalPage() {
                       Sin esto, una cita textual del plan de su médico y una
                       frase compuesta por una máquina se leen exactamente igual.
                     */}
+                    {/*
+                      PC-005 · PI-014 — LA VÍA DE URGENCIA, PULSABLE.
+
+                      La respuesta urgente venía con el 911 escrito dentro del
+                      texto: un número que hay que memorizar y teclear, con
+                      dolor torácico. El texto ya no lo lleva (el mensaje del
+                      portal es distinto del de WhatsApp); aquí va el botón.
+                    */}
+                    {urgente && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                        <a href={`tel:${TELEFONO_EMERGENCIAS}`} className="btn btn-primary btn-sm" style={{ minHeight: 44 }}>
+                          <Phone size={14} aria-hidden="true" /> Llamar al {TELEFONO_EMERGENCIAS}
+                        </a>
+                        {sesion.clinica?.telefono && (
+                          <a href={`tel:${sesion.clinica.telefono}`} className="btn btn-secondary btn-sm" style={{ minHeight: 44 }}>
+                            <Phone size={14} aria-hidden="true" /> Llamar al consultorio
+                          </a>
+                        )}
+                      </div>
+                    )}
                     {p.procedencia?.fechaConsulta && (
-                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
                         <Quote size={12} aria-hidden="true" />
-                        Esto lo dejó escrito tu médico en tu consulta del {p.procedencia.fechaConsulta}
+                        {/* PI-016: llegaba como «2026-09-05». */}
+                        Esto lo dejó escrito tu médico en tu consulta del {fmtFecha(p.procedencia.fechaConsulta, tzClinica).fecha}
                       </p>
                     )}
                     {p.escalada && (
-                      <p style={{ fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                      <p style={{ fontSize: 14, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
                         {p.atendidaEn ? 'Tu consultorio ya la revisó.' : 'Tu consultorio la tiene pendiente de revisar.'}
                       </p>
                     )}
-                  </div>
+                  </article>
                 )
               })}
-            </div>
+            </section>
           )}
 
           <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
@@ -951,9 +1217,33 @@ export default function MiPortalPage() {
 
                 {pk.warningSigns.length > 0 && (
                   <>
-                    <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: 'var(--text2)', lineHeight: 1.7 }}>
+                    <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text2)', lineHeight: 1.7 }}>
                       {pk.warningSigns.map(w => <li key={w}>{w}</li>)}
+                    </ul>
+                  </>
+                )}
+
+                {/*
+                  ── PC-020 · MO-016 — LO QUE EL MÉDICO INDICÓ, Y NO TENÍA SITIO ──
+
+                  El paquete se componía de diagnósticos, medicamentos, estudios
+                  y próxima cita. El ayuno antes de la cirugía, qué suspender,
+                  cómo cuidar la herida, cuándo bañarse, el reposo, las
+                  restricciones de actividad y los ejercicios de rehabilitación
+                  no cabían en ninguno de esos cuatro: el cirujano los escribía
+                  en su nota y «¿puedo comer antes de la cirugía?» sólo podía
+                  escalar.
+
+                  Van LITERALES, en las palabras del médico. Reescribirlas «para
+                  que se entiendan mejor» es exactamente donde se colaría un
+                  consejo que él no dio.
+                */}
+                {(pk.indicaciones ?? []).length > 0 && (
+                  <>
+                    <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Lo que te indicó tu médico</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {(pk.indicaciones ?? []).map(i => <li key={i}>{i}</li>)}
                     </ul>
                   </>
                 )}
@@ -976,40 +1266,20 @@ export default function MiPortalPage() {
                   </p>
                 )}
 
-                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
-                  {/* QUIÉN RESPONDE POR ESTE PAPEL: del sello de firma de la nota. */}
+                <p style={{ fontSize: 14, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                  {/* PP-016: quién firma iba a 12 px. Es de lo que más importa. */}
                   {pk.prescriptor.nombre}
                   {pk.prescriptor.cedulaProfesional ? ` · Céd. Prof. ${pk.prescriptor.cedulaProfesional}` : ''}
                   {pk.prescriptor.especialidad ? ` · ${pk.prescriptor.especialidad}` : ''}
                 </p>
                 {pk.clinicianContactRules && (
-                  <p style={{ fontSize: 12, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 14, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
                     {pk.clinicianContactRules}
                   </p>
                 )}
               </article>
             )
           })}
-        {/* Pasadas */}
-        {pasadas.length > 0 && (
-          <details style={{ marginTop: 24 }}>
-            <summary style={{ cursor: 'pointer', color: 'var(--text2)', fontSize: 14, fontWeight: 600, padding: '8px 0' }}>
-              Citas anteriores ({pasadas.length})
-            </summary>
-            <div style={{ marginTop: 8 }}>
-              {pasadas.map(c => {
-                const f = fmtFecha(c.fechaHora)
-                return (
-                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                    <div style={{ color: 'var(--text3)', minWidth: 110 }} className="t-num">{f.fecha}</div>
-                    <div style={{ color: 'var(--text2)', flex: 1 }}>{TIPO_LABEL[c.tipo] || 'Consulta'} · {conMayusculaInicial(c.estado.replace('-', ' '))}</div>
-                  </div>
-                )
-              })}
-            </div>
-          </details>
-        )}
-
         </>)}
         {destino === 'documentos' && (<>
         {/* Mis recetas — enlace sin alcance clínico (E0-06) */}
@@ -1035,10 +1305,35 @@ export default function MiPortalPage() {
           </div>
         )}
 
+        {/*
+          PP-011 — LA PESTAÑA EN BLANCO.
+
+          Sin recetas, «Documentos» no pintaba absolutamente nada: ni un título.
+          La abuela no sabía si estaba cargando, si no había nada, o si había
+          hecho algo mal. Un vacío sin explicar se lee como un error propio.
+        */}
+        {!docsError && !docsBloqueados && docs && docs.length === 0 && (
+          <div style={{ marginTop: 28 }}>
+            <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
+              <p style={{ fontSize: 16, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+                Todavía no tienes recetas aquí. Cuando tu médico firme una, la vas
+                a poder ver y descargar desde esta pantalla.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Mis recetas */}
         {!docsError && docs && docs.length > 0 && (
           <div style={{ marginTop: 28 }}>
             <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
+            {sesion.alcance === 'documento' && (
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                Este enlace abre sólo este documento. No da acceso al resto del
+                expediente ni a las citas.
+              </p>
+            )}
             {docs.map(d => {
               const f = fmtFecha(d.fecha)
               return (
@@ -1048,46 +1343,216 @@ export default function MiPortalPage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }} className="t-num">{f.fecha}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: 14, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {d.diagnostico || `${d.medicamentos.length} medicamento(s)`}{d.medico ? ` · ${d.medico}` : ''}
                     </div>
                   </div>
-                  <button onClick={() => descargarReceta(d)} className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }}>
-                    <Download size={14} /> Descargar
+                  <button onClick={() => setRecetaAbierta(a => a === d.id ? '' : d.id)} aria-expanded={recetaAbierta === d.id} className="btn btn-secondary btn-sm" style={{ flexShrink: 0, minHeight: 44 }}>
+                    <FileText size={14} aria-hidden="true" /> {recetaAbierta === d.id ? 'Ocultar' : 'Ver'}
                   </button>
                 </div>
               )
             })}
+            {/*
+              ── PI-021 · PG-015 · PO-013 — «DESCARGAR» ERA LA ÚNICA FORMA ─────
+
+              La receta se bajaba como archivo de Word. En un teléfono de gama
+              baja sin Word no se abre: el paciente toca el único botón de la
+              tarjeta y no pasa nada que él pueda ver. Y no había ninguna forma
+              de LEERLA en pantalla, que es lo que hace el 90 % de las veces
+              —comprobar cómo se llama la pastilla, o enseñársela al de la
+              farmacia.
+
+              Ahora se lee aquí, con letra de tamaño normal, y el `.doc` sigue
+              existiendo para quien necesita el archivo. Lo que se pinta es lo
+              MISMO que baja al documento: la puerta de prescripción y la de
+              diagnósticos ya se aplicaron en el servidor.
+            */}
+            {docs.filter(d => d.id === recetaAbierta).map(d => (
+              <article key={`vista-${d.id}`} aria-label={`Receta del ${fmtFecha(d.fecha, tzClinica).fecha}`} style={{ padding: 18, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 12 }}>
+                <h3 className="t-h3" style={{ margin: '0 0 4px' }}>Receta del {fmtFecha(d.fecha, tzClinica).fecha}</h3>
+                <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 12px', lineHeight: 1.55 }}>
+                  {d.medico}{d.cedulaProfesional ? ` · Céd. Prof. ${d.cedulaProfesional}` : ''}{d.especialidad ? ` · ${d.especialidad}` : ''}
+                </p>
+                {d.diagnostico && (
+                  <p style={{ fontSize: 16, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                    <strong>Diagnóstico:</strong> {d.diagnostico}
+                  </p>
+                )}
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text)', lineHeight: 1.7 }}>
+                  {d.medicamentos.map((m, i) => (
+                    <li key={`${m.nombre}-${i}`}>
+                      {[m.nombre, m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')}
+                    </li>
+                  ))}
+                </ul>
+                {alergiasLeidas && alergias && (
+                  <p style={{ fontSize: 16, color: 'var(--text2)', margin: '12px 0 0', lineHeight: 1.6 }}>
+                    <strong>Alergias registradas:</strong> {alergias}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+                  <button onClick={() => descargarReceta(d)} className="btn btn-secondary btn-sm" style={{ minHeight: 44 }}>
+                    <Download size={14} aria-hidden="true" /> Descargar el archivo
+                  </button>
+                  {/*
+                    PO-009 · PP-005: «compartir sólo esto». Antes, enseñarle la
+                    receta al jefe o a la guardería obligaba a reenviar el
+                    enlace del portal entero, con las citas, el plan y las
+                    preguntas dentro.
+                  */}
+                  {sesion.alcance === 'clinico' && (
+                    <button onClick={() => compartirDocumento(d.id)} disabled={!!trabajandoAcceso} className="btn btn-ghost btn-sm" style={{ minHeight: 44 }}>
+                      <ShieldCheck size={14} aria-hidden="true" /> Compartir sólo esta receta
+                    </button>
+                  )}
+                </div>
+                {enlaceDocumento[d.id] && (
+                  <div role="status" style={{ marginTop: 12, padding: 12, borderRadius: 'var(--r-md)', background: 'var(--s2)', border: '1px solid var(--border)' }}>
+                    <p style={{ margin: '0 0 6px', fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                      Este enlace abre <strong>sólo esta receta</strong>. Quien lo
+                      reciba no verá tus citas, tu plan ni tus preguntas.
+                    </p>
+                    <p style={{ margin: 0, fontSize: 14, wordBreak: 'break-all', color: 'var(--text)' }}>{enlaceDocumento[d.id]}</p>
+                  </div>
+                )}
+              </article>
+            ))}
           </div>
         )}
 
         </>)}
         {destino === 'perfil' && (<>
           {/*
-            LO QUE TODAVÍA NO HAY, DICHO EN VOZ ALTA.
+            ── PP-020 · PO-021 — «PERFIL» EXISTÍA PARA DECIR QUE NO HACÍA NADA ──
 
-            La especificación pide cambiar el idioma y gestionar el acceso de un
-            cuidador autorizado. Ninguna de las dos existe: el producto está fijo
-            en es-MX (`lib/i18n.ts` está escrito y no lo importa nadie) y el
-            token del portal ata a UN paciente, sin concepto de cuidador.
+            Ocupaba uno de los CINCO destinos del móvil para enseñar «Idioma:
+            Español (México)» sin control ninguno y un párrafo de disculpa. La
+            decisión del dueño (PL-P10) era esconderlo «hasta que haya algo que
+            gestionar».
 
-            Se enseña el estado real en vez de un control que no hace nada. Un
-            selector de idioma con un solo idioma, o un botón de cuidador que no
-            autoriza a nadie, le mienten al paciente sobre lo que puede esperar —
-            y en una pantalla de salud eso se paga en confianza.
+            Ya hay algo que gestionar, y es justo lo que faltaba: quién más
+            puede ver lo mío, y cómo cierro mi enlace. Así que el destino se
+            queda y por fin sirve. El idioma —que no se puede cambiar— sale de
+            aquí: un dato inmutable presentado como ajuste es lo que hacía que
+            esta pantalla se leyera como un formulario roto.
           */}
-          <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu perfil</h2>
-          <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 14 }}>
-              <span style={{ color: 'var(--text2)' }}>Idioma</span>
-              <span style={{ color: 'var(--text3)' }}>Español (México)</span>
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 12, marginBottom: 0, lineHeight: 1.6 }}>
-              Este enlace es personal y caduca en unos días. Si necesitas que otra
-              persona te ayude con tus citas, pídeselo al consultorio: todavía no
-              podemos darle acceso desde aquí.
+          <h2 className="t-h2" style={{ marginBottom: 12 }}>Tu acceso</h2>
+
+          {/* ── Quién más puede ver lo mío (§8) ─────────────────────────── */}
+          <section aria-labelledby="tit-cuidadores" style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+            <h3 id="tit-cuidadores" className="t-h3" style={{ margin: '0 0 6px' }}>Quién más puede ver lo tuyo</h3>
+            <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+              Puedes darle acceso a alguien que te ayude —tu hija, tu esposo, quien
+              te cuida— y quitárselo cuando quieras. Queda anotado cuándo entró.
             </p>
-          </div>
+
+            {cuidadores.length === 0 ? (
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                Ahora mismo nadie más tiene acceso.
+              </p>
+            ) : (
+              <ul style={{ listStyle: 'none', margin: '0 0 12px', padding: 0, display: 'grid', gap: 10 }}>
+                {cuidadores.map(c => (
+                  <li key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    <div style={{ flex: 1, minWidth: 180 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{c.nombre}</div>
+                      <div style={{ fontSize: 14, color: 'var(--text2)' }}>
+                        {c.parentesco} · {c.alcance === 'clinico' ? 've tus citas y tus documentos' : 've sólo tus citas'}
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+                        {c.ultimoAccesoEn
+                          ? `Entró por última vez el ${fmtFecha(c.ultimoAccesoEn, tzClinica).fecha}`
+                          : 'Todavía no ha entrado'}
+                      </div>
+                    </div>
+                    <button type="button" disabled={!!trabajandoAcceso} onClick={() => revocarAcceso(c.id)} className="btn btn-secondary btn-sm" style={{ minHeight: 44 }}>
+                      Quitarle el acceso
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {sesion.alcance === 'documento' ? (
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: 0, lineHeight: 1.6 }}>
+                Este enlace abre un solo documento, así que desde aquí no se puede
+                dar acceso a nadie.
+              </p>
+            ) : (
+              <FormularioCuidador
+                token={token}
+                puedeDarClinico={sesion.alcance === 'clinico'}
+                onAutorizado={(c, url) => { setCuidadores(l => [...l, c]); setEnlaceNuevo(url) }}
+              />
+            )}
+
+            {enlaceNuevo && (
+              <div role="status" style={{ marginTop: 14, padding: 14, borderRadius: 'var(--r-md)', background: 'var(--s2)', border: '1px solid var(--border)' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                  Listo. Pásale este enlace a esa persona:
+                </p>
+                <p style={{ margin: 0, fontSize: 14, wordBreak: 'break-all', color: 'var(--text)' }}>{enlaceNuevo}</p>
+              </div>
+            )}
+          </section>
+
+          {/* ── Cerrar este enlace (PC-018) ─────────────────────────────── */}
+          <section aria-labelledby="tit-cerrar" style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
+            <h3 id="tit-cerrar" className="t-h3" style={{ margin: '0 0 6px' }}>Cerrar este enlace</h3>
+            {/*
+              PI-017: «este enlace es personal y caduca» iba en 12 px al pie de
+              una tarjeta que no hacía nada. Es de lo que más le importa al
+              paciente saber, y ahora vive donde puede hacer algo con ello.
+            */}
+            <p style={{ fontSize: 16, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+              Este enlace es tuyo y caduca solo a los pocos días.
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+              Si lo reenviaste sin querer, o crees que lo tiene alguien que no
+              debería, ciérralo. Dejarán de funcionar <strong>todos</strong> los
+              enlaces tuyos —incluidos los que le hayas pasado a alguien— y este
+              mismo. Pídele otro a tu consultorio cuando lo necesites.
+            </p>
+            {cerrado ? (
+              <p role="status" style={{ fontSize: 16, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>
+                Enlace cerrado. Esta pantalla ya no se puede volver a abrir con él.
+              </p>
+            ) : confirmandoCierre ? (
+              <div role="group" aria-label="Confirmar el cierre del enlace" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" onClick={cerrarEnlace} disabled={!!trabajandoAcceso} className="btn btn-sm nx-acc-destructiva" style={{ color: 'var(--sobre-aviso)', minHeight: 44 }}>
+                  Sí, cerrar mi enlace
+                </button>
+                <button type="button" onClick={() => setConfirmandoCierre(false)} className="btn btn-ghost btn-sm" style={{ minHeight: 44 }}>
+                  Dejarlo como está
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirmandoCierre(true)} className="btn btn-secondary btn-sm" style={{ minHeight: 44 }}>
+                Cerrar este enlace
+              </button>
+            )}
+          </section>
+
+          {/* ── PO-017 · el Portal de Privacidad no tenía camino desde aquí ── */}
+          {sesion.clinicId && (
+            <section aria-labelledby="tit-privacidad" style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 24 }}>
+              <h3 id="tit-privacidad" className="t-h3" style={{ margin: '0 0 6px' }}>Tus datos</h3>
+              <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                Puedes pedir una copia de tu expediente, corregir algo que esté
+                mal, o pedir que dejen de usar tus datos para ciertas cosas.
+              </p>
+              {/*
+                Había que conocer la dirección /privacidad/<clinicId> de memoria:
+                ni el portal ni la página pública del médico llevaban ahí. Un
+                derecho al que no hay camino no se ejerce (PO-017, PP-013).
+              */}
+              <a href={`/privacidad/${sesion.clinicId}`} className="btn btn-secondary btn-sm" style={{ minHeight: 44, display: 'inline-flex' }}>
+                <ShieldCheck size={14} aria-hidden="true" /> Ir al Portal de Privacidad
+              </a>
+            </section>
+          )}
+
         {/* Pie: consultorio */}
         {sesion.clinica && (
           <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text3)' }}>
@@ -1098,8 +1563,9 @@ export default function MiPortalPage() {
         )}
 
         {/* Confianza */}
-        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11.5, color: 'var(--text3)' }}>
-          <ShieldCheck size={13} className="ds-icon" /> Acceso privado y seguro · Ausculta
+        {/* PP-016: iba a 11.5 px, la letra más pequeña de todo el portal. */}
+        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 14, color: 'var(--text3)' }}>
+          <ShieldCheck size={14} className="ds-icon" /> Acceso privado y seguro · Ausculta
         </div>
         </>)}
       </main>
@@ -1117,26 +1583,65 @@ export default function MiPortalPage() {
         PODÍA tener dos formas. Es la razón mecánica de que fuera la misma
         pantalla estirada. Ver `.mi-barra-destinos` en globals.css.
       */}
-      <nav aria-label="Secciones" className="mi-barra-destinos">
-        {DESTINOS.map(d => {
+      <nav id="secciones-portal" aria-label="Secciones" className="mi-barra-destinos">
+        {destinosVisibles.map(d => {
           const activo = destino === d.id
           return (
             <button key={d.id} onClick={() => setDestino(d.id)}
               className="nx-destino-portal"
               aria-current={activo ? 'page' : undefined}>
               <d.icono size={20} aria-hidden />
-              <span style={{ fontSize: 'var(--t-overline)' }}>{d.etiqueta}</span>
+              {/*
+                PG-010: iban con `--t-overline` (10.5 px). Son los CINCO
+                destinos del portal, en la pantalla que usa una paciente de 70
+                años con una mano, de pie. El token de «overline» está pensado
+                para rótulos de sección del lado del médico, no para la
+                navegación primaria de un paciente.
+              */}
+              <span style={{ fontSize: 12, lineHeight: 1.2 }}>{d.etiqueta}</span>
             </button>
           )
         })}
       </nav>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/*
+        El estilo de los saltos vive AQUÍ y no en `globals.css` a propósito: la
+        hoja global es de otra rebanada, y un salto de teclado que sólo esta
+        pantalla usa no tiene por qué entrar en el sistema entero. Fuera de foco
+        no ocupa sitio; enfocado, se ve como cualquier otro botón.
+      */}
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .skip-link {
+          position: absolute;
+          left: -9999px;
+          top: 8px;
+          z-index: 50;
+          background: var(--s1);
+          color: var(--text);
+          border: 1px solid var(--border);
+          border-radius: var(--r-md);
+          padding: 12px 16px;
+          font-size: 15px;
+          text-decoration: none;
+        }
+        .skip-link:focus-visible, .skip-link:focus {
+          left: 16px;
+          outline: 2px solid var(--nexus);
+          outline-offset: 2px;
+        }
+      `}</style>
     </div>
   )
 }
 
-function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; token: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
-  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+function PanelReagenda({ cita, token, tz, onReagendado, ocupado }: { cita: Cita; token: string; tz: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
+  /*
+    C-016: «hoy» se calculaba con `America/Mexico_City` fijo. En un consultorio
+    de Tijuana, a las 23:30 hora local, este panel ya estaba en el día siguiente
+    y el paciente no podía elegir la fecha de HOY — con el `min` del campo
+    cerrándosela. El resto de la pantalla ya usa la zona del consultorio.
+  */
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: tz })
   const [fecha, setFecha] = useState(hoy)
   const [slots, setSlots] = useState<string[] | null>(null)
   const [cargandoSlots, setCargandoSlots] = useState(false)
@@ -1187,6 +1692,92 @@ function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; tok
   )
 }
 
+/**
+ * DAR ACCESO A ALGUIEN QUE ME AYUDA — §8, PI-013, PG-011, PO-014.
+ *
+ * Pide las dos cosas que hacen que una autorización sea una autorización:
+ * QUIÉN es y QUÉ RELACIÓN tiene conmigo. El parentesco es texto libre a
+ * propósito: «mi hija», «la señora que me cuida», «mi nuera». Encasillarlo
+ * obligaría a inventar un catálogo de familias.
+ *
+ * El alcance por omisión es el que MENOS abre —sólo las citas—, y la casilla
+ * para ampliarlo dice exactamente lo que amplía.
+ */
+function FormularioCuidador({
+  token, puedeDarClinico, onAutorizado,
+}: {
+  token: string
+  puedeDarClinico: boolean
+  onAutorizado: (c: CuidadorEnPantalla, url: string) => void
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const [parentesco, setParentesco] = useState('')
+  const [conDocumentos, setConDocumentos] = useState(false)
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState('')
+  const idNombre = useId()
+  const idParentesco = useId()
+  const idDocs = useId()
+
+  const enviar = async () => {
+    setEnviando(true); setError('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'autorizar-cuidador', token,
+          cuidador: { nombre, parentesco, alcance: conDocumentos && puedeDarClinico ? 'clinico' : 'agenda' },
+        }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setError(String(d?.error || 'No se pudo dar el acceso. Vuelve a intentarlo.')); return }
+      onAutorizado(d.cuidador as CuidadorEnPantalla, String(d.url ?? ''))
+      setNombre(''); setParentesco(''); setConDocumentos(false); setAbierto(false)
+    } catch {
+      setError('Sin conexión. No se dio ningún acceso: vuelve a intentarlo.')
+    } finally { setEnviando(false) }
+  }
+
+  if (!abierto) {
+    return (
+      <button type="button" onClick={() => setAbierto(true)} className="btn btn-secondary btn-sm" style={{ minHeight: 44 }}>
+        <User size={14} aria-hidden="true" /> Dar acceso a alguien
+      </button>
+    )
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div>
+        <label htmlFor={idNombre} style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+          ¿Cómo se llama?
+        </label>
+        <input id={idNombre} value={nombre} onChange={e => setNombre(e.target.value.slice(0, 80))} className="input" />
+      </div>
+      <div>
+        <label htmlFor={idParentesco} style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+          ¿Quién es para ti?
+        </label>
+        <input id={idParentesco} value={parentesco} onChange={e => setParentesco(e.target.value.slice(0, 40))} placeholder="Por ejemplo: mi hija" className="input" />
+      </div>
+      {puedeDarClinico && (
+        <label htmlFor={idDocs} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, color: 'var(--text2)', lineHeight: 1.55 }}>
+          <input id={idDocs} type="checkbox" checked={conDocumentos} onChange={e => setConDocumentos(e.target.checked)} style={{ marginTop: 3, width: 20, height: 20 }} />
+          <span>También puede ver tus recetas y el resumen de tus consultas. Sin esto, sólo verá tus citas.</span>
+        </label>
+      )}
+      {error && <p role="alert" style={{ fontSize: 14, color: 'var(--red-texto)', margin: 0 }}>{error}</p>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" onClick={enviar} disabled={enviando || !nombre.trim() || !parentesco.trim()} aria-busy={enviando} className="btn btn-primary btn-sm" style={{ minHeight: 44 }}>
+          {enviando ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Dar acceso
+        </button>
+        <button type="button" onClick={() => setAbierto(false)} className="btn btn-ghost btn-sm" style={{ minHeight: 44 }}>Cancelar</button>
+      </div>
+    </div>
+  )
+}
+
 function Centro({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 24 }}>
@@ -1230,7 +1821,7 @@ function FormularioPrevio({ token }: { token: string }) {
     return (
       <div style={{ marginTop: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <CheckCircle2 size={18} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1 }} />
-        <div style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
           Gracias, tu médico lo verá antes de la consulta. Puedes volver a llenarlo si algo cambia.
         </div>
       </div>
@@ -1247,7 +1838,7 @@ function FormularioPrevio({ token }: { token: string }) {
         data-abierto={abierto ? '' : undefined}
         style={{ width: '100%', textAlign: 'left', border: 'none', padding: 8, margin: -8, borderRadius: 10, cursor: 'pointer' }}
       >
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
         <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
           Con calma, desde tu casa. Le ayuda a aprovechar mejor el tiempo contigo.
         </div>

@@ -434,6 +434,18 @@ export function barrerDuplicados<T extends PacienteComparable>(
 */
 
 /**
+ * Lo mínimo que tiene que puntuar una coincidencia para fundir SIN NADIE
+ * DELANTE (el asistente, la reserva pública, el bot de WhatsApp).
+ *
+ * 60 es «mismo nombre y nada más» — el mínimo de la escala de
+ * `compararPacientes`. Por encima de 65 siempre hay una segunda señal: la
+ * misma edad (65), el mismo teléfono (75) o la misma fecha de nacimiento
+ * (88/95). Ese salto es exactamente la diferencia entre «se llaman igual» y
+ * «es él».
+ */
+export const PUNTAJE_MINIMO_PARA_FUNDIR = 65
+
+/**
  * ¿Con qué expediente existente se funde esta reserva? `null` = crear uno nuevo.
  *
  * DOS condiciones, las dos necesarias:
@@ -453,19 +465,46 @@ export function elegirExpedienteParaCita<T extends PacienteComparable>(
   existentes: readonly T[],
 ): T | null {
   const telReserva = telefonosDe(reserva)
-  const candidatos: { p: T; puntaje: number }[] = []
+  /**
+   * PRIMERO SE CUENTA, DESPUÉS SE DESCARTA — RT-001.
+   *
+   * La versión anterior hacía `continue` sobre el candidato cuyo teléfono
+   * contradecía a la reserva, y lo sacaba de la lista ANTES del desempate. Con
+   * dos homónimos —uno sin teléfono y otro con un número distinto— el
+   * desempate no llegaba a ver que había dos: fundía con el que quedaba.
+   *
+   * La contradicción de teléfono no es ruido que se tira: es EVIDENCIA de que
+   * hay más de una persona con ese nombre en el directorio. Por eso se anota
+   * junto al candidato en vez de borrarlo.
+   */
+  const porNombre: { p: T; puntaje: number; contradiceElTelefono: boolean }[] = []
 
   for (const p of existentes) {
     const r = compararPacientes(reserva, p)
     if (!r) continue                                    // los nombres no se parecen
     const telExistente = telefonosDe(p)
-    const seContradicen =
+    const contradiceElTelefono =
       telReserva.length > 0 && telExistente.length > 0 &&
       !telReserva.some(t => telExistente.includes(t))
-    if (seContradicen) continue
-    candidatos.push({ p, puntaje: r.puntaje })
+    porNombre.push({ p, puntaje: r.puntaje, contradiceElTelefono })
   }
 
+  if (porNombre.length === 0) return null
+
+  /**
+   * DOS HOMÓNIMOS EN EL DIRECTORIO → SE CREA UNO NUEVO.
+   *
+   * Se mira el nombre NORMALIZADO, no el puntaje: dos expedientes que se llaman
+   * exactamente igual que quien reserva son, por definición, indistinguibles
+   * por el nombre — y el nombre es lo único que este camino tiene. Da igual
+   * que uno de los dos traiga teléfono y el otro no: eso decide cuál de los
+   * dos parece mejor, no si es él.
+   */
+  const nombreReserva = normalizarNombre(reserva.nombre)
+  const homonimos = porNombre.filter(c => normalizarNombre(c.p.nombre) === nombreReserva && nombreReserva !== '')
+  if (homonimos.length > 1) return null
+
+  const candidatos = porNombre.filter(c => !c.contradiceElTelefono)
   if (candidatos.length === 0) return null
   /**
    * DOS candidatos igual de buenos → se crea uno nuevo.
@@ -476,5 +515,18 @@ export function elegirExpedienteParaCita<T extends PacienteComparable>(
    */
   candidatos.sort((a, b) => b.puntaje - a.puntaje)
   if (candidatos.length > 1 && candidatos[0].puntaje === candidatos[1].puntaje) return null
+  /**
+   * EL NOMBRE A SECAS NO ALCANZA PARA FUNDIR SIN NADIE DELANTE — RT-001.
+   *
+   * `compararPacientes` da 60 al nombre idéntico sin ninguna otra señal: es el
+   * MÍNIMO de la escala, el mismo que separa al padre del hijo homónimo cuando
+   * el expediente del padre no tiene teléfono. Para AVISAR («¿será el mismo?»)
+   * ese 60 vale; para decidir a solas dónde se escribe una nota, no.
+   *
+   * Por encima de este listón siempre hay una segunda señal que sostiene la
+   * identidad: misma fecha de nacimiento (88/95), mismo teléfono (75) o la
+   * misma edad (65/85). Debajo sólo está el nombre.
+   */
+  if (candidatos[0].puntaje < PUNTAJE_MINIMO_PARA_FUNDIR) return null
   return candidatos[0].p
 }

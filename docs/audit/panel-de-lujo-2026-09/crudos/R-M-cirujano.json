@@ -1,0 +1,162 @@
+{
+  "auditor": "M-cirujano",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "MC-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/prompts.ts:823 — «- Si dice \"le hicieron cirugía en las piernas\" sin más → caprini.cirugiaMenor=true (asumir menor sin más detalle).»",
+      "nota": "Intenté refutarlo por tres vías y ninguna sostiene: (1) la línea existe literal en 823, dentro del bloque `tipo === 'valoracion_preoperatoria'` (prompts.ts:812-825), y contradice la 815 («Si no se menciona, deja false (NO INVENTES factores de riesgo)»); (2) el prompt SÍ llega a producción — buildSystemPrompt sólo tiene un llamador, src/app/api/expediente/procesar/route.ts:457; (3) el dato SÍ llega a la casilla: el prompt declara `preopInputs.caprini` como objeto anidado (prompts.ts:720-750), extraction-schema.ts:330 lo deja pasar (`z.record(z.string(), z.unknown())`), consulta page.tsx:2595-2600 lo funde en `preop.inputs` con toast «Factores de riesgo pre-llenados desde el dictado», y PreopAssessment.tsx:43 lo lee anidado (`useState((init.caprini as Record<string,boolean>) ?? {})`) → la casilla «Cirugía menor» (preop.ts:139, peso 1) queda marcada sin que el médico lo dijera y sin marca de procedencia."
+    },
+    {
+      "id": "MC-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6544-6557 (props de HojaParaElPaciente: medicamentos, estudios, proximaCita, onInteraccion) + src/lib/paciente/paquete-de-visita.ts:345 «warningSigns: []»",
+      "nota": "Premisa verificada: `grep -rn indicacionesDelMedico src/` devuelve SÓLO como-se-lo-explico.ts:59, :155 y un test — cero llamadores en app/ y components/. Miré también la segunda vía (el portal, que el auditor declaró no cubrir) y ahí tampoco llega: `componerPaquete` no incluye `secciones` en `NotaParaElPaquete` (paquete-de-visita.ts:223-232) y deja `warningSigns: []` por diseño. BAJO A P2 porque sí existe un papel donde las indicaciones llegan al paciente: la nota impresa pinta todas las secciones con valor (nota/[patientId]/[notaId]/page.tsx:496), incluido `planPostop`. El defecto real es la hoja en lenguaje llano y el paso de cierre que se marca hecho sin ellas, no que el paciente se quede sin nada escrito."
+    },
+    {
+      "id": "MC-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx:548 (único bloque de firma, `<strong>{medico}</strong>`) y src/lib/nota-word.ts:75-79 (mismo bloque único en el Word)",
+      "nota": "Busqué la vía alterna que pedía el encargo y no existe: `grep -rn 'firma.*paciente|firmaPaciente|testigo' src/` no devuelve ningún bloque de otorgamiento; /legal sólo tiene aviso de privacidad y contrato de encargo; el portal (`src/app/api/portal`, `src/app/mi/[token]`) sólo lee lo liberado y no firma nada; la única huella SHA-256 de un texto aceptado es la del aviso de privacidad (REG-107). `templates.ts:99-106` confirma que 'consentimiento' es una nota más, con `declaracion` en prosa y sin campo de otorgamiento. El formato exacto (testigos, representante) sigue siendo NEEDS_CLINICAL_REVIEW / revisión legal, como dice el propio hallazgo."
+    },
+    {
+      "id": "MC-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/referencia/[patientId]/page.tsx:35-44 (todo el estado en useState) y :46-61 / :141 (únicas salidas: descargarPDF e imprimirElemento)",
+      "nota": "Grep de `referencia|interconsulta|derivaci` en src/lib y src/app/api: ninguna colección, ningún evento. `src/lib/expediente/audit-eventos.ts` no tiene evento de referencia; `matriz-acceso.ts` sólo la nombra en «preferencias» y en un `porQue`; `respaldo.ts` y `firestore.rules` no la declaran (la única coincidencia en rules es `referenciaExterna` de cobros, l.933-938). `print-element.ts` y `pdf-download.ts` no llaman a logAudit. La carta se lee de la nota (l.87-91) pero no vuelve a escribirse en ninguna parte: se imprime y desaparece."
+    },
+    {
+      "id": "MC-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/cirugia.ts:177-187 (ANTIBIOTICOS_PROFILAXIS sin fuente por fila) + src/lib/clinical/registry.ts:1146-1160 (`fuente: 'pendiente_validacion_clinica'`, `estado: 'pendiente_validacion'`) + src/components/PanelCirugia.tsx:150-154 («Agregar a la nota» con la dosis)",
+      "nota": "Busqué la fuente donde el encargo pedía y no está: no hay comentario de referencia cerca de la tabla (la cabecera l.1-10 sólo dice «Funciones PURAS y testeadas»), y en docs/clinical-decisions/ no hay documento de profilaxis quirúrgica (`grep -ril 'profilaxis quir|cefazolina' docs/clinical-decisions` → sólo tamizaje-preventivo.md y DECISIONES-ARQUITECTURA, ninguno con estos esquemas). Agravante que el auditor no dijo: el registro promete «sin tipo de cirugía no propone esquema (no ofrece una cefalosporina por defecto)» (registry.ts:1156) y el panel arranca en Cefazolina (PanelCirugia.tsx:42 `useState(0)`); además el recuadro de profilaxis es el único `Bloque` del panel SIN línea de cita (contrastar con l.94, 100, 107). El sello no se pinta en ningún sitio — relacionado: MI-003 (otro equipo rojo ya confirmó que `SelloMotor` no se renderiza), por eso no lo re-verifico aquí."
+    },
+    {
+      "id": "MC-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/cirugia.ts:52-60 (rcri: 2 factores → «por arriba del 1%») vs src/lib/expediente/preop.ts:49-57 (calcularRCRI: 2 puntos → Clase III «≈ 6.6 %»); CAPRINI_FACTORES cirugia.ts:73 vs CAPRINI_ITEMS preop.ts:137",
+      "nota": "Las dos implementaciones existen, dan textos y cifras distintas para el mismo puntaje y las dos pueden escribir en la misma nota: PreopAssessment se monta en page.tsx:6774 y PanelCirugia en :7067, ambos con escritura a secciones. No hay guardián de «una sola implementación» para escalas (sólo existe el de FHIR). Cuál de los dos textos es el correcto sigue siendo NEEDS_CLINICAL_REVIEW, como reconoce el hallazgo."
+    },
+    {
+      "id": "MC-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelCirugia.tsx:31 `const [clase, setClase] = useState('II')` y :65 (la píldora `asaTexto(clase, urgencia)` se pinta siempre, sin condición); no hay `onNota` para ASA (sólo l.95, 101, 108, 151, 184)",
+      "nota": "Intenté refutarlo buscando otra vía por la que ASA llegue a la nota: PreopAssessment no tiene ASA (`grep ASA src/components/PreopAssessment.tsx` → cero), así que en la valoración preoperatoria la clase sólo cabe como prosa en `valoracionPreanestesica` de nota_anestesia. La píldora «ASA II» de fábrica contradice el espíritu de registry.ts:1140 aunque no su letra (el motor no devuelve texto; la UI sí pinta la clase). Daño de fricción y de dato pintado sin evaluar, no de documento: P2 correcto."
+    },
+    {
+      "id": "MC-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:836 `/cirug|ortopedia|ginecolog|urolog|neurocirug|otorrino|oftalmolog|anestesi/i` vs src/lib/herramientas-por-especialidad.ts:87 `/\\b(cirug|ortopedia|traumatolog|urologia|otorrino|oftalmolog|neurocirug|angiolog|coloproctolog|maxilofacial|trasplante|anestesiolog)/`",
+      "nota": "Verificado en las dos direcciones: «neurología» contiene la subcadena «urolog» (ne-UROLOG-ía) y la regex de page.tsx no tiene `\\b`, así que un neurólogo cae en esCasoQuirurgico; el comentario de herramientas-por-especialidad.ts:78-86 documenta ESE MISMO defecto ya reparado en su lado. Y al revés: con 'Traumatología'/'Coloproctología' la herramienta ni siquiera entra en TODAS (page.tsx:7065 la añade sólo si esCasoQuirurgico), y `ocultas` se calcula de TODAS (l.7159-7160), así que tampoco la alcanza el buscador — la premisa del comentario l.7139-7146 es falsa para ese caso."
+    },
+    {
+      "id": "MC-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/templates.ts:79-89 (nota_postoperatoria: sin operación planeada, cuenta de gasas, equipo quirúrgico, piezas a patología ni pronóstico) y :65-71 (valoracion_preoperatoria sin pronóstico; `egreso` sí lo tiene, l.63)",
+      "nota": "La ausencia de campos está verificada y la salida del checklist a la nota es un conteo sin nombrar lo pendiente (PanelCirugia.tsx:185-189). PARCIAL porque la parte que sostiene la severidad —que la NOM-004 exija esos apartados en la nota postoperatoria— no está demostrada por el auditor, que la marca él mismo como NEEDS_CLINICAL_REVIEW; qué secciones se añaden y cuáles bloquean la firma es decisión del dueño con revisión legal."
+    },
+    {
+      "id": "MC-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/nom004.ts:29 `const requiereDx = ['historia_clinica', 'primera_vez', 'ingreso', 'egreso'].includes(nota.tipo)` + src/lib/fhir-export.ts:215-228 (Condition sólo desde `nota.diagnosticos`)",
+      "nota": "Busqué el control que lo impediría fuera de nom004 y no existe: `construirAvisos` (avisos-consulta.ts:331) no tiene ningún aviso por diagnóstico vacío (`grep -i diagnostic` sólo devuelve el tipo del ancla, l.222) y AntesDeFirmar sólo pinta lo que le llega. Confirmada también la consecuencia aguas abajo: referencia page l.89 prellena desde `nota.diagnosticos` y el Composition sale con `type {text:'Nota clínica'}` y `title: nota.tipo` crudo (fhir-export.ts:318-322)."
+    },
+    {
+      "id": "MC-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/FotosClinicas.tsx:55-61 (FileReader.readAsDataURL → subirImagen, sin pasar por canvas) + src/lib/subir-imagen.ts:31-35 (mensaje de PDF/firma) + src/app/api/config/imagen/route.ts:47 (`bucket.file(path).save(buffer)` tal cual)",
+      "nota": "Confirmado el camino entero: el archivo crudo del teléfono se sube en base64 y el servidor guarda el buffer íntegro sin reencodar, así que el EXIF (GPS, dispositivo, hora) sobrevive; `image-utils.ts:47-60` (el canvas que lo quitaría) no lo toca nadie desde este componente. Y el componente está vivo en producción: consulta page.tsx:7114 y expediente page.tsx:694. Agravante colateral verificado: la key se sanea quitando '/' (imagen/route.ts:28) y la foto clínica acaba en `receta-diseno/{uid}/` (l.45), no en una ruta del paciente."
+    },
+    {
+      "id": "MC-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/FotosClinicas.tsx:121-124 («Requiere consentimiento del paciente (dato personal sensible).») frente a src/lib/expediente/fotos-clinicas.ts:20-33 (FotoClinica sin campo de consentimiento) y :58-66 (crearFoto no lo exige)",
+      "nota": "Verificado que el patrón existe para otra modalidad y no se aplicó aquí: hay evento de auditoría `consentimiento_grabacion` para la voz (audit-eventos.ts:39, :147) y ninguno para imagen; `grep -ril consentimiento src/` no devuelve ningún consentimiento de imagen en portal ni en /legal. La cabecera del propio módulo (fotos-clinicas.ts:13-14) declara el requisito que el código no comprueba."
+    },
+    {
+      "id": "MC-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6779-6787 (onAplicar: `if (s.key === 'conclusionRiesgo') return { ...s, value: conclusion }` y toast 'success')",
+      "nota": "Reemplazo literal, sin confirmación, y con el patrón contrario a dos pasos de distancia: `agregarASeccion` (l.803-833) anexa y deduplica. Mitigación que existe y el auditor no citó: HistorialVersiones (page.tsx:6620-6635) permite restaurar secciones mientras la nota no está firmada, así que la pérdida es recuperable — suficiente para dejarlo en P2, no para refutarlo: sigue siendo un cambio silencioso sobre texto del médico (clinical-safety §3)."
+    },
+    {
+      "id": "MC-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelCirugia.tsx:19-23 (`interface Props { onAgregarANota?; embebido? }` — sin alergias ni peso), :42 (`useState(0)` = Cefazolina) y consulta page.tsx:7067 (se monta sin datos del paciente, mientras PanelPediatria sí recibe peso, l.7093)",
+      "nota": "El texto de «Alergia a betalactámicos» de l.122 es una columna de la tabla, no una comprobación. El guardián que sí cruza alergias trabaja sobre `nota.medicamentos[]` estructurados (nom004.ts:45-65), y lo que este panel escribe es prosa en una sección, así que lo esquiva. No lo subo a P1 porque el fármaco no se administra desde aquí y el texto pasa por los ojos del cirujano antes de firmar."
+    },
+    {
+      "id": "MC-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PreopAssessment.tsx:11-19 (Props: edadPaciente, disabled, onAplicar, onSinDatos, initialInputs — no recibe `medicamentos`) y :67-69 (`tomaAnticoagulante: b('tomaAnticoagulante')`, sólo de la IA o del clic)",
+      "nota": "Verificado que fuera de la valoración preoperatoria no hay vigilancia: en `avisos-consulta.ts` la palabra warfarina sólo aparece en comentarios de otros avisos (l.77, 91, 474) y no hay ningún aviso que cruce «cirugía programada» con la lista vigente; en `src/lib/seguridad/` no hay nada quirúrgico. Es mejora (el sistema tiene los dos datos y no los cruza), no defecto de cifra: los intervalos ya citados viven en preop.ts:462-480."
+    },
+    {
+      "id": "MC-016",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:185-189 (única mención de incapacidad/constancia/certificado en `src/`; la otra coincidencia del grep, prompts.ts:373, es «incapacidad para deglutir»)",
+      "nota": "La ausencia está verificada: no hay pantalla, ruta ni colección de incapacidad/constancia/informe, y el portal escala la petición sin que el médico tenga con qué responder. PARCIAL porque crear una familia de documentos médicos con folio y firma protegida es alcance de producto con consecuencias legales (formato de incapacidad privada) — decisión del dueño, no defecto de implementación."
+    },
+    {
+      "id": "MC-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelCirugia.tsx:33-35 y :50 (rc, cap, apf, hechos como `useState<Set<string>>` sin prop de persistencia) frente a consulta page.tsx:6777 (`initialInputs={preop?.inputs}`) y :6780 (`setPreop(preopData)`)",
+      "nota": "Verificado el contraste: lo de PreopAssessment se guarda y se recarga con la nota; lo del panel de cirugía muere al desmontar y el texto que sí sobrevive («Caprini 6 puntos — Riesgo alto») no dice qué factores se marcaron, así que no es reproducible ni auditable."
+    },
+    {
+      "id": "MC-018",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/PanelCirugia.tsx:73 (pestaña «Cirugía segura (OMS)») y :161-191 (su salida a la nota: «Entrada: 7/7 · Pausa quirúrgica: 5/7 · Salida: 4/5», sin nombrar lo pendiente)",
+      "nota": "La evidencia existe y la lectura es razonable (la lista se llena en quirófano, no en el consultorio, y con Hospital en pausa D-030 no hay quirófano en el producto vendible). PARCIAL por la regla 7 del briefing: esconder o conservar una pestaña que ya existe es decisión de producto del dueño. El sub-hallazgo accionable sin decisión suya es el otro: el resumen numérico no nombra los puntos NO cumplidos, y eso es un dato que se pierde."
+    },
+    {
+      "id": "MC-019",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/tipos-visibles.ts:21-26 (AMBULATORIOS, la misma lista para toda especialidad, con `valoracion_inmuno` dentro)",
+      "nota": "Verificado que la firma actual es `tiposVisibles(esNotaHospital, activo)` (l.34): NO recibe especialidad, así que el filtro por tronco que el auditor propone no existe hoy —su `prueba_que_faltaria` inventa un tercer parámetro—. PARCIAL: la observación es correcta pero filtrar chips por tronco es decisión de producto; y la segunda mitad del hallazgo (el panel de Cirugía para ginecología por la regex) es el mismo defecto ya contado en MC-008, no un hallazgo aparte."
+    },
+    {
+      "id": "MC-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/templates.ts:194-197 (`esHospitalaria` incluye 'nota_postoperatoria' y 'nota_anestesia') vs src/app/(dashboard)/expediente/[patientId]/page.tsx:63 (copia local con otra regla)",
+      "nota": "`grep -rn esHospitalaria src/` fuera de templates.ts: sólo la copia local del expediente (l.63, 136, 155) y dos pruebas (uci-data-model.test.ts la importa; v15-el-expediente-lleno... reimplementa la del expediente). O sea: la exportación de templates.ts tiene consumidor de prueba pero NINGUNA pantalla, y dice lo contrario que la pantalla. Sin daño hoy — P3 correcto."
+    },
+    {
+      "id": "MC-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/templates.ts:79-89 (nota_postoperatoria sin fecha del procedimiento) y `grep -n 'fechaCirugia|procedimiento' src/types/expediente.ts` → cero",
+      "nota": "Verificado que no existe ningún dato de fecha de cirugía del que un motor pudiera derivar el día postoperatorio, ni tarea de «retirar puntos» (`grep -rn 'retirar puntos|retiro de puntos' src/` → cero); el guardián el-procedimiento-que-no-quedo-escrito.ts:41-45 lo declara explícitamente («No se creó un campo procedimientos en NotaMedica»). Mejora legítima; sin daño demostrado hoy más allá del cálculo mental."
+    },
+    {
+      "id": "MC-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/nota-word.ts:35 `const establecimiento = nota.metadata.establecimiento || config?.nombreClinica || ''` y src/app/(dashboard)/consulta/[patientId]/page.tsx:2987 `establecimiento: config?.nombreClinica ?? ''`",
+      "nota": "Intenté refutarlo por `nota.metadata.establecimiento` —que sería el hueco para el hospital ajeno— y no sirve: el único sitio que lo escribe es la consulta, y lo escribe con el nombre del consultorio. No hay sección de lugar del procedimiento en nota_postoperatoria (templates.ts:79-89) y sin internamiento no hay `hospital.servicio`. Si el lugar es obligatorio en la nota postoperatoria es revisión legal, como dice el hallazgo."
+    }
+  ],
+  "ratio": { "total": 22, "confirmados": 18, "refutados": 0, "parciales": 4 },
+  "observaciones_del_auditor": "Auditor muy sólido: las 22 citas archivo:línea coinciden literalmente (±5) y no encontré ninguna premisa falsa — verifiqué a mano los cinco encargos (prompts.ts:823 existe y llega hasta la casilla de Caprini; `indicacionesDelMedico` no tiene ningún llamador ni en app/ ni en el portal; no hay otra vía de consentimiento firmado por el paciente; la carta de referencia no se persiste bajo ningún otro nombre; las dosis de cirugia.ts:177 no tienen fuente ni en comentario ni en docs/clinical-decisions/). Patrones a corregir, todos menores: (1) tiende a fundir dos defectos en un hallazgo (MC-019 repite la regex de MC-008; MC-011 mezcla EXIF con el tope de 3.5 MB), lo que infla el conteo; (2) alguna `prueba_que_faltaria` asume una firma que no existe (`tiposVisibles(false,'seguimiento','Cirugía General')` tiene dos parámetros hoy); (3) no siempre cita el control mitigante que sí existe (la nota impresa que sí lleva `planPostop` en MC-002, HistorialVersiones en MC-013), y por eso MC-002 estaba una prioridad por encima de lo que sostiene la evidencia; (4) mezcla observación verificada con decisión del dueño en los tipos `mejora`/`innecesario` (MC-009, MC-016, MC-018, MC-019 → parcial). Dos agravantes que él se dejó y que refuerzan sus propios hallazgos: el panel de profilaxis arranca en Cefazolina contra lo que promete registry.ts:1156, y su recuadro de resultado es el único del panel sin línea de cita."
+}

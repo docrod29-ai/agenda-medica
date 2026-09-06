@@ -1,0 +1,1372 @@
+{
+  "rol": "paciente-ortopedia",
+  "fecha": "2026-09-06",
+  "metodo": "Seis arquetipos recorridos sobre http://localhost:3200 (emulador, consultorio sintético) con un recorredor propio (móvil 390×844 y escritorio), más `clasificarPregunta` ejecutado con vitest sobre 21 preguntas de ortopedia y un plan liberado sintético. Tokens del portal generados con el secreto de desarrollo (`patient-token.ts`) porque la interfaz sí los ofrece pero abre WhatsApp/portapapeles; la emisión desde la interfaz se verificó capturando la respuesta de /api/portal/link. Cero datos reales.",
+  "revisado": [
+    {
+      "pieza": "src/app/mi/[token]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido en móvil y escritorio, cinco destinos, Tab ×10, enlace clínico/agenda/vencido"
+    },
+    {
+      "pieza": "src/app/api/portal/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "session/documentos/paquetes/preguntar/preguntas con curl y desde la pantalla"
+    },
+    {
+      "pieza": "src/app/api/portal/link/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "alcance clínico cobrado con `firmar`; la interfaz sí lo ofrece (AppointmentModal «Portal» y EntregarAlPaciente)"
+    },
+    {
+      "pieza": "src/lib/patient-token.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/portal/vigencia-del-enlace.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "tres estados; falla cerrado"
+    },
+    {
+      "pieza": "src/lib/paciente/urgencia.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/paciente/pregunta-del-paciente.ts",
+      "veredicto": "con hallazgos",
+      "nota": "21 preguntas de ortopedia pasadas por `clasificarPregunta` con vitest; ninguna origina dato (no hay modelo)"
+    },
+    {
+      "pieza": "src/lib/paciente/paquete-de-visita.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/paciente/como-se-lo-explico.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/paciente/entrega-del-paquete.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/tareas-clinicas/de-una-pregunta.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/app/api/expediente/paquete-de-visita/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sólo la entrada de `componerPaquete` (línea 187)"
+    },
+    {
+      "pieza": "src/components/EntregarAlPaciente.tsx",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/components/portal/ViaDeUrgencia.tsx",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/reservar/[clinicId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido en móvil; no se pudo pasar del primer paso (PO-006)"
+    },
+    {
+      "pieza": "src/app/api/public/booking/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "líneas 40-60 y 380-470"
+    },
+    {
+      "pieza": "src/app/api/public/clinic/[clinicId]/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sólo `tiposCita`"
+    },
+    {
+      "pieza": "src/app/dr/[clinicId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido móvil"
+    },
+    {
+      "pieza": "src/app/resena/[token]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "sólo enlace inválido recorrido"
+    },
+    {
+      "pieza": "src/lib/reviews.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sólo `nombreAnonimizado`"
+    },
+    {
+      "pieza": "src/app/privacidad/[clinicId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido móvil hasta el formulario de acceso; no se envió"
+    },
+    {
+      "pieza": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "sólo modal de consentimiento (7447-7470), HojaParaElPaciente/EntregarAlPaciente (6540-6592) y ?nota="
+    },
+    {
+      "pieza": "src/hooks/useGrabacionAudio.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sólo 585-632"
+    },
+    {
+      "pieza": "src/lib/expediente/audio-caduco.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo HORAS_DE_VIDA"
+    },
+    {
+      "pieza": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "catálogo y estado de estudios"
+    },
+    {
+      "pieza": "src/lib/expediente/fusionar-diagnosticos.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "`diagnosticoParaImprimir` es la referencia para PO-001"
+    },
+    {
+      "pieza": "src/lib/impreso-medico.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "no transporta lateralidad: resuelve membrete/firma por médico"
+    },
+    {
+      "pieza": "src/components/RecetaDocumento.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo el cuerpo de orden (780-800, 1000-1030): estudios como texto libre"
+    },
+    {
+      "pieza": "src/lib/receta-word.ts",
+      "veredicto": "con hallazgos",
+      "nota": "formato .doc"
+    },
+    {
+      "pieza": "src/components/AppointmentModal.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "botón «Portal» recorrido: emite alcance agenda y avisa «no lo compartas»"
+    },
+    {
+      "pieza": "src/app/(dashboard)/expediente/[patientId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo el botón de invalidar enlaces (640-670)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/pendientes/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: la pregunta escalada sí aparece (REG-521 vigente)"
+    },
+    {
+      "pieza": "src/app/not-found.tsx",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/app/page.tsx (landing)",
+      "veredicto": "sin hallazgo",
+      "nota": "recorrido móvil sin sesión; habla a médicos por diseño"
+    },
+    {
+      "pieza": "src/lib/portal/formulario-previo.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "evals/patient-ai/casos.json + README",
+      "veredicto": "sin hallazgo",
+      "nota": "no contiene ningún caso de trauma/férula (ver PO-003)"
+    },
+    {
+      "pieza": "scripts/design/sembrar-emulador.mjs",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo para entender los datos sintéticos; el paquete sembrado está escrito a mano y no ejercita `componerPaquete`"
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": "PO-001",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-6",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "titulo": "La receta que el paciente descarga (y que reenvía al jefe) imprime como «diagnóstico» TODOS los diagnósticos de la nota: descartados, presuntivos, resueltos y propuestas de la IA sin confirmar",
+      "archivo": "src/app/api/portal/route.ts",
+      "linea": 1090,
+      "evidencia": "diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', '),  — sin filtrar `tipo` ('descartado'|'presuntivo'|'diferencial'), `estado` ('resuelto') ni `tipoOrigen` (propuesta de la IA). Respuesta real del emulador (datos sintéticos) a `action:'documentos'` con enlace clínico: \"diagnostico\":\"Condición crónica sintética A, Condición activa sintética B, Sospecha sintética C, Propuesta de la IA sintética D, Descartada sintética E, Resuelta sintética F\". Ese campo se imprime en la receta Word del portal (`src/app/mi/[token]/page.tsx:432-441`, `diagnostico: doc.diagnostico`).",
+      "reproduccion": "POST /api/portal {action:'documentos', token clínico de pac-001} sobre el emulador sembrado por scripts/design/sembrar-emulador.mjs (nota-demo-001 trae seis diagnósticos con tipo/estado distintos). Después «Documentos → Descargar» en /mi/<token>: el .doc lleva la lista completa como diagnóstico de la receta.",
+      "impacto": {
+        "paciente": "El esguince se convierte en «Sospecha de fractura, Descartada fractura, Propuesta de la IA …» en un documento con cédula que el paciente lleva a la farmacia y reenvía al jefe para justificar la incapacidad. No puede detectar el error y el jefe lee un diagnóstico que nunca se confirmó.",
+        "medico": "Firma por un documento que dice algo que él descartó. Contradice la regla del dueño en REG-516 («nomás el principal»), que el impreso del médico ya cumple con `diagnosticoParaImprimir`.",
+        "negocio": "Riesgo medicolegal y de confianza en el producto que más se comparte fuera del consultorio."
+      },
+      "severidad": 5,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno en esta ruta. La receta impresa del médico usa `diagnosticoParaImprimir` (src/lib/expediente/fusionar-diagnosticos.ts:209); el portal no la llama.",
+      "prioridad": "P0",
+      "propuesta": "Que `documentos` use la MISMA función que la receta del médico (`diagnosticoParaImprimir`, un solo principal) y, antes, excluya `tipo:'descartado'` y `estado:'resuelto'`; una propuesta de la IA no confirmada (`tipoOrigen`) no puede llegar a un documento del paciente. NEEDS_CLINICAL_REVIEW sobre si un `presuntivo` debe imprimirse en la copia del paciente.",
+      "prueba_que_faltaria": "Un caso que siembre una nota firmada con {definitivo, descartado, resuelto, presuntivo-IA} y compruebe que `documentos[0].diagnostico` contiene sólo el definitivo. Hoy falla.",
+      "que_no_cubre": "No cubre el `encounterSummary` del paquete de visita (PO-002) ni la receta impresa del médico (ya cubierta por REG-516).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-516",
+        "REG-329"
+      ]
+    },
+    {
+      "id": "PO-002",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-6",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "titulo": "El resumen de la consulta en «Cuidado» (paquete liberado) también concatena todos los diagnósticos de la nota, incluidos descartados y propuestas de la IA",
+      "archivo": "src/lib/paciente/paquete-de-visita.ts",
+      "linea": 338,
+      "evidencia": "encounterSummary: (n.diagnosticos ?? []).map(d => texto(d?.descripcion)).filter(Boolean).join(', '),",
+      "reproduccion": "Firmar una nota con un diagnóstico descartado y liberar el paquete desde «Entregar al paciente»; abrir /mi/<token clínico> → Cuidado. (El paquete sembrado en el emulador está escrito a mano y por eso el recorrido no lo muestra; el defecto está en la composición real.)",
+      "impacto": {
+        "paciente": "Lee «Fractura de tobillo, Esguince grado 2» sin saber que la primera se descartó. Ausencia de filtro = dato inventado para quien no puede detectarlo.",
+        "medico": "Libera un paquete cuya previsualización (EntregarAlPaciente) le enseña lo mismo, así que lo aprueba creyendo que es lo que dijo.",
+        "negocio": "Mismo riesgo que PO-001 en la superficie que V9 vende como diferenciador."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "La previsualización antes de liberar (src/components/EntregarAlPaciente.tsx) — el médico podría notarlo si lee con cuidado.",
+      "prioridad": "P1",
+      "propuesta": "Misma regla que PO-001 en `componerPaquete`: sólo diagnósticos vigentes y confirmados por el médico; los descartados/resueltos fuera; propuestas de la IA sin confirmar fuera.",
+      "prueba_que_faltaria": "Prueba al revés de `componerPaquete` con un dx `descartado` y uno con `tipoOrigen` de IA: `encounterSummary` no debe contenerlos.",
+      "que_no_cubre": "No cubre qué debe decir el resumen cuando no hay ningún diagnóstico definitivo (hoy quedaría vacío, que es correcto).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-516",
+        "PO-001"
+      ]
+    },
+    {
+      "id": "PO-003",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "titulo": "A las 2 a.m. «el pie se me puso morado y frío con la férula» y «no siento los dedos» NO disparan urgencia: quedan como pregunta «pendiente de revisar» hasta que alguien abra Pendientes",
+      "archivo": "src/lib/paciente/urgencia.ts",
+      "linea": 145,
+      "evidencia": "/(no siento|se me durmio|entumid|adormecid) (el |la |mi )?(brazo|pierna|mano|cara|medio cuerpo|lado)/.test(t)  — «pie» y «dedos» no están; «morado», «frío», «férula», «yeso», «aprieta» no existen en ninguna regla. La cabecera (línea 48) declara: «No cubre, entre otros: hemorragia, trauma…».",
+      "reproduccion": "Recorrido real en /mi/<token clínico de pac-002> → Preguntar → «el pie se me puso morado y frío con la férula» → respuesta: «Esta pregunta la tiene que contestar tu médico, no yo. Ya quedó registrada… Tu consultorio la tiene pendiente de revisar.» Con el motor (vitest sobre clasificarPregunta): «La férula me aprieta mucho y no siento los dedos» → ESCALATE_TO_CLINICIAN; «se me durmió el pie» → ESCALATE; sólo «no siento la pierna» → URGENT.",
+      "impacto": {
+        "paciente": "Un compromiso vascular o síndrome compartimental bajo una férula es la urgencia propia de este paciente y se le contesta que espere al consultorio. El aviso general de 911 está arriba, pero la respuesta a SU pregunta le dice lo contrario.",
+        "medico": "Se entera por la mañana, en una tarea de prioridad «alta» (no crítica) con título que no menciona el contenido (PO-005).",
+        "negocio": "Es exactamente el caso que la especialidad pone a prueba (§4.3: «el de la fractura»)."
+      },
+      "severidad": 5,
+      "probabilidad": "alta",
+      "control_existente": "ViaDeUrgencia (src/components/portal/ViaDeUrgencia.tsx:70): «o cualquier otro malestar grave» + botón 911 en todos los destinos; y el módulo lo declara como no cubierto (clinical-safety §5).",
+      "prioridad": "P1",
+      "propuesta": "Añadir una categoría de urgencia para extremidad inmovilizada comprometida (férula|yeso|vendaje + morado|frío|no siento|hormigueo|dedos|pie|aprieta) y meter «pie» y «dedos» en la regla neurológica. Qué signos exactos entran es política clínica: NEEDS_CLINICAL_REVIEW (ortopedista + dueño). Cada frase nueva va a evals/patient-ai/casos.json como fixture.",
+      "prueba_que_faltaria": "Casos en `src/__tests__/las-doce-preguntas-del-paciente.test.ts`/evals: las tres frases de arriba con `esperado: 'urgente'`. Hoy fallan.",
+      "que_no_cubre": "No cubre otras urgencias de trauma (hemorragia, deformidad, fiebre con herida) ni el canal de WhatsApp con negaciones; tampoco garantiza que el consultorio conteste de madrugada.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-362",
+        "REG-521"
+      ]
+    },
+    {
+      "id": "PO-004",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "portal",
+      "tipo": "boton_muerto",
+      "titulo": "«Entregar al paciente» promete «Si quieres que los lea, escríbelos en tus indicaciones», pero las indicaciones nunca entran al paquete: el plan de ejercicios y el retiro de férula no llegan al portal",
+      "archivo": "src/components/EntregarAlPaciente.tsx",
+      "linea": 257,
+      "evidencia": "Sin signos de alarma: no se inventan. Si quieres que los lea, escríbelos en tus indicaciones.  — mientras `componerPaquete` (src/lib/paciente/paquete-de-visita.ts:318-345) sólo compone medicamentos, `estudiosOrden`, diagnósticos y `proximaCita`, y fija `warningSigns: []` (línea 344); la ruta (src/app/api/expediente/paquete-de-visita/route.ts:187) le pasa `{ nota, medicacionPrevia, alergias, telefonoDelConsultorio, proximaCita }` y ninguna indicación.",
+      "reproduccion": "Escribir en Indicaciones «Retirar férula en 10 días; ejercicios de tobillo 3 veces al día» y liberar. En /mi/<token> → Cuidado no aparece nada de eso; el médico leyó que sí aparecería si lo escribía ahí.",
+      "impacto": {
+        "paciente": "Pregunta «¿qué ejercicios hago?» y «¿cuándo me quito la férula?» (recorrido: ambas escalan) porque el plan que su médico sí escribió no está en su portal.",
+        "medico": "Cree haber entregado el plan de rehabilitación; el paciente vuelve sin haberlo hecho.",
+        "negocio": "El seguimiento —la parte del bucle donde más se pierde al paciente— no se sostiene."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "La hoja para el paciente en consulta (src/app/(dashboard)/consulta/[patientId]/page.tsx:6544) se copia/imprime, pero tampoco recibe `indicacionesDelMedico` (sólo medicamentos, estudios y próxima cita); las indicaciones sólo salen en la receta impresa.",
+      "prioridad": "P1",
+      "propuesta": "O el paquete incluye las indicaciones literales del médico (nivel 3 del §1: material aprobado por él, sin reescribir) como `warningSigns`/`instrucciones`, o se quita la frase que lo promete. Lo primero es lo que el médico y el paciente esperan.",
+      "prueba_que_faltaria": "Prueba de `componerPaquete` con `nota.indicaciones` no vacío: el paquete debe llevarlas. Hoy no existe el campo de entrada.",
+      "que_no_cubre": "No cubre material educativo (`educationalMaterial`), que sí exige evidencia curada y debe seguir vacío.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-335",
+        "REG-242"
+      ]
+    },
+    {
+      "id": "PO-005",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La pregunta escalada llega a Pendientes como «Pregunta del paciente: todavía no tiene ninguna consulta liberada», con prioridad «alta» entre nueve más: el título describe el estado del plan, no lo que dijo el paciente",
+      "archivo": "src/lib/tareas-clinicas/de-una-pregunta.ts",
+      "linea": 83,
+      "evidencia": "return clase === 'URGENT_REVIEW_REQUIRED' ? 'critica' : 'alta'  — y el título usa MOTIVO_ESCALACION_LABEL (src/lib/paciente/pregunta-del-paciente.ts:124: sin_plan_liberado: 'todavía no tiene ninguna consulta liberada'). Visto en /pendientes: «Aurelio Barquín Salcedo · PREGUNTA · Pregunta del paciente: todavía no tiene ninguna consulta liberada · el pie se me puso morado y frío con la férula» en «Necesita revisión (9)».",
+      "reproduccion": "Recorrido: pregunta de PO-003 y después /pendientes con la sesión del médico.",
+      "impacto": {
+        "paciente": "Su síntoma grave compite con «resultado sin revisar» y «receta sin entregar» y no se distingue del resto.",
+        "medico": "Tiene que abrir cada tarjeta para saber que una dice «pie morado y frío».",
+        "negocio": "El worklist es la única red de las escalaciones (REG-521); si no se lee, no hay red."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "El detalle sí trae el texto completo; la tarea existe (REG-521).",
+      "prioridad": "P2",
+      "propuesta": "Título = las primeras palabras del paciente («el pie se me puso morado…») y el motivo como subtítulo; y que una pregunta con vocabulario de síntoma (aunque no dispare urgencia) suba a «crítica» o a un grupo propio «Preguntas de pacientes».",
+      "prueba_que_faltaria": "Prueba de `tareaDeUnaPregunta`: el `titulo` contiene el texto del paciente. Hoy falla.",
+      "que_no_cubre": "No resuelve que nadie mire Pendientes de madrugada (PO-020).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-521"
+      ]
+    },
+    {
+      "id": "PO-006",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-2",
+      "modulo": "publico",
+      "tipo": "friccion",
+      "titulo": "La reserva pública pregunta «¿Qué tipo de consulta deseas?» y no ofrece ninguna opción cuando el consultorio no configuró duraciones: pantalla muerta sin mensaje ni salida",
+      "archivo": "src/app/reservar/[clinicId]/page.tsx",
+      "linea": 203,
+      "evidencia": "{tiposCita.map(t => (…))}  — sin rama para `tiposCita.length === 0` (línea 151: `filter(t => Number(t.duracion) > 0)`); `/api/public/clinic/[clinicId]/route.ts:83` arma `tiposCita` sólo de `config.duraciones`. Observado en /reservar/consultorio-demo-v10 (móvil, sin sesión): encabezados «Dra. …» y «¿Qué tipo de consulta deseas?», CONTROLES (1): sólo el botón de tema.",
+      "reproduccion": "Abrir /reservar/<clinicId> de un consultorio recién creado (duraciones vacías) o del sembrado del emulador.",
+      "impacto": {
+        "paciente": "El joven con datos limitados gasta la carga y no puede agendar; no sabe si es su teléfono o el consultorio.",
+        "medico": "Publica el enlace «Agendar cita en línea» de /dr/<id> y pierde pacientes sin enterarse.",
+        "negocio": "La puerta de entrada comercial de Practice (agenda pública) puede estar vacía en el trial de 14 días."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "Ninguno: `publicBookingEnabled` viene true sin comprobar que haya tipos, horarios ni médicos.",
+      "prioridad": "P2",
+      "propuesta": "Estado vacío honesto («Este consultorio aún no abrió su agenda en línea; llama al …») y, del lado del médico, que /dr y el enlace público no se ofrezcan hasta que haya al menos un tipo de cita con duración y un horario activo.",
+      "prueba_que_faltaria": "Prueba de render de ReservarPage con `tiposCita: []`: debe existir un mensaje y un teléfono/contacto. Hoy no hay nada.",
+      "que_no_cubre": "No cubre `horarios: {}` (día sin opciones) ni `medicos: []`.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-100"
+      ]
+    },
+    {
+      "id": "PO-007",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-1",
+      "modulo": "publico",
+      "tipo": "defecto",
+      "titulo": "El paciente «acepta el aviso de privacidad» que no puede leer (es texto en negrita, no un enlace) y «da su consentimiento informado» con una casilla al reservar",
+      "archivo": "src/app/reservar/[clinicId]/page.tsx",
+      "linea": 331,
+      "evidencia": "He leído y acepto el <strong …>aviso de privacidad</strong> …  (línea 337: Doy mi <strong>consentimiento informado</strong> para la atención médica solicitada.)  — `grep -n aviso` en el archivo sólo devuelve la línea 131 (payload) y la 331: no hay enlace, modal ni texto. El servidor lo exige (src/app/api/public/booking/route.ts:55) y lo guarda como consentimiento (línea 396).",
+      "reproduccion": "Recorrido por código (la reserva no llegó a este paso por PO-006): paso «Confirma y acepta».",
+      "impacto": {
+        "paciente": "Firma que leyó algo que nadie le enseñó; un adulto mayor no sabe qué acaba de aceptar.",
+        "medico": "Guarda un `avisoPrivacidad` «aceptado» que no se mostró: la constancia no vale lo que dice.",
+        "negocio": "Riesgo LFPDPPP; ya existe /privacidad/<clinicId> y `AvisoPrivacidadModal` (src/components/AvisoPrivacidadModal.tsx) para no inventar nada."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno en esta pantalla.",
+      "prioridad": "P2",
+      "propuesta": "Que «aviso de privacidad» sea un enlace a /privacidad/<clinicId> (o abra `AvisoPrivacidadModal`) y que la segunda casilla diga la verdad: «acepto ser contactado/atendido», no «consentimiento informado», que es un acto aparte (NOM-004) y no se otorga por casilla.",
+      "prueba_que_faltaria": "Prueba de accesibilidad/estructura: en el paso `consentimientos` existe un `<a href>` o botón que abre el aviso. Hoy no.",
+      "que_no_cubre": "No cubre el alta desde el consultorio (REG-107 ya lo trató).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-107"
+      ]
+    },
+    {
+      "id": "PO-008",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-2",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "titulo": "Cada apertura del portal gasta 4 peticiones (session + documentos + paquetes + preguntas) contra un tope clínico de 15 en 10 minutos: a la quinta apertura el paciente lee «No pudimos cargar tus recetas / el resumen de tus consultas»",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 254,
+      "evidencia": "`cargar()` dispara en paralelo `action: 'session'` (254), `'documentos'` (258), `'paquetes'` (276) y `'preguntas'` (289). El servidor cobra `portal:clinico` 15/600 s a documentos, paquetes y preguntas (src/app/api/portal/route.ts:331) y `portal:{clinic}:{patient}` 40/600 s a todo (320). Observado en el recorrido: «429 POST /api/portal» ×2 y en Cuidado: «No pudimos cargar el resumen de tus consultas…».",
+      "reproduccion": "Abrir el enlace clínico cinco veces en diez minutos (teléfono que se bloquea, volver del WhatsApp, refrescar) o dos personas con el mismo enlace.",
+      "impacto": {
+        "paciente": "Cree que el consultorio le quitó sus recetas; el joven con conexión mala refresca y empeora.",
+        "medico": "Recibe llamadas «ya no me aparece mi receta».",
+        "negocio": "El paquete se vende como «lo lee las veces que quiera» y a la quinta no puede."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El mensaje es honesto (H-01: «esto no significa que no tengas»); el límite general es fail-open.",
+      "prioridad": "P2",
+      "propuesta": "Presupuestar el límite por página abierta, no por acción (p. ej. 3 aperturas × 4 = 12 → tope clínico 40/10 min), o unir documentos+paquetes+preguntas en una sola acción `expediente` del portal.",
+      "prueba_que_faltaria": "Prueba: 6 cargas consecutivas del portal con el mismo token dentro de 10 min → ninguna devuelve 429. Hoy la quinta falla.",
+      "que_no_cubre": "No cubre el límite por IP (120/10 min) compartido por una familia con el mismo NAT.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-331"
+      ]
+    },
+    {
+      "id": "PO-009",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-6",
+      "modulo": "portal",
+      "tipo": "mejora",
+      "titulo": "Para justificar la incapacidad el paciente sólo puede reenviar el enlace clínico: siete días de expediente completo (citas con motivo, recetas con diagnóstico, plan con alergias, preguntas) y no hay documento de incapacidad ni «compartir sólo esto»; tampoco puede revocar desde su portal",
+      "archivo": "src/lib/patient-token.ts",
+      "linea": 26,
+      "evidencia": "const DIAS_DEFECTO = 7  — el token ata {c, p, a, v}: no hay alcance por documento. Perfil del portal (src/app/mi/[token]/page.tsx:1086-1088): «Este enlace es personal y caduca en unos días…» sin botón de revocar; revocar vive sólo en el expediente del médico (src/app/(dashboard)/expediente/[patientId]/page.tsx:662, «Invalidar»). Pedir «necesito mi incapacidad para el jefe» → ESCALATE (documento_firmado); no existe módulo de incapacidad/justificante (grep `incapacidad` en src: sólo la escalación).",
+      "reproduccion": "Recorrido: abrir el enlace clínico de pac-001 como «el jefe»: se ven nombre, citas, recetas con diagnóstico completo (PO-001), alergias «Penicilina (anafilaxia), sulfas, AINEs» y las preguntas hechas.",
+      "impacto": {
+        "paciente": "Para enseñar «tengo esguince, no puedo trabajar 10 días» entrega alergias, diagnósticos y lo que preguntó de madrugada; y si se arrepiente, tiene que llamar al consultorio.",
+        "medico": "Recibe la llamada para invalidar y volver a emitir; no tiene un justificante que emitir.",
+        "negocio": "El «documento» que más se comparte fuera (justificante) no existe como producto."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "TTL 7 días; revocación por el consultorio; el mensaje de WhatsApp avisa «no lo compartas» (src/components/AppointmentModal.tsx:420, src/lib/paciente/entrega-del-paquete.ts).",
+      "prioridad": "P2",
+      "propuesta": "(1) Documento «justificante/constancia» firmado por el médico, con su propio enlace de verificación público (como /verificar/[token]) que sólo diga fechas y firma; (2) botón «Invalidar mi enlace» en Perfil del portal (sube `portalTokenVersion`); (3) alcance por documento en el token (p. ej. `d: [notaId]`).",
+      "prueba_que_faltaria": "Prueba de `verificarTokenPaciente` con alcance por documento; hoy no existe el campo.",
+      "que_no_cubre": "No cubre el reenvío a un grupo familiar «para que le recuerden»: el enlace de agenda ya se pensó para eso.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-331"
+      ]
+    },
+    {
+      "id": "PO-010",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-6",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "titulo": "El enlace de AGENDA —el que emite cualquier asistente— devuelve al navegador el `motivo` clínico de cada cita y lo incrusta en el enlace «Agendar» de Google Calendar",
+      "archivo": "src/app/api/portal/route.ts",
+      "linea": 118,
+      "evidencia": "motivo: a.motivo,  (lista blanca de `leerCitasPaciente`, sin distinguir alcance). El propio token lo reconoce: src/lib/patient-token.ts:19 «—incluido el `motivo`, que es texto clínico—». En el recorrido con enlace de agenda: `a href=https://calendar.google.com/…&details=Ajuste%20de%20metformina` y cita con motivo «Control de presión».",
+      "reproduccion": "Recorrido: /mi/<token agenda de pac-001> → Hoy → «Agendar» (el href lleva el motivo); DevTools → respuesta de `session`.",
+      "impacto": {
+        "paciente": "El jefe con el enlace de citas ve «Ajuste de metformina» o «Valoración de VIH» en el evento de calendario y en la respuesta.",
+        "medico": "La asistente cree que manda «sólo la cita».",
+        "negocio": "PHI por el canal que menos se protege (calendario de terceros)."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "TTL 7 días y revocación; la tarjeta en pantalla no pinta el motivo (sólo el tipo).",
+      "prioridad": "P2",
+      "propuesta": "No devolver `motivo` con alcance `agenda` (o devolver sólo el tipo) y quitarlo del `details` del enlace de calendario en cualquier alcance.",
+      "prueba_que_faltaria": "Prueba de la respuesta `session` con token de alcance `agenda`: ninguna cita trae `motivo`. Hoy falla.",
+      "que_no_cubre": "No cubre el recordatorio de WhatsApp, que va por otro camino.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-011",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-2",
+      "modulo": "publico",
+      "tipo": "defecto",
+      "titulo": "«Tu opinión es anónima en la página pública», pero se publica «Nombre A.» del paciente",
+      "archivo": "src/app/resena/[token]/page.tsx",
+      "linea": 77,
+      "evidencia": "<p …>Tu opinión es anónima en la página pública.</p>  — `nombreAnonimizado` (src/lib/reviews.ts:155-161) devuelve `${partes[0]} ${partes[1][0]}.` y /dr la pinta (src/app/dr/[clinicId]/page.tsx:244: «— {nombreAnonimizado(r.pacienteNombre)}») y la mete en JSON-LD `author.name` (línea 127).",
+      "reproduccion": "Código: cualquier reseña con nombre y apellido.",
+      "impacto": {
+        "paciente": "«Rosalía M.» en la página pública de un ortopedista de ciudad chica identifica; ella escribió creyendo que era anónima.",
+        "medico": "Publica algo que prometió no publicar.",
+        "negocio": "Riesgo de privacidad y de confianza en la reseña."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "Se acorta el apellido a inicial; moderación antes de publicar.",
+      "prioridad": "P2",
+      "propuesta": "O la frase dice la verdad («se publica tu nombre y la inicial de tu apellido») con opción de anónimo, o `nombreAnonimizado` devuelve «Paciente» y se retira `author` del JSON-LD.",
+      "prueba_que_faltaria": "Prueba de `nombreAnonimizado('Rosalía Mendieta')` → no contiene «Rosalía». Hoy falla contra la promesa de la pantalla.",
+      "que_no_cubre": "No cubre el texto libre de la reseña, que puede identificar por sí mismo.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-012",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-4",
+      "modulo": "publico",
+      "tipo": "friccion",
+      "titulo": "En el Portal de Privacidad y en la reserva, «← Volver» mide 55×20 en móvil y la tarjeta de ARCO usa colores fijos, así que en tema oscuro el título del trámite queda gris claro sobre blanco (parece deshabilitado)",
+      "archivo": "src/app/privacidad/[clinicId]/page.tsx",
+      "linea": 187,
+      "evidencia": "<button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>← Volver  — medido en el recorrido móvil: `button \"← Volver\" pequeño(55x20)`; el <h2> de la línea 190 no fija color y hereda `var(--text)` del tema oscuro sobre una tarjeta blanca (11 colores hex fijos en el archivo). Misma pieza en src/app/reservar/[clinicId]/page.tsx:394 (`<ArrowLeft size={12} /> Volver`, fontSize 12, sin altura mínima).",
+      "reproduccion": "Recorrido: /privacidad/consultorio-demo-v10 en móvil → «Acceso (copia de mis datos)»; captura scratchpad/capturas-o/privacidad_consultorio-demo-v10-movil-1clicks.png.",
+      "impacto": {
+        "paciente": "Con una mano y 74 años no acierta al «Volver»; con baja visión no lee qué trámite está pidiendo.",
+        "medico": "—",
+        "negocio": "La compuerta de diseño exige 44×44 y 4.5:1; aquí no se cumple en la pantalla legalmente más sensible."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "La regla global de puntero grueso (globals.css:1704) cubre `.btn` y `button`, pero este botón inline la sortea en la medición.",
+      "prioridad": "P2",
+      "propuesta": "Usar `.btn btn-ghost` con `min-height: 44px` y tokens de tema (`var(--bg)`, `var(--text)`) en la tarjeta; comprobar contraste del h2 en los dos temas.",
+      "prueba_que_faltaria": "Prueba de accesibilidad (axe/objetivo táctil) sobre /privacidad y /reservar en móvil: hoy falla el tamaño.",
+      "que_no_cubre": "No cubre el resto de textos de 11.5-12.5 px del portal.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "A11Y-GATE-001"
+      ]
+    },
+    {
+      "id": "PO-013",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-1",
+      "modulo": "portal",
+      "tipo": "friccion",
+      "titulo": "La receta del portal se descarga como Word (.doc), sin QR de verificación ni membrete: un adulto mayor en el teléfono no la abre y la farmacia no la puede verificar",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 39,
+      "evidencia": "mostrarQR: false, (RECETA_CONFIG_DEFAULT, líneas 33-45) · `import { descargarRecetaWord } from '@/lib/receta-word'` (11) · botón «Descargar» (1056) → `descargarRecetaWord(` (432). `src/lib/receta-word.ts:3`: «Exportación de receta/orden a Word (.doc) editable».",
+      "reproduccion": "Recorrido: /mi/<token clínico> → Documentos → Descargar.",
+      "impacto": {
+        "paciente": "Un .doc en un Android de gama baja pide instalar Word; sin QR la farmacia desconfía; «editable» en manos de quien reenvía el enlace.",
+        "medico": "La receta que da en consulta (PDF, membrete, QR) y la del portal no se parecen: dos documentos del mismo acto.",
+        "negocio": "El diferenciador «QR de validación» de la landing no llega al canal del paciente."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "La receta impresa en consulta sí lleva QR/membrete.",
+      "prioridad": "P2",
+      "propuesta": "Servir el mismo PDF que imprime el médico (mismo `RecetaDocumento`, con QR y membrete) desde el servidor, y mostrarlo en pantalla antes de descargar.",
+      "prueba_que_faltaria": "Prueba: la receta del portal contiene el enlace de verificación. Hoy `mostrarQR:false` fijo.",
+      "que_no_cubre": "No cubre las órdenes de estudio, que no se pueden descargar del portal en absoluto.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-329"
+      ]
+    },
+    {
+      "id": "PO-014",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-3",
+      "modulo": "portal",
+      "tipo": "mejora",
+      "titulo": "No existe el cuidador: el padre agenda y consiente por el hijo de 15 como si fuera el paciente, el enlace del portal es «del menor», y el propio portal declara que no puede dar acceso a otra persona",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 1086,
+      "evidencia": "Este enlace es personal y caduca en unos días. Si necesitas que otra persona te ayude con tus citas, pídeselo al consultorio: todavía no podemos darle acceso desde aquí.  — el token ata `{ c, p, e, a, v }` (src/lib/patient-token.ts:47-70) sin quién lo usa; la reserva no pregunta edad ni relación (src/app/reservar/[clinicId]/page.tsx:337: «Doy mi consentimiento informado…»); `grep tutor|representante` en src: sólo el aviso de privacidad (src/lib/aviso-privacidad.ts:125).",
+      "reproduccion": "Recorrido: reserva como padre (código) y Perfil del portal (visto).",
+      "impacto": {
+        "paciente": "El padre no sabe si lo que ve es «suyo» o del hijo, quién firma, ni qué pasa cuando el hijo cumpla 18.",
+        "medico": "Sin bitácora de quién habló por el menor.",
+        "negocio": "La regla del producto (patient-facing-ai §8) pide autorización explícita y revocable; hoy es honesto pero inexistente."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El texto dice la verdad en vez de fingir un control (decisión documentada en la pantalla).",
+      "prioridad": "P2",
+      "propuesta": "Modelar «responsable» en el paciente (nombre, relación, teléfono, vigencia) con su propio enlace, bitácora y revocación; en la reserva, «¿agendas para ti o para alguien más?»; el consentimiento lo firma el responsable y así queda escrito.",
+      "prueba_que_faltaria": "Prueba de token con `responsable` y de que el portal pinta «Estás viendo la información de …».",
+      "que_no_cubre": "No cubre pacientes adultos con tutor legal ni el cambio de mayoría de edad.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-015",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "La orden de radiografía es texto libre y el catálogo dice «Radiografía de extremidades» sin lado: nada exige ni avisa lateralidad, así que el portal y la orden impresa dicen «izquierdo» sólo si el médico lo tecleó",
+      "archivo": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "linea": 342,
+      "evidencia": "const [estudios, setEstudios] = useState<string[]>([])  — catálogo línea 269: 'Radiografía de extremidades'; el paquete copia el texto tal cual (src/lib/paciente/paquete-de-visita.ts:341: `orders: (n.estudiosOrden ?? []).map(texto)`). `lateralidad_incierta` existe (src/lib/expediente/motivos-confirmacion-texto.ts:55) pero sólo para el dictado.",
+      "reproduccion": "Con el motor: «¿de qué lado era la radiografía?» → responde la orden literal; con `orders: ['Radiografía de tobillo']` respondería sin lado y el paciente no puede saber que falta.",
+      "impacto": {
+        "paciente": "Le toman el tobillo derecho; o pregunta y el portal le contesta una línea sin lado como si fuera completa.",
+        "medico": "Reescribe la orden cuando el laboratorio llama.",
+        "negocio": "Error de lateralidad = evento centinela."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El médico suele escribirlo; la corrección de dictado sí vigila el cambio derecha↔izquierda.",
+      "prioridad": "P2",
+      "propuesta": "Marcar en el catálogo los estudios de estructura par (extremidades, rodilla, hombro, mama…) y pedir lado al elegirlos; en «Entregar al paciente» avisar «esta orden no dice lado». Sin cifras: no requiere revisión clínica numérica.",
+      "prueba_que_faltaria": "Prueba: orden «Radiografía de tobillo» sin lado → aviso visible antes de imprimir/liberar. Hoy no hay ninguno.",
+      "que_no_cubre": "No cubre lateralidad en diagnósticos ni en procedimientos.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-016",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-1",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "El consentimiento de grabación dice que el audio «se conserva temporalmente en este dispositivo», pero en consultas largas se sube a Firebase Storage y puede quedar ahí hasta 24 h",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "linea": 7462,
+      "evidencia": "…se conserva temporalmente en este dispositivo por si la transcripción falla; el expediente guarda únicamente la transcripción de texto.  — `src/hooks/useGrabacionAudio.ts:616-620`: `const path = \\`consultas-audio/${uid}/…\\`; await uploadBytes(objRef, blob…)`; `src/lib/expediente/audio-caduco.ts:47`: `export const HORAS_DE_VIDA = 24` (cron limpiar-audio).",
+      "reproduccion": "Leer el modal al pulsar grabar; comparar con el camino largo de diarización.",
+      "impacto": {
+        "paciente": "Le dicen «en este dispositivo» y su voz —biométrica— viaja a un bucket en la nube.",
+        "medico": "Afirma al paciente algo que no es exacto; REG-032 cerró justo esto.",
+        "negocio": "Consentimiento parcialmente falso otra vez."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "El borrado en `finally` del hook + el cron de 24 h; el texto ya dice que se envía a un servicio de transcripción.",
+      "prioridad": "P2",
+      "propuesta": "Añadir una línea veraz: «para consultas largas el audio se guarda cifrado en la nube hasta 24 horas y luego se borra», con el número leído de `HORAS_DE_VIDA` para que no diverja.",
+      "prueba_que_faltaria": "Prueba de texto del modal: contiene `HORAS_DE_VIDA` y menciona la nube. Hoy no.",
+      "que_no_cubre": "No cubre el consentimiento verbal del paciente, que sigue siendo del médico.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-032"
+      ]
+    },
+    {
+      "id": "PO-017",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-1",
+      "modulo": "portal",
+      "tipo": "friccion",
+      "titulo": "Desde el portal del paciente y desde la página pública del médico no hay camino al Portal de Privacidad (ARCO): hay que conocer /privacidad/<clinicId>",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 1079,
+      "evidencia": "Perfil (1079-1100): idioma, texto del enlace y pie del consultorio; ningún enlace a /privacidad. `grep -n privacidad` en src/app/mi/[token]/page.tsx y src/app/dr/[clinicId]/page.tsx: sin resultados.",
+      "reproduccion": "Recorrido: Perfil del portal y /dr/consultorio-demo-v10.",
+      "impacto": {
+        "paciente": "Quiere sus datos y no encuentra dónde pedirlos; el adulto mayor no va a adivinar una URL.",
+        "medico": "—",
+        "negocio": "La página existe y funciona (recorrida): sólo falta la puerta."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno visible al paciente.",
+      "prioridad": "P3",
+      "propuesta": "Enlace «Mis datos y privacidad» en Perfil del portal y pie de /dr → /privacidad/<clinicId>.",
+      "prueba_que_faltaria": "Prueba de alcanzabilidad: /privacidad/<id> enlazado desde /mi y /dr.",
+      "que_no_cubre": "No cubre la entrega del expediente (lado del consultorio).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-018",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "portal",
+      "tipo": "mejora",
+      "titulo": "Preguntas de dosis y de receta se escalan (bien) pero con etiqueta equivocada para el consultorio: «¿cuánto ibuprofeno puedo tomar?» y «¿me puedo tomar dos juntos?» → «no está en el plan»; «¿me mandas otra receta?» → tampoco se etiqueta como receta",
+      "archivo": "src/lib/paciente/pregunta-del-paciente.ts",
+      "linea": 276,
+      "evidencia": "const PREGUNTA_POR_TOMA = /(como|cuando|cada cuando|cada cuanto|a que hora|cuantas veces|cuanto tiempo|hasta cuando|con que|en ayunas|con comida)/  — «cuanto» a secas no entra; `cambio_de_dosis` (155) no cubre «dos … juntos»; `prescripcion_o_receta` (171) exige «mandame … receta», no «me mandas otra receta». Resultado del motor: las tres → ESCALATE con motivo `no_esta_en_el_plan_liberado`.",
+      "reproduccion": "vitest sobre `clasificarPregunta` con plan sintético de ibuprofeno.",
+      "impacto": {
+        "paciente": "Se le escala (seguro); pero el consultorio lee «pregunta algo que no está en lo liberado» y prioriza mal una pregunta de dosis.",
+        "medico": "Triage del worklist con etiqueta engañosa.",
+        "negocio": "—"
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Escala por omisión (diseño correcto); seguridad intacta.",
+      "prioridad": "P3",
+      "propuesta": "Ampliar vocabulario: «cuanto … puedo», «dos/tres … juntos», «(me )?mandas? (otra|una) receta», y añadir los casos a evals/patient-ai.",
+      "prueba_que_faltaria": "Fixtures nuevos en casos.json con `motivoEscalacion` esperado. Hoy fallan.",
+      "que_no_cubre": "No cubre lenguas distintas del español ni errores de ortografía.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-362"
+      ]
+    },
+    {
+      "id": "PO-019",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-2",
+      "modulo": "publico",
+      "tipo": "friccion",
+      "titulo": "Un paciente que llega a la raíz o a /reservar sin identificador ve un 404 que le ofrece «Ir al dashboard»: la landing habla a médicos y no hay forma de encontrar a su ortopedista",
+      "archivo": "src/app/not-found.tsx",
+      "linea": 120,
+      "evidencia": "Ir al dashboard  — observado en /reservar (sin sesión, móvil): «404 · Página no encontrada · Reintentar · Ir al dashboard · Versión: nexusmed-v1185». La landing (/) sólo ofrece «Empezar gratis», «Ver el producto», «Ya tengo cuenta».",
+      "reproduccion": "Recorrido: / y /reservar sin sesión en móvil.",
+      "impacto": {
+        "paciente": "«Dashboard» y «versión del service worker» no significan nada para él; se va a llamar por teléfono.",
+        "medico": "—",
+        "negocio": "Decisión de producto (el enlace lo da el médico), pero el 404 no debería hablarle como sistema."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "El médico comparte /dr/<id> o /reservar/<id>.",
+      "prioridad": "P3",
+      "propuesta": "404 con dos caminos según quién eres: «¿Eres paciente? Pide a tu consultorio su enlace de citas» / «¿Eres médico? Ir a tu agenda»; ocultar la versión técnica.",
+      "prueba_que_faltaria": "Prueba de texto del not-found: sin la palabra «dashboard» para visitantes sin sesión.",
+      "que_no_cubre": "No cubre un directorio de médicos, que no existe por decisión.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "PO-020",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-5",
+      "modulo": "portal",
+      "tipo": "friccion",
+      "titulo": "Con el consultorio sin teléfono configurado, la escalación de madrugada no tiene vía: «Tu consultorio no dejó aquí un teléfono. Usa el número por el que agendaste tu cita»",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 850,
+      "evidencia": "Tu consultorio no dejó aquí un teléfono. Usa el número por el que agendaste tu cita, o pídeselo cuando vayas.  — observado en el recorrido (config sintética sin `whatsappConsultorio`/`telefonoAdmin`); `avisarAlConsultorio` no se intenta sin teléfono (route.ts: «Sin teléfono no se intenta nada»).",
+      "reproduccion": "Recorrido: Preguntar en /mi/<token clínico> con la clínica sembrada.",
+      "impacto": {
+        "paciente": "A las 2 a.m. su pregunta queda en un worklist que nadie mira y no tiene a quién llamar salvo 911.",
+        "medico": "No se entera hasta abrir Pendientes.",
+        "negocio": "Un consultorio en trial de 14 días arranca justo así."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "Texto honesto; tarea en Pendientes (REG-521); botón 911.",
+      "prioridad": "P3",
+      "propuesta": "Exigir teléfono/WhatsApp del consultorio antes de emitir un enlace con alcance clínico (o al liberar un paquete), y decirlo al médico en «Entregar al paciente».",
+      "prueba_que_faltaria": "Prueba: `/api/portal/link` con alcance `clinico` y config sin teléfono → 409 con mensaje. Hoy emite.",
+      "que_no_cubre": "No cubre que el teléfono exista pero nadie conteste.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-521"
+      ]
+    },
+    {
+      "id": "PO-021",
+      "panel": "paciente",
+      "rol": "paciente-ortopedia-1",
+      "modulo": "portal",
+      "tipo": "innecesario",
+      "titulo": "El Perfil del portal enseña «Idioma: Español (México)» como un dato que no se puede cambiar y una frase de disculpa: la pantalla existe para decir que no hace nada",
+      "archivo": "src/app/mi/[token]/page.tsx",
+      "linea": 1079,
+      "evidencia": "<h2 …>Tu perfil</h2> … Idioma · Español (México) · «Este enlace es personal y caduca en unos días… todavía no podemos darle acceso desde aquí.» (1079-1088). Recorrido: es el quinto destino de la barra y no ofrece ninguna acción.",
+      "reproduccion": "Recorrido: Perfil.",
+      "impacto": {
+        "paciente": "Un destino de cinco (el máximo móvil) gastado en un inventario sin acción.",
+        "medico": "—",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "La decisión de no fingir controles está documentada en el propio código (comentario 1068-1077).",
+      "prioridad": "P3",
+      "propuesta": "Fusionar: mover aquí lo útil (teléfono/dirección del consultorio ya están; añadir «Invalidar mi enlace» de PO-009 y «Mis datos y privacidad» de PO-017) o esconder «Perfil» hasta que tenga una acción. Recomendación: fusionar.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    }
+  ],
+  "recorridos": [
+    {
+      "arquetipo": "1 · Doña Eulalia, 74 años, fractura de muñeca derecha (mano útil: la izquierda), poca alfabetización digital, letra grande, móvil",
+      "dispositivo": "móvil 390×844 táctil, tema oscuro del sistema",
+      "pasos": [
+        {
+          "paso": "Agendar desde la página pública",
+          "entendi": 2,
+          "confie": 3,
+          "pude_solo": 1,
+          "seguro": 3,
+          "cita": "«Me dice ¿qué tipo de consulta deseas? y no hay nada que apretar. Pensé que era mi teléfono.» (/reservar/consultorio-demo-v10: 1 control, el del tema)",
+          "recorrido": "sí (móvil, sin sesión) — PO-006"
+        },
+        {
+          "paso": "Confirmar por WhatsApp",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 3,
+          "seguro": 4,
+          "cita": "«Recibí: ‘Recibimos tu solicitud… Te contactaremos para confirmar’. Me hubiera gustado que me dijera a qué número llamar si no me hablan.»",
+          "recorrido": "código (booking route.ts:434; msgConfirmacion en src/lib/whatsapp.ts:38)"
+        },
+        {
+          "paso": "Consentimiento de grabación",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 5,
+          "seguro": 3,
+          "cita": "«Me lo leyó la doctora: ‘se conserva temporalmente en este dispositivo’. Luego supe que va a la nube.» (consulta page.tsx:7459-7468)",
+          "recorrido": "código — PO-016"
+        },
+        {
+          "paso": "Consulta",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "«La doctora no miró la pantalla, eso me gustó.»",
+          "recorrido": "código (consulta page.tsx; no se puede dictar en el arnés)"
+        },
+        {
+          "paso": "Orden de radiografía en el portal",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 2,
+          "cita": "«En ‘Estudios que te pidió’ dice lo que la doctora tecleó. Si no puso ‘izquierda’, yo no lo sé.» (Cuidado: «Estudio de laboratorio de control»)",
+          "recorrido": "sí — PO-015"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 2,
+          "seguro": 2,
+          "cita": "«Descargar me bajó un archivo de Word y mi teléfono no lo abre. Y mi nieta me dijo que ahí salían diagnósticos que la doctora ya había descartado.»",
+          "recorrido": "sí (Documentos) + API — PO-001, PO-013"
+        },
+        {
+          "paso": "Preguntar a la IA",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«‘¿cada cuánto tomo el ibuprofeno?’ me contestó con lo que la doctora escribió y me dijo de qué consulta salió. Lo demás me dijo que lo contesta mi médico. Está bien.»",
+          "recorrido": "motor + portal (pac-002)"
+        },
+        {
+          "paso": "Pagar",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 4,
+          "cita": "«No me salió nada de pagar; la doctora me cobró en el consultorio.» (anticipo:null en la config sintética)",
+          "recorrido": "código (page.tsx pagarAnticipo → /api/payment/create-checkout)"
+        },
+        {
+          "paso": "Dejar reseña",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Dice que es anónima, pero mi nieta vio que sale ‘Eulalia R.’ en la página de la doctora.»",
+          "recorrido": "parcial (enlace inválido recorrido; texto en resena page.tsx:77) — PO-011"
+        },
+        {
+          "paso": "Pedir mis datos (ARCO)",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 2,
+          "seguro": 3,
+          "cita": "«El formulario lo entendí, pero ¿cómo llego ahí? Nadie me dio esa página. Y el botón ‘Volver’ es chiquito.»",
+          "recorrido": "sí (móvil) — PO-012, PO-017"
+        },
+        {
+          "paso": "Seguimiento (retiro de férula, ejercicios)",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "«Mi próxima cita sí sale. Los ejercicios que me dijo, no: están en el papel, y el papel se me perdió.»",
+          "recorrido": "sí (Cuidado) — PO-004"
+        }
+      ],
+      "veredicto_en_una_frase": "Con una mano se usa (barra abajo, botones grandes, letra legible), pero lo que más necesita —ejercicios, lado, una receta que se abra— no está en su portal, y lo que sí está (el Word) trae diagnósticos que no son suyos."
+    },
+    {
+      "arquetipo": "2 · Kevin, 19 años, esguince jugando fútbol, celular de gama baja y datos limitados",
+      "dispositivo": "móvil 390×844 táctil, servidor de desarrollo (peso no representativo de producción)",
+      "pasos": [
+        {
+          "paso": "Agendar desde la página pública",
+          "entendi": 2,
+          "confie": 2,
+          "pude_solo": 1,
+          "seguro": 3,
+          "cita": "«Cargó 5 MB para decirme ‘¿Qué tipo de consulta deseas?’ sin opciones. Cerré.»",
+          "recorrido": "sí — PO-006"
+        },
+        {
+          "paso": "Confirmar por WhatsApp",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "«El WhatsApp sí llegó y es corto.»",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consentimiento de grabación",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 5,
+          "seguro": 3,
+          "cita": "«Me lo dijo el doctor; a mí me da igual, pero que diga la verdad.»",
+          "recorrido": "código — PO-016"
+        },
+        {
+          "paso": "Consulta",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Orden de radiografía",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«‘¿qué me pidieron de radiografía?’ me contestó la orden textual. Bien, si el doctor puso el lado.»",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "«Cada vez que abría el enlace desde WhatsApp se recargaba todo; a la quinta me dijo ‘no pudimos cargar tus recetas’.»",
+          "recorrido": "sí — PO-008"
+        },
+        {
+          "paso": "Preguntar a la IA",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "«‘¿ya puedo manejar?’ y ‘¿puedo hacer ejercicio?’: me dijo que eso lo contesta mi médico y que ya quedó registrado. Ok, pero no me dio teléfono.»",
+          "recorrido": "motor + portal — PO-020"
+        },
+        {
+          "paso": "Pagar",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 4,
+          "cita": "«Sin anticipo en este consultorio.»",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Dejar reseña",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Cinco estrellas, fácil.»",
+          "recorrido": "parcial"
+        },
+        {
+          "paso": "Pedir mis datos (ARCO)",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Formulario claro; 20 días hábiles me parece mucho pero es la ley.»",
+          "recorrido": "sí"
+        },
+        {
+          "paso": "Seguimiento",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "«La fecha de la siguiente cita sí; el plan de rehabilitación, no.»",
+          "recorrido": "sí — PO-004"
+        }
+      ],
+      "veredicto_en_una_frase": "Funciona en su teléfono y se entiende, pero la primera pantalla pública puede estar vacía y el portal se bloquea si lo abre muchas veces desde WhatsApp."
+    },
+    {
+      "arquetipo": "3 · Don Rubén, padre de Mateo (15) con esguince; agenda, consiente y recibe el enlace él",
+      "dispositivo": "móvil y escritorio",
+      "pasos": [
+        {
+          "paso": "Agendar desde la página pública",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 2,
+          "cita": "«Puse mi teléfono y el nombre de mi hijo. Nadie me preguntó quién soy yo.»",
+          "recorrido": "código — PO-014"
+        },
+        {
+          "paso": "Confirmar por WhatsApp",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "«Me llegó a mí. Bien.»",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consentimiento de grabación",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Lo di yo por él; en la pantalla no queda quién lo dio.» (consulta page.tsx:1916 guarda fecha y medicoId, no quién consintió)",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consulta",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Orden de radiografía",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«‘Radiografía de tobillo’; me hubiera gustado que dijera izquierdo sin que yo lo pregunte.»",
+          "recorrido": "sí — PO-015"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 2,
+          "cita": "«El enlace dice ‘Hola, Mateo’. Soy yo el que lo usa. ¿Qué pasa cuando cumpla 18?»",
+          "recorrido": "sí + código — PO-014"
+        },
+        {
+          "paso": "Preguntar a la IA",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«‘Mi hijo de 15 tiene mucho dolor, ¿le doy ibuprofeno?’ → que lo contesta el médico. Correcto, pero ¿quién firma? Nadie sabe que escribo yo.»",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "Pagar",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Dejar reseña",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«La reseña saldría a nombre de mi hijo.»",
+          "recorrido": "código — PO-011"
+        },
+        {
+          "paso": "Pedir mis datos (ARCO)",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "«Pide ‘como aparece en tu INE’; mi hijo no tiene INE.»",
+          "recorrido": "sí"
+        },
+        {
+          "paso": "Seguimiento",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "«Perfil dice que ‘todavía no podemos darle acceso’ a otra persona. Al menos lo dicen.»",
+          "recorrido": "sí — PO-014"
+        }
+      ],
+      "veredicto_en_una_frase": "Todo funciona a nombre del menor y nada registra que quien actúa es el padre: honesto en la pantalla, inexistente en el modelo."
+    },
+    {
+      "arquetipo": "4 · Lucía, baja visión, lector de pantalla (NVDA/VoiceOver) y teclado",
+      "dispositivo": "escritorio 1440×900 con Tab; móvil para objetivos táctiles",
+      "pasos": [
+        {
+          "paso": "Agendar desde la página pública",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 2,
+          "seguro": 3,
+          "cita": "«El h1 es la doctora, el h2 la pregunta, y después nada: sin opciones no hay a dónde ir.»",
+          "recorrido": "sí — PO-006"
+        },
+        {
+          "paso": "Confirmar por WhatsApp",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consentimiento de grabación",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consulta",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Orden de radiografía",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Orden de foco: 911 → Confirmar → Reagendar → Cancelar → Agendar → formulario → barra. Foco visible (outline 2 px). Encabezados h1/h2/h3/h4 correctos; la urgencia es un aside con nombre. Ningún campo sin etiqueta.»",
+          "recorrido": "sí (Tab ×10)"
+        },
+        {
+          "paso": "Preguntar a la IA",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "«El campo tiene etiqueta de verdad y el botón anuncia ‘Enviando’.»",
+          "recorrido": "sí"
+        },
+        {
+          "paso": "Pagar",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Dejar reseña",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "«Las estrellas dicen su número y cuál está elegida.»",
+          "recorrido": "código (resena page.tsx:83-95)"
+        },
+        {
+          "paso": "Pedir mis datos (ARCO)",
+          "entendi": 2,
+          "confie": 3,
+          "pude_solo": 2,
+          "seguro": 2,
+          "cita": "«El título del trámite se ve gris sobre blanco (parece apagado) y ‘Volver’ mide 55×20.»",
+          "recorrido": "sí — PO-012"
+        },
+        {
+          "paso": "Seguimiento",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "sí"
+        }
+      ],
+      "veredicto_en_una_frase": "El portal es la pantalla mejor hecha para lector de pantalla del recorrido; la reserva y el portal de privacidad no están a su altura."
+    },
+    {
+      "arquetipo": "5 · Marco, 38 años, esguince con férula; escribe a las 2 a.m.",
+      "dispositivo": "móvil, sin teléfono del consultorio configurado",
+      "pasos": [
+        {
+          "paso": "Agendar desde la página pública",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "sí — PO-006"
+        },
+        {
+          "paso": "Confirmar por WhatsApp",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consentimiento de grabación",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 5,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Consulta",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Orden de radiografía",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "sí"
+        },
+        {
+          "paso": "«El pie se me puso morado y frío con la férula»",
+          "entendi": 3,
+          "confie": 2,
+          "pude_solo": 3,
+          "seguro": 1,
+          "cita": "«Me contestó: ‘Esta pregunta la tiene que contestar tu médico, no yo. Ya quedó registrada… Tu consultorio la tiene pendiente de revisar.’ Y ‘tu consultorio no dejó aquí un teléfono’. A las dos de la mañana.» Clase real: ESCALATE_TO_CLINICIAN (no urgente). Tampoco urgen «la férula me aprieta y no siento los dedos» ni «se me durmió el pie»; sí «no siento la pierna».",
+          "recorrido": "sí + motor — PO-003, PO-005, PO-020"
+        },
+        {
+          "paso": "«¿ya puedo manejar?» · «¿puedo cargar a mi hijo?»",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "ESCALATE_TO_CLINICIAN (no_esta_en_el_plan_liberado): ninguna la origina el modelo general. Correcto.",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "«¿cuánto ibuprofeno puedo tomar?»",
+          "entendi": 4,
+          "confie": 4,
+          "pude_solo": 4,
+          "seguro": 4,
+          "cita": "ESCALATE (etiquetada como ‘no está en el plan’ aunque el ibuprofeno sí está). No responde una dosis: correcto; etiqueta imprecisa (PO-018). «¿cada cuánto tomo el ibuprofeno?» → ANSWER_FROM_APPROVED_PLAN citando la instrucción con procedencia.",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "«¿cuándo me quito la férula?»",
+          "entendi": 3,
+          "confie": 4,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "ESCALATE: el plan liberado no lleva las indicaciones donde el médico lo escribió (PO-004). Nada de nivel 9: en este canal no hay modelo (pregunta-del-paciente.ts:10-24).",
+          "recorrido": "motor"
+        },
+        {
+          "paso": "Pagar / reseña / ARCO / seguimiento",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "código"
+        }
+      ],
+      "veredicto_en_una_frase": "La IA nunca inventa (no hay modelo detrás) y eso es lo mejor del producto; lo peor es que la única urgencia propia de su lesión se le contesta ‘pendiente de revisar’."
+    },
+    {
+      "arquetipo": "6 · Paola, 29 años, reenvía por WhatsApp su enlace del portal al jefe para justificar 10 días de incapacidad",
+      "dispositivo": "móvil (ella) y escritorio (el jefe)",
+      "pasos": [
+        {
+          "paso": "Agendar / confirmar / consentimiento / consulta",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "código"
+        },
+        {
+          "paso": "Orden de radiografía",
+          "entendi": 4,
+          "confie": 3,
+          "pude_solo": 4,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "sí"
+        },
+        {
+          "paso": "Receta / plan liberado",
+          "entendi": 3,
+          "confie": 2,
+          "pude_solo": 3,
+          "seguro": 1,
+          "cita": "«El jefe abrió el enlace y vio: mi nombre, mis citas con motivo, ‘Alergias: Penicilina (anafilaxia), sulfas, AINEs’, y en la receta un ‘diagnóstico’ con seis cosas, incluidas una ‘sospecha’ y una ‘descartada’.» (respuesta real de `documentos` con datos sintéticos)",
+          "recorrido": "sí + API — PO-001, PO-009"
+        },
+        {
+          "paso": "Preguntar a la IA",
+          "entendi": 3,
+          "confie": 2,
+          "pude_solo": 3,
+          "seguro": 1,
+          "cita": "«También vio lo que pregunté a las 2 a.m. (historial de ‘Preguntar’).» «‘necesito mi incapacidad para el jefe’ → que lo contesta el médico (documento_firmado). Correcto, pero entonces ¿qué le mando?»",
+          "recorrido": "sí + motor — PO-009"
+        },
+        {
+          "paso": "Vigencia y revocación",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 2,
+          "seguro": 2,
+          "cita": "«Siete días. Para cortarlo tengo que llamar al consultorio; en Perfil no hay botón.» Enlace vencido: «Este enlace ya no es válido o venció. Pide uno nuevo al consultorio.» (visto). Otro paciente con mi enlace: 404/lista vacía (token atado a {clinicId, patientId}; verificado con token de pac-002: sólo lo suyo).",
+          "recorrido": "sí — PO-009"
+        },
+        {
+          "paso": "Enlace de agenda (el que manda la asistente)",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 2,
+          "cita": "«Con ese enlace el jefe no ve recetas (‘Pide a tu médico el acceso’) pero sí el motivo de mis citas en el enlace de Google Calendar.»",
+          "recorrido": "sí — PO-010"
+        },
+        {
+          "paso": "Pagar / reseña / ARCO / seguimiento",
+          "entendi": 3,
+          "confie": 3,
+          "pude_solo": 3,
+          "seguro": 3,
+          "cita": "—",
+          "recorrido": "código"
+        }
+      ],
+      "veredicto_en_una_frase": "El aislamiento entre pacientes y la caducidad funcionan; lo que falla es que el único papel que ella puede compartir es todo su expediente, y ese papel además dice diagnósticos que no son suyos."
+    }
+  ],
+  "no_revisado": [
+    "Reserva pública más allá del primer paso (sin tipos de cita en el consultorio sintético): fecha, hora, datos y consentimientos sólo por código",
+    "Pago de anticipo (Stripe) y reseña con token válido: sólo por código",
+    "Peso real de la página en build de producción (5-6 MB medidos en el servidor de desarrollo no son representativos)",
+    "Envío real de WhatsApp (no hay proveedor en el emulador)",
+    "Firma de una nota nueva y liberación real de un paquete desde la consulta (dictado no reproducible en el arnés): la composición se auditó por código",
+    "Recordatorios (cron/reminders) y la teleconsulta"
+  ]
+}

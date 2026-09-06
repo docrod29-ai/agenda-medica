@@ -30,12 +30,21 @@ const PAYLOAD = resolve(process.cwd(), 'src/lib/pacientes/campos-que-se-guardan.
 const payload = readFileSync(PAYLOAD, 'utf8')
 
 describe('formulario corto de paciente — la pantalla', () => {
-  const inputVisible = (etiqueta: string) => fuente.includes(`className="label">${etiqueta}`)
+  /**
+   * ASE-020 (Panel de Lujo 2026-09) — las etiquetas llevan ahora `htmlFor`, así
+   * que entre `className="label"` y el texto hay un atributo. Se busca por el
+   * `>` de cierre de la etiqueta de apertura, que es lo que de verdad importa:
+   * que el texto siga siendo el rótulo de un `<label>`.
+   */
+  const inputVisible = (etiqueta: string) =>
+    new RegExp(`className="label"[^>]*>${etiqueta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(fuente)
 
   it.each([
-    'Nombre completo *',
+    'Nombre completo ',
     'Teléfono',
-    'Edad *',
+    // MP-017: el asterisco de «Edad» es condicional desde que la fecha de
+    // nacimiento la deriva — se exige sólo cuando no hay fecha.
+    'Edad ',
     'Fecha de nacimiento',
     'Sexo',
     'Servicio médico',

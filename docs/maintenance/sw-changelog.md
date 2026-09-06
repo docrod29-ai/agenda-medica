@@ -3,6 +3,65 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1187 — la auditoría del panel de lujo, reparada entera
+
+**269 archivos · 164 de código de producto · 47 regresiones documentadas
+(REG-605 … REG-651, 43 cerradas y 4 abiertas) · 1 ruta nueva (`api/arco/ligar`)
+· 0 pantallas nuevas · `firestore.rules` SÍ cambia (339 líneas) ·
+`firestore.indexes.json` no.**
+
+Salió numerada REG-556…602 y se renumeró al fusionar: `main` ya había dado esos
+números al programa que corría en paralelo. Tercera vez en este repositorio; el
+número lo da `main`, no la rama.
+
+### Antes de publicar
+
+Las reglas de Firestore **no las publica Vercel**. Van en el paso
+`FIRESTORE_RULES` del botón de producción. Mientras no corra, las 339 líneas
+nuevas están escritas y **no protegen nada**: qué no rige y qué se rompe
+mientras tanto está declarado fila por fila en `docs/ops/REGLAS-DE-FIRESTORE.md`.
+El aislamiento entre consultorios sí rige hoy — el equipo rojo lo probó contra
+el emulador y denegó los 13 ataques.
+
+### De dónde salió
+
+43 auditores simulados —ingeniería, seguridad, diseño, negocio, cinco
+especialidades médicas, treinta pacientes y cinco asistentes— con un equipo rojo
+que intentó REFUTAR cada hallazgo y una reproducción que fallaba para cada P0 y
+P1. De 493 hallazgos crudos quedaron 465 tras la refutación (28 refutados, un
+5.7 %). Diez rebanadas en paralelo, cada una con su bitácora en
+`docs/audit/panel-de-lujo-2026-09/reparacion/`.
+
+### Los cuatro P0
+
+- **Ningún cobro ligado a una cita se podía anular.** La transacción escribía y
+  leía después; Firestore la rechaza siempre. No era un caso raro: era todos.
+- **«Amoxicilina 5 mL cada 8 horas» se firmaba, se imprimía y llegaba al
+  cuidador sin decir de qué concentración.** Con 125 mg/5 mL y con 500 mg/5 mL
+  es la misma receta y cuatro veces la dosis.
+- **Cambiar de plan cancelaba la suscripción anterior sin abonar nada.**
+- **El anticipo del paciente caía en la cuenta de Stripe de la plataforma** y se
+  asentaba como ingreso del consultorio: el corte reportaba dinero que el médico
+  nunca recibió.
+
+### Lo que más se nota en la consulta
+
+La nota que dice un lado que el dictado no dijo ahora avisa, región por región.
+Un dictado que nombra a otro paciente pregunta antes de archivarse, igual que ya
+hacía un laboratorio. Una alergia escrita por clase —«cefalosporinas»— dispara
+sobre sus miembros, y «betametasona» dejó de bloquear la firma como si fuera un
+betalactámico. La pauta neonatal de gentamicina ya no se le ofrece a un escolar
+ni se elige a ciegas para un recién nacido: cuando sólo los días de vida separan
+dos pautas y no constan, se pregunta.
+
+### Lo que sigue abierto, y por qué
+
+Cuatro regresiones. Las cuatro esperan una **cifra clínica que sólo el dueño
+puede dar**: los veinte techos de adulto para fármacos pediátricos, cuál de los
+dos catálogos renales manda y con qué escala se dosifica, y la fuente de las
+dosis de profilaxis quirúrgica. El mecanismo que las declararía ya existe y
+avisa solo. No se rellenaron.
+
 ## v1186 — la rama de laboratorio se reencuentra con `main`, a la tercera
 
 **PUBLICADO Y VERIFICADO el 6-sep-2026**, ejecución #26 del botón, sobre el

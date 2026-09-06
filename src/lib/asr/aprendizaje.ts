@@ -44,7 +44,10 @@
  * Módulo PURO.
  */
 import { distancia, sustituciones } from '@/lib/asr/alineacion'
-import { CLASES_ERROR_CRITICO, PARES_PROHIBIDOS, UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
+import {
+  CLASES_ERROR_CRITICO, PARES_PROHIBIDOS, UNIDADES_CANONICAS,
+  esPalabraDeLateralidad, esPalabraDePolaridad, sonContrariasPorPrefijo,
+} from '@/lib/asr/politica-critica'
 import { redactarIdentificadores } from '@/lib/ia/minimizar-phi'
 
 const limpia = (s: string) =>
@@ -143,7 +146,7 @@ const IDENTIFICA_POR_PARECIDO = 4
  * Se prefiere bloquear de más: no aprender una palabra cuesta una corrección
  * más; un apellido en un vocabulario compartido no se puede deshacer.
  */
-function identifica(palabra: string, parte: string): boolean {
+export function identifica(palabra: string, parte: string): boolean {
   const w = limpia(palabra).trim()
   const e = limpia(parte).trim()
   if (!w || !e) return false
@@ -213,6 +216,24 @@ export function esAprendible(par: ParCorregido, identidad: IdentidadDelPaciente)
     const x = limpia(p.a), y = limpia(p.b)
     if ((a === x && b === y) || (a === y && b === x)) return false
   }
+  /**
+   * LATERALIDAD POR LEMA, NO POR FORMA (Panel de Lujo, MO-007).
+   *
+   * Los pares prohibidos son «derecha↔izquierda» y «derecho↔izquierdo» tal
+   * cual, así que «derecha → izquierdo», «derechas → izquierdas» o «bilateral →
+   * izquierdo» pasaban. El lado del paciente no se aprende en ninguna de sus
+   * formas: «derecho» ya está en la lista protegida del corrector y sesgar
+   * hacia él no aporta nada; aprender el par contrario enseña a equivocarse.
+   */
+  if (esPalabraDeLateralidad(a) || esPalabraDeLateralidad(b)) return false
+  /**
+   * NEGACIÓN (Panel de Lujo, B-012). La cabecera prometía este guardián y no
+   * existía: «afebril → febril» y «niega → refiere» se aprendían. Clase
+   * `volteo_negacion`: ninguna palabra de polaridad, y ningún par que sea la
+   * misma palabra con y sin prefijo de negación.
+   */
+  if (esPalabraDePolaridad(a) || esPalabraDePolaridad(b)) return false
+  if (sonContrariasPorPrefijo(a, b)) return false
   return true
 }
 

@@ -30,5 +30,14 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "scripts"]
+  "exclude": [
+    "node_modules",
+    "scripts",
+    // `docs/` es DOCUMENTACIÓN, no código de la aplicación. Las reproducciones
+    // de la auditoría viven ahí y se ejecutan con su propia configuración de
+    // vitest; comprobarlas como si fueran fuente convertía un artefacto de
+    // auditoría en un bloqueo del build. Cada reproducción que se repara se
+    // MUEVE a `src/__tests__/`, donde sí se comprueba y se sella.
+    "docs"
+  ]
 }

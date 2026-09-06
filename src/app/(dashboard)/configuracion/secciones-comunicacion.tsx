@@ -388,11 +388,11 @@ export function PerfilPublicoSection({ clinicId }: { clinicId: string | null }) 
       {/* Cédula + Bio */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <label className="t-caption" style={{ color: 'var(--text3)' }}>Cédula profesional</label>
-        <input className="input" value={cedula} onChange={e => setCedula(e.target.value)} placeholder="Ej. 1234567" style={{ maxWidth: 220 }} />
+        <input aria-label="Cédula profesional" className="input" value={cedula} onChange={e => setCedula(e.target.value)} placeholder="Ej. 1234567" style={{ maxWidth: 220 }} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <label className="t-caption" style={{ color: 'var(--text3)' }}>Biografía / presentación</label>
-        <textarea className="input" value={bio} onChange={e => setBio(e.target.value)} rows={4}
+        <textarea aria-label="Biografía / presentación" className="input" value={bio} onChange={e => setBio(e.target.value)} rows={4}
           placeholder="Experiencia, formación, enfoque de atención… (lo que le da confianza al paciente)" />
       </div>
 
@@ -401,9 +401,9 @@ export function PerfilPublicoSection({ clinicId }: { clinicId: string | null }) 
         <label className="t-caption" style={{ color: 'var(--text3)' }}>Precios por servicio</label>
         {precios.map((p, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input className="input" value={p.servicio} placeholder="Servicio (ej. Consulta)" style={{ flex: 1 }}
+            <input aria-label="Nombre del servicio" className="input" value={p.servicio} placeholder="Servicio (ej. Consulta)" style={{ flex: 1 }}
               onChange={e => setPrecios(ps => ps.map((x, j) => j === i ? { ...x, servicio: e.target.value } : x))} />
-            <input className="input" type="number" min={0} value={p.precio || ''} placeholder="$ MXN" style={{ width: 120 }}
+            <input aria-label="Precio del servicio en pesos" className="input" type="number" min={0} value={p.precio || ''} placeholder="$ MXN" style={{ width: 120 }}
               onChange={e => setPrecios(ps => ps.map((x, j) => j === i ? { ...x, precio: Number(e.target.value) } : x))} />
             <button className="btn btn-ghost btn-sm" onClick={() => setPrecios(ps => ps.filter((_, j) => j !== i))} title="Quitar"><Trash2 size={14} /></button>
           </div>
@@ -557,13 +557,13 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
                 <div style={{ padding: '10px 14px', background: 'var(--s1)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div style={{ flex: '1 1 220px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label className="t-caption" style={{ color: 'var(--text3)' }}>Nombre aprobado en Meta</label>
-                    <input value={cfg.plantillas[p.clave]?.name || ''} onChange={e => setNombre(p.clave, e.target.value)}
+                    <input aria-label="Nombre aprobado en Meta" value={cfg.plantillas[p.clave]?.name || ''} onChange={e => setNombre(p.clave, e.target.value)}
                       placeholder={p.nombreSugerido} className="input"
                       style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13 }} />
                   </div>
                   <div style={{ width: 110, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <label className="t-caption" style={{ color: 'var(--text3)' }}>Idioma</label>
-                    <input value={cfg.plantillas[p.clave]?.lang || 'es_MX'} onChange={e => setLang(p.clave, e.target.value)}
+                    <input aria-label="Idioma" value={cfg.plantillas[p.clave]?.lang || 'es_MX'} onChange={e => setLang(p.clave, e.target.value)}
                       placeholder="es_MX" className="input" style={{ fontSize: 13 }} />
                   </div>
                 </div>
@@ -582,17 +582,17 @@ export function PlantillasHsmSection({ clinicId }: { clinicId: string | null }) 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', opacity: cfg.silencio.activo !== false ? 1 : .5 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <label className="t-caption" style={{ color: 'var(--text3)' }}>Desde</label>
-                <input type="time" value={cfg.silencio.inicio || '21:00'} disabled={cfg.silencio.activo === false}
+                <input aria-label="Desde" type="time" value={cfg.silencio.inicio || '21:00'} disabled={cfg.silencio.activo === false}
                   onChange={e => setCfg(c => c && ({ ...c, silencio: { ...c.silencio, inicio: e.target.value } }))} className="input" style={{ fontSize: 13 }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <label className="t-caption" style={{ color: 'var(--text3)' }}>Hasta</label>
-                <input type="time" value={cfg.silencio.fin || '08:00'} disabled={cfg.silencio.activo === false}
+                <input aria-label="Hasta" type="time" value={cfg.silencio.fin || '08:00'} disabled={cfg.silencio.activo === false}
                   onChange={e => setCfg(c => c && ({ ...c, silencio: { ...c.silencio, fin: e.target.value } }))} className="input" style={{ fontSize: 13 }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <label className="t-caption" style={{ color: 'var(--text3)' }}>Máx. mensajes/día por paciente</label>
-                <input type="number" min={1} max={20} value={cfg.topeDiarioProactivo}
+                <input aria-label="Máx. mensajes/día por paciente" type="number" min={1} max={20} value={cfg.topeDiarioProactivo}
                   onChange={e => setCfg(c => c && ({ ...c, topeDiarioProactivo: Number(e.target.value) }))} className="input" style={{ width: 90, fontSize: 13 }} />
               </div>
             </div>

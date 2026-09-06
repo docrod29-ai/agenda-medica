@@ -32,10 +32,13 @@ import { readFileSync } from 'node:fs'
  *
  * ── QUÉ NO CUBRE, DECLARADO ──────────────────────────────────────────────────
  *
- * · **La búsqueda es por PREFIJO.** Un duplicado con el orden de los nombres
- *   cambiado —«López María» frente a «María López»— y sin teléfono en común no
- *   aparece. Antes tampoco aparecía por encima del techo, y de forma arbitraria;
- *   ahora el hueco es conocido y tiene forma. No se da por resuelto.
+ * · **La consulta al servidor sigue siendo por PREFIJO.** Desde ASE-001 (Panel
+ *   de Lujo 2026-09) el resultado se UNE al filtro local, así que el paciente
+ *   que YA está cargado se encuentra por cualquier trozo de su nombre. El que
+ *   está por encima del techo de REG-341 y cuyo apellido no es la primera
+ *   palabra sigue necesitando un índice normalizado (`nombreBusqueda`) en el
+ *   servidor: ése es el hueco que queda, conocido y con forma. No se da por
+ *   resuelto.
  * · **Un paciente sin campo `nombre` no sale en el listado** (Firestore omite de
  *   una consulta ordenada los documentos sin el campo del `orderBy`). Límite
  *   heredado de REG-341, con su golden.
@@ -57,17 +60,32 @@ describe('REG-347 · buscar es preguntar al servidor', () => {
     // Sin esto se enseñarían un instante los resultados de la búsqueda anterior
     // como si fueran de ésta — que en esta pantalla significa enseñar OTRO
     // paciente al que se está buscando.
-    expect(PAC).toMatch(/busquedaServidor\.q === search\.trim\(\)/)
+    expect(PAC).toMatch(/busquedaServidor\.q === q/)
   })
 
-  it('el filtro en memoria dejó de ser la respuesta final', () => {
-    // Sigue existiendo (por debajo de dos caracteres, y mientras la consulta
-    // viaja), pero el resultado del servidor manda cuando corresponde a este
-    // texto: se comprueba que la salida temprana esté ANTES del filtro local.
-    const iServidor = PAC.indexOf('if (busquedaServidor && busquedaServidor.q === search.trim()) return busquedaServidor.pacientes')
-    const iFiltro = PAC.indexOf('.filter(p => norm(p.nombre).includes(q)')
-    expect(iServidor).toBeGreaterThan(0)
-    expect(iFiltro).toBeGreaterThan(iServidor)
+  it('el resultado del servidor se UNE al filtro local, no lo sustituye', () => {
+    /**
+     * ── POR QUÉ ESTE CASO CAMBIÓ (ASE-001, Panel de Lujo 2026-09) ───────────
+     *
+     * Decía «el filtro en memoria dejó de ser la respuesta final» y comprobaba
+     * que la salida temprana `return busquedaServidor.pacientes` estuviera
+     * ANTES del filtro local. Esa salida temprana ERA el defecto: el servidor
+     * sondea por PREFIJO, así que su vacío significa «no empieza por», no «no
+     * está» — y buscar «iparraguirre» contestaba «Ninguno de los 6 expedientes
+     * coincide» de alguien visible dos líneas más abajo.
+     *
+     * REG-347 sigue entero y es por lo que este archivo existe: el servidor es
+     * lo que alcanza POR ENCIMA del techo de REG-341, y no se puede quitar. Lo
+     * que se corrige es la operación — unión, no sustitución—, y por eso este
+     * caso pasa de comprobar un ORDEN a comprobar que los dos suman.
+     *
+     * El golden del defecto vive en
+     * `el-vacio-del-servidor-no-pisa-el-acierto-local.test.ts`.
+     */
+    expect(PAC).toMatch(/unirResultadosDeBusqueda\(delServidor, locales\)/)
+    expect(PAC).toMatch(/patients\.filter\(p => coincideConLaBusqueda\(p, q\)\)/)
+    expect(PAC, 'el vacío del servidor volvió a pisar el acierto local')
+      .not.toMatch(/return busquedaServidor\.pacientes\s*$/m)
   })
 
   it('ya no se baja el directorio para comprobar duplicados', () => {

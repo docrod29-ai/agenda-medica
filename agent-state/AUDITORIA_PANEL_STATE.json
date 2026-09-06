@@ -1,0 +1,97 @@
+{
+  "programa": "Auditoría Panel de Lujo",
+  "prompt": "docs/ai/NEXUSMED_AUDITORIA_PANEL_DE_LUJO_MASTER_PROMPT.md",
+  "salida": "docs/audit/panel-de-lujo-2026-09/",
+  "rama": "claude/medical-app-audit-team-8c37y7",
+  "aprobado_por_dueno": "2026-09-06",
+  "fase_actual": 7,
+  "fases": {
+    "0_linea_base": {
+      "estado": "hecha",
+      "inventario": "hecho",
+      "vitest": "12876 pasan / 1 falla ambiental (ops-timeout-y-punto-ciego, proxy del contenedor)",
+      "lint": "93 = techo",
+      "build": "TS pasa; sin env falla en /dr/[clinicId] (Firebase al importar); con env del arnés compila",
+      "mantenimiento": "script no existe en package.json aunque CLAUDE.md lo cita",
+      "app_levantada": "sí — emuladores auth+firestore sembrados, next dev :3200, demo@nexusmed.test"
+    },
+    "1_auditoria_paralela": {
+      "estado": "hecha",
+      "oleada_1": {
+        "estado": "hecha"
+      },
+      "oleada_2": {
+        "estado": "hecha"
+      },
+      "oleadas_pacientes": {
+        "estado": "hecha",
+        "hechos": [
+          "P-interna",
+          "P-cirugia",
+          "P-gineco",
+          "P-ortopedia",
+          "P-pediatria"
+        ]
+      }
+    },
+    "2_refutacion": {
+      "estado": "hecha",
+      "archivos": 24,
+      "nota": "incluye oleada de cierre; ataques propios auto-verificados"
+    },
+    "3_reproduccion": {
+      "estado": "hecha",
+      "archivos": 43,
+      "casos_rojos": 103,
+      "controles_verdes": 83,
+      "salida": "reproducciones/SALIDA-FINAL.txt"
+    },
+    "4_riesgo": {
+      "estado": "hecha",
+      "lotes": 3,
+      "filas_nuevas": "R-01…R-53 en 09-RIESGOS-NUEVOS.md (numeración propia del archivo; se integra a RISK_REGISTER cuando el dueño decida)"
+    },
+    "5_completitud": {
+      "estado": "hecha",
+      "cobertura_final": "506/506 piezas con ≥1 auditor tras la oleada de cierre; 54 rutas y 21 públicas con un solo auditor"
+    },
+    "6_mejoras": {
+      "estado": "hecha",
+      "archivo": "08-MEJORAS-CLASE-MUNDIAL.md"
+    },
+    "7_entrega": {
+      "estado": "hecha",
+      "entregables": [
+        "00",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "reproducciones/",
+        "crudos/"
+      ]
+    }
+  },
+  "actualizado": "2026-09-06T09:05Z",
+  "incidente": "2026-09-06 ~04:30Z: límite de sesión (429) tumbó 10 agentes; el contenedor se reinició; todos los archivos escritos antes del corte estaban completos y válidos; relanzados a las 07:45Z",
+  "numeros_finales": {
+    "crudos": 493,
+    "confirmados": 370,
+    "parciales": 95,
+    "refutados": 28,
+    "P0": 4,
+    "P1": 44,
+    "P2": 186,
+    "P3": 231
+  },
+  "ejecuciones_de_agente": 61
+}

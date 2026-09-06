@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { getPatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { claveDeIntento } from '@/lib/idempotencia'
 import {
   listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento, listarMovimientos,
@@ -27,6 +28,37 @@ import {
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Modal } from '@/components/ui'
 import { describirVacioDeUnaLista, type RestriccionDeLista } from '@/lib/ui/vacio-de-una-lista'
+import { alergiasDe } from '@/lib/seguridad/alergias'
+import { validarAlergiasVsMedicamentos } from '@/lib/expediente/medical-dictionary'
+
+/**
+ * ¿LA ALERGIA DE ESTE PACIENTE CHOCA CON LO QUE SE VA A DISPENSAR? — MI-013.
+ *
+ * Cero motores nuevos: se leen las alergias del paciente con `alergiasDe` —el
+ * mismo lector que usa la receta, que ya sabe leer el campo estructurado y el
+ * texto libre— y se cruzan con `validarAlergiasVsMedicamentos`, el motor
+ * determinista que la firma de la nota ya usa. Aquí sólo se conectan.
+ *
+ * Un fallo de LECTURA no se traga: si no se pudo leer la ficha del paciente,
+ * devuelve la marca `NO_SE_PUDO_LEER` y el llamador avisa. Devolver «no hay
+ * alergias» porque falló la red sería la mentira de siempre, en el sitio donde
+ * más cara sale.
+ */
+export const NO_SE_PUDO_LEER = 'NO_SE_PUDO_LEER'
+
+async function alergiasQueChocan(clinicId: string, patientId: string, nombreDelItem: string): Promise<string[]> {
+  let paciente: Awaited<ReturnType<typeof getPatient>> | null = null
+  try {
+    paciente = await getPatient(clinicId, patientId)
+  } catch {
+    return [NO_SE_PUDO_LEER]
+  }
+  if (!paciente) return []
+  const alergias = alergiasDe(paciente as { alergias?: string })
+  if (alergias.length === 0) return []
+  const alertas = validarAlergiasVsMedicamentos(alergias, [{ nombre: nombreDelItem }])
+  return alertas.length ? alergias.map(a => a.alergeno) : []
+}
 
 export default function FarmaciaPage() {
   const { clinicId } = useClinic()
@@ -277,7 +309,7 @@ export default function FarmaciaPage() {
               }
               setCreando(false); setEditando(null)
               recargar()
-            } catch { toast('Error al guardar', 'error') }
+            } catch (e) { toast(noSePudo('guardar el medicamento', e), 'error') }
           }}
         />
       )}
@@ -320,7 +352,7 @@ export default function FarmaciaPage() {
               )
               setMoviendo(null)
               recargar()
-            } catch { toast('Error al registrar', 'error') }
+            } catch (e) { toast(noSePudo('registrar la salida', e), 'error') }
           }}
         />
       )}
@@ -600,6 +632,40 @@ function ModalMovimiento({ clinicId, item, tipo, onClose, onConfirmar }: {
     // badge en la lista. Aquí, en el acto de la salida, se exige confirmación.
     if (tipo === 'salida' && estaCaducado(item)) {
       if (!(await confirm(`⚠ Este lote está CADUCADO${item.caducidad ? ` (venció ${new Date(item.caducidad).toLocaleDateString('es-MX')})` : ''}. Dispensar medicamento caducado es un riesgo. ¿Continuar de todos modos?`))) return
+    }
+
+    /**
+     * LA ALERGIA SE CRUZA TAMBIÉN AQUÍ — Panel de Lujo MI-013.
+     *
+     * ── QUÉ FALLABA ────────────────────────────────────────────────────────
+     *
+     * El lote caducado era la ÚNICA guarda clínica de la salida: este archivo no
+     * importaba `alergias`, ni `alergiasDe`, ni `validarAlergiasVsMedicamentos`.
+     * El camino normal —dispensar contra una receta— sí cruza alergias en la
+     * receta, así que el hueco es el camino excepcional: la salida directa desde
+     * la farmacia del consultorio, que es la que esta pantalla ofrece.
+     *
+     * Mismo trato que el lote caducado, y a propósito: se AVISA, se puede
+     * continuar, y queda registrado. Bloquear la dispensación sería fijar
+     * política clínica, que no me toca.
+     */
+    if (esDispensacion && patientId && clinicId) {
+      const choques = await alergiasQueChocan(clinicId, patientId, item.nombre)
+      if (choques[0] === NO_SE_PUDO_LEER) {
+        /* No se pudo comprobar ≠ no hay alergia. Se dice, y se deja decidir. */
+        const ok = await confirm(
+          `No se pudieron leer las alergias de este paciente, así que «${item.nombre}» sale SIN cruzar alergias. ¿Dispensar de todos modos?`,
+          { peligro: true, confirmar: 'Dispensar sin comprobar' },
+        )
+        if (!ok) return
+      } else if (choques.length > 0) {
+        const ok = await confirm(
+          `⚠ ${pacienteElegido?.nombre ?? 'Este paciente'} tiene registrada alergia a ${choques.join(', ')}, ` +
+          `y «${item.nombre}» puede chocar con ella. ¿Dispensar de todos modos?`,
+          { peligro: true, confirmar: 'Dispensar de todos modos' },
+        )
+        if (!ok) return
+      }
     }
     setSaving(true)
     try {

@@ -216,7 +216,13 @@ describe('§21 en Hoy — la zona de continuidad también pregunta', () => {
        extracción que «simplifica» ese formato al mudarlo es un cambio de
        conducta disfrazado de refactor, y ninguna prueba de la cola lo vería
        porque la cola ya no tiene el código. */
-    expect(CODIGO_PIEZA).toMatch(/toLocaleString\('es-MX'[^)]*hour: '2-digit'[^)]*minute: '2-digit'/)
+    /* ZC-019 añadió `timeZone: zonaActiva()` a esta llamada —la fecha del hito
+       se leía en la zona del NAVEGADOR, no en la del consultorio— y con ello el
+       `timeZone` quedó delante de `hour`. El patrón se afloja para que siga
+       midiendo lo suyo, que es que la HORA no desapareció. */
+    expect(CODIGO_PIEZA).toMatch(/toLocaleString\('es-MX'[^}]*hour: '2-digit'[^}]*minute: '2-digit'/)
+    expect(CODIGO_PIEZA, 'y ahora también en la zona del consultorio (ZC-019)')
+      .toMatch(/timeZone: zonaActiva\(\)/)
     // Y la cola ya no lo tiene duplicado.
     expect(cuerpo(COLA)).not.toMatch(/function fechaLarga/)
   })

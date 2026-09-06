@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
+import { safeLog } from '@/lib/security/sanitize'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { TODOS_LOS_MODULOS, PAQUETES_SUGERIDOS, PAQUETES_VERSION } from '@/lib/modulos'
 import { randomUUID } from 'crypto'
 
@@ -87,7 +89,8 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => Number((a as Any).orden ?? 0) - Number((b as Any).orden ?? 0))
     return NextResponse.json({ ok: true, paquetes })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'error' }, { status: 500 })
+    safeLog.error('[superadmin/paquetes]', e)   // S-006: el texto del proveedor no viaja al cliente
+    return errorAlCliente()
   }
 }
 
@@ -134,7 +137,8 @@ export async function POST(req: NextRequest) {
     )
     return NextResponse.json({ ok: true, id })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'error' }, { status: 500 })
+    safeLog.error('[superadmin/paquetes]', e)   // S-006: el texto del proveedor no viaja al cliente
+    return errorAlCliente()
   }
 }
 

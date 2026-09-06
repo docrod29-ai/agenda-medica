@@ -288,31 +288,31 @@ export default function AntimicrobianosPage() {
             <div style={{ display: 'grid', gap: 10 }}>
               <div>
                 <label style={S.label}>Fármaco</label>
-                <select value={farmaco} onChange={e => setFarmaco(e.target.value)} style={S.input}>
+                <select aria-label="Fármaco" value={farmaco} onChange={e => setFarmaco(e.target.value)} style={S.input}>
                   {FARMACOS.map(f => <option key={f.drug} value={f.drug}>{f.drug}</option>)}
                 </select>
               </div>
               <div>
                 <label style={S.label}>Indicación</label>
-                <input value={indicacion} onChange={e => setIndicacion(e.target.value)} style={S.input} placeholder="meningitis, neumonía…" />
+                <input aria-label="Indicación" value={indicacion} onChange={e => setIndicacion(e.target.value)} style={S.input} placeholder="meningitis, neumonía…" />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}><label style={S.label}>Por dosis</label>
-                  <input value={porDosis} onChange={e => setPorDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Por dosis" value={porDosis} onChange={e => setPorDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
                 <div style={{ width: 80 }}><label style={S.label}>Unidad</label>
-                  <input value={unidad} onChange={e => setUnidad(e.target.value)} style={S.input} /></div>
+                  <input aria-label="Unidad" value={unidad} onChange={e => setUnidad(e.target.value)} style={S.input} /></div>
                 <div style={{ width: 90 }}><label style={S.label}>Tomas/día</label>
-                  <input value={tomas} onChange={e => setTomas(e.target.value)} style={S.input} inputMode="numeric" /></div>
+                  <input aria-label="Tomas/día" value={tomas} onChange={e => setTomas(e.target.value)} style={S.input} inputMode="numeric" /></div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}><label style={S.label}>Peso (kg)</label>
-                  <input value={peso} onChange={e => setPeso(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Peso (kg)" value={peso} onChange={e => setPeso(e.target.value)} style={S.input} inputMode="decimal" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>CrCl (mL/min)</label>
-                  <input value={crcl} onChange={e => setCrcl(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="CrCl (mL/min)" value={crcl} onChange={e => setCrcl(e.target.value)} style={S.input} inputMode="decimal" /></div>
               </div>
               <div>
                 <label style={S.label}>Estrategia</label>
-                <select value={estrategia} onChange={e => setEstrategia(e.target.value)} style={S.input}>
+                <select aria-label="Estrategia" value={estrategia} onChange={e => setEstrategia(e.target.value)} style={S.input}>
                   <option value="estandar">Estándar</option>
                   <option value="infusion_extendida">Infusión extendida</option>
                   <option value="infusion_continua">Infusión continua</option>
@@ -557,34 +557,34 @@ export default function AntimicrobianosPage() {
             </p>
             <div style={{ display: 'grid', gap: 10 }}>
               <div><label style={S.label}>Fármaco</label>
-                <select value={tFarmaco} onChange={e => setTFarmaco(e.target.value)} style={S.input}>
+                <select aria-label="Fármaco" value={tFarmaco} onChange={e => setTFarmaco(e.target.value)} style={S.input}>
                   {FARMACOS.map(f => <option key={f.drug} value={f.drug}>{f.drug}</option>)}
                 </select></div>
               <div><label style={S.label}>Indicación ({CUALQUIER_INDICACION} = cualquiera)</label>
                 <input value={tIndicacion} onChange={e => setTIndicacion(e.target.value)} style={S.input} /></div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}><label style={S.label}>Habitual / dosis</label>
-                  <input value={tUsualDosis} onChange={e => setTUsualDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Habitual / dosis" value={tUsualDosis} onChange={e => setTUsualDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Habitual / día</label>
-                  <input value={tUsualDia} onChange={e => setTUsualDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Habitual / día" value={tUsualDia} onChange={e => setTUsualDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}><label style={S.label}>Contexto / dosis</label>
-                  <input value={tCtxDosis} onChange={e => setTCtxDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Contexto / dosis" value={tCtxDosis} onChange={e => setTCtxDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Contexto / día</label>
-                  <input value={tCtxDia} onChange={e => setTCtxDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Contexto / día" value={tCtxDia} onChange={e => setTCtxDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}><label style={S.label}>Absoluto / dosis</label>
-                  <input value={tAbsDosis} onChange={e => setTAbsDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Absoluto / dosis" value={tAbsDosis} onChange={e => setTAbsDosis(e.target.value)} style={S.input} inputMode="decimal" /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Absoluto / día</label>
-                  <input value={tAbsDia} onChange={e => setTAbsDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
+                  <input aria-label="Absoluto / día" value={tAbsDia} onChange={e => setTAbsDia(e.target.value)} style={S.input} inputMode="decimal" /></div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ width: 90 }}><label style={S.label}>Unidad</label>
-                  <input value={tUnidad} onChange={e => setTUnidad(e.target.value)} style={S.input} /></div>
+                  <input aria-label="Unidad" value={tUnidad} onChange={e => setTUnidad(e.target.value)} style={S.input} /></div>
                 <div style={{ flex: 1 }}><label style={S.label}>Tipo de máximo</label>
-                  <select value={tTipo} onChange={e => setTTipo(e.target.value as TipoMaximo)} style={S.input}>
+                  <select aria-label="Tipo de máximo" value={tTipo} onChange={e => setTTipo(e.target.value as TipoMaximo)} style={S.input}>
                     {TIPOS_MAXIMO.map(t => <option key={t.valor} value={t.valor}>{t.etiqueta}</option>)}
                   </select></div>
               </div>
@@ -592,7 +592,7 @@ export default function AntimicrobianosPage() {
                 {TIPOS_MAXIMO.find(t => t.valor === tTipo)?.ayuda}
               </div>
               <div><label style={S.label}>Fuente (obligatoria)</label>
-                <input value={tFuente} onChange={e => setTFuente(e.target.value)} style={S.input}
+                <input aria-label="Fuente (obligatoria)" value={tFuente} onChange={e => setTFuente(e.target.value)} style={S.input}
                   placeholder="IDSA 2026 tabla 1 · ficha FDA · CLSI M100 Ed36…" /></div>
 
               {problemas.length > 0 && (

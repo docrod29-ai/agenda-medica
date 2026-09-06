@@ -1,0 +1,106 @@
+{
+  "auditor": "S-ciberseguridad",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "S-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "firestore.rules:174 (`allow update: if isMember(clinicId);` en `match /patients/{docId}`, línea 171) · src/app/api/arco/cancelar/route.ts:113 escribe {arcoBloqueo, portalTokenVersion}",
+      "nota": "Reproducido contra el emulador con las reglas REALES del repo (proyecto aparte `demo-redteam-s`, sin tocar la siembra; namespace borrado después). Sesión rol `secretaria`: update {arcoBloqueo:null, portalTokenVersion:0} → PERMITIDO; control negativo {cobroExento:true} sin motivo → DENEGADO (evaluation error at L151 → deny), así que la sonda SÍ puede fallar. Y las reglas del repo son las que rigen: sha256(firestore.rules)=1d91d707… == firestore.rules.estado.json:hashDesplegado. REFUTADO en parte el impacto: la mitad de «vuelve a recibir campañas» no ocurre — la baja la escribe `registrarBaja` en clinics/{id}/whatsapp_optout, que es `allow write: if false` (firestore.rules:669) y se consulta en CADA envío (src/lib/whatsapp-send.ts:182 y :315). Lo que sí resucita son los magic-links revocados (tokenVigente, src/lib/patient-token.ts:164). Bajo a P2: mitad del daño ya está contenida por el servidor y hace falta un miembro autenticado del mismo consultorio con consola. `relacionado: REG-331` está mal citado: REG-331 es accesibilidad de la superficie del paciente (regression-ledger.md:8736), no la revocación del portal."
+    },
+    {
+      "id": "S-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/types/index.ts:368-381 (CAMPOS_CLINICOS_PACIENTE + «Mientras esta lista no esté vacía… la aceptación de E0-06 NO se cumple») · firestore.rules:172-174 · src/lib/authz/matriz-acceso.ts:120 («PENDIENTE Fase B/C»)",
+      "nota": "Verificado en el emulador con rol `secretaria`: get de patients/p1 (con `alergias`) → PERMITIDO, y update {alergias:''} → PERMITIDO. La premisa se sostiene entera: no existe ningún escritor de `clinico/resumen` en producción (grep de ResumenClinicoPaciente / collection('clinico') sólo da matriz-acceso y tipos), así que los seis campos siguen enteros en `patients`, servidos bajo isMember. La cadena que el auditor dibuja también existe: alergiasParaImpreso alimenta RecetaDocumento.tsx:769, paquete-de-visita:169 y api/portal/route.ts:1066. Matiz que el auditor no dio: el borrado ACCIDENTAL desde la interfaz ya está cerrado por REG-323 (src/lib/pacientes/campos-que-se-guardan.ts:115: en modo secretaria `alergias` no viaja), así que lo que queda abierto es la LECTURA por rol no clínico —que es justo la aceptación declarada incumplida— y la escritura deliberada por consola. Se mantiene P1: es dato sensible, en producción, y el propio repositorio declara la aceptación no cumplida. Su cierre depende de la decisión D1 del dueño (firestore.rules:376-379)."
+    },
+    {
+      "id": "S-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/soporte/route.ts:28 (`slice(0, 3000)`, sin redactar) y :36-42 (`adminDb.collection('soporte').add({... clinicId: String(body.clinicId ?? ''), mensaje })`)",
+      "nota": "La evidencia coincide literalmente. El contraste con la ruta hermana es exacto: src/app/api/errores/route.ts:59-71 pasa `mensaje` y `stack` por redactarString() y `ruta` por redactarRuta(), con el comentario «esta colección es RAÍZ — se lee desde fuera del consultorio». En `soporte` no hay ninguna llamada a redactar*, y el formulario (src/components/SoporteSection.tsx:70, placeholder «Escribe aquí lo que quieras contarnos…») no advierte nada. Refuto sólo la segunda mitad de la propuesta: el `clinicId` del cuerpo no concede acceso a nada —la colección sólo la lee verificarSuperadmin (route.ts:53)— así que falsearlo etiqueta mal un ticket, no filtra datos de otro consultorio; el defecto real es la PROSA sin redactar. P2 correcto."
+    },
+    {
+      "id": "S-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/whatsapp-send.ts:366 (`adminDb.collection('whatsapp_channels').doc(apiKey).get()`) · src/app/api/whatsapp/360dialog-callback/route.ts:157 (`reclamarCanal(apiKey, clinicId, …)`) · src/lib/whatsapp/reclamar-canal.ts:66 (`collection('whatsapp_channels').doc(canal)`)",
+      "nota": "Las tres citas existen literalmente y la cadena cierra: el id del documento ES la api_key permanente. La contradicción con el propósito declarado también es literal (src/lib/whatsapp/secreto-canal.ts:5-18: el token se mudó a `secretos` porque «nunca debe viajar en claro fuera del gestor de secretos»). Busqué una línea que lo impidiera y no existe: `whatsapp_channels` no tiene bloque match, sólo el catch-all (firestore.rules:1210), que cierra al SDK cliente pero no quita la llave del nombre del recurso, de los logs de acceso a datos ni de una exportación. P2 correcto: el atacante ya tiene que estar dentro de la consola de Firestore o de los registros de Cloud."
+    },
+    {
+      "id": "S-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/authz-rutas-declaradas.test.ts:479 (`if (e.tipo === 'sesion' && !/verificarUsuario\\s*\\(/.test(src))`) · src/lib/authz/registro-rutas.ts:346 ('errores': tipo 'sesion') · src/app/api/errores/route.ts:40-41 (`const acceso = await verificarUsuario(req); const anonimo = !acceso.ok`)",
+      "nota": "Las tres líneas coinciden. Comprobé que no hay otro guardián que lo compense: ningún test de src/__tests__ mira `acceso.ok` sobre las rutas declaradas (grep sólo devuelve ops-timeout-y-punto-ciego.test.ts, que es otra cosa), y el segundo guardián de la misma suite (línea ~487) también es por PRESENCIA de la expresión regular de guardianes. Bajo a P3: la única ruta que hoy diverge lo hace por un motivo escrito, redacta y tiene freno propio por IP (errores/route.ts:48-50); el impacto declarado por el propio auditor es «ninguno hoy» y lo que queda es endurecer una prueba, no cerrar un agujero."
+    },
+    {
+      "id": "S-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/hospital/mutar/route.ts:573 · clinic/unirse/route.ts:95 (`motivo: e.message`, sin recortar) · clinic/crear/route.ts:111 · config/imagen/route.ts:52 · mantenimiento/backfill-contadores/route.ts:59 y :96 · auditoria/registrar/route.ts:109",
+      "nota": "Abrí los siete sitios: los siete existen en la línea citada (±0) y los siete devuelven `e.message` dentro de un NextResponse.json al cliente. Lo que agrava el hallazgo y el auditor no citó: la sección «Qué NO cubre» de REG-534 (docs/audit/regression-ledger.md:20066-20069) afirma «`err.message` … se buscó y hoy no hay ninguna en un NextResponse.json». Eso es falso a día de hoy — hay siete —, así que además de la fuga hay una entrada del expediente de regresiones que dice algo que no se cumple. P2 correcto: el mensaje del proveedor sólo aparece en el camino de error y cinco de las siete rutas ya recortan a 160-200 caracteres."
+    },
+    {
+      "id": "S-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "firestore.rules:151-158 (el `allow update` de `appointments` sólo mira `cobroExento`) · src/lib/firestore.ts:89 `updateAppointment` · src/components/CobrarModal.tsx:225",
+      "nota": "Reproducido en el emulador: rol `secretaria`, update {cobradoEn, cobroId, sobreagendada:true, sobreagendadaPor:'otro-uid'} → PERMITIDO; y el control {cobroExento:true} sin motivo → DENEGADO, o sea que la regla sí muerde donde dice. La premisa «el camino del cliente existe» es cierta: CobrarModal.tsx:225 y consulta/[patientId]:4455 escriben la cita con el SDK cliente. Aviso sobre la PROPUESTA, no sobre el hallazgo: congelar `cobroId` y `cobradoEn` como se propone ROMPERÍA CobrarModal.tsx:225-227, que es justo quien los escribe desde el navegador; sólo es viable la «alternativa de fondo» (pasar el cobro por la ruta transaccional) o congelar únicamente el bloque `sobreagendada*`. P2."
+    },
+    {
+      "id": "S-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "firestore.rules:999 (`allow update, delete: if isMember(clinicId);` en `match /reviews/{reviewId}`, línea 983) · src/app/dr/[clinicId]/page.tsx:48 y :56-57 (AggregateRating público a partir de las publicadas)",
+      "nota": "Línea 999 exacta. Reproducido en el emulador con rol `secretaria`: update {rating:5, texto:'Excelente', estado:'publicada'} sobre una reseña `pendiente` → PERMITIDO, y delete → PERMITIDO. El impacto público también se sostiene: /dr/[clinicId] es Server Component indexable que publica texto, nombre y promedio (schema.org Physician + AggregateRating) leyendo `where('estado','==','publicada')`. El patrón de arreglo que propone ya existe en el mismo archivo (hospital_alertas, firestore.rules:566). P2: hace falta un insider, pero el resultado es público y no deja rastro."
+    },
+    {
+      "id": "S-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "firestore.rules:811-816 (`match /membership_plans` y `match /memberships` con `allow read, write: if isMember(clinicId);`)",
+      "nota": "Líneas exactas. Reproducido en el emulador: rol `secretaria` borra clinics/c1/memberships/m1 → PERMITIDO. La premisa «es una función viva de Practice, no código muerto» la comprobé: src/lib/membresias.ts:75-76 escribe con el SDK CLIENTE desde src/app/(dashboard)/membresias/page.tsx y PanelPendientes.tsx. La asimetría que denuncia es real y está en el mismo archivo: `cobros` (firestore.rules:891-978) congela monto, método, autor, medicoId, folio y prohíbe delete, con su razonamiento escrito. P2."
+    },
+    {
+      "id": "S-010",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "firestore.rules:1210 (`match /{document=**} { allow read, write: if false }`) · src/lib/clinica/respaldo.ts:209-220 (RAIZ_EXCLUIDAS, con motivo por colección) · src/__tests__/el-indice-que-nadie-declaro.test.ts:415 (el único sitio donde existe `libro`)",
+      "nota": "El hueco de la matriz es real —MATRIZ_ACCESO sólo tiene entradas para colecciones con `match`—, pero el censo está mal en las dos direcciones y el impacto es nulo. `libro` NO es una colección: su única aparición en todo el repositorio es una CADENA DE PRUEBA dentro de un fixture de el-indice-que-nadie-declaro.test.ts:415; no hay ningún `adminDb.collection('libro')` en src/lib ni en src/app. Y falta `whatsapp_dedup` (src/lib/whatsapp/dedup.ts:43), que sí existe. Además, de los TRES sitios que exige security-tenant.md, dos ya las cubren: el catch-all las cierra y RAIZ_EXCLUIDAS las declara UNA POR UNA con su motivo (incluidas whatsapp_channels y oauthStates, las dos que el auditor destaca). Queda un solo registro sin cerrar, sin impacto declarado ni por el propio auditor: P3."
+    },
+    {
+      "id": "S-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "next.config.ts:43-45 (`process.env.CSP_MODE === \"enforce\" ? \"enforce\" : \"report-only\"`) y :133 (`script-src 'self' 'unsafe-inline' 'unsafe-eval' …`)",
+      "nota": "La evidencia coincide y `CSP_MODE` sólo se LEE en el repositorio (next.config.ts, seguridad/csp-estado:65 y :94, superadmin/csp:77) — no se fija en vercel.json ni en ningún script. Bajo a P3 por dos cosas que el hallazgo no pesa: (a) el único sumidero de HTML con datos de usuario que existe está escapado a mano contra este ataque exacto —src/app/dr/[clinicId]/page.tsx:139-143, con la auditoría 2026-07 citada en el comentario—, y los otros dos dangerouslySetInnerHTML son constantes del propio layout; (b) el propio auditor declara que desde el repositorio no se puede saber el modo de producción, y deployment-and-flags.md ya sitúa esa medición en `npm run e2e:seguridad:prod`. Es endurecimiento en profundidad sin vector demostrado, que es la definición de P3 aquí."
+    },
+    {
+      "id": "S-012",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": ".claude/rules/security-tenant.md:5 («Toda colección NUEVA se declara en TRES sitios… con la forma congelada») · firestore.rules:429, 471, 566, 707, 1027, 1100, 1136 (los hasOnly REALES) · firestore.rules:638-651, 802-807, 826-831, 784-788, 850-854",
+      "nota": "El vacío de guardián es real (no existe ningún test que exija forma congelada), y por eso el (a) de su propuesta se sostiene. Pero el censo con el que lo argumenta está mal en tres puntos, y el titular «8 de 68 · 12%» no resiste: (1) los hasOnly efectivos son SIETE, no ocho — el auditor cuenta dos veces clinic_review_requests, y `grep -c` da 9 porque dos de esas líneas son comentarios (1094 y 1129); (2) omite congelados por campo o por valor que sí existen y que hacen el mismo trabajo: `config/{docId}` congela camposDeIdentidadMedica con diff().hasAny (638-651), `farmacia` exige cantidad numérica >= 0 (802-807), `farmacia_movimientos` sella el autor y es inmutable (826-831), `chat` ata senderId al uid, `notification_logs` es create-only con update/delete: false (784-788) y `tareas_clinicas` prohíbe delete (850-854) — todas figuran en su lista de «acepta cualquier campo con cualquier valor»; (3) de las que enumera, `camas`, `unidades`, `dosing_validations`, `antimicrobial_limits`, `doctors` y `hospital_roles` son `write: if isMedico`, no «cualquier rol», y la mitad son del módulo hospital/UCI en pausa D-030. Y la regla citada habla de colecciones NUEVAS, no de un invariante retroactivo sobre las 68. Se queda en P3: sus cinco hijos (S-001, S-002, S-007, S-008, S-009) ya van confirmados con su prioridad propia y contarlo otra vez aquí sería duplicar."
+    },
+    {
+      "id": "S-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/mantenimiento/backfill-contadores/route.ts:31-35 · no hay ningún llamador: grep de 'backfill-contadores' sólo devuelve registro-rutas.ts, dos tests y documentación",
+      "nota": "Comprobé el grep del auditor y sale igual: ni src/app, ni src/components, ni src/hooks, ni src/lib, ni scripts, ni public llaman a esa ruta. Es un hallazgo de tipo `innecesario` (opinión de producto) con evidencia verificada, así que se confirma; la decisión de retirarla o subirla a superadmin es del dueño. Los controles que el propio auditor reconoce son ciertos y sostienen el P3: capacidad `administrar` sobre ESE consultorio (línea 35), `?simular=1`, e idempotente por recálculo —el encabezado :16-18 lo razona— así que ejecutarla dos veces no acumula."
+    },
+    {
+      "id": "S-014",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp/lista-espera.ts:53 (`HORAS_DE_GRACIA = 6`) y :66-77 (candidatos() excluye a los `contactado` con menos de 6 h) · src/lib/whatsapp/ofrecer-hueco.ts:168 (`LIMITE_NOTIFICAR = 3`) y :288 (`update({ estado: 'contactado', contactadoEn: new Date().toISOString() })`)",
+      "nota": "Es cierto que no hay `limitar*` en el archivo, pero la premisa del daño —«ráfaga» y «barrido de la lista entera con huecos distintos»— es falsa: el freno existe, sólo que no se llama rate limit. Cada llamada notifica como máximo 3 (ofrecer-hueco.ts:168-182) y a cada notificado le escribe `contactado` + `contactadoEn` (:288); candidatos() lo saca de la rueda 6 h (lista-espera.ts:66-77). O sea que el techo de mensajes NO es «por llamada», es |lista de espera| cada 6 h por consultorio, con N llamadas o con mil — que es exactamente lo que un limitarOResponder acotaría. Encima cada envío vuelve a comprobar la baja (src/lib/whatsapp-send.ts:315, `opts.proactivo && estaDadoDeBaja`) y omite a quien no tenga plantilla aprobada fuera de la ventana de 24 h. Con verificarMiembro delante (route.ts:25), no queda vector. Añadir el freno sigue siendo barato y ordenado, pero como defecto queda refutado."
+    }
+  ],
+  "ratio": { "total": 14, "confirmados": 11, "refutados": 1, "parciales": 2 },
+  "observaciones_del_auditor": "Auditor MUY sólido en lo puntual: las líneas citadas coinciden casi siempre al número exacto (999, 811, 573, 95, 111, 52, 59, 96, 109, 479, 346), y las cinco reproducciones sobre firestore.rules las verifiqué contra el emulador con las reglas reales y salieron todas PERMITIDO, con control negativo que sí deniega. No pude refutar ninguna por «evidencia no coincide». Tres patrones a vigilar. (1) SOBREVALORA EL IMPACTO AGUAS ABAJO: cita bien la línea abierta y luego encadena consecuencias sin comprobar si el siguiente eslabón ya está cerrado — en S-001 las campañas están bloqueadas por whatsapp_optout (write:false) y whatsapp-send:182; en S-002 el borrado accidental ya lo cerró REG-323; en S-014 el freno existe bajo otro nombre (HORAS_DE_GRACIA + marca `contactado`), que es lo que lo convierte en el único refutado. (2) CENSOS FLOJOS cuando el hallazgo es de inventario: en S-012 cuenta 8 hasOnly donde hay 7 (dos comentarios y un duplicado) y omite seis colecciones que sí congelan por campo o por valor; en S-010 incluye `libro`, que sólo existe como cadena dentro de un fixture de test, y se le escapa whatsapp_dedup. Los hallazgos de fuente concreta son mucho más fiables que sus agregados. (3) PROPUESTAS SIN COMPROBAR AL LLAMADOR: en S-007 propone congelar cobroId/cobradoEn, que es justo lo que escribe CobrarModal.tsx:225 desde el navegador — el arreglo, tal cual, rompe el cobro. En positivo: no infla prioridades (declara `probabilidad: baja` cuando lo es y pone P2/P3 en consecuencia), separa `defecto` de `mejora`/`innecesario` con honestidad, y sus secciones «qué no cubre» son exactas. Verifiqué además que estas reglas SÍ rigen en producción: sha256(firestore.rules) == firestore.rules.estado.json:hashDesplegado (1d91d707…), así que ninguno de los cinco hallazgos de reglas se puede refutar por «no llega a producción»."
+}

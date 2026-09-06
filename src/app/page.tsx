@@ -204,7 +204,12 @@ const PREGUNTAS = [
   },
   {
     q: '¿Qué pasa cuando terminan los 14 días?',
-    a: 'Te avisamos tres días antes. Si continúas, eliges plan y configuras el pago; si no, la cuenta se pausa sin borrar nada. Nunca se bloquea el consultorio entero por falta de tarjeta.',
+    // Aquí se prometía un aviso por correo «tres días antes» que no existe: no
+    // hay canal de correo en el repositorio y ningún cron mira el vencimiento
+    // de la prueba (N-005, Panel de Lujo 2026-09, P1). Decisión por omisión
+    // PL-D6: la portada dice lo que SÍ pasa —el aviso dentro de la aplicación—;
+    // el correo se construye antes de volver a prometerlo (ver handoff-DINERO).
+    a: 'Dentro de la aplicación ves cuántos días te quedan. Si continúas, eliges plan y configuras el pago; si no, la cuenta se pausa sin borrar nada. Nunca se bloquea el consultorio entero por falta de tarjeta.',
   },
   {
     q: '¿Sirve para cualquier especialidad?',

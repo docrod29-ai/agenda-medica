@@ -6,6 +6,8 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { fetchAutenticado } from '@/lib/auth-client'
+import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
+import { noSePudo } from '@/lib/texto-es'
 import { Users, Loader2 } from 'lucide-react'
 
 const mxn = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -17,22 +19,50 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
   const [cargando, setCargando] = useState(true)
   const [aplicando, setAplicando] = useState(false)
 
+  /**
+   * EL FALLO DE LECTURA SE VE — Panel de Lujo C-037.
+   *
+   * `.catch(() => {})` + `if (cargando || !st …) return null` hacían que la
+   * sección DESAPARECIERA cuando la lectura fallaba, con el mismo aspecto que
+   * cuando el consultorio no tiene cobro por asiento. Aquí se habla de dinero
+   * recurrente: no saber cuántos médicos se están cobrando y no saber que no se
+   * pudo preguntar son dos cosas distintas.
+   */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [falloAlActualizar, setFalloAlActualizar] = useState('')
+
   const cargar = useCallback(() => {
     setCargando(true)
     fetchAutenticado(`/api/stripe/asientos?clinicId=${encodeURIComponent(clinicId)}`)
-      .then(r => r.json()).then(d => { if (d.ok) setSt(d) }).catch(() => {}).finally(() => setCargando(false))
+      .then(r => r.json())
+      .then(d => {
+        if (d?.ok) { setSt(d); setFalloAlLeer(undefined) }
+        /* Una respuesta sin `ok` es un fallo del servidor, no un consultorio
+           sin asientos: antes se descartaba en silencio. */
+        else setFalloAlLeer(new Error(String(d?.error ?? 'respuesta sin ok')))
+      })
+      .catch((e: unknown) => { setFalloAlLeer(e ?? new Error('lectura fallida')) })
+      .finally(() => setCargando(false))
   }, [clinicId])
   useEffect(() => { cargar() }, [cargar])
 
   const actualizar = async () => {
     setAplicando(true)
+    setFalloAlActualizar('')
     try {
       const r = await fetchAutenticado('/api/stripe/asientos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId }) })
-      const d = await r.json(); if (d.ok) setSt(d)
-    } catch { /* noop */ } finally { setAplicando(false) }
+      const d = await r.json()
+      if (d?.ok) setSt(d)
+      else setFalloAlActualizar(noSePudo('actualizar el cobro'))
+    } catch (e) { setFalloAlActualizar(noSePudo('actualizar el cobro', e)) }
+    finally { setAplicando(false) }
   }
 
-  if (cargando || !st || !st.conAsientos) return null
+  if (cargando) return null
+  if (falloAlLeer !== undefined) {
+    return <NoSePudoLeer que="los médicos que se están cobrando" error={falloAlLeer} alReintentar={cargar} />
+  }
+  if (!st || !st.conAsientos) return null
   const extras = Math.max(0, st.medicos - 1)
 
   return (
@@ -58,6 +88,11 @@ export default function AsientosSection({ clinicId }: { clinicId: string }) {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 9, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: aplicando ? 'wait' : 'pointer' }}>
             {aplicando ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Actualizando…</> : `Actualizar cobro a ${st.medicos} médicos`}
           </button>
+          {falloAlActualizar && (
+            /* Que la actualización NO se aplicara es información: antes el
+               catch vacío dejaba el botón como si no hubiera pasado nada. */
+            <div role="status" style={{ marginTop: 8, fontSize: 12, color: 'var(--text)' }}>{falloAlActualizar}</div>
+          )}
         </div>
       )}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

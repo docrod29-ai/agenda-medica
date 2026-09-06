@@ -116,7 +116,13 @@ describe('el acuse: sin él no hay forma de demostrar qué se entregó', () => {
 
 describe('el panel ya no resuelve el Acceso escribiendo', () => {
   it('una solicitud de acceso se ejecuta, no se teclea', () => {
-    expect(panel).toContain("if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); return }")
+    /**
+     * Se afirma el CAMINO, no la línea entera: ASE-011 (Panel de Lujo 2026-09)
+     * añadió `setPorResolver(null)` al cerrar el diálogo que sustituyó al
+     * `prompt()`, y una comparación de la línea completa habría puesto en rojo
+     * una reparación que refuerza lo mismo que este caso protege.
+     */
+    expect(panel).toMatch(/if \(req\.tipo === 'acceso' && estado === 'resuelta'\) \{[^}]*entregarAcceso\(req\)/)
   })
 
   it('rechazarla SÍ sigue siendo un texto, y está explicado', () => {

@@ -1,0 +1,741 @@
+{
+  "rol": "ortopedia-traumatologia",
+  "fecha": "2026-09-06",
+  "revisado": [
+    {
+      "pieza": "docs/audit/panel-de-lujo-2026-09/BRIEFING-AUDITOR.md",
+      "veredicto": "sin hallazgo",
+      "nota": "leído completo"
+    },
+    {
+      "pieza": "docs/ai/NEXUSMED_AUDITORIA_PANEL_DE_LUJO_MASTER_PROMPT.md §2 §4.0 §4.2-G",
+      "veredicto": "sin hallazgo",
+      "nota": "leído"
+    },
+    {
+      "pieza": "CLAUDE.md + .claude/rules/clinical-safety.md + voice-asr.md + patient-facing-ai.md",
+      "veredicto": "sin hallazgo",
+      "nota": "leídos"
+    },
+    {
+      "pieza": "src/lib/asr/guardian-sustituciones.ts",
+      "veredicto": "con hallazgos",
+      "nota": "bloque 2 cuenta apariciones de derecho/izquierdo; bloque 4 sólo presencia. Cubre el intercambio con ambos lados presentes gracias al conteo (MO-015 pide la prueba)"
+    },
+    {
+      "pieza": "src/lib/asr/politica-critica.ts",
+      "veredicto": "con hallazgos",
+      "nota": "pares derecho↔izquierdo y derecha↔izquierda declarados (L86-89); lateralidad_incierta en MOTIVOS_CONFIRMACION (L107)"
+    },
+    {
+      "pieza": "src/lib/asr/pipeline.ts",
+      "veredicto": "con hallazgos",
+      "nota": "lateralidad_incierta sólo se emite desde una violación del guardián (L116)"
+    },
+    {
+      "pieza": "src/lib/asr/corrector-vigilado.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "reversión por frase, re-verificación del documento entero"
+    },
+    {
+      "pieza": "src/lib/asr/aprendizaje.ts",
+      "veredicto": "con hallazgos",
+      "nota": "par prohibido evaluado por coincidencia exacta de forma (L211-215)"
+    },
+    {
+      "pieza": "src/lib/asr/intencion-de-orden.ts",
+      "veredicto": "con hallazgos",
+      "nota": "estudiosSoloPropuestos depende de estudiosOrden, que el dictado nunca llena"
+    },
+    {
+      "pieza": "src/lib/asr/lexicon.ts + src/lib/asr/data/especialidades.json (Ortopedia y traumatología)",
+      "veredicto": "con hallazgos",
+      "nota": "critical_terms vacío para ortopedia"
+    },
+    {
+      "pieza": "src/lib/asr/especialidad-del-medico.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "ortopedia y traumatolog mapean al léxico correcto (L84-85)"
+    },
+    {
+      "pieza": "src/lib/asr/lo-que-pesa-de-un-error.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "lateralidad contada aparte, sin ponderar; correcto"
+    },
+    {
+      "pieza": "src/lib/asr/siglas.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "ninguna sigla expande a derecho/izquierdo (MID/MSD no existen)"
+    },
+    {
+      "pieza": "src/lib/expediente/medical-vocabulary.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "izquierdo/izquierda/derecho/derecha en la lista de palabras que el corrector no toca (L714); sólo 1 línea de vocabulario ortopédico"
+    },
+    {
+      "pieza": "src/lib/expediente/prompts.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sin regla de lateralidad; autoriza corrección silenciosa de términos mal oídos (L60-65); regla 4 sólo cubre corregir al paciente (L86)"
+    },
+    {
+      "pieza": "src/lib/expediente/extraction-schema.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sin campo de estudios ni de lateralidad en la extracción (L314-321)"
+    },
+    {
+      "pieza": "src/lib/expediente/medical-ner.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "lateralidad sólo en EntidadProcedimiento (L62-67); EntidadEstudio sin lado (L75-82)"
+    },
+    {
+      "pieza": "src/lib/expediente/el-procedimiento-que-no-quedo-escrito.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "REG-370; sólo antecedentes quirúrgicos, no órdenes"
+    },
+    {
+      "pieza": "src/lib/expediente/motivos-confirmacion-texto.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "texto de lateralidad_incierta correcto (L55-56)"
+    },
+    {
+      "pieza": "src/lib/expediente/avisos-consulta.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/expediente/procedencia.ts + cuando-se-dijo.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "control existente: origen por campo y pulsar-para-oír (REG-213/250); manual, no alerta"
+    },
+    {
+      "pieza": "src/lib/expediente/que-falta-para-cerrar.ts",
+      "veredicto": "con hallazgos",
+      "nota": "aDondeIrDirecto (L159-175) decide con hayEstudios"
+    },
+    {
+      "pieza": "src/lib/expediente/funcion-renal.ts",
+      "veredicto": "con hallazgos",
+      "nota": "REGLAS_RENALES (L223-261) sin ningún AINE y sin declaración de no vigilado"
+    },
+    {
+      "pieza": "src/lib/expediente/farmacovigilancia.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "AINE + anticoagulante/antiagregante cubierto (L55-68); no hay regla AINE+IECA/ARA+diurético"
+    },
+    {
+      "pieza": "src/lib/seguridad/dosis.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "ibuprofeno, naproxeno, ketorolaco con topes (L72-74); ausencia declarada como sin_referencia"
+    },
+    {
+      "pieza": "src/lib/seguridad/terapia-duplicada.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "dos AINE distintos declarado NOT_IMPLEMENTED (L35-37): caso no vigilado, bien declarado"
+    },
+    {
+      "pieza": "src/lib/seguridad/creatinina-para-la-receta.ts (vía receta)",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/expediente/fotos-clinicas.ts",
+      "veredicto": "con hallazgos",
+      "nota": "regiones sin articulaciones; notaId opcional"
+    },
+    {
+      "pieza": "src/components/FotosClinicas.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "fecha fija a ahora (L64)"
+    },
+    {
+      "pieza": "src/lib/subir-imagen.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/pdf-to-image.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/expediente/laboratorio/vision.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo transcribe laboratorios; un documento que no sea laboratorio devuelve vacío (regla 7). Ningún modelo describe radiografías: no hay lectura no validada"
+    },
+    {
+      "pieza": "src/lib/expediente/copiloto.ts + src/components/Copiloto.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "el copiloto no recibe imágenes"
+    },
+    {
+      "pieza": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "interacciones, dosis y ajuste renal cableados (L37-46, L167, L279-285)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Receta y Orden sólo con nota firmada (L391-397)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "estudiosOrden sólo desde nota recargada, borrador o valoración inmuno (L1547-1548, 2157, 3567, 3805, 6811)"
+    },
+    {
+      "pieza": "src/components/RecetaDocumento.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "imprime cada estudio literal (L566-575)"
+    },
+    {
+      "pieza": "src/lib/impreso-medico.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo firma/override; no toca estudios"
+    },
+    {
+      "pieza": "src/hooks/useFirmaProtegida.ts (vía orden/receta)",
+      "veredicto": "sin hallazgo",
+      "nota": "REG-014: sin firma resoluble no se estampa otra (orden L454-473)"
+    },
+    {
+      "pieza": "src/types/expediente.ts",
+      "veredicto": "con hallazgos",
+      "nota": "estudiosOrden?: string[] (L293)"
+    },
+    {
+      "pieza": "src/lib/encuentro/vocabulario-de-la-escucha.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/fhir/recursos.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sin ServiceRequest: las órdenes no salen en el bundle"
+    },
+    {
+      "pieza": "src/lib/tareas-clinicas/derivar.ts + modelo.ts + progreso-resultado.ts + reconciliacion.ts",
+      "veredicto": "con hallazgos",
+      "nota": "estudio_pendiente nace con el texto literal de la orden (derivar L97-103); nada lo cierra con un resultado de imagen"
+    },
+    {
+      "pieza": "src/lib/paciente/pregunta-del-paciente.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sin modelo de lenguaje; «¿puedo manejar?» cae al paso 5 y escala; «necesito una incapacidad» escala como documento_firmado (L185-189)"
+    },
+    {
+      "pieza": "src/lib/paciente/paquete-de-visita.ts",
+      "veredicto": "con hallazgos",
+      "nota": "orders sale de nota.estudiosOrden (L341); sin campo de restricciones de actividad/rehabilitación"
+    },
+    {
+      "pieza": "src/lib/paciente/urgencia.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "evals/patient-ai/casos.json",
+      "veredicto": "con hallazgos",
+      "nota": "ningún caso de restricción de actividad (manejar/cargar/apoyar)"
+    },
+    {
+      "pieza": "src/lib/herramientas-por-especialidad.ts",
+      "veredicto": "con hallazgos",
+      "nota": "ortopedia → tronco cirugia (L87, L112)"
+    },
+    {
+      "pieza": "src/lib/expediente/cirugia.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "ASA/RCRI/Caprini/Apfel/profilaxis; incluye ortopedia con implante (L199)"
+    },
+    {
+      "pieza": "src/lib/expediente/calculadoras.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sin calculadora ortopédica/trauma"
+    },
+    {
+      "pieza": "src/lib/expediente/guias-de-especialidad.ts",
+      "veredicto": "con hallazgos",
+      "nota": "guía ortoped (L125-130) no exige lateralidad"
+    },
+    {
+      "pieza": "src/lib/specialty-packages.ts + src/lib/especialidades.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "grep incapacidad|certificado|constancia en src/lib y src/app",
+      "veredicto": "con hallazgos",
+      "nota": "no existe documento de incapacidad/certificado; sólo la IA del paciente reconoce la petición para escalar"
+    },
+    {
+      "pieza": "docs/audit/regression-ledger.md (REG-244, REG-370, REG-059, REG-065/066)",
+      "veredicto": "con hallazgos",
+      "nota": "REG-244 cerrado con llave estudiosOrden"
+    },
+    {
+      "pieza": "agent-state/RISK_REGISTER.md + DECISION_LOG.md",
+      "veredicto": "sin hallazgo",
+      "nota": "sin entradas sobre lateralidad, órdenes de imagen ni AINE"
+    },
+    {
+      "pieza": "src/__tests__/asr-guardian-sustituciones.test.ts + aprendizaje-del-medico.test.ts",
+      "veredicto": "con hallazgos",
+      "nota": "lateralidad probada sólo con un lado presente; pares sólo en forma exacta"
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": "MO-001",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La lateralidad que queda escrita en la nota la decide el modelo de lenguaje y ningún motor la coteja contra el dictado: un «tobillo derecho… perdón, izquierdo» puede salir como derecho sin aviso",
+      "archivo": "src/lib/expediente/prompts.ts",
+      "linea": 60,
+      "evidencia": "Si un término se oyó mal de forma evidente (p. ej. \"hypotensión bacterial sistémica\" → \"hipertensión arterial sistémica\"; \"septriasona\" → \"ceftriaxona\"), escribe DIRECTAMENTE el término correcto, sin mostrar el error ni tu razonamiento de audio. [L60-63]  ·  «4. Si el médico CORRIGE al paciente, prioriza la corrección del médico» [L86] — no existe regla para cuando el médico se corrige a sí mismo, ni ninguna mención a lateralidad en las 884 líneas del prompt (grep lateral|lado|derech|izquierd: 0 reglas).  ·  Regla G (L52-58): «NUNCA escribas comentarios sobre la transcripción».",
+      "reproduccion": "Entrada sintética: dictado «esguince de tobillo izquierdo grado dos, solicito radiografía AP y lateral de tobillo derecho… perdón, izquierdo». El pipeline ASR no toca el texto (derecho/izquierdo están en la lista protegida de medical-vocabulary.ts:714 y el guardián sólo compara crudo vs corregido). El texto llega entero al prompt. El modelo debe resolver la retractación sin regla; lo que escriba en plan/diagnóstico no lo verifica ningún motor determinista: grep de «lateralidad» en src/lib/expediente sólo encuentra medical-ner.ts (procedimientos históricos), el-procedimiento-que-no-quedo-escrito.ts (REG-370, antecedentes) y motivos-confirmacion-texto.ts (texto del aviso). La única defensa es que el médico abra «¿de dónde salió esto?» y oiga el segundo (procedencia.ts, cuando-se-dijo.ts).",
+      "impacto": {
+        "paciente": "Una orden o un plan con el lado equivocado: radiografía del tobillo sano, inmovilización del lado sano, en el peor caso cirugía del lado equivocado en la referencia.",
+        "medico": "Responsabilidad medicolegal directa; la nota firmada afirma un lado que él no dijo, y la app no le marcó nada.",
+        "negocio": "Es el error que un ortopedista no perdona a una herramienta; un caso basta para perder el nicho quirúrgico."
+      },
+      "severidad": 5,
+      "probabilidad": "media",
+      "control_existente": "Procedencia por campo con source_quote (procedencia.ts) y pulsar-para-oír (REG-250, cuando-se-dijo.ts): manual, exige que el médico sospeche. El guardián ASR protege la lateralidad entre crudo y corregido, no entre dictado y nota.",
+      "prioridad": "P1",
+      "propuesta": "Motor determinista post-nota: extraer lateralidades (derecho/izquierdo/bilateral) por región anatómica del dictado y de la nota; si difieren, o si en el dictado la misma región lleva dos lados (retractación), emitir `lateralidad_incierta` en el gate y marcar la frase con procedencia. Añadir al prompt una regla explícita: ante autocorrección del médico manda lo último dicho, y la lateralidad se copia literal con source_quote obligatorio. No se decide aquí cuál lado es correcto: se pregunta.",
+      "prueba_que_faltaria": "Golden con dictado sintético de retractación de lado; hoy no existe ningún test que compare lateralidad nota↔dictado (grep lateral en src/__tests__ sólo cubre guardián ASR y REG-370). Fallaría hoy: la nota puede decir «derecho» y ningún motivo de confirmación aparece.",
+      "que_no_cubre": "No cubre lateralidad dicha sólo con gestos o por el paciente («me duele éste»); no cubre regiones sin lado (columna).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-213",
+        "REG-250",
+        "REG-370"
+      ]
+    },
+    {
+      "id": "MO-002",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La compuerta de ambigüedad sólo pregunta por lateralidad cuando el CORRECTOR la cambió; una contradicción dentro del propio dictado («rodilla derecha… la izquierda») nunca dispara «lateralidad_incierta»",
+      "archivo": "src/lib/asr/pipeline.ts",
+      "linea": 116,
+      "evidencia": "for (const v of [...vig.violaciones, ...post.violaciones]) { if (v.clase === 'volteo_negacion') motivos.add('negacion_incierta') else if (v.clase === 'cambio_lateralidad') motivos.add('lateralidad_incierta') … }  — el único productor de `cambio_lateralidad` es guardian-sustituciones.ts:170-184, que compara crudo vs corregido. grep 'lateralidad_incierta' en src (sin tests): pipeline.ts:116, politica-critica.ts:107, motivos-confirmacion-texto.ts:27,55. Ningún otro emisor.",
+      "reproduccion": "Dictado sintético «esguince de tobillo izquierdo… radiografía de tobillo derecho… perdón, izquierdo». El corrector no altera derecho/izquierdo (medical-vocabulary.ts:714 los protege) → cero violaciones → motivos = [] → el cuadro «Conviene confirmar antes de firmar» (consulta page.tsx:5663) no aparece.",
+      "impacto": {
+        "paciente": "El lado ambiguo llega a la nota sin que nadie pregunte.",
+        "medico": "Cree que la compuerta de ambigüedad vigila la lateralidad, porque el texto del motivo existe (motivos-confirmacion-texto.ts:55-56); en la práctica sólo vigila al corrector.",
+        "negocio": "Promesa de seguridad parcial: la política crítica declara el motivo pero el producto casi nunca lo emite."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno para contradicción intra-dictado. El gate además no bloquea la firma (consulta page.tsx:5658-5661, decisión del Dr.).",
+      "prioridad": "P1",
+      "propuesta": "Un detector puro en src/lib/asr (o expediente) que, por frase o por región anatómica, detecte dos lados para la misma estructura y palabras de retractación («perdón», «digo», «corrijo») y emita `lateralidad_incierta` con la frase. Se reutiliza el motivo existente; no se inventa uno nuevo (clinical-safety §6).",
+      "prueba_que_faltaria": "Test que pase por `ejecutarPipeline` el dictado de retractación y espere `lateralidad_incierta` en motivos; hoy devuelve [].",
+      "que_no_cubre": "No cubre la lateralidad correcta pero dicha para la estructura equivocada (tobillo vs rodilla).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-001",
+        "REG-065"
+      ]
+    },
+    {
+      "id": "MO-003",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La orden de imagen es texto libre: se puede imprimir y firmar «Radiografía de extremidades» sin lado, sin región ni proyección, y así llega al gabinete",
+      "archivo": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "linea": 269,
+      "evidencia": "'Imagen — Radiografía': [ 'Radiografía de tórax (PA y lateral)', 'Radiografía de abdomen (simple y de pie)', 'Radiografía de columna (cervical / dorsal / lumbar)', 'Radiografía de cráneo', 'Radiografía de pelvis', 'Radiografía de extremidades', ] [L263-270]  ·  const ordenVacia = estudios.filter(e => e.trim()).length === 0 [L557] es la única condición para Imprimir/PDF/Word (L609-617)  ·  estudiosOrden?: string[] (src/types/expediente.ts:293)  ·  RecetaDocumento.tsx:566-575 imprime cada cadena literal. grep lateral|derech|izquierd|proyecci|region en la pantalla de orden: 0 campos.",
+      "reproduccion": "Abrir /orden/{pid}/{notaId} de una nota firmada → categoría «Imagen — Radiografía» → clic en «Radiografía de extremidades» → Imprimir. Sale una orden firmada y con folio que no dice qué extremidad, qué lado ni qué proyección. Con estudio personalizado (L654-665) el lado depende de que el médico lo teclee.",
+      "impacto": {
+        "paciente": "El técnico radiólogo pregunta al paciente qué lado; en niños, ancianos o dolor bilateral se equivoca. Radiación y costo de un estudio inútil.",
+        "medico": "La orden no cumple lo que un gabinete necesita (región, lado, proyecciones); tiene que reescribirla a mano o el gabinete llama.",
+        "negocio": "Para el nicho ortopédico el producto se ve como hecho para laboratorio, no para imagen."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno: ni validación de lado en estudios de extremidad ni catálogo estructurado.",
+      "prioridad": "P1",
+      "propuesta": "Modelo de estudio de imagen estructurado (región · lateralidad · proyecciones · contraste) que se PINTA como texto en el impreso (una entidad, muchas vistas). Para regiones pares (extremidades, cadera, hombro, rodilla, tobillo, mano, pie) la lateralidad es obligatoria antes de imprimir; «bilateral» es un valor válido. Catálogo por articulación con proyecciones estándar (NEEDS_CLINICAL_REVIEW: qué proyecciones por región las fija un radiólogo/ortopedista, no el código).",
+      "prueba_que_faltaria": "Test de que una orden con estudio de región par sin lateralidad no pasa la compuerta de impresión; hoy `ordenVacia` es la única compuerta y pasa.",
+      "que_no_cubre": "No cubre órdenes de RM/TAC con protocolo; no cubre órdenes dictadas en hospital/UCI (en pausa, D-030).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-001",
+        "MO-004",
+        "MO-005"
+      ]
+    },
+    {
+      "id": "MO-004",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Los estudios dictados nunca llegan a `estudiosOrden`: con receta, al firmar se va directo a la receta y la orden se queda en el tintero — el caso que REG-244 dio por cerrado",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "linea": 4487,
+      "evidencia": "const destino = aDondeIrDirecto({ …, hayMedicamentos: medicamentos.length > 0, hayEstudios: estudiosOrden.length > 0, … }) [L4483-4490]  ·  // Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica) const [estudiosOrden, setEstudiosOrden] = useState<string[]>([]) [L1547-1548]  ·  setEstudiosOrden sólo en L2157 (nota recargada), L3567 y L3805 (borrador) y L6811 (ValoracionInmuno)  ·  extraction-schema.ts:314-321: la extracción devuelve resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales — sin estudios  ·  orden page.tsx:347-351: «ese campo sólo lo llena la Valoración del inmunocomprometido: en una consulta normal el médico elige los estudios AQUÍ»  ·  que-falta-para-cerrar.ts:172-173: if (pasos.length === 1 && !e.pideCobro) return pasos[0].ruta",
+      "reproduccion": "Consulta sintética de esguince: dictar «solicito radiografía AP y lateral de tobillo izquierdo» + un AINE. Generar nota, firmar. `estudiosOrden` = [] → hayEstudios=false → único paso = receta → router.push('/receta/…'). Ninguna pantalla ofrece la orden; el médico debe ir a /nota/{pid}/{notaId} y pulsar «Orden» (nota page.tsx:396). Además `estudiosSoloPropuestos(voz.transcripcion, estudiosOrden)` (L1637) siempre devuelve [] en consulta normal: el motivo `estudio_solo_propuesto` está escrito y sin conectar en la práctica.",
+      "impacto": {
+        "paciente": "Sale con receta y sin solicitud de radiografía; el gabinete no lo atiende sin papel.",
+        "medico": "Cree que el sistema «ya lo pensó» porque REG-244 lo prometió; descubre el hueco cuando el paciente regresa sin estudio.",
+        "negocio": "Regresión cerrada en el ledger que sigue viva en el camino más común de ortopedia y de medicina interna (estudios dictados, no elegidos en un panel de infectología)."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Botón «Orden» en la pantalla de nota firmada (nota page.tsx:396) y en expediente (expediente page.tsx:638); el guardián de REG-244 sólo prueba el caso con estudiosOrden ya poblado.",
+      "prioridad": "P1",
+      "propuesta": "Extraer los estudios solicitados del dictado como entidades auditadas (con source_quote y con `estudio_solo_propuesto` cuando el verbo es condicional) y poblar `estudiosOrden` en la consulta antes de firmar, con revisión visible del médico. Con eso `aDondeIrDirecto` y el paquete del paciente reciben el dato sin cambiar su lógica. Registrar la reaparición en el ledger de REG-244.",
+      "prueba_que_faltaria": "Test de que un dictado con «solicito radiografía…» produce estudiosOrden no vacío tras la extracción (hoy la extracción no tiene el campo) y que `queFaltaParaCerrar` devuelve receta Y orden.",
+      "que_no_cubre": "No cubre estudios que el médico decide después de cerrar la consulta; no cubre hospital/UCI.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-244",
+        "MO-005"
+      ]
+    },
+    {
+      "id": "MO-005",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Lo que se eligió en la pantalla de orden no se guarda en la nota: al reabrir la orden está vacía, el expediente no dice qué se pidió y la hoja del paciente lista cero estudios",
+      "archivo": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "linea": 358,
+      "evidencia": "const crearPendientesDeLaOrden = () => { … abrirPendientes(clinicId, tareasDeNota({ id: notaId, …, estudiosOrden: estudios, … }, ahora), 'orden', …) } [L358-371] — es la única escritura al emitir; grep updateNota|actualizarNota|setDoc|fetchAutenticado( en la pantalla: 0 resultados. Lectura: if (Array.isArray(n.estudiosOrden) && n.estudiosOrden.length) setEstudios(n.estudiosOrden) [L417]. logAudit sólo guarda meta { estudios: estudios.slice(0, 40) } [L609]. paquete-de-visita.ts:341: orders: (n.estudiosOrden ?? []).map(texto).filter(Boolean).",
+      "reproduccion": "Nota firmada sin estudiosOrden → /orden → elegir «Radiografía de extremidades» → Imprimir → volver a abrir /orden: lista vacía, folio idéntico (OM-…), se puede imprimir otra orden distinta con el mismo folio. Liberar el paquete del paciente: `orders` = []. Exportar FHIR: no existe ServiceRequest (fhir/recursos.ts sólo Patient, Condition, MedicationRequest, AllergyIntolerance, Observation).",
+      "impacto": {
+        "paciente": "Su hoja de la consulta no menciona la radiografía que le mandaron; en el portal no aparece.",
+        "medico": "El expediente longitudinal no registra la orden emitida salvo como tarea pendiente y como meta de auditoría truncada a 40; dos órdenes distintas pueden compartir folio.",
+        "negocio": "Rompe el invariante UN MODELO DE ORDEN · UNA LÍNEA DE TIEMPO: la orden vive en el papel y en una tarea, no en el expediente sellado (REG-059 sella estudiosOrden, pero llega vacío)."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "La tarea `estudio_pendiente` (derivar.ts:97-103) conserva el texto; el log de auditoría conserva hasta 40 nombres.",
+      "prioridad": "P1",
+      "propuesta": "Al emitir (imprimir/PDF/Word) persistir la lista en la nota como orden emitida versionada (adenda si la nota está firmada, para no romper el sello v3), o como entidad Orden con su propio id y folio derivado; que el paquete del paciente y el bundle FHIR lean de ahí.",
+      "prueba_que_faltaria": "Test de que tras emitir la orden la nota (o la entidad Orden) contiene los estudios y el folio; hoy no hay escritura que probar.",
+      "que_no_cubre": "No cubre órdenes emitidas fuera de la app; no cubre resultados de imagen (MO-009).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-004",
+        "REG-059",
+        "REG-411"
+      ]
+    },
+    {
+      "id": "MO-006",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Un AINE en paciente con depuración baja no dispara ninguna alerta renal, y el módulo no declara que no lo vigila",
+      "archivo": "src/lib/expediente/funcion-renal.ts",
+      "linea": 223,
+      "evidencia": "const REGLAS_RENALES: ReglaRenal[] = [ { terminos: ['vancomicina'] …}, meropenem, ertapenem, piperacilina, cefepime, ceftazidima, levofloxacino, ciprofloxacino, TMP-SMX, fluconazol, aciclovir…, aminoglucósidos, colistina, gabapentina/pregabalina, nitrofurantoina, metformina, enoxaparina, dabigatran/rivaroxaban/apixaban/edoxaban ] [L223-261] — ningún término AINE. Cabecera L1-14: «ajuste de dosis de antimicrobianos — núcleo de PROA». grep 'no vigil|no cubre' en el archivo: 0.  Contraste: farmacovigilancia.ts:55-68 SÍ cubre anticoagulante/antiagregante + AINE; terapia-duplicada.ts:35-37 SÍ declara «dos AINE… NOT_IMPLEMENTED».",
+      "reproduccion": "Receta sintética: naproxeno 500 mg c/12 h; creatinina tecleada o del expediente que dé CrCl bajo (receta page.tsx:262-285). `ajusteRenalFarmacos` recorre REGLAS_RENALES: sin coincidencia → alertasRenales = []. Igual con AINE + IECA/ARA + diurético (farmacovigilancia.ts:92-96 sólo cubre IECA/ARA + ahorrador de potasio).",
+      "impacto": {
+        "paciente": "Lesión renal aguda o hiperkalemia evitable en el adulto mayor con dolor articular, la consulta más común de ortopedia.",
+        "medico": "Ve el panel renal activo y asume que revisó su receta completa.",
+        "negocio": "Caso no vigilado sin declarar: viola clinical-safety §5 («señalar de menos… declararlo en el módulo»)."
+      },
+      "severidad": 4,
+      "probabilidad": "media",
+      "control_existente": "Regla AINE + anticoagulante/antiagregante (farmacovigilancia.ts:55-68); topes de dosis de ibuprofeno/naproxeno/ketorolaco (dosis.ts:72-74). Nada para función renal ni para la triple asociación.",
+      "prioridad": "P2",
+      "propuesta": "Añadir la clase AINE a REGLAS_RENALES con severidad y umbral — NEEDS_CLINICAL_REVIEW: umbral de CrCl y redacción los fija el dueño/nefrología con fuente citada; el código no propone la cifra. Mientras tanto, declarar en la cabecera del módulo que los AINE no se vigilan. Evaluar regla AINE + IECA/ARA + diurético en farmacovigilancia (también NEEDS_CLINICAL_REVIEW).",
+      "prueba_que_faltaria": "Test: `ajusteRenalFarmacos([{nombre:'naproxeno'}], dep con CrCl bajo)` devuelve al menos una alerta; hoy devuelve [].",
+      "que_no_cubre": "No cubre riesgo gástrico (gastroprotección) ni AINE tópicos; no cubre al paciente sin creatinina (ausencia de dato no es dato de ausencia).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-527",
+        "REG-026"
+      ]
+    },
+    {
+      "id": "MO-007",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El aprendizaje del dictado rechaza «derecha→izquierda» pero acepta «derecha→izquierdo» o «derechas→izquierdas»: el par prohibido se compara por forma exacta, no por lema",
+      "archivo": "src/lib/asr/aprendizaje.ts",
+      "linea": 211,
+      "evidencia": "// Los pares prohibidos por la política crítica, en cualquier dirección. for (const p of PARES_PROHIBIDOS) { const x = limpia(p.a), y = limpia(p.b); if ((a === x && b === y) || (a === y && b === x)) return false } [L211-215]; limpia sólo baja a minúsculas y quita acentos [L50-51]. PARES_PROHIBIDOS trae exactamente derecho↔izquierdo y derecha↔izquierda (politica-critica.ts:86-89). La prueba sólo recorre los pares tal cual (aprendizaje-del-medico.test.ts:83-86).",
+      "reproduccion": "esAprendible({ oido: 'derecha', corregido: 'izquierdo' }, identidad) → true (4 letras ≥ MIN_LONGITUD, sin cifra, sin unidad, no coincide con ningún par por el género). Dos correcciones así y la palabra entra al sesgo compartido del consultorio.",
+      "impacto": {
+        "paciente": "Bajo: lo aprendido «sólo sesga» (voice-asr.md) y ambas palabras son comunes; no reescribe nada.",
+        "medico": "Su corrección de lado, que casi siempre es corregir un error real de audio o suyo, se convierte en vocabulario aprendido: exactamente lo que la política dice que «no se aprende, ni una vez ni mil» (L26-27).",
+        "negocio": "Invariante declarado y no cumplido; el equipo rojo lo demuestra con una línea."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "Sólo sesgo, nunca sustitución; el aprendizaje exige dos vistas.",
+      "prioridad": "P2",
+      "propuesta": "Comparar por lema de lateralidad (derech*/izquierd* en cualquier género y número) y, más general, rechazar cualquier par cuyos dos miembros caigan en la clase `cambio_lateralidad`; ampliar la prueba con formas cruzadas de género y plural.",
+      "prueba_que_faltaria": "expect(esAprendible({oido:'derecha', corregido:'izquierdo'}, YO)).toBe(false) — hoy pasa como true.",
+      "que_no_cubre": "No cubre abreviaturas («der», «izq»: 3 letras, ya rechazadas por longitud) ni «bilateral».",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-065"
+      ]
+    },
+    {
+      "id": "MO-008",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Fotografía clínica está pensada para dermatología y heridas: no hay rodilla, tobillo, codo, muñeca, cadera ni columna como región, y la fecha es siempre «ahora», así que una radiografía traída de fuera no puede fecharse al día en que se tomó",
+      "archivo": "src/lib/expediente/fotos-clinicas.ts",
+      "linea": 42,
+      "evidencia": "REGIONES_AGRUPADAS: … { grupo: 'Extremidad superior', regiones: ['Hombro derecho', 'Hombro izquierdo', 'Brazo derecho', 'Brazo izquierdo', 'Antebrazo derecho', 'Antebrazo izquierdo', 'Mano derecha', 'Mano izquierda'] }, { grupo: 'Extremidad inferior', regiones: ['Muslo derecho', 'Muslo izquierdo', 'Pierna derecha', 'Pierna izquierda', 'Pie derecho', 'Pie izquierdo'] } [L42-49]  ·  FotosClinicas.tsx:63-67: crearFoto(…, { url, fecha: new Date().toISOString(), region, …, ...(notaId ? { notaId } : {}) }) — sin campo de fecha ni de tipo de estudio (foto/Rx/RM).",
+      "reproduccion": "Herramienta «Fotografía clínica» en consulta (consulta page.tsx:7111-7114) → el selector de zona (FotosClinicas.tsx:100-106) no ofrece rodilla ni tobillo; se elige «Pierna izquierda» o «Otra». Subir la foto de una radiografía tomada hace 3 días: queda fechada hoy.",
+      "impacto": {
+        "paciente": "Su radiografía queda archivada con fecha y región equivocadas; la comparación «antes/después» (parAntesDespues) ordena por una fecha falsa.",
+        "medico": "Etiqueta a mano en «Hallazgo»; la serie por región no sirve para articulaciones.",
+        "negocio": "La herramienta se ve ajena al tronco quirúrgico aunque esté en su lista por defecto (herramientas-por-especialidad.ts:112)."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Campo libre «Hallazgo»; región «Otra».",
+      "prioridad": "P2",
+      "propuesta": "Añadir regiones articulares con lado (hombro, codo, muñeca, cadera, rodilla, tobillo, columna cervical/lumbar), un campo «fecha de la toma» editable con valor por omisión hoy, y un tipo (foto clínica / imagen externa) que se pinte distinto. Ligar siempre a la nota abierta.",
+      "prueba_que_faltaria": "Test de que REGIONES incluye articulaciones pares con ambos lados y de que crearFoto acepta fecha distinta de hoy.",
+      "que_no_cubre": "Si la foto se toma antes del primer autoguardado, notaId es undefined (consulta page.tsx:7114) y la foto queda sin nota; no se resuelve aquí. No cubre lectura de la imagen (no existe, ver revisado).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "MO-009",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Un resultado de imagen no tiene dónde vivir: la lectura de documentos sólo acepta laboratorios, y la tarea «estudio pendiente» de una radiografía nunca se cierra con un resultado",
+      "archivo": "src/lib/expediente/laboratorio/vision.ts",
+      "linea": 40,
+      "evidencia": "7. Si el documento no es un laboratorio, devuelve {\"pacientes\":[],\"fecha\":\"\",\"filas\":[]} [L40]  ·  progreso-resultado.ts:55: const TIPOS_DE_RESULTADO = new Set(['estudio_pendiente', 'resultado_por_revisar']) — el cierre depende de resultados de laboratorio; grep imagen|radiograf en src/lib/tareas-clinicas: 0.  ·  El copiloto no recibe imágenes (copiloto.ts, única mención L788 es texto).",
+      "reproduccion": "Orden de radiografía emitida → tarea estudio_pendiente «Radiografía de extremidades». El paciente trae el informe en PDF: al subirlo por Laboratorios el modelo devuelve vacío (regla 7); la única alternativa es Fotografía clínica (MO-008). La tarea sigue «esperando resultado» hasta que alguien la cierre a mano.",
+      "impacto": {
+        "paciente": "Su informe de imagen queda como foto suelta o fuera del expediente; la trayectoria no lo ve.",
+        "medico": "El worklist de pendientes se llena de radiografías que sí llegaron.",
+        "negocio": "La promesa de «resultados que llegan y se revisan» (REG-360) es sólo de laboratorio."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "Cierre manual de la tarea en /pendientes con constancia (pendientes page.tsx:669).",
+      "prioridad": "P2",
+      "propuesta": "Entidad «resultado de imagen» (informe textual + archivo + región + lado + fecha del estudio) ligada a la orden y a la tarea; si un modelo transcribe el informe, se marca como transcripción no validada hasta que el médico la revise, igual que el laboratorio. El copiloto no describe la imagen.",
+      "prueba_que_faltaria": "Test de que un resultado de imagen registrado cierra o avanza la tarea estudio_pendiente de esa orden.",
+      "que_no_cubre": "Interpretación automática de la imagen: fuera de alcance y no deseable sin validación.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-360",
+        "MO-005"
+      ]
+    },
+    {
+      "id": "MO-010",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "No existe incapacidad, certificado médico ni constancia de asistencia: el documento que un ortopedista firma varias veces al día se hace fuera de la app y sin la firma protegida",
+      "archivo": "src/lib/paciente/pregunta-del-paciente.ts",
+      "linea": 185,
+      "evidencia": "motivo: 'documento_firmado', prueba: t => /(certificado|constancia|incapacidad|justificante|comprobante medico|carta medica)/.test(t) && /(genera|generame|hazme|dame|necesito|quiero|puedes hacer|emite|emiteme)/.test(t) [L185-189] — es la ÚNICA aparición funcional de «incapacidad/certificado» en src (grep -rli incapacidad|certificado médico|constancia en src/lib y src/app: el resto son «sinCapacidad», «Constancia de Situación Fiscal» y «queda constancia»). El paciente lo pide y se escala; el médico no tiene con qué contestar.",
+      "reproduccion": "Buscar en la consulta, la nota, el expediente o configuración un botón para emitir incapacidad/certificado: no hay ruta (inventario 00-INVENTARIO.md no la lista).",
+      "impacto": {
+        "paciente": "Se va sin el papel para su trabajo o escuela, o con uno hecho en Word sin folio ni QR.",
+        "medico": "Fricción diaria; el documento con más carga legal (falsedad en certificados) sale sin trazabilidad ni firma protegida (REG-014).",
+        "negocio": "Requisito de entrada para vender a ortopedia, medicina del trabajo y consultorio general."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno.",
+      "prioridad": "P2",
+      "propuesta": "Documento «Certificado / incapacidad» que reutilice RecetaDocumento (membrete, firma protegida, folio derivado de la nota, QR), con campos: diagnóstico impreso (misma regla que receta, REG-516), días y fechas, restricciones de actividad; sellado en el expediente y visible en el portal como documento liberado. Reglas de formato IMSS/privado: NEEDS_CLINICAL_REVIEW/legal.",
+      "prueba_que_faltaria": "No aplica todavía (función inexistente); la prueba nacería con el módulo.",
+      "que_no_cubre": "Incapacidades IMSS oficiales (las emite el IMSS) — sólo certificado privado.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-014"
+      ]
+    },
+    {
+      "id": "MO-011",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Consulta de esguince de siete minutos: nota + orden + receta + incapacidad cuestan tres pantallas, una categoría desplegable, un estudio tecleado a mano y un documento que no existe",
+      "archivo": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+      "linea": 391,
+      "evidencia": "{nota.estado === 'firmada' && ( <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)}>Receta</button> <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)}>Orden</button> )} [L391-397]  ·  consulta page.tsx:1547: «Estudios a solicitar (valoración inmuno → pre-pobla la Orden médica)» — no hay sección de estudios en la consulta normal  ·  orden page.tsx:646-665: estudio personalizado = botón «Otro» → input → «Agregar».",
+      "reproduccion": "Recorrido sintético: dictar → generar nota → revisar → firmar (con AINE: va solo a /receta) → imprimir receta → ir a la nota → «Orden» → abrir «Imagen — Radiografía» → «Otro» → teclear «Radiografía AP y lateral de tobillo izquierdo» → Agregar → Imprimir → incapacidad: salir de la app. Conteo mínimo desde la firma: 8-10 clics más un texto tecleado, en dos rutas distintas, para dos papeles que el médico ya dictó.",
+      "impacto": {
+        "paciente": "Espera mientras el médico navega; recibe papeles de sesiones distintas.",
+        "medico": "La misión («salir con la nota hecha sin dejar de mirar al paciente») se cumple para la nota y no para lo que el paciente se lleva.",
+        "negocio": "La comparación con el bloc de recetas la pierde la app en la consulta corta."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "`queFaltaParaCerrar` enseña los pasos cuando hay más de uno (REG-244), pero sólo si estudiosOrden llegó (MO-004).",
+      "prioridad": "P2",
+      "propuesta": "Una sola pantalla de cierre que muestre receta, orden y certificado pre-poblados desde la nota (estudios extraídos con lateralidad, MO-004/MO-003) y los imprima juntos; lo que hoy son tres rutas serían tres pestañas de un mismo documento clínico.",
+      "prueba_que_faltaria": "Prueba de recorrido (Playwright local) que cuente clics desde «Firmar» hasta tres impresos; hoy no existe.",
+      "que_no_cubre": "Consultas de hospital/UCI (D-030).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-003",
+        "MO-004",
+        "MO-010",
+        "REG-244"
+      ]
+    },
+    {
+      "id": "MO-012",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El catálogo de imagen imprime literalmente «Radiografía de columna (cervical / dorsal / lumbar)»: el chip no se edita, hay que borrarlo y teclear el estudio completo",
+      "archivo": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "linea": 266,
+      "evidencia": "'Radiografía de columna (cervical / dorsal / lumbar)', [L266] … 'Radiografía de extremidades', [L269]  ·  chips sólo con botón Quitar: <button onClick={() => setEstudios(estudios.filter((_, idx) => idx !== i))} aria-label={`Quitar ${e}`}> [L687]  ·  RecetaDocumento.tsx:566-575 imprime la cadena tal cual.",
+      "reproduccion": "Clic en el ítem de columna → Imprimir: el papel dice los tres segmentos separados por barras. Para pedir «columna lumbar AP y lateral» hay que quitar el chip y usar «Otro».",
+      "impacto": {
+        "paciente": "El gabinete puede tomar los tres segmentos (costo y radiación) o preguntar.",
+        "medico": "Teclea lo que el catálogo prometía resolver.",
+        "negocio": "Catálogo que parece amplio y no sirve en imagen."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Estudio personalizado.",
+      "prioridad": "P3",
+      "propuesta": "Ítems de imagen con selección secundaria (segmento, lado, proyecciones) o chips editables; mientras tanto, desdoblar el catálogo en entradas concretas por segmento y lado.",
+      "prueba_que_faltaria": "Test de que ninguna entrada del catálogo de imagen contiene «/» como lista de opciones.",
+      "que_no_cubre": "Laboratorio, que sí funciona como checklist.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-003"
+      ]
+    },
+    {
+      "id": "MO-013",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "La guía de redacción de ortopedia no pide lateralidad y el léxico ASR de ortopedia no tiene términos críticos: el modelo y el reconocedor no saben que el lado es lo que más pesa en esta especialidad",
+      "archivo": "src/lib/expediente/guias-de-especialidad.ts",
+      "linea": 129,
+      "evidencia": "'ORTOPEDIA/TRAUMA: mecanismo de lesión, exploración articular (arcos, estabilidad, neurovascular distal), imagen (Rx/TAC), clasificación de fractura, plan (inmovilización/quirúrgico).' [L129] — sin la palabra lateralidad/lado.  ·  especialidades.json:1957-1960: \"Ortopedia y traumatología\": { \"critical_terms\": [], \"high_priority_terms\": [\"coxartrosis\", \"fractura\", \"tobillo\", …] }.",
+      "reproduccion": "Comparar con MO-001: el prompt general tampoco lo pide. Nada en la cadena le dice al modelo que cada hallazgo, diagnóstico y estudio de región par lleva lado explícito.",
+      "impacto": {
+        "paciente": "Notas con «rodilla» sin lado, que luego son la fuente de la orden y la referencia.",
+        "medico": "Corrige a mano la lateralidad en cada sección.",
+        "negocio": "Barato de arreglar; alto valor percibido por el nicho."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "Ninguno específico.",
+      "prioridad": "P3",
+      "propuesta": "Añadir a la guía: «toda estructura par lleva lado explícito (derecho/izquierdo/bilateral) copiado del dictado; si el dictado no lo dice, se deja sin lado y se marca needs_review». Valorar «derecho», «izquierdo», «bilateral» como términos de alta prioridad del léxico ortopédico (sólo sesgo, no sustitución). Sin cifras clínicas implicadas.",
+      "prueba_que_faltaria": "Golden de nota ortopédica sintética que verifique lado explícito en diagnóstico y plan cuando el dictado lo trae.",
+      "que_no_cubre": "No sustituye al motor determinista de MO-001.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "MO-001"
+      ]
+    },
+    {
+      "id": "MO-014",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "El ortopedista hereda el tronco «cirugía»: ve por defecto antibiograma y escalas perioperatorias, y ninguna herramienta de consultorio ortopédico",
+      "archivo": "src/lib/herramientas-por-especialidad.ts",
+      "linea": 112,
+      "evidencia": "'cirugia': ['copiloto', 'cirugia', 'calculadoras', 'antibiograma', 'fotos', 'laboratorios'], [L112]  ·  if (/\\b(cirug|ortopedia|traumatolog|…)/.test(e)) return 'cirugia' [L87]  ·  calculadoras.ts: Wells TEP/TVP, sin regla de Ottawa ni escala de trauma (grep ottawa|tobillo|rodilla|fractura: 0).",
+      "reproduccion": "Configurar especialidad «Ortopedia y Traumatología» → abrir consulta → panel de herramientas: Antibiograma visible por defecto; Cirugía = ASA/RCRI/Caprini/Apfel/profilaxis (útil sólo en preoperatorio); nada para esguince, lumbalgia o fractura de consultorio.",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Ruido en la consulta más común; lo útil (Caprini, profilaxis con implante) está, pero enterrado entre lo ajeno.",
+        "negocio": "Cada especialidad quirúrgica ve la app «de infectólogo»."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "`filtrarHerramientas` enciende paneles por diagnóstico dictado (L158-161); `muestraPorDefecto` por tronco.",
+      "prioridad": "P3",
+      "propuesta": "Sub-tronco «ortopedia» con antibiograma oculto por defecto (se enciende por diagnóstico infeccioso) y calculadoras ortopédicas de consultorio; el contenido y los puntos de corte de cualquier regla (Ottawa u otra) son NEEDS_CLINICAL_REVIEW con fuente citada — no se proponen aquí.",
+      "prueba_que_faltaria": "Test de herramientasDe('Ortopedia y Traumatología') sin antibiograma por defecto.",
+      "que_no_cubre": "Trauma hospitalario (tronco compartido, en pausa D-030).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "MO-015",
+      "panel": "medico",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "nucleo",
+      "tipo": "mejora",
+      "titulo": "El guardián de sustituciones protege la lateralidad incluso con ambos lados presentes (gracias al conteo del bloque 2), pero ninguna prueba lo demuestra: el bloque 4, por presencia, no lo vería solo",
+      "archivo": "src/lib/asr/guardian-sustituciones.ts",
+      "linea": 170,
+      "evidencia": "const lc = lado(crudo), lk = lado(corregido) if (lc.d !== lk.d || lc.i !== lk.i || lc.b !== lk.b) { … } [L174-175] — sólo presencia. Lo que sí cuenta apariciones es terminosCriticosPerdidos (L215-250) sobre PARES_PROHIBIDOS. Prueba existente: verificar('edema de miembro inferior derecho', 'edema de miembro inferior izquierdo') (asr-guardian-sustituciones.test.ts:79-82): un solo lado.",
+      "reproduccion": "Caso A — verificar(\"tobillo derecho… tobillo izquierdo\", \"tobillo izquierdo… tobillo izquierdo\"): revierte (bloque 4 pierde la presencia de derecho; bloque 2 pierde una aparición). Caso B — verificar(\"… derecho … izquierdo\", \"… izquierdo … derecho\") (lados intercambiados entre dos frases): presencia idéntica y conteo idéntico (1 y 1) → sin violación, no revierte. Ninguno de los dos casos está en la prueba del guardián.",
+      "impacto": {
+        "paciente": "Improbable con el corrector actual (no toca esas palabras), pero un cambio futuro del corrector lo haría en silencio.",
+        "medico": "Ninguno hoy.",
+        "negocio": "Guardián sin prueba al revés para el caso de dos lados."
+      },
+      "severidad": 2,
+      "probabilidad": "baja",
+      "control_existente": "derecho/izquierdo protegidos en la lista intocable del corrector (medical-vocabulary.ts:714).",
+      "prioridad": "P3",
+      "propuesta": "Comparar lateralidad por POSICIÓN (secuencia de lados en orden de aparición) además de por presencia y cuenta; añadir los dos casos (ambos lados presentes con uno cambiado; lados intercambiados) a la prueba del guardián.",
+      "prueba_que_faltaria": "expect(verificar('… derecho … izquierdo', '… izquierdo … derecho').revertido).toBe(true) — hoy false.",
+      "que_no_cubre": "Nada fuera del corrector léxico.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-065",
+        "REG-066"
+      ]
+    },
+    {
+      "id": "MO-016",
+      "panel": "paciente",
+      "rol": "ortopedia-traumatologia",
+      "modulo": "portal",
+      "tipo": "mejora",
+      "titulo": "«¿Ya puedo manejar / cargar / apoyar el pie?» escala correctamente (no hay modelo), pero el plan liberado no tiene dónde llevar restricciones de actividad ni ejercicios: la rehabilitación viaja, si acaso, como texto en seguimiento",
+      "archivo": "src/lib/paciente/paquete-de-visita.ts",
+      "linea": 133,
+      "evidencia": "export interface PaqueteDeVisita { notaId, fechaConsulta, encounterSummary, medicationInstructions, medicationChanges, orders: string[], followUp: string, warningSigns: string[], educationalMaterial: string[], documents, unansweredQuestions, clinicianContactRules, prescriptor, … } [L133-160] — sin campo de actividad/restricciones/ejercicios.  ·  pregunta-del-paciente.ts:1-60: «AQUÍ NO HAY MODELO DE LENGUAJE»; paso 4 sólo contesta cómo tomar un medicamento (medicamentosMencionados + PREGUNTA_POR_TOMA, L262-275); todo lo demás escala.  ·  evals/patient-ai/casos.json: grep manejar|conducir|ejercicio|actividad|cargar|caminar: 0 casos.",
+      "reproduccion": "Recorrido: paciente con esguince pregunta en el portal «¿ya puedo manejar?». Resultado: ESCALATE_TO_CLINICIAN (paso 5). Correcto y seguro. Pero el médico no tiene forma de haber dejado la respuesta aprobada en el paquete salvo escribirla en followUp.",
+      "impacto": {
+        "paciente": "Cada duda de actividad —la más frecuente en ortopedia— acaba en un humano, aunque el médico ya la contestó en consulta.",
+        "medico": "Recibe escalaciones de lo que ya dijo.",
+        "negocio": "El portal se percibe como buzón; sin caso en la fixture, un cambio futuro que empiece a contestar actividad desde el modelo no sería detectado."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Escalación por omisión (diseño correcto, patient-facing-ai §3).",
+      "prioridad": "P3",
+      "propuesta": "Campo `activityRestrictions` (y opcionalmente `exercisePlan`) en el paquete, escrito sólo por el médico y liberado con él; el clasificador cita ese campo para preguntas de actividad. Añadir a evals/patient-ai/casos.json los casos «¿puedo manejar?», «¿puedo cargar?», «¿puedo apoyar?» con clase esperada (hoy ESCALATE; ANSWER_FROM_APPROVED_PLAN sólo cuando exista el campo).",
+      "prueba_que_faltaria": "Caso en casos.json: pregunta de actividad sin campo → ESCALATE_TO_CLINICIAN (hoy pasa pero no está fijado como fixture permanente).",
+      "que_no_cubre": "Cuidador autorizado; preguntas de actividad con síntoma nuevo (deben seguir escalando).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    }
+  ]
+}

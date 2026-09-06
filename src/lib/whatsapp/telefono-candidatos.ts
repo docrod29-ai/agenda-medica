@@ -30,7 +30,7 @@
  *
  * Módulo PURO.
  */
-import { normalizarTelefonoWa } from '@/lib/whatsapp/telefono'
+import { claveTelefonoWa } from '@/lib/whatsapp/telefono'
 
 /**
  * Máximo que admite un `where(..., 'in', [...])` de Firestore.
@@ -49,7 +49,7 @@ export const TOPE_IN_FIRESTORE = 10
 export function candidatosDeTelefono(telefonoRaw: string): string[] {
   const crudo = String(telefonoRaw ?? '').replace(/\D/g, '')
   if (!crudo) return []
-  const canonico = normalizarTelefonoWa(telefonoRaw)
+  const canonico = claveTelefonoWa(telefonoRaw)
   const diez = canonico.length >= 10 ? canonico.slice(-10) : canonico
   return Array.from(new Set(
     [diez, canonico, `521${diez}`, crudo].filter(Boolean),

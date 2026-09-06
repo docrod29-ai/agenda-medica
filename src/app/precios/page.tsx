@@ -189,9 +189,17 @@ export default async function PreciosPage() {
         <TablaNivelesIA />
       </div>
 
-      <div style={{ maxWidth: 560, margin: '40px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'color-mix(in srgb, var(--nexus) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 12, padding: '12px 16px' }}>
-        <strong>Precio fundador</strong> — los primeros 50 médicos congelan su tarifa de por vida. Aplica tu código <strong>FUNDADOR</strong> al pagar.
-      </div>
+      {/*
+        AQUÍ HABÍA UNA PROMESA SIN MECANISMO — N-004 (Panel de Lujo 2026-09, P1).
+        El párrafo «precio fundador» (escasez de N plazas + permanencia de la
+        tarifa) no tenía detrás ni el contador de plazas, ni la marca de tarifa
+        fija por consultorio, ni la comprobación del cupón. Dos afirmaciones
+        públicas sin nada detrás, en una página que dice que lo que publica «es
+        una oferta real». Decisión por omisión PL-D6: se retira hoy; si el dueño
+        quiere la oferta, se construye (contador real + tarifa fija sellada +
+        cupón verificado) y entonces se vuelve a publicar. El guardián
+        `las-promesas-de-la-landing-tienen-mecanismo-o-no-existen` lo vigila.
+      */}
 
       <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--text3)', marginTop: 24 }}>
         Precios en pesos mexicanos, por médico. Paga <strong>anual y llévate 2 meses gratis</strong> (−17%). Cada nota gasta créditos

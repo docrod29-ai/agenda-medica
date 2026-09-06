@@ -1,0 +1,163 @@
+{
+  "auditor": "M-ginecologa",
+  "fecha": "2026-09-06",
+  "metodo": "Se abrió cada archivo:línea citado (todas coincidieron a ±5). Se hizo grep exhaustivo de embaraz|gestac|lactanc|puerper|FUM|fpp en src/lib, src/app, src/components, src/types. Se ejecutaron con node, desde /tmp, tres reproducciones puras: el `coincide` de copiloto.ts, `gestacionPorFUM`, y la cadena urgencia→ACTOS_PROHIBIDOS→plan de pregunta-del-paciente.ts.",
+  "veredictos": [
+    {
+      "id": "MG-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:467-468 (única decisión, regex sobre d.descripcion) · src/types/index.ts sin campo gestacional (embaraz sólo en :199 y :214, que son el TIPO de cita) · src/lib/evidencia/estado-del-paciente.ts:85-90 (POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE) · src/lib/programa/requisitos.ts (WS-09.motor, «Sigue sin llegar el EMBARAZO, a propósito»)",
+      "nota": "La tesis es cierta y no hay refutación: grep exhaustivo confirma que ningún tipo de paciente, ninguna EntradaCopiloto (consulta page:1083-1145), ningún ContextoPaciente de dosing y ninguna ruta de receta llevan estado gestacional. BAJO a P2 por dos hechos que el auditor no pesó: (a) copiloto.ts:489 dispara TODOS los 'contraindicado' sin necesidad de estado gestacional, con el texto de :499 («si la paciente está o pudiera estar embarazada, suspender»), así que lo que se pierde es sólo la clase 'evitar' —nivel 'accion' por diseño de la propia tabla—; (b) el hueco está DECLARADO con su causa medida (REG-364/365) en estado-del-paciente.ts:52-57 y :85-90 y en requisitos.ts, que es lo que exige clinical-safety §5. No hay entrada en agent-state/OWNER_DECISIONS_REQUIRED.md sobre estado gestacional: la pregunta al dueño es legítima y nueva."
+    },
+    {
+      "id": "MG-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:36-47 (imports: alergias, farmacovigilancia, terapia-duplicada, dosis, funcion-renal, edad-para-dosificar; ninguno de prescripcion-segura ni copiloto) y :202-252 (las únicas alertas que compone) · grep -i 'embaraz|gestac|lactanc' en ese archivo = 0 · <Copiloto> sólo se monta en consulta/[patientId]/page.tsx:7013 y demo/razonamiento",
+      "nota": "Verificado: la receta revisa unidad, mg/kg, techos, alergias, duplicidad, interacciones, controlados y ajuste renal, y NO consulta EMBARAZO_LACTANCIA. Bajo a P2 porque el hueco es más estrecho de lo que dice el título: el renglón que viene de la nota firmada ya pasó por el copiloto de la consulta, y el copiloto avisa de los 'contraindicado' sin estado gestacional; lo que escapa es el fármaco AÑADIDO en la propia receta. Sigue siendo la pantalla donde se imprime, así que no se refuta."
+    },
+    {
+      "id": "MG-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:488-489 (sólo lee x.embarazo) · src/lib/expediente/prescripcion-segura.ts:306-322 `revisarFarmaco` es el único que devuelve `gestacional.lactancia` y su grep de llamadores en src/app, src/hooks y src/components es 0 (sólo registry.ts:1732 lo declara como entryPoint y los tests lo importan)",
+      "nota": "Premisa correcta: la columna `lactancia` de las 15 entradas no la lee ningún motor. Bajo a P2 porque es un sub-caso estricto de MG-001 (no hay estado de lactancia que leer: el propio auditor admite que EntradaCopiloto «ni siquiera admite el campo») y porque la tabla entera está `estado: 'pendiente_validacion'` en registry.ts:1728-1731, es decir, conectar la columna hoy sería cablear una lista que nadie ha validado."
+    },
+    {
+      "id": "MG-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:439-441 `if (!esMujer || edad == null || edad < 12 || edad > 50) return []` · no hay ninguna sugerencia de dato faltante en el motor (grep 'falta.*edad|sin edad' en copiloto.ts = 0 fuera de un comentario en :848)",
+      "nota": "Confirmado: con edad undefined el motor calla incluso con Dx gestacional explícito y fármaco 'contraindicado' — regla 4 al pie de la letra. Bajo a P2 por una mitigación que el auditor no citó: REG-524 sí puso el aviso de edad desconocida donde se imprime (receta page:191 y :763, AVISO_SIN_EDAD_PARA_DOSIFICAR en ámbar), así que el flujo no calla del todo; y las dos ramas que el auditor añade (>50 años, sexo 'Otro') él mismo las manda a decisión del dueño."
+    },
+    {
+      "id": "MG-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "REFUTA la tesis de «le ordena calcular»: src/lib/expediente/prompts.ts:172-181 (regla 16-bis, «TÚ NO CALCULAS. Es regla de toda la aplicación… NUNCA calcules una escala, un índice, un percentil, una dosis por kilo, una superficie corporal, una depuración ni un volumen de líquidos») y :168-170 (regla 15, «NO propongas CIFRAS»). CONFIRMA lo literal: prompts.ts:338 dice «categoría FDA del fármaco. Evita FQ, tetraciclinas, sulfas T1/T3» y guias-de-especialidad.ts:80 repite «categoría FDA de fármacos. Evita teratógenos»",
+      "nota": "La cadena existe donde dice, pero la conclusión no se sostiene: hay una prohibición global de calcular (16-bis) y `needs_review=true` obligatorio para 'embarazo' (prompts.ts:349). Lo que de verdad falta es la simetría con pediatría (:339-340, que sí nombra el motor), y que «Evita FQ…» pone política terapéutica en el prompt en vez de en EMBARAZO_LACTANCIA. Además el auditor no ejecutó la extracción —lo dice en su propio `no_alcanzado`— así que no hay evidencia de que el modelo origine nada. Defecto de redacción del prompt: P3."
+    },
+    {
+      "id": "MG-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/prescripcion-segura.ts:293 ('Ácido valproico', sin `sinonimos`) y :294 ('Metotrexato', sin `sinonimos`); el matcher es copiloto.ts:478-481",
+      "nota": "Reproducido con node ejecutando literalmente `coincide` de copiloto.ts:478-481: «valproato de magnesio 200 mg» → false; «divalproato de sodio 500 mg» → false; «acido valproico 500 mg» → true; «metotrexate 2.5 mg» → false; «metotrexato 2.5 mg» → true. Dos teratógenos mayores en su presentación mexicana habitual pasan sin aviso. Mantengo P1: no necesita decisión del dueño, es una línea, y el propio archivo (:41-49) documenta este defecto exacto como el P0 de la auditoría 2026-07 ya corregido para las clases con `sinonimos`."
+    },
+    {
+      "id": "MG-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "CONFIRMA: registry.ts:1727-1731 (`fuente: 'pendiente_validacion_clinica'`, `estado: 'pendiente_validacion'`); EMBARAZO_LACTANCIA (prescripcion-segura.ts:287-303) sin `fuente` por renglón; `grep -c -i 'misoprostol|carbamazep|fenitoin|micofenolat|talidomid|ribavirin|metimazol|finasterid'` en ese archivo = 0. Y confirmo el punto 3 con evidencia MÁS fuerte que la del auditor: `SelloMotor` —el componente que existe justamente para decir «sin validar»— se importa en consulta/[patientId]/page.tsx:154 y NO SE RENDERIZA en ningún sitio del producto (grep '<SelloMotor' en src = 0 usos). REFUTA la novedad: agent-state/OWNER_DECISIONS_REQUIRED.md C-1 ya tiene en cola «Validar los 23 motores en pendiente_validacion»",
+      "nota": "Los tres hechos son ciertos. Bajo a P2 porque los puntos 1 y 2 son duplicado literal de la decisión C-1 ya encolada al dueño, y el punto 3 no es un defecto de gineco sino uno de producto entero (SelloMotor es código muerto), que merece hallazgo propio y no un P1 de la tarjeta obstétrica."
+    },
+    {
+      "id": "MG-008",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "docs/product/AUSCULTA-ULTRA-READINESS.md:109 («`validacionesGeneralesMedicamentos`…: cero llamadores, verificado el 5-sep… No se cablean en este tramo a propósito: necesita un contexto (embarazo, ERC, anticoagulación) que la receta no tiene estructurado… conectarlos sin esa revisión sería señalar de más») y :240 (decisión del dueño D-D) · docs/quality/MOTORES-SIN-CONECTAR.md:155 · docs/audit/hallazgos-crudos-workflow.json:197 (mismo hallazgo, auditoría anterior)",
+      "nota": "El hecho es cierto (medical-dictionary.ts:251, cero llamadores fuera de tests, verificado) pero no es un hallazgo: está declarado con nombre, con su motivo y en la cola del dueño como D-D desde el 5-sep, y el propio auditor escribe «Ninguno hoy (no se ejecuta)» en el impacto. Refutado por duplicado y por no llegar a producción."
+    },
+    {
+      "id": "MG-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelGineco.tsx:58 `conductaCervical(cito, vph, edadAnios ?? 35)` · la rama que sí depende de la edad es ginecologia.ts:253-257 (HSIL, `edad >= 25`) y el NILM/VPH desconocido de :288-291, que devuelve `tamizajeRutina(edad)`",
+      "nota": "Confirmado en su núcleo: sin edad capturada, a una de 22 años con HSIL el panel le dice «es aceptable el tratamiento escisional inmediato», que el motor reserva a ≥25, y el botón «Agregar a la nota» lo pega. PERO una de las dos reproducciones es falsa: la rama AGC (ginecologia.ts:248-252) NO usa `edad` — imprime la frase condicional «si tiene 35 años o más», que es correcta a cualquier edad. Y la tira de tamizaje de rutina del panel sí está guardada por `edadAnios != null` (PanelGineco.tsx:259)."
+    },
+    {
+      "id": "MG-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/ginecologia.ts:43-51 (`ajuste = Math.round(cicloDias) - 28`, sin mínimo ni máximo; única guarda `if (diasTotales < 0) return null`) y :70-79 (`armar`, trimestre 3 a cualquier semana ≥ 28) · PanelGineco.tsx:42 `Number(ciclo) || 28`",
+      "nota": "Reproducido con node replicando gestacionPorFUM literalmente: gestacionPorFUM('2024-09-01','2026-09-06') → {semanas:105, dias:0, trimestre:3, fpp:'2025-06-08'} (el auditor dijo 104.4; el mecanismo es el mismo). Y encontré algo peor que lo que reportó: con ciclo negativo, gestacionPorFUM('2026-07-01','2026-09-06',-5) → 14 semanas 2 días sobre un embarazo real de 67 días, es decir el ciclo inválido INFLA la edad gestacional 33 días, no sólo desplaza la FPP."
+    },
+    {
+      "id": "MG-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/PanelGineco.tsx:151-155 (el mismo texto para «sin fecha» y para FUM futura, porque ginecologia.ts:49 devuelve null en ambos casos) y :42 `Number(ciclo) || 28`",
+      "nota": "Fricción con evidencia literal; la sustitución silenciosa del ciclo por 28 es además regla 3 («nada cambia en silencio»). P3 es la prioridad correcta."
+    },
+    {
+      "id": "MG-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/mi/[token]/page.tsx:176 `const det = encodeURIComponent(c.motivo || TIPO_LABEL[c.tipo] || 'Consulta')` y :177 la URL de calendar.google.com · el servidor lo manda al alcance 'agenda' en src/app/api/portal/route.ts:118 `motivo: a.motivo` · src/lib/patient-token.ts:17-19 lo reconoce por escrito",
+      "nota": "El texto exacto que va en el parámetro `details=` de la URL de Google es el `motivo` LIBRE de la cita tal como lo tecleó el consultorio («Control prenatal 12 SDG», «ILE», «VPH»); sólo si está vacío cae a TIPO_LABEL o a 'Consulta'. Es PHI en parámetro de URL hacia un tercero. Bajo a P2 con dos matices que cambian el arreglo: (1) el portal NUNCA pinta el motivo en pantalla — la única línea que lo usa es la 176, y el mismo archivo declara en :70-72 la política contraria («el motivo es para el consultorio») para las preguntas; (2) el motivo ya viaja en el JSON de /api/portal al mismo navegador, así que arreglar sólo `gcalLink` —la mitad de la propuesta— no cierra nada: hay que quitarlo del alcance 'agenda' en route.ts:118."
+    },
+    {
+      "id": "MG-013",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "REFUTA la mitad de interfaz: src/components/portal/ViaDeUrgencia.tsx:69-72 ya dice «{MOTIVOS} — o cualquier otro malestar grave», y su cabecera :40-43 explica que la lista es «vocabulario, no criterio» y que «por eso el texto no dice ‘sólo si’». REFUTA la novedad: src/lib/paciente/urgencia.ts:44-51 declara literalmente que no cubre «complicaciones del embarazo». CONFIRMA el hueco de vocabulario: urgencia.ts:111-166",
+      "nota": "Vocabulario obstétrico que HAY en urgencia.ts: ninguno específico. Lo que sí dispara y puede rozar lo obstétrico: 'convulsion' (eclampsia dicha así), 'desmay', 'no puedo ver (bien|nada|de un ojo|con un ojo)' y 'vision doble'. Lo que NO hay: sangrado / hemorragia / sangre, 'no se mueve el bebé' / movimientos fetales, 'se me rompió la fuente' / líquido, contracciones / trabajo de parto, preeclampsia, 'veo lucecitas' / cefalea, aborto, placenta, parto, ILE, puerperio. Reproducido con node: «estoy sangrando mucho y estoy embarazada» → ESCALATE(embarazo_o_lactancia); «no siento que se mueva el bebe desde ayer», «se me rompio la fuente», «tengo contracciones cada 5 minutos y tengo 30 semanas», «veo lucecitas y me duele mucho la cabeza» → ESCALATE(no_esta_en_el_plan_liberado); «me convulsione» → URGENT_REVIEW_REQUIRED. Parcial y P2: la lista es literalmente la del §6 de patient-facing-ai.md, cerrada por especificación del dueño, y ampliarla es política clínica — el propio auditor lo manda a NEEDS_CLINICAL_REVIEW."
+    },
+    {
+      "id": "MG-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:208 (la regex) y :355-367 (el paso 4 que responde citando el plan) · la contradicción está en la propia cabecera del archivo, :55-59: «Un vocabulario incompleto pierde precisión, nunca seguridad… el destino por omisión es escalar, no responder»",
+      "nota": "Reproducido con node siguiendo el orden real del clasificador: «estoy dando pecho, ¿como tomo el ibuprofeno?» → ANSWER_FROM_APPROVED_PLAN (el auditor acierta); y añado dos variantes más que también fallan: «le doy leche a mi bebe, ¿cada cuando tomo el ibuprofeno?» y «estoy en cinta, ¿como tomo el ibuprofeno?» → ANSWER_FROM_APPROVED_PLAN. «estoy embarazada, ¿como tomo el ibuprofeno?» sí escala. MANTENGO P1 y el auditor se quedó corto en el argumento: esto no es sólo un hueco de vocabulario, es la refutación del invariante que el módulo se atribuye en :55-59 — un patrón de ACTOS_PROHIBIDOS que no casa NO cae a escalación, cae al paso 4 y contesta."
+    },
+    {
+      "id": "MG-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:344 `warningSigns: []` dentro de `componerPaquete` (:318-350), que sólo lee `n.medicamentos`, `n.diagnosticos`, `n.estudiosOrden`, `e.proximaCita`, `n.firma` y `e.alergias` · `comoTomarlo` (src/lib/paciente/como-se-lo-explico.ts:116-136) compone nombre·dosis·vía·frecuencia·duración y tampoco lee ninguna indicación narrativa · src/components/EntregarAlPaciente.tsx:255-259",
+      "nota": "Comprobado del otro lado: no existe NINGÚN campo de la nota que desemboque en `warningSigns`, ni siquiera por la vía de las indicaciones del medicamento. Así que la frase de pantalla «escríbelos en tus indicaciones» manda al médico a un sitio del que el dato no sale — «el dato tiene que LLEGAR» en su forma más pura. Bajo a P2 porque el hueco de composición está declarado tres veces (paquete-de-visita.ts:57-61 y :309-313, y el comentario de EntregarAlPaciente) como trabajo pendiente y correcto según regla 1; lo accionable hoy es esa única frase engañosa."
+    },
+    {
+      "id": "MG-016",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/mobile/consulta-cierre.ts:11-12 («El ensamblado de la pantalla 'Consulta actual' que las consume queda para una iteración con verificación en dispositivo») · docs/mobile/iteration-04-clinical-workflow.md:26 («Cuando haya verificación: (1) mostrar `resumenFijo(...)` como franja superior…»)",
+      "nota": "El hecho —cero llamadores de `resumenFijo` y `checklistCierre` fuera de tests— es cierto, pero el hallazgo no se sostiene como está tipificado: `boton_muerto` es falso porque no hay botón ni pantalla, no se renderiza nada y por tanto nada llega a producción ni promete nada al médico; y el aplazamiento está declarado por escrito en el propio archivo y en la bitácora móvil. Refutado por premisa (no es un botón) y por alcance (no llega a producción)."
+    },
+    {
+      "id": "MG-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:753 (`esGineco`, tope 60) y :7069 (`...(esGineco ? [...] : [])`) y :7149 (`ocultas: TODAS.filter(h => !idsVisibles.has(h.id))`, que sólo puede devolver lo que entró en TODAS) · el propio motor llega a 65 en ginecologia.ts:299-300",
+      "nota": "Confirmado tal cual: con esGineco=false la herramienta no está ni en `visibles` ni en `ocultas`, así que el buscador tampoco la encuentra. Fricción real para la GO; P3 es correcta."
+    },
+    {
+      "id": "MG-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/herramientas-por-especialidad.ts:108 `'gineco-obstetricia': ['copiloto', 'gineco', 'calculadoras', 'preventivo', 'fotos', 'laboratorios']` (sin 'antibiograma') · src/lib/expediente/ginecologia.ts:95 (urocultivo en la primera consulta) y :103 (cultivo para estreptococo del grupo B)",
+      "nota": "Evidencia literal y lectura razonable: el propio producto le enseña a la GO dos cultivos del control prenatal y le deja el antibiograma fuera del tronco. Opinión de producto con evidencia, P3."
+    },
+    {
+      "id": "MG-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/preventivo.ts:166 (y :176 en `tamizajesProximos`) `const sexoPaciente = esMujer ? 'mujer' : 'hombre'` · src/components/PanelPreventivo.tsx:22 `const esMujer = !!sexo && /^f/i.test(sexo)` · el panel se monta con `sexo={patient?.sexo}` en consulta page:7102",
+      "nota": "Confirmado el mecanismo: sin sexo capturado, la paciente entra como 'hombre' y pierde mastografía y co-prueba, y el botón pega «Tamizajes que corresponden por edad y sexo: …» sin que el sexo conste. Pero el título exagera con su propio ejemplo: a los 52 años el APE NO se ofrece (preventivo.ts:66, `desde: 55`), como el propio auditor reconoce en la reproducción. El caso real es a partir de los 55."
+    },
+    {
+      "id": "MG-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/preventivo.ts:38-40 (mastografía, USPSTF 2024) y :42-52 (citología y co-prueba, USPSTF · ASCCP) · la duplicación con ginecologia.ts:296-301 · `grep 'NOM-041|NOM-014'` en src/lib/expediente = 0",
+      "nota": "Mejora con evidencia y lectura razonable. P3 y no P2: la cabecera del módulo (preventivo.ts:1-14) ya declara que no se leyó el documento fuente vigente, cada entrada dice su organismo, y `ADVERTENCIA_PREVENTIVO` sí se pinta en pantalla (PanelPreventivo.tsx:91). Fijar la referencia rectora de es-MX es decisión del dueño."
+    },
+    {
+      "id": "MG-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/ginecologia.ts:96 (ácido fólico 400 µg/día), :98 (aspirina 81-162 mg/día) y :101 (300 µg de anti-D a las 28 semanas), ninguno con `fuente` · registry.ts:1938-1940 `fuente: 'pendiente_validacion_clinica'` y :1951 `estado: 'pendiente_validacion'` · PanelGineco.tsx:129-148 pinta los hitos sin fuente ni estado (sólo :173 dice ACOG/USPSTF para aspirina y :249-251 ASCCP para citología)",
+      "nota": "Confirmado, con una corrección: no es cierto que la fuente esté «sólo en la cabecera del archivo» — registry.ts:1934 sí trae `referencia: 'NOM-007 / OMS (control prenatal); ACOG-USPSTF…; Bishop EH, Obstet Gynecol 1964'`. Lo que falta de verdad es la fuente POR RENGLÓN y que la pantalla enseñe el estado, y esto último es el mismo defecto de producto que MG-007: `SelloMotor` no se renderiza en ningún sitio. Solapa con la decisión C-1 ya encolada."
+    },
+    {
+      "id": "MG-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelGineco.tsx:35-39 (todo el estado gestacional en `useState`) y :122-126 (el único puente a la nota es texto pegado) · grep de `\\bfum\\b|fechaUltimaMenstruacion|ultimaMenstruacion|\\bfpp\\b` en src fuera de tests: sólo PanelGineco.tsx, ginecologia.ts y registry.ts — ninguna escritura",
+      "nota": "Confirmado: no existe ninguna ruta que persista FUM, FPP ni edad gestacional, así que la consulta prenatal siguiente empieza con `fum` en cadena vacía. Y el corolario que el auditor apunta es cierto: el texto pegado en la sección 'gineco' no es un diagnóstico, así que no entra por `dxDelCuadro` a `entradaCopiloto` (consulta page:1105) y no enciende el aviso gestacional. Fricción con evidencia; P2."
+    }
+  ],
+  "ratio": { "total": 22, "confirmados": 17, "refutados": 2, "parciales": 3 },
+  "observaciones_del_auditor": "Es el auditor más limpio de los que he refutado: las 22 citas archivo:línea coinciden a ±5 sin excepción, y las tres reproducciones que ejecuté (matcher de copiloto, gestacionPorFUM, clasificador del portal) salieron exactamente como las describió. Sus patrones de error son otros. (1) INFLA PRIORIDAD POR TEMA: once P1 sobre un mismo eje; varios son sub-casos del mismo hueco (MG-003, MG-004, MG-022 dependen de MG-001) o duplicados de decisiones ya encoladas al dueño (MG-007 y MG-021 ↔ C-1; MG-008 ↔ D-D). (2) NO BUSCA LA DECLARACIÓN: cita requisitos.ts:404 como prueba, pero no encontró src/lib/evidencia/estado-del-paciente.ts:85-90 (POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE), que es donde el repositorio explica el hueco con su causa medida; ni ViaDeUrgencia.tsx:69-72, que ya implementa la mitad de lo que propone en MG-013; ni prompts.ts:172 (regla 16-bis), que desmonta la tesis de MG-005. (3) LEE LA RAMA Y NO EL if: en MG-009 dio por dependiente de la edad la rama AGC, que sólo imprime una frase condicional; en MG-019 su propio ejemplo (52 años) no dispara el APE que el título anuncia. (4) SE QUEDA CORTO CUANDO TIENE RAZÓN: en MG-014 el defecto no es de vocabulario, es que contradice el invariante que el módulo se atribuye en su cabecera (pregunta-del-paciente.ts:55-59); y en MG-007/MG-021 la causa de que la pantalla no diga «sin validar» no es de gineco, es que <SelloMotor> no se renderiza en ningún sitio del producto (importado en consulta page:154, cero usos) — hallazgo que merece número propio y que él no vio."
+}

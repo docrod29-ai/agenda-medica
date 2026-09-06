@@ -556,8 +556,13 @@ describe('no se pudo leer ≠ no hay nada', () => {
 
   it('la pantalla del paciente distingue las dos cosas', () => {
     const PANTALLA = readFileSync(join(process.cwd(), 'src', 'app', 'mi', '[token]', 'page.tsx'), 'utf8')
-    /* Un fallo al pedir los paquetes NO acaba en `setPaquetes([])`. */
-    expect(PANTALLA).toContain('setPaquetesError(true)')
+    /*
+     * Un fallo al pedir los paquetes NO acaba en `setPaquetes([])`. Desde
+     * PC-006 la apertura del portal es UNA petición y el servidor distingue las
+     * dos cosas en el propio dato: `null` = no se pudo leer, `[]` = se leyó y no
+     * hay ninguno. La pantalla traduce esa distinción en vez de perderla.
+     */
+    expect(PANTALLA).toContain('setPaquetesError(d.paquetes === null)')
     expect(PANTALLA).toMatch(/paquetesError && \(/)
     /* Y con `alergias === null` no se escribe nada sobre alergias. */
     expect(PANTALLA).toContain('pk.alergias !== null')
@@ -788,7 +793,16 @@ describe('el camino está recorrido: UI médico → API → base → portal → 
 
   it('el portal del paciente PIDE los paquetes y los pinta', () => {
     const PANTALLA = leer('src', 'app', 'mi', '[token]', 'page.tsx')
-    expect(PANTALLA).toContain("action: 'paquetes'")
+    /*
+     * PC-006: la apertura del portal pedía CUATRO acciones y tres contaban
+     * contra la ventana clínica; a la quinta recarga el paciente veía «no
+     * pudimos cargar». Ahora la apertura es una sola petición (`inicio`) que
+     * trae también los paquetes. La acción `paquetes` sigue existiendo para
+     * refrescar sólo eso; lo que este caso vigila es que la pantalla los PIDA
+     * al servidor y los pinte.
+     */
+    expect(PANTALLA).toContain("action: 'inicio'")
+    expect(PANTALLA).toContain('d.paquetes')
     expect(PANTALLA).toContain('setPaquetes(')
     expect(PANTALLA).toContain('medicationInstructions.map')
   })

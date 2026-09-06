@@ -1,0 +1,134 @@
+{
+  "auditor": "AS-cobros",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ASC-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P0",
+      "evidencia": "src/lib/cobros.ts:441 `tx.update(cobroRef, {` (escritura) frente a src/lib/cobros.ts:467 `const citaSnap = await tx.get(citaRef)` (lectura posterior), dentro del mismo `runTransaction` abierto en :437. El SDK lo prohíbe explícitamente: node_modules/@firebase/firestore/dist/common-acd1a06e.node.cjs.js:29157 `if (this.mutations.length > 0) ... new FirestoreError(Code.INVALID_ARGUMENT, 'Firestore transactions require all reads to be executed before all writes.')`. Único llamador: src/app/(dashboard)/finanzas/page.tsx:635.",
+      "nota": "Leí la transacción completa: no hay rama que evite la escritura previa — `tx.update` en :441 es incondicional y el `tx.get` de la cita en :467 sólo depende de que el cobro tenga `citaId`. Busqué la línea que lo impidiera (guarda previa, lectura adelantada, catch que reintente) y no existe; `src/__tests__/quien-anulo.test.ts` es puro (sólo prueba `quienAnulo`) y nunca ejecuta `cancelarCobro`. SUBO a P0 y no lo considero duplicado de N-002 (que es a quién le llega el dinero, no si se puede corregir): el fallo es determinista al 100 % para todo cobro con cita, no hay camino alternativo (`allow delete: if false` en firestore.rules:982) y el error que ve la persona es el mensaje crudo del SDK."
+    },
+    {
+      "id": "ASC-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "firestore.rules:917-918 `&& request.resource.data.citaId == resource.data.citaId` / `&& request.resource.data.patientId == resource.data.patientId` (acceso directo, sin `.get(campo, defecto)`, a diferencia de firestore.rules:936-939 para medicoId/medicoNombre/referenciaExterna/folio). El documento sin esos campos lo produce src/lib/cobros.ts:198 (`Object.fromEntries(... v !== undefined)`), alimentado por un prefill ausente en src/components/CobrarModal.tsx:181-182.",
+      "nota": "PROBADO CONTRA EL EMULADOR (127.0.0.1:8080, proyecto aparte `demo-redteam-c`, borrado al terminar con DELETE /emulator/v1/projects/demo-redteam-c/databases/(default)/documents → 200). Salida literal: «PERMITIDO  anular cobro CON cita (campos presentes)» · «DENEGADO   anular cobro SIN citaId/patientId (suelto)» con el detalle del emulador «evaluation error at L912:26 for 'update' @ L912 ... Property citaId is undefined on object». Control: «PERMITIDO  leer cobro suelto», o sea que el miembro sí tiene acceso y lo que deniega es la comparación del campo ausente. La premisa del auditor es exacta."
+    },
+    {
+      "id": "ASC-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "firestore.rules:151-158: el `allow update` de appointments sólo condiciona el paso `cobroExento` false→true; ni `cobroId` ni `cobradoEn` aparecen en ninguna guarda. Del otro lado, src/lib/corte-caja.ts:85-87 `return conCobro.has(cita.id) || !!(cita as { cobroId?: string }).cobroId` y src/app/(dashboard)/citas/page.tsx:215, :261, :1102 (`!appt.cobroId`).",
+      "nota": "Busqué la capa que cruzara contra `cobros` y no la hay: `estaSaldada` acepta el OR, y `updateAppointment` (src/lib/firestore.ts:89-91) es un `updateDoc` sin lista blanca de campos. PROBADO CONTRA EL EMULADOR con un miembro rol `secretaria`: «PERMITIDO  secretaria escribe cobroId:'x' inventado en la cita» y también «PERMITIDO  secretaria borra cobroId de una cita ya cobrada (cobroId:'')» — o sea que el camino inverso que el auditor deja en `que_no_cubre` también está abierto y permite volver a cobrar una cita ya saldada."
+    },
+    {
+      "id": "ASC-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/cobros.ts:403-411 `quitarExencion(clinicId, citaId)` — sin motivo ni autor, y vacía `exentoMotivo/exentoPor/exentoPorNombre/exentoEn`. Llamador único: src/app/(dashboard)/citas/page.tsx:791 `await quitarExencion(clinicId, a.id); toast(...)` — sin `logAudit`, mientras el mismo archivo sí lo usa en :420 (cambio de estado) y :521 (borrado), y la cortesía lo deja en src/components/CobrarModal.tsx:134-137.",
+      "nota": "Comprobé el llamador tal como pide el encargo: `grep -rn quitarExencion src/` devuelve exactamente dos usos (el import en citas/page.tsx:19 y la llamada en :791) y `grep -n logAudit` en ese archivo devuelve sólo :37, :420 y :521 — ninguno en el bloque 787-793. PROBADO CONTRA EL EMULADOR: «PERMITIDO  secretaria quita la cortesia true->false sin motivo ni autor», así que la asimetría de firestore.rules:151-158 no es teórica. Mantengo P1: es el reverso exacto del hueco que cerró REG-003, con el agravante de que borra el sello en vez de conservarlo."
+    },
+    {
+      "id": "ASC-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/stripe/webhook/route.ts:677-679 `case 'charge.refunded': ... const clinicId = await getClinicIdByCustomer(String(charge.customer ?? ''))` → :690 `adminDb.collection('platform_payments').doc(`refund_${charge.id}`).set({...})`. `getClinicIdByCustomer` (:88-95) consulta `clinics.stripeCustomerId`, y la sesión del anticipo se crea sin `customer` en src/app/api/payment/create-checkout/route.ts:103-116 (sólo `metadata: { clinicId, citaId, tipo: 'paciente_anticipo' }`).",
+      "nota": "Seguí el webhook entero: `grep -n 'refund'` en la ruta devuelve sólo :677-717, todo dentro del `set` a `platform_payments`; no hay ninguna escritura a `clinics/{id}/cobros` ni a la cita en esa rama, mientras que la rama del anticipo sí las hace (:419-478, `cobros/stripe_<session>` y `citaRef.update({estado:'pagada', cobroId})`). BAJO a P2: no hay línea que lo impida, pero la probabilidad es baja por construcción —requiere `anticipoMonto` configurado, un anticipo cobrado y un reembolso emitido a mano en el panel de Stripe de la plataforma— y queda un rastro (`huerfano: true`, :693). La deuda de fondo es la unidad REFUND de REG-015, que el ledger declara abierta a propósito."
+    },
+    {
+      "id": "ASC-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/Sidebar.tsx:50 `{ href: '/finanzas', label: 'Finanzas', icon: TrendingUp, modos: 'medico' }` y :52-53 (comentario: /corte-caja «sigue viva por si hay marcadores», sin fila propia); src/app/(dashboard)/operaciones/page.tsx:136 con `modos: 'medico'` dentro del grupo secundario que se pinta como «destinos que no hacen falta a diario» (:438); src/context/ModeContext.tsx:34 `const mode: AppMode = esMedicoReal ? modePersistido : 'secretaria'`.",
+      "nota": "Intenté refutarlo por la puerta que el auditor no miró: la paleta ⌘K sí ofrece «Corte de caja» y «Finanzas» (src/components/PaletteBusqueda.tsx:15 y :17). Pero está apagada justo para quien cobra — src/app/(dashboard)/layout.tsx:863 `<PaletteBusqueda enabled={esMedicoReal} />` —, así que la premisa se sostiene tal cual para la asistente. Contra el médico, la ⌘K sí es un atajo real y matiza (no anula) la queja de los 3 clics. No aplica D-030: `MODULOS_EN_PAUSA` (src/lib/navegacion/modulos-en-pausa.ts:34) sólo lista hospitalizacion y uci."
+    },
+    {
+      "id": "ASC-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/corte-caja/page.tsx:123-131: el `<PageHeader>` con el botón `onClick={() => window.print()}` está dentro de `{!embedded && (...)}`, y `grep -n window.print` en ese archivo devuelve sólo :128 — no hay otro control de salida en el contenido embebido. src/app/(dashboard)/finanzas/page.tsx:243 `<CorteCajaContenido embedded />`; el «Exportar CSV» de :219 está fuera del ternario de pestañas (:242) y `descargarCSV` (:172-182) usa `cobros` = `listarCobros(clinicId, desde, hasta)` (:143) con `rangoDe(periodo, ancla)`.",
+      "nota": "Verificado línea por línea. Único matiz que resta al hallazgo: /corte-caja no es inalcanzable para el médico, la paleta ⌘K la ofrece (PaletteBusqueda.tsx:15), así que «sólo se llega por URL» es inexacto para médico/admin — pero no para la asistente, y el defecto central (la pestaña embebida no puede imprimir ni exportar su día) queda intacto."
+    },
+    {
+      "id": "ASC-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/finanzas/page.tsx:536 `{c.folio} · {new Date(c.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}` y :585 `new Date(c.canceladoEn).toLocaleDateString('es-MX')`, ambos sin `timeZone`; src/lib/formato/fecha.ts:57-60 (`fechaCorta`) y :63-68 (`fechaConHora`) tampoco la pasan, y src/app/(dashboard)/corte-caja/page.tsx:203 los usa. La agrupación sí usa la zona del consultorio: src/lib/cobros.ts:617 `const clave = fechaISOLocal(new Date(c.fecha))`.",
+      "nota": "La evidencia existe literalmente. BAJO a P3 porque la exposición real es más estrecha que la de REG-011: allí el día se calculaba con CDMX fija ignorando `config.zonaHoraria`, y fallaba SIEMPRE en un consultorio del norte; aquí se usa la zona del dispositivo, que en el mostrador coincide con la del consultorio, y el desfase sólo aparece cuando difieren (médico de viaje, equipo con TZ mal puesta, o el navegador en UTC del recorrido). Sigue siendo un defecto: la barra y la fila pueden contradecirse y la corrección es de una línea."
+    },
+    {
+      "id": "ASC-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/cobros.ts:339 `if (!esAbono && cita?.cobroId) return cita.cobroId` — devuelve el id existente sin marca alguna que lo distinga de un cobro nuevo; src/components/CobrarModal.tsx:224-227 `await updateAppointment(clinicId, prefill.citaId, { ...(salda ? { cobroId: id, cobradoEn: new Date().toISOString() } : {}), ... })` y :238 `toast(`Cobro registrado: ${monto}`, 'success')` con `monto` derivado de `n` (lo tecleado, :147).",
+      "nota": "Comprobé que el segundo intento llega ahí de verdad: la clave de idempotencia es por intento (`claveIntentoRef.current ??= claveDeIntento()`, :174), así que en otra pestaña es distinta, el `tx.get(cobroRef)` de :332 no encuentra nada y cae en la guarda de :339. `updateAppointment` (src/lib/firestore.ts:89-91) es un `updateDoc` sin lista blanca, así que `cobradoEn` se pisa sin oposición. El candado anti-doble-cobro funciona; lo que falla es el mensaje y el sello, que es exactamente lo que dice el hallazgo."
+    },
+    {
+      "id": "ASC-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/CobrarModal.tsx:341-362 (el comentario reconoce que el precio vive sólo en «Portal de auto-agenda» y el aviso se pinta cuando el campo está vacío); validación en :148-154 (`isNaN(n) || n === 0` y el signo, nada más); src/lib/cobros.ts:221-224 (`!Number.isFinite(monto) || monto < 0`); firestore.rules:893-894 (`monto is number && monto >= 0`). Ningún tope ni comparación contra `precioSugerido` ni contra `situacionDeCobro.excedente` (src/lib/finanzas/estado-cobro.ts:152-153, que ya lo calcula).",
+      "nota": "Busqué en las tres capas —modal, lib y reglas— una cota superior o una confirmación por desvío y no existe ninguna: los tres controles son de signo, no de magnitud. El umbral concreto (2×/0.5×, tope absoluto) sí es política del dueño, pero la ausencia total de cualquier freno es un hecho verificado, así que confirmo el hallazgo y dejo el umbral como decisión abierta."
+    },
+    {
+      "id": "ASC-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/CobrarModal.tsx:334-335 (`<label style={lbl}>Monto MXN *</label>` seguido, como hermano y no como envoltorio, de `<input type=\"number\" ...>`), :285-286 (motivo de la cortesía), :416-417 (descripción), :438-439 (notas). `grep -n 'htmlFor\\|aria-label' src/components/CobrarModal.tsx` → cero resultados.",
+      "nota": "Verificado que tampoco hay asociación implícita (los `<label>` no envuelven al control) ni `id` en ningún input. El auditor se queda CORTO: por la misma causa quedan sin nombre accesible los `<select>` de Concepto (:387-388), Método de pago (:406-407) y Médico (:368), y el contraste con el modal de anulación —que sí lo hace bien, src/app/(dashboard)/finanzas/page.tsx:660 `aria-label=\"Motivo de la anulación\"`— demuestra que la convención existe en el repositorio."
+    },
+    {
+      "id": "ASC-012",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/cobros.ts:73 (`| 'reembolso'  // monto negativo`), :86 (`reembolso: 'Reembolso'`), :98 («positivo = ingreso, negativo = reembolso») contra :221-224 que rechaza todo negativo; src/lib/corte-caja.ts:14 `reembolsos: number // suma de montos negativos (≤ 0)`; src/components/CobrarModal.tsx:389-400 lo filtra del selector con el motivo escrito.",
+      "nota": "Los hechos son correctos: el concepto no se puede emitir y el campo `reembolsos` sólo puede valer 0 con datos nuevos. Queda PARCIAL, no confirmado, por dos razones: (1) no es código muerto olvidado sino deuda DECLARADA —REG-015 en docs/audit/regression-ledger.md:25 dice literalmente que REFUND/CREDIT/ADJUSTMENT es «unidad aparte con traza a la operación original», y el filtro del selector explica por qué no se ofrece—; (2) la propia propuesta del auditor es una disyuntiva («construir la unidad o retirar el concepto») que es decisión del dueño. Además `src/lib/finanzas/estado-cobro.ts:112-121` ya consume `tipo` REFUND/CREDIT, así que retirar el concepto no es gratis."
+    },
+    {
+      "id": "ASC-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/corte-caja/page.tsx:121-296: todo se calcula en memoria (`corteDeCaja/embudoCobro/cuentasPorCobrar`) y no hay ninguna escritura; los únicos controles son el selector de día y el `window.print()` de :128. `grep -rn \"'cortes'\" src/ firestore.rules` → ningún resultado: la colección no existe ni en las reglas ni en `src/lib/clinica/respaldo.ts`.",
+      "nota": "Comprobado que no hay arqueo en ninguna otra parte (ni campo «efectivo contado», ni «diferencia», ni acta de cierre). Es una mejora de producto con evidencia sólida, así que se confirma en su prioridad P3; la forma concreta (colección `cortes` con sus tres declaraciones, turnos, fondo de caja) sí requiere decisión del dueño."
+    },
+    {
+      "id": "ASC-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/cobros.ts:645-649 (cabecera sin `Día`, `Cobró`, `Tipo` ni `Estado`) y :652 `c.fecha` (ISO UTC crudo); src/app/(dashboard)/finanzas/page.tsx:173 `cobrosACSV(cobros)` con `cobros` = `listarCobros(clinicId, desde, hasta)` (:143, sin cancelados; la lista con cancelados es otra, :148); src/lib/cobros.ts:161-163 `return `CB-${Date.now().toString(36).toUpperCase().slice(-7)}``.",
+      "nota": "Todas las sub-afirmaciones verificadas una por una. Matizo la del folio: `slice(-7)` en base36 sólo repite el valor cada ~2,5 años, así que el riesgo real es la colisión en el MISMO milisegundo (dos equipos cobrando a la vez) y no una repetición frecuente; además el folio no es el id del documento, así que una colisión confunde la conciliación pero no pisa datos. El resto (fecha UTC, sin quién cobró, anulados omitidos en silencio) queda tal cual. P3 confirmado."
+    },
+    {
+      "id": "ASC-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/CobrarModal.tsx:130 `const autorNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''` → se sella en `exentoPorNombre` vía `exentarCobro` (src/lib/cobros.ts:395); se imprime en src/app/(dashboard)/corte-caja/page.tsx:261 `sub={`${c.motivo}${c.autorizadaPor ? ` · autorizó ${c.autorizadaPor}` : ...}`}`. Mismo patrón al anular: src/app/(dashboard)/finanzas/page.tsx:635 `user.displayName || user.email || ''`.",
+      "nota": "Confirmado, y con el contraste que lo hace evidente: para las anulaciones ya existe el resolvedor correcto (`quienAnulo` con `nombrePorUid`, src/lib/corte-caja.ts:217 y siguientes, probado en src/__tests__/quien-anulo.test.ts), que traduce uid→nombre del equipo y nunca cae al correo. La cortesía no lo usa. O sea: la solución que el auditor propone ya está escrita en el mismo archivo, sólo que no se aplica en este camino."
+    },
+    {
+      "id": "ASC-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/cobros.ts:603 `if (c.medicoId && c.medicoNombre) {` (exige AMBOS para entrar en `porMedico`) frente a src/lib/comisiones.ts:91-106, que acumula con sólo `medicoId` y usa `nombre: c.medicoNombre || 'Médico'` como respaldo.",
+      "nota": "Las dos rutas confirmadas y también la vía por la que llega el dato incompleto: el webhook escribe `medicoNombre: (cita?.medicoNombre as string) || undefined` (src/app/api/stripe/webhook/route.ts:439) y `registrarCobro` sólo añade el nombre si `elegirMedicoCanonico` lo resuelve (src/lib/cobros.ts:254). Probabilidad baja —hace falta un cobro con médico y sin nombre—, por eso P3 es la prioridad correcta, pero la discrepancia entre las dos pantallas es real y silenciosa."
+    },
+    {
+      "id": "ASC-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:390 `const handleStatusChange = async (appt, newStatus) => {`; `grep -n cobroId` en ese archivo devuelve :215, :261, :498, :894 y :1102 — ninguna dentro de 390-486. Tampoco lo mira el servidor: `grep -n cobroId src/lib/agenda/transicion-cita.ts` → sin resultados. La guarda que sí existe es la del borrado, :498-502.",
+      "nota": "Busqué la línea que lo impidiera en las dos capas (pantalla y `cambiarEstadoCita`) y no está; y las consecuencias en el corte son las que dice: src/lib/corte-caja.ts:42 `NO_CUENTAN = ['cancelada','reagendada','solicitada']` saca la cita del embudo mientras `corteDeCaja` (:22-23, `cobros.filter(c => !c.cancelado)`) conserva el cobro en el neto. El propio toast de :499 recomienda «cancelar» como camino seguro y ese camino no mira el dinero."
+    },
+    {
+      "id": "ASC-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/membresias.ts:179-182 `} catch (e) { await updateDoc(ref, { proximoCobro: m.proximoCobro ?? base, ultimoCobroEn: m.ultimoCobroEn ?? '' }).catch(() => console.error('[membresias] el ciclo quedó adelantado SIN cobro; membresía', m.id)); throw e }`, y el comentario de :150-152 que lo llama «un problema visible y arreglable». El worklist ordena por `proximoCobro` (`porCobrar`, :190-198), que para entonces ya está avanzado.",
+      "nota": "Confirmado literalmente. Busqué si el aviso llegaba a alguna otra parte —`alertas_no_entregadas`, una marca en el documento, un toast— y no: el único rastro es `console.error`, que nadie del consultorio lee. El diseño de fondo (avanzar el ciclo primero) es el correcto y el hallazgo no lo discute; lo que falta es la alarma de su compensación fallida. P3 correcto: doble fallo de red seguido, probabilidad baja."
+    }
+  ],
+  "ratio": { "total": 18, "confirmados": 17, "refutados": 0, "parciales": 1 },
+  "observaciones_del_auditor": "Es el crudo mejor sostenido de los que he revisado: las 18 citas archivo:línea existen literalmente (±5) y las reproducciones vivas coinciden con lo que dice el código. No inventó ninguna línea ni citó código muerto: los 18 caminos llegan a producción (Practice, nada en pausa por D-030). Patrones de error, todos menores: (1) no comprueba TODAS las superficies de navegación —dio /corte-caja y /finanzas por «sólo alcanzables por URL» sin ver src/components/PaletteBusqueda.tsx:15,17, aunque su conclusión se salva porque la paleta está apagada para no-médicos (layout.tsx:863)—; (2) se queda corto de prioridad cuando el defecto es determinista: ASC-001 falla el 100 % de las veces y no tiene camino alternativo (delete negado en firestore.rules:982), es P0 y él lo puso P1; (3) infla la prioridad cuando la probabilidad es baja por construcción: ASC-005 (requiere anticipo configurado + reembolso manual en el panel de Stripe) y ASC-008 (sólo muerde si la zona del dispositivo difiere de la del consultorio) no son P1 ni P2; (4) llama «código muerto» a deuda declarada en el ledger (ASC-012, REG-015), que es una decisión del dueño y no un descuido. En dos hallazgos se queda CORTO: en ASC-003 el camino inverso (`cobroId:''`) también está permitido —lo confirmé en el emulador—, y en ASC-011 faltan los tres `<select>` sin nombre accesible."
+}

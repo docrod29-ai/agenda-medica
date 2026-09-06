@@ -1,0 +1,183 @@
+{
+  "auditor": "P-interna",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "PI-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:276 (`const PREGUNTA_POR_TOMA = /(como|cuando|…)/`, sin \\b) y :357 (`if (mencionados.length === 1 && PREGUNTA_POR_TOMA.test(t))` → ANSWER_FROM_APPROVED_PLAN con `avisarAlConsultorio: false`)",
+      "nota": "Reproducido con jiti desde /tmp sobre el motor real (alias @→src). Salida literal: {\"q\":\"si no como, me tomo la metformina?\",\"clase\":\"ANSWER_FROM_APPROVED_PLAN\",\"motivo\":null,\"avisar\":false,\"texto\":\"Metformina 850 mg, una tableta con la comida y otra con la cena.\"} y {\"q\":\"¿Puedo saltarme el paracetamol hoy? como poco por las tardes\",\"clase\":\"ANSWER_FROM_APPROVED_PLAN\",\"avisar\":false}. Busqué la línea que lo impidiera y no existe: ACTOS_PROHIBIDOS (:164-169) no tiene saltar/omitir, y el paso 2 sólo protege si alguna prueba casa. Agrava lo que el auditor no dijo: esto NO es el «vocabulario incompleto pierde precisión, nunca seguridad» que declara la cabecera (:53-59) — aquí el destino por omisión deja de ser escalar porque PREGUNTA_POR_TOMA sobre-captura por subcadena, que es exactamente el fallo de ORDEN que urgencia.ts:236-239 dejó escrito («…contiene 'hora'»). P1 se sostiene."
+    },
+    {
+      "id": "PI-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:357 (misma rama que PI-001) · evals/patient-ai/casos.json caso `ai-11-duda-clinica-abierta` («Me está dando mucho sueño desde que empecé el tratamiento» → ESCALATE_TO_CLINICIAN)",
+      "nota": "Reproducido con jiti: «¿cuando tomo la furosemida me da mucha sed, es normal?» → {\"clase\":\"ANSWER_FROM_APPROVED_PLAN\",\"avisar\":false,\"texto\":\"Una tableta por la manana.\"}; la misma queja sin «cuando» («me siento muy debil y mareado desde que empece la furosemida») → ESCALATE con avisar:true. MANTENGO P1 y corrijo al alza el argumento del auditor: la clase «efecto adverso reportado» YA está declarada como esperada en la puerta (ai-11), así que esto no es un hueco de vocabulario nuevo sino una forma de decirlo que derrota un caso que el propio producto se comprometió a escalar. Miscita: la regla de diagnóstico no está en la línea 190 sino en :177-183 (`/(que tengo|que enfermedad|es grave|es malo|es normal esto)\\b/`), que efectivamente no captura «es normal?» a secas. Comparte raíz y arreglo con PI-001."
+    },
+    {
+      "id": "PI-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "DUPLICADO de PG-003 (R-P-gineco.json), ya adjudicado: mismo modal src/app/(dashboard)/consulta/[patientId]/page.tsx:7459-7462 y mismo camino de subida src/hooks/useGrabacionAudio.ts:561 y :593-601",
+      "nota": "Mismo hecho, mismo veredicto que PG-003: confirmado y BAJADO a P2. Refuto la parte que PI-003 añade y PG-003 ya había negado: «REG-032 reaparece» es falso — lo que REG-032 cerró era la frase «el audio no se guarda», y el texto de hoy sí declara el envío al transcriptor; además «el expediente guarda únicamente la transcripción» es literalmente cierto (audioPath vive en estado de React, useGrabacionAudio.ts:1041, y no se escribe en Firestore). El defecto real es de PRECISIÓN («en este dispositivo» como único lugar, «por si falla» como único motivo), y conservar el audio lo autorizó el dueño en REG-249."
+    },
+    {
+      "id": "PI-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/portal/route.ts:56 (`ACCIONES_CLINICAS = new Set(['documentos','paquetes','preguntar','preguntas'])`) y :330-334 (`limitarEstricto('portal:clinico:…', 15, 600, 'Demasiadas consultas a tus documentos…')` antes del `switch`), contra el freno propio documentado en :58-71 y aplicado en :336-340",
+      "nota": "Verificado el orden literal en el archivo y las tres peticiones clínicas por carga en src/app/mi/[token]/page.tsx:258 (documentos), :276 (paquetes) y :289 (preguntas), disparadas por un solo `cargar()` (:252-302) que corre en `useEffect` (:304). 15/3 = 5 cargas; la 6.ª deja 429 en TODO lo clínico, y como el freno clínico va ANTES del de `preguntar`, éste nunca se cobra. La consecuencia la comprobé del otro lado: con 429 la ruta no llega a :798, así que no corre `clasificarPregunta`, no se escribe la tarea crítica (:905-920) ni el WhatsApp (:930). El código se contradice a sí mismo —:58-71 declara que preguntar «tiene su propio freno, y no es el de la agenda»— y el único control que sobrevive es la franja del 911 (mi/[token]/page.tsx:508, que no depende de las clínicas porque `session` no está en ACCIONES_CLINICAS). P1."
+    },
+    {
+      "id": "PI-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "DUPLICADO de PG-007 (R-P-gineco.json). Verificado otra vez: src/app/reservar/[clinicId]/page.tsx:151 y :201-208 (`<Card title=\"¿Qué tipo de consulta deseas?\">{tiposCita.map(...)}` sin rama para longitud 0; los únicos returns tempranos son :153 cargando, :163 error y :165 `!info`) · src/app/api/public/clinic/[clinicId]/route.ts:83 `tiposCita: Object.entries(config.duraciones ?? {})`",
+      "nota": "Mismo hallazgo y mismo veredicto que PG-007: confirmado P2. Nada nuevo que refutar; el hueco de estado vacío existe tal cual y la lista llega vacía por el camino que el auditor describe."
+    },
+    {
+      "id": "PI-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:282-287 (`const clave = (n) => n.toLowerCase()…` y los dos bucles que emiten `nuevo`/`suspendido` por igualdad de clave) contra src/lib/seguridad/dosis.ts:71 (`{ nombre: 'Paracetamol', alias: ['acetaminofen','acetaminofén','tylenol','tempra'], … }`)",
+      "nota": "Confirmado: la comparación es por cadena normalizada y no consulta ningún catálogo, así que «Tempra»→«Paracetamol» sale como suspendido + nuevo. El catálogo que el auditor invoca SÍ existe y sí conoce la equivalencia, pero está en dosis.ts:71, NO en la línea 963 que él cita (miscita); el motor que ya lo usa es src/lib/seguridad/terapia-duplicada.ts:164 («el catálogo de dosis.ts sabe que Tempra es paracetamol»), lo que refuerza el hallazgo: la pieza está construida y probada y este módulo no la llama. P2 correcto: no cambia una cifra, cambia una afirmación de suspensión."
+    },
+    {
+      "id": "PI-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "REFUTA la mitad del título: src/lib/aviso-privacidad.ts:38-39 imprime `listaEnTexto()`, que en src/lib/legal/subencargados.ts:99 dice «OpenAI (Estados Unidos) — Transcripción de voz y apoyo de IA. Puede tratar datos de salud.» y en :109 «AssemblyAI … Separación de voces del dictado (médico y paciente)». CONFIRMA el resto: :42-49 (§2, sin grabación de voz) y :51-64 (§3, ninguna finalidad de transcripción ni de IA)",
+      "nota": "El aviso SÍ dice, con nombre propio y en el documento que firma el paciente, que hay transcripción de voz y separación de voces del dictado: el título «no dice que se graba mi voz ni que una IA transcribe» es falso tal como está escrito. Lo que queda en pie —y es real— es que el dato «grabación de voz» no aparece entre los datos recabados y la transcripción no aparece entre las finalidades, que son las dos secciones que un titular lee para saber qué se trata y para qué. PARCIAL y P3: es redacción legal, el propio auditor lo manda al dueño («no es asesoría legal; el texto final lo fija el dueño») y el aviso ya está versionado (VERSION_AVISO, :13)."
+    },
+    {
+      "id": "PI-008",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "DUPLICADO de PG-004 (R-P-gineco.json), ya adjudicado parcial P3: src/app/(dashboard)/consulta/[patientId]/page.tsx:1810 y :1916 son las dos únicas lectura/escritura de `consentimientoGrabacion` en todo src/",
+      "nota": "Mismo hecho y mismo veredicto que PG-004. La frecuencia («una vez por paciente») y el re-consentimiento son decisión del dueño, y lo que falta es CONSTANCIA (versión/hash del texto), no capacidad: la grabación se puede detener hoy desde la propia pantalla. Nada aquí filtra datos ni cambia una cifra clínica."
+    },
+    {
+      "id": "PI-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/portal/route.ts:686-733 (`case 'formulario'` escribe `patients/{id}/formularios_previos/actual` sin ninguna comprobación de `alcance`) · `grep -n alcance src/app/api/portal/route.ts` devuelve la guarda SÓLO en :754 (paquetes), :799 (preguntar), :968 (preguntas) y :1015 (documentos) · src/app/api/portal/link/route.ts:38-41 (el alcance `agenda` lo emite cualquier miembro con `verificarMiembro`)",
+      "nota": "Comprobado con grep exhaustivo, que es lo que faltaba: hay cuatro guardas de alcance en la ruta y ninguna cubre `formulario`. Busqué el control que lo impidiera y sólo encontré uno parcial: `formulario` sí está en ACCIONES_QUE_MUEVEN (:53), así que paga el cupo estricto de mutación (:324-328) — frena el volumen, no la autoría. La atenuación que el auditor ya reconoce es correcta y la verifiqué: no pisa el expediente (el documento va a su propia subcolección con `origen: 'paciente'`) y deja asiento en audit_log (:700-704). P2: incoherencia de alcance real —leer secreto médico exige enlace clínico, escribir para el médico no— sin daño directo al expediente."
+    },
+    {
+      "id": "PI-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "`grep -n audit_log src/app/api/portal/route.ts` = :448, :633, :700 y nada más (cancelar, reagendar, formulario) · las lecturas `session` (:354), `preguntas` (:967), `paquetes` (:735) y `documentos` (:1001) no escriben ningún evento · src/lib/aviso-privacidad.ts:105 «• Registro de accesos a su expediente»",
+      "nota": "Confirmado y busqué la bitácora del otro lado por si existía en otra capa: no existe. `grep -rn 'expediente_lectura|portal_acceso|documentos_leidos'` sólo devuelve el asiento del lado del MÉDICO (expediente/[patientId]/page.tsx:128) y su declaración en src/lib/expediente/audit-eventos.ts:42; no hay ningún evento de portal en el catálogo. La promesa de :105 es de un documento legal publicado, así que la brecha es entre lo prometido y lo hecho, no una preferencia. P2."
+    },
+    {
+      "id": "PI-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/paciente/urgencia.ts:44-51 (declara por escrito lo que NO vigila) y :161-164 (la regla de sobredosis exige un sustantivo de la lista `pastilla|medicamento|medicina|tableta|jarabe|frasco|…`)",
+      "nota": "Reproducido con jiti, salida literal: `urgenciaDelMensaje('tengo la glucosa en 40 y sudo frio')` → null; `('me tome dos veces el losartan por error')` → null; `('me tome dos pastillas de losartan por error')` → {\"motivo\":\"ingesta_accidental_o_sobredosis\",\"clase\":\"URGENT_REVIEW_REQUIRED\"}. O sea: la categoría YA autorizada (§6, sobredosis) se pierde sólo por no nombrar la forma farmacéutica — esa mitad es trabajo sin decisión pendiente. La otra mitad (hipoglucemia, sangrado, anafilaxia) es AMPLIAR la lista del §6, que es política clínica del dueño: clinical-safety §1 prohíbe fijarla desde aquí y el módulo declara el hueco. Misma clase que PG-001, ya adjudicado parcial P2; mismo veredicto y misma prioridad."
+    },
+    {
+      "id": "PI-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "public/sw.js:88 (`.catch(() => caches.match(req).then((r) => r || caches.match('/')))`) con :15 (`c.addAll(['/'])`) · src/app/manifest.ts:9 (`start_url: '/dashboard'`) y :27-31 (shortcuts a /calendario, /asistente, /pacientes) · src/app/layout.tsx:192 `<ServiceWorkerRegister />` en el layout RAÍZ",
+      "nota": "Comprobé la premisa que el auditor no verificó y que era la que podía tumbar el hallazgo: el service worker se registra desde el layout raíz, no desde el shell del médico, así que sí gobierna /mi. Con eso, el respaldo a '/' y el manifest del médico llegan al paciente. Añado lo que EXCULPA al sistema y el auditor no reclamó de más: el SW no cachea PHI —:58 ignora todo lo que no es GET (el portal habla por POST), :66 ignora /api/ y :74 excluye el HTML de las rutas clínicas—, así que lo cacheado de /mi es un shell sin datos. Fricción real, P3 correcto."
+    },
+    {
+      "id": "PI-013",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "DUPLICADO de PG-011 (R-P-gineco.json), ya adjudicado parcial: src/app/mi/[token]/page.tsx:1066-1078 (el comentario declara la ausencia) y :1088-1090 (el texto en pantalla)",
+      "nota": "Mismo veredicto que PG-011: parcial. Bajo a P3 —PG-011 se quedó en P2 porque añadía la dimensión de menor de edad y patria potestad, que aquí no está—: lo que PI-013 describe es la ausencia declarada por escrito de un requisito de V9 §8, y el propio auditor la clasifica como `mejora` y elogia la honestidad del texto. No hay defecto que arreglar sin construir el modelo de cuidador, que es unidad de trabajo, no reparación."
+    },
+    {
+      "id": "PI-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/urgencia.ts:199 («No espere respuesta por este medio: este canal es para citas y no hay nadie leyéndolo ahora mismo.») y :204 («Avisamos al consultorio de que usted escribió.»), reutilizado tal cual en el portal por src/lib/paciente/pregunta-del-paciente.ts:311 (`texto: mensajeDeUrgencia(...)`)",
+      "nota": "Las dos frases son literales y el mismo texto sirve para WhatsApp y para «Preguntar»: la cita de :315 del auditor es en realidad :311, dentro del ±5. Verifiqué lo que hay detrás de «avisamos»: sí se escribe una tarea crítica siempre (route.ts:905-920, sin condicionarla al teléfono) y el WhatsApp sólo si hay teléfono (:930), así que la promesa es cierta en el rastro y engañosa en la expectativa de tiempo. Fricción de redacción por canal, P3, y el 911 va en la primera línea (:201)."
+    },
+    {
+      "id": "PI-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/portal/route.ts:356 (`const paciente = citas[0]?.pacienteNombre ?? ''`) y src/app/mi/[token]/page.tsx:496 (`<h1 …>Hola{sesion.paciente ? \\`, ${sesion.paciente.split(' ')[0]}\\` : ''}</h1>`)",
+      "nota": "Las dos líneas son exactas y la cadena cierra: sin citas, `paciente` es cadena vacía y el h1 queda en «Hola» pelado. Y no es un caso de laboratorio — el enlace clínico se emite desde «Entregar al paciente» tras firmar una nota, escenario en el que puede no haber ninguna cita futura ni pasada cargada. El expediente sí se lee en la misma petición para otras acciones (`paciente` de :273-286), así que el dato está a mano. P3: confianza, no seguridad."
+    },
+    {
+      "id": "PI-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "DUPLICADO/extensión de PG-008 (R-P-gineco.json), ya adjudicado confirmado P2 para la fecha ISO. Verificadas además las dos piezas que PI-016 añade: src/app/mi/[token]/page.tsx:815 («…en tu consulta del {p.procedencia.fechaConsulta}») y src/lib/paciente/como-se-lo-explico.ts:135 (`return partes.join(' · ')`)",
+      "nota": "Mismo veredicto y misma prioridad que PG-008. Las dos citas nuevas existen literalmente y refuerzan el mismo argumento que allí se dio: la norma («en la hoja va en palabras, no en ISO») ya está escrita y aplicada una pantalla más allá, y `fmtFecha` ya vive en ESTE archivo y se usa para «Citas anteriores» (:1001), así que es inconsistencia interna, no preferencia de estilo."
+    },
+    {
+      "id": "PI-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "Misma clase que PG-010 (R-P-gineco.json), ya adjudicado confirmado P3. Líneas verificadas en src/app/mi/[token]/page.tsx: :812 (procedencia, 12 px), :818 («Tu consultorio la tiene pendiente de revisar», 12 px), :1088-1090 («Este enlace es personal y caduca…», 12 px)",
+      "nota": "Mismo veredicto y misma prioridad que PG-010, por la misma razón que allí se argumentó: design-system.md fija mínimos de CONTRASTE y de objetivo táctil, no de tamaño de letra, así que poner un piso de 14 px en el portal es decisión de diseño del dueño y no incumplimiento de una regla escrita. El zoom hasta 5× no está bloqueado (layout.tsx viewport), que es el mínimo de accesibilidad que sí es exigible."
+    },
+    {
+      "id": "PI-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:863 (`{destino === 'cuidado' && (<>`) y :993-1012 (`{pasadas.length > 0 && (<details><summary>Citas anteriores ({pasadas.length})</summary>…`) — el bloque cierra en :1013 dentro del mismo fragmento de «cuidado»",
+      "nota": "Verificada la anidación línea a línea: «Citas anteriores» está efectivamente dentro del destino Cuidado y no en Hoy. Fricción de estructura, sin consecuencia de datos ni de seguridad. P3 bien puesto."
+    },
+    {
+      "id": "PI-019",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "REFUTA el agravante con la línea que el propio auditor cita: src/app/globals.css:4008-4010 `html:has(.mi-barra-destinos) .theme-toggle { bottom: calc(60px + 16px + env(safe-area-inset-bottom, 0px)); }` — esa regla EXISTE para que el botón NO se pinte encima de la barra de destinos del portal, y su comentario (:3999-4007) lo explica. CONFIRMA la presencia: src/app/layout.tsx:192 `<ThemeToggle />` sin condición de ruta, y `grep -n 'pathname|usePathname' src/components/ThemeToggle.tsx` = 0 resultados",
+      "nota": "El botón sí aparece en todas las superficies de paciente, y eso es cierto. Pero el hallazgo se apoya en un daño que la línea citada desmiente: 4008 es el arreglo, no el defecto, y en escritorio hay además una regla que lo devuelve a su sitio (:4013-4015). Sin ese agravante queda una preferencia de producto —¿pertenece un ajuste de apariencia a la pantalla de salud?— que decide el dueño. PARCIAL, P3."
+    },
+    {
+      "id": "PI-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:450-452 (`TEXTO_ESCALACION`, el único texto para todo lo que no encaja) y :224-235 (`esAdministrativa`, sin enlace/acceso/permiso/portal/familiar/cuidador)",
+      "nota": "Reproducido con jiti: «mi hija quiere entrar al portal, como le doy permiso?» → {\"clase\":\"ESCALATE_TO_CLINICIAN\",\"motivo\":\"no_esta_en_el_plan_liberado\",\"avisar\":true}, o sea entra al worklist como pregunta clínica. Miscita: `esAdministrativa` está en :224-235, no en :203-215 (fuera del ±5), pero el `archivo:linea` principal (:450) es exacto y el comportamiento está ejecutado. Fricción menor y bien tipificada: el auditor reconoce que escalar por omisión es el diseño seguro, y ampliar el vocabulario administrativo es estrechar la puerta buena, no abrirla."
+    },
+    {
+      "id": "PI-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "DUPLICADO de PG-015 (R-P-gineco.json), ya adjudicado confirmado P3: src/app/mi/[token]/page.tsx:432 (`void descargarRecetaWord(`) y :1055-1057 (único control)",
+      "nota": "Mismo hecho, mismo veredicto y misma prioridad que PG-015. La atenuación sigue siendo válida: el contenido clínico sí está en pantalla (el plan lista medicamentos con instrucciones y la tarjeta muestra fecha, diagnóstico y médico); lo que el .doc añade es el documento formal con cédula, y cambiar el formato es decisión de producto."
+    },
+    {
+      "id": "PI-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/expediente/[patientId]/page.tsx:658-670 (`onRevocar` → `updatePatient(…, { portalTokenVersion: +1 })`, dentro de `<DatosPaciente>`) · src/app/mi/[token]/page.tsx:1088-1090 (Perfil sólo informa; no hay «invalidar este enlace») · src/lib/patient-token.ts:26 `const DIAS_DEFECTO = 7`",
+      "nota": "Es la mitad SUPERVIVIENTE de PG-012: aquella quedó parcial porque afirmaba además que la invalidación del consultorio no deja bitácora, cosa que se refutó (updatePatient siempre emite `logAudit`). PI-022 no repite esa afirmación falsa, así que lo que queda —el paciente no tiene botón para invalidar su propio enlace— se confirma limpio. P3: la caducidad de 7 días acota el daño, la revocación existe del lado del consultorio, y /mi lleva noindex y no-referrer (src/lib/security/rutas-privadas.ts)."
+    },
+    {
+      "id": "PI-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/privacidad/[clinicId]/page.tsx:232-239 (`<button onClick={enviar} disabled={enviando || !nombre || !telefono || !descripcion} aria-busy={enviando} …>`, sin `aria-describedby` ni texto de motivo)",
+      "nota": "La línea es exacta y ya estaba dentro de PG-016 (confirmado P2), que juzgó la pantalla entera. Aislado, este trozo es P3: los tres campos llevan asterisco y `<label>` asociado (REG-331), así que la información existe aunque el botón no la anuncie; el agravante fuerte de PG-016 —que ninguna pantalla de paciente enlaza a /privacidad— no lo reclama este hallazgo. Es el patrón que C-027 ya documenta en tres pantallas del médico."
+    },
+    {
+      "id": "PI-024",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "DUPLICADO de PG-019 (R-P-gineco.json), ya adjudicado parcial P3: src/app/page.tsx habla al médico de principio a fin, y las salidas que sí existen son src/app/dr/[clinicId]/page.tsx y src/app/reservar/[clinicId]/page.tsx, que el consultorio comparte",
+      "nota": "Mismo veredicto que PG-019. El propio auditor lo tipifica como `mejora` con severidad 1 y lo anota «como desacuerdo suave, no como defecto»: sin decisión del dueño sobre si NexusMED tiene o no directorio de pacientes, no hay nada que arreglar. Evidencia de recorrido, no de línea citada; no la contradigo."
+    },
+    {
+      "id": "PI-025",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "REFUTA «el estado se pierde al cambiar de pestaña»: los destinos son estado local del cliente —src/app/mi/[token]/page.tsx:231 `useState('hoy')` y :1124 `onClick={() => setDestino(d.id)}`— y `cargar` sólo depende de `token` (:302) y corre en un `useEffect` con esa dependencia (:304), así que moverse entre Hoy/Cuidado/Documentos/Preguntar NO vuelve a pedir nada. CONFIRMA las cuatro peticiones por carga: :254 session, :258 documentos, :276 paquetes, :289 preguntas, y :367 `await cargar()` tras confirmar/cancelar/reagendar",
+      "nota": "La parte medible se sostiene (cuatro peticiones por carga y recarga completa tras una acción de cita, que es lo que alimenta a PI-004), pero el título exagera: nada se pierde al cambiar de destino. La medición de peso el propio auditor la declara no-anclable (modo dev). PARCIAL, P3."
+    }
+  ],
+  "ratio": { "total": 25, "confirmados": 18, "refutados": 0, "parciales": 7 },
+  "observaciones_del_auditor": "Es el auditor mejor anclado del panel: casi todo llega con archivo:línea abierto, reproduce fuera del navegador lo que afirma y declara con honestidad lo que no pudo medir (peso en producción, token de reseña). Verifiqué con jiti sus dos reproducciones (PI-001/PI-002/PI-011) y salieron idénticas. Sus dos patrones de error: (1) SUB-CITAS DESPLAZADAS — el `archivo:linea` principal siempre acierta, pero las líneas secundarias del campo `evidencia` se van: dosis.ts:963 es en realidad :71 (PI-006), `esAdministrativa` :203-215 es :224-235 (PI-020), la regla de diagnóstico «línea 190» es :177-183 (PI-002). (2) AGRAVANTES SIN COMPROBAR DEL OTRO LADO — cita globals.css:4008 como prueba de que el botón de tema tapa la barra del portal cuando esa línea es exactamente la regla que lo impide (PI-019); afirma que el estado del portal se pierde al cambiar de pestaña cuando los destinos son estado local (PI-025); dice que el aviso «no dice que una IA transcribe» cuando el aviso nombra a OpenAI «Transcripción de voz» y a AssemblyAI «Separación de voces del dictado» (PI-007); y revive REG-032 como reaparición cuando la frase que aquel cerró no es la de hoy (PI-003, ya resuelto en PG-003). No exagera prioridades: siete de sus hallazgos son duplicados de veredictos ya emitidos en R-P-gineco (PG-003, PG-004, PG-007, PG-008, PG-010, PG-011, PG-012, PG-015, PG-019) y en todos coincide con la prioridad ya adjudicada. Donde se queda corto es en PI-002, que él pone al nivel de PI-001 sin ver que ya existe un caso de la puerta (ai-11) comprometido con esa conducta."
+}

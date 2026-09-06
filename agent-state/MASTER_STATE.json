@@ -22,7 +22,14 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34024381002",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [],
+  "trabajoLocalSinSubir": [
+    "UU agent-state/MASTER_STATE.json",
+    "M  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
+    "M  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1185.md",
+    "M  docs/maintenance/sw-changelog.md",
+    "M  firestore.rules.estado.json",
+    "M  src/__tests__/el-tablero-del-loop-no-miente.test.ts"
+  ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -55,13 +62,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/app-production-deployment-cdhqdd",
+  "ramaActual": "claude/medical-app-audit-team-8c37y7",
   "derivado": {
-    "regsEnElLedger": 388,
-    "ultimaREG": "REG-604",
-    "archivosDePrueba": 1007,
-    "casosDePrueba": 12194,
+    "regsEnElLedger": 436,
+    "ultimaREG": "REG-651",
+    "archivosDePrueba": 1089,
+    "casosDePrueba": 12971,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1186"
+  "versionEnElRepo": "nexusmed-v1187"
 }

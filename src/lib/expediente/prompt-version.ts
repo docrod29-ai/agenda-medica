@@ -48,7 +48,7 @@
  * Formato `nota-AAAA-MM-DD-N`: la fecha del cambio y un contador dentro del día,
  * porque en una noche de trabajo puede cambiar varias veces.
  */
-export const PROMPT_VERSION = 'nota-2026-09-05-1'
+export const PROMPT_VERSION = 'nota-2026-09-06-4'
 
 /**
  * Los archivos cuyo contenido ES el prompt.
@@ -69,7 +69,7 @@ export const ARCHIVOS_DEL_PROMPT: readonly string[] = [
  * Cuando falla, el mensaje trae la huella nueva: se copia aquí **junto con** una
  * versión nueva arriba. Copiar sólo la huella es saltarse el candado.
  */
-export const HUELLA_DEL_PROMPT = 'cbf77e6944e887ce'
+export const HUELLA_DEL_PROMPT = 'c60f4ed286062167'
 
 export const POR_QUE_IMPORTA =
   'Es lo único que permite responder «¿qué notas se generaron con el prompt que ' +

@@ -105,7 +105,17 @@ const POR_TRONCO: Record<Tronco, HerramientaId[]> = {
   // Dosis por peso y percentiles; el riesgo cardiovascular a 10 años no aplica.
   'pediatria': ['copiloto', 'pediatria', 'calculadoras', 'antibiograma', 'preventivo', 'fotos', 'laboratorios'],
 
-  'gineco-obstetricia': ['copiloto', 'gineco', 'calculadoras', 'preventivo', 'fotos', 'laboratorios'],
+  /**
+   * MG-018 — el antibiograma vuelve al tronco de gineco-obstetricia.
+   *
+   * Faltaba, y el propio producto contradecía esa ausencia: dos de los once
+   * hitos del control prenatal que esta misma aplicación enseña son cultivos
+   * —urocultivo en la primera consulta y cultivo de estreptococo del grupo B en
+   * las semanas 35-37—, y el resultado de un cultivo se lee en el antibiograma.
+   * `cirugia` se deja fuera a propósito: `esCasoQuirurgico` ya la enciende
+   * cuando toca, y añadirla al tronco la pondría en todas las consultas.
+   */
+  'gineco-obstetricia': ['copiloto', 'gineco', 'calculadoras', 'antibiograma', 'preventivo', 'fotos', 'laboratorios'],
 
   // La valoración perioperatoria es su herramienta central: ASA, RCRI, Caprini,
   // Apfel, profilaxis con re-dosis. Trauma comparte tronco por lo mismo.

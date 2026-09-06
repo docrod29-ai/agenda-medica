@@ -25,7 +25,21 @@ export function generarAvisoPrivacidad(config: ClinicConfig | null): string {
   // PROTECCIÓN: el aviso es un documento público (se entrega al paciente). Usa el
   // domicilio del CONSULTORIO, nunca el domicilio fiscal, y NO incluye el RFC —
   // ese dato solo aparece en el contrato de encargo (privado, detrás del login).
-  const domicilio = config?.direccion || '[Domicilio del consultorio]'
+  /**
+   * ── PG-017 · EL AVISO SE PUBLICABA CON UN MARCADOR DENTRO ─────────────────
+   *
+   * `'[Domicilio del consultorio]'` era el valor por omisión, y este texto se
+   * PUBLICA: `/privacidad/{clinicId}` lo enseña a cualquiera que abra el enlace.
+   * Un consultorio que no llenó su dirección publicaba un aviso de privacidad
+   * con un corchete donde va el domicilio del responsable — que es el primer
+   * dato que exige el art. 16 de la LFPDPPP y lo primero que lee un regulador.
+   *
+   * No se inventa una dirección. Se dice que falta, en la voz del documento, y
+   * se le da al paciente una vía para conseguirla. Un hueco declarado se puede
+   * llenar; un corchete se copia y se queda ahí.
+   */
+  const domicilio = config?.direccion
+    || 'domicilio no capturado en este momento (puede solicitarlo por el medio de contacto de este aviso)'
   const contacto = config?.correoArco || config?.telefonoAdmin || config?.whatsappConsultorio || '[Contacto]'
   const respPriv = config?.responsablePrivacidad
 
@@ -46,12 +60,20 @@ Recabamos los siguientes datos personales:
  • Datos de salud (sensibles): historia clínica, antecedentes, padecimiento actual,
    exploración física, signos vitales, alergias, diagnósticos, tratamientos,
    medicamentos, estudios de laboratorio y gabinete, fotografías clínicas
+ • Grabación de voz de la consulta (dato biométrico y sensible), cuando usted lo
+   consiente por separado antes de grabar: el audio se guarda en el
+   almacenamiento del sistema, no sólo en el dispositivo del consultorio, y de él
+   se obtiene la transcripción de la consulta
  • Datos administrativos: seguro médico, datos de facturación
 
 3. FINALIDADES DEL TRATAMIENTO
 Sus datos personales serán utilizados para las siguientes finalidades:
  a) Prestar servicios médicos de consulta, diagnóstico, tratamiento y seguimiento
  b) Integrar y mantener su expediente clínico conforme a NOM-004-SSA3-2012
+ b bis) Transcribir la consulta y redactar un borrador de la nota con apoyo de
+   sistemas automatizados (inteligencia artificial). Ese borrador NO es una nota
+   médica hasta que su médico lo revisa y lo firma: la responsabilidad clínica es
+   suya y de nadie más. Puede pedir que su consulta no se grabe.
  c) Emisión de recetas, órdenes médicas, cartas de referencia
  d) Agendar y recordar citas (por teléfono, SMS o WhatsApp)
  e) Comunicación sobre resultados de estudios

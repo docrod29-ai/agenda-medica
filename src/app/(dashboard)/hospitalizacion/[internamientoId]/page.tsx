@@ -5,6 +5,7 @@
 // Rol (médico/enfermería/admin) filtra las acciones visibles (vista, no seguridad).
 // ══════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { zonaActiva } from '@/lib/timezone'
 import { proyectarSignos, acvpu, concienciaExigeReSeleccion } from '@/lib/hospital/eventos'
 import { useParams, useRouter } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -455,7 +456,7 @@ export default function EpisodioPage() {
     w.document.write(`<html><head><title>Brazalete</title></head><body style="font-family:Arial,sans-serif;margin:0;padding:16px;">
       <div style="border:1px solid #000;border-radius:8px;padding:12px 16px;max-width:420px;">
         <div style="font-size:18px;font-weight:bold;">${esc(inter.pacienteNombre)}</div>
-        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${esc(inter.servicio)}${inter.cama ? ' · Cama ' + esc(inter.cama) : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}</div>
+        <div style="font-size:12px;color:#333;margin:2px 0 8px;">${esc(inter.servicio)}${inter.cama ? ' · Cama ' + esc(inter.cama) : ''} · Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX', { timeZone: zonaActiva() })}</div>
         ${svg}
         <div style="font-size:10px;color:#666;margin-top:6px;">Folio de internamiento — verificación de identidad (BCMA)</div>
       </div>
@@ -1076,9 +1077,9 @@ export default function EpisodioPage() {
         }}>Egresar y escribir nota</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo de egreso</label>
-            <select className={inputCls} value={egr.tipo} onChange={e => setEgr(x => ({ ...x, tipo: e.target.value as TipoEgreso }))}>{TIPO_EGRESO_OPCIONES.map(t => <option key={t} value={t}>{TIPO_EGRESO_LABEL[t]}</option>)}</select></div>
+            <select aria-label="Tipo de egreso" className={inputCls} value={egr.tipo} onChange={e => setEgr(x => ({ ...x, tipo: e.target.value as TipoEgreso }))}>{TIPO_EGRESO_OPCIONES.map(t => <option key={t} value={t}>{TIPO_EGRESO_LABEL[t]}</option>)}</select></div>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Resumen del egreso (opcional)</label>
-            <textarea className={inputCls} rows={3} placeholder="Evolución y condición al alta" value={egr.resumen} onChange={e => setEgr(x => ({ ...x, resumen: e.target.value }))} /></div>
+            <textarea aria-label="Resumen del egreso (opcional)" className={inputCls} rows={3} placeholder="Evolución y condición al alta" value={egr.resumen} onChange={e => setEgr(x => ({ ...x, resumen: e.target.value }))} /></div>
         </div>
         <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al confirmar, el paciente sale del censo y se abre la Nota de egreso (NOM-004).</p>
       </Modal>
@@ -1124,12 +1125,12 @@ export default function EpisodioPage() {
         }}>{icEditId ? 'Guardar cambios' : 'Solicitar'}</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Especialidad</label>
-            <select className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value, medicoSolicitadoId: '' }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
+            <select aria-label="Especialidad" className={inputCls} value={icForm.especialidad} onChange={e => setIcForm(f => ({ ...f, especialidad: e.target.value, medicoSolicitadoId: '' }))}>{ESPECIALIDADES_IC.map(e => <option key={e}>{e}</option>)}</select></div>
           {(() => {
             const opciones = doctores.filter(d => d.especialidad === icForm.especialidad)
             return (
               <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Dirigir a un médico (opcional) — le llega un WhatsApp</label>
-                <select className={inputCls} value={icForm.medicoSolicitadoId} onChange={e => setIcForm(f => ({ ...f, medicoSolicitadoId: e.target.value }))}>
+                <select aria-label="Dirigir a un médico (opcional) — le llega un WhatsApp" className={inputCls} value={icForm.medicoSolicitadoId} onChange={e => setIcForm(f => ({ ...f, medicoSolicitadoId: e.target.value }))}>
                   <option value="">Cualquiera de {icForm.especialidad} · teléfono de guardia</option>
                   {opciones.map(d => <option key={d.id} value={d.id}>{d.nombre}{d.telefono ? '' : ' — sin WhatsApp'}</option>)}
                 </select>
@@ -1138,7 +1139,7 @@ export default function EpisodioPage() {
             )
           })()}
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Motivo de la interconsulta</label>
-            <textarea className={inputCls} rows={3} placeholder="Pregunta clínica concreta" value={icForm.motivo} onChange={e => setIcForm(f => ({ ...f, motivo: e.target.value }))} /></div>
+            <textarea aria-label="Motivo de la interconsulta" className={inputCls} rows={3} placeholder="Pregunta clínica concreta" value={icForm.motivo} onChange={e => setIcForm(f => ({ ...f, motivo: e.target.value }))} /></div>
         </div>
       </Modal>
 
@@ -1170,7 +1171,7 @@ export default function EpisodioPage() {
           }
           finally { setBusy(false) }
         }}>Guardar respuesta</Button></>}>
-        <textarea className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
+        <textarea aria-label="Impresión y recomendaciones" className={inputCls} rows={5} placeholder="Impresión y recomendaciones" value={respTxt} onChange={e => setRespTxt(e.target.value)} />
       </Modal>
 
       {/* Nueva / editar indicación (medicamento con catálogo buscable = CPOE estructurado) */}
@@ -1195,13 +1196,13 @@ export default function EpisodioPage() {
         }}>{indEditId ? 'Guardar cambios' : 'Agregar'}</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo</label>
-            <select className={inputCls} value={indForm.tipo} onChange={e => setIndForm(f => ({ ...f, tipo: e.target.value as TipoIndicacion }))}>{TIPO_IND_OPCIONES.map(t => <option key={t} value={t}>{TIPO_INDICACION_LABEL[t]}</option>)}</select></div>
+            <select aria-label="Tipo" className={inputCls} value={indForm.tipo} onChange={e => setIndForm(f => ({ ...f, tipo: e.target.value as TipoIndicacion }))}>{TIPO_IND_OPCIONES.map(t => <option key={t} value={t}>{TIPO_INDICACION_LABEL[t]}</option>)}</select></div>
 
           {indForm.tipo === 'medicamento' ? (<>
             {/* Buscador del catálogo */}
             <div style={{ position: 'relative' }}>
               <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Medicamento (busca en el catálogo)</label>
-              <input className={inputCls} placeholder="Escribe: ceftriaxona, omeprazol, insulina…" value={indForm.descripcion} onChange={e => { setIndForm(f => ({ ...f, descripcion: e.target.value, dosis: '', via: '' })); setMedQuery(e.target.value) }} />
+              <input aria-label="Medicamento (busca en el catálogo)" className={inputCls} placeholder="Escribe: ceftriaxona, omeprazol, insulina…" value={indForm.descripcion} onChange={e => { setIndForm(f => ({ ...f, descripcion: e.target.value, dosis: '', via: '' })); setMedQuery(e.target.value) }} />
               {medQuery.trim().length >= 2 && buscarMed(medQuery).length > 0 && (
                 <div style={{ position: 'absolute', zIndex: 30, left: 0, right: 0, marginTop: 2, maxHeight: 220, overflowY: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.25)' }}>
                   {buscarMed(medQuery).map(m => (
@@ -1220,7 +1221,7 @@ export default function EpisodioPage() {
                   <label style={{ fontSize: 12, color: 'var(--text3)' }}>Dosis / presentación</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 3 }}>
                     {sel.pres.map(p => <button key={p} type="button" onClick={() => setIndForm(f => ({ ...f, dosis: p }))} className="rounded-full border px-2.5 py-1 text-xs" style={indForm.dosis === p ? { borderColor: 'var(--nexus)', background: 'var(--nexus-soft)', color: 'var(--nexus)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p}</button>)}
-                    <input className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
+                    <input aria-label="Dosis / presentación" className="rounded-md border px-2 py-1 text-xs bg-transparent" style={{ width: 100 }} placeholder="otra" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
                   </div>
                 </div>
                 <div>
@@ -1232,8 +1233,8 @@ export default function EpisodioPage() {
               </>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input className={inputCls} placeholder="Dosis (ej. 1 g)" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
-                <input className={inputCls} placeholder="Vía (ej. IV)" value={indForm.via} onChange={e => setIndForm(f => ({ ...f, via: e.target.value }))} />
+                <input aria-label="Dosis (ej. 1 g)" className={inputCls} placeholder="Dosis (ej. 1 g)" value={indForm.dosis} onChange={e => setIndForm(f => ({ ...f, dosis: e.target.value }))} />
+                <input aria-label="Vía (ej. IV)" className={inputCls} placeholder="Vía (ej. IV)" value={indForm.via} onChange={e => setIndForm(f => ({ ...f, via: e.target.value }))} />
               </div>
             )})()}
             {/*
@@ -1251,11 +1252,11 @@ export default function EpisodioPage() {
             )}
           </>) : (
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Indicación</label>
-              <input className={inputCls} placeholder="ej. Dieta blanda / Vigilar diuresis" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
+              <input aria-label="Indicación" className={inputCls} placeholder="ej. Dieta blanda / Vigilar diuresis" value={indForm.descripcion} onChange={e => setIndForm(f => ({ ...f, descripcion: e.target.value }))} /></div>
           )}
 
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Frecuencia (opcional)</label>
-            <input className={inputCls} placeholder="ej. cada 12 h" value={indForm.frecuencia} onChange={e => setIndForm(f => ({ ...f, frecuencia: e.target.value }))} /></div>
+            <input aria-label="Frecuencia (opcional)" className={inputCls} placeholder="ej. cada 12 h" value={indForm.frecuencia} onChange={e => setIndForm(f => ({ ...f, frecuencia: e.target.value }))} /></div>
 
           {/* CDS en vivo — alertas de alta especificidad (alergias / interacciones / renal / controlados) */}
           {alertasCDS.length > 0 && (
@@ -1332,7 +1333,7 @@ export default function EpisodioPage() {
                 {chk(correctos.via, () => setCorrectos(c => ({ ...c, via: !c.via })), 'Vía correcta')}
                 {chk(correctos.hora, () => setCorrectos(c => ({ ...c, hora: !c.hora })), 'Hora correcta')}
               </div>
-              <input className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
+              <input aria-label="Nota (opcional): dosis, vía, motivo de omisión" className={inputCls} placeholder="Nota (opcional): dosis, vía, motivo de omisión…" value={admNota} onChange={e => setAdmNota(e.target.value)} />
               <div style={{ fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8, color: todos ? '#0d9488' : '#d97706', background: todos ? 'rgba(13,148,136,.1)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {todos ? <><Check size={14} /> Listo para administrar</> : <><AlertTriangle size={14} /> Falta confirmar: {faltan.join(', ')}</>}
               </div>
@@ -1351,7 +1352,7 @@ export default function EpisodioPage() {
           finally { setBusy(false) }
         }}>Guardar</Button></>}>
         <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Medicamentos que el paciente tomaba en casa (uno por línea)</label>
-        <textarea className={inputCls} rows={6} placeholder={'Metformina 850 mg c/12h\nLosartán 50 mg c/24h\n…'} value={medsCasa} onChange={e => setMedsCasa(e.target.value)} />
+        <textarea aria-label="Medicamentos que el paciente tomaba en casa (uno por línea)" className={inputCls} rows={6} placeholder={'Metformina 850 mg c/12h\nLosartán 50 mg c/24h\n…'} value={medsCasa} onChange={e => setMedsCasa(e.target.value)} />
         <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8 }}>Al guardar, se comparan con las indicaciones activas para ver cuáles continuar, suspender o modificar (ingreso/traslado/egreso).</p>
       </Modal>
 
@@ -1376,12 +1377,12 @@ export default function EpisodioPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>
-              <select className={inputCls} value={trForm.servicio} onChange={e => setTrForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
+              <select aria-label="Servicio" className={inputCls} value={trForm.servicio} onChange={e => setTrForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Cama</label>
-              <input className={inputCls} value={trForm.cama} onChange={e => setTrForm(f => ({ ...f, cama: e.target.value }))} /></div>
+              <input aria-label="Cama" className={inputCls} value={trForm.cama} onChange={e => setTrForm(f => ({ ...f, cama: e.target.value }))} /></div>
           </div>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Médico tratante</label>
-            <input className={inputCls} placeholder="Nombre del médico responsable" value={trForm.tratante} onChange={e => setTrForm(f => ({ ...f, tratante: e.target.value }))} /></div>
+            <input aria-label="Médico tratante" className={inputCls} placeholder="Nombre del médico responsable" value={trForm.tratante} onChange={e => setTrForm(f => ({ ...f, tratante: e.target.value }))} /></div>
           {/*
             HISTORIA DE CAMAS. Se escribía y no la leía nadie: `historialCamas`
             estaba probado y sin llamador. Quien traslada necesita ver de dónde
@@ -1470,7 +1471,7 @@ export default function EpisodioPage() {
         </>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Mensaje HL7 del monitor (ORU^R01)</label>
-          <textarea
+          <textarea aria-label="Mensaje HL7 del monitor (ORU^R01)"
             className={inputCls} rows={6} value={hl7Texto}
             onChange={e => setHl7Texto(e.target.value)}
             placeholder="MSH|^~\\&|MONITOR|..."
@@ -1535,7 +1536,7 @@ export default function EpisodioPage() {
               )})}
             </div>
           </div>
-          <input className={inputCls} placeholder="Otros estudios (separa con coma)" value={labExtra} onChange={e => setLabExtra(e.target.value)} />
+          <input aria-label="Otros estudios (separa con coma)" className={inputCls} placeholder="Otros estudios (separa con coma)" value={labExtra} onChange={e => setLabExtra(e.target.value)} />
           <div style={{ display: 'flex', gap: 8 }}>
             {(['rutina', 'urgente'] as const).map(p => <button key={p} type="button" onClick={() => setLabPrioridad(p)} className="rounded-full border px-3 py-1 text-xs" style={labPrioridad === p ? { borderColor: p === 'urgente' ? '#dc2626' : '#0d9488', background: (p === 'urgente' ? '#dc2626' : '#0d9488') + '18', color: p === 'urgente' ? '#dc2626' : '#0d9488', fontWeight: 700 } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{p === 'urgente' ? 'Urgente' : 'Rutina'}</button>)}
           </div>
@@ -1577,8 +1578,8 @@ export default function EpisodioPage() {
           {resForm.map((r, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 0.8fr auto', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12.5, color: 'var(--text2)' }}>{r.estudio}</span>
-              <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="valor" value={r.valor} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))} />
-              <input className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="unidad" value={r.unidad ?? ''} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, unidad: e.target.value } : x))} />
+              <input aria-label="Valor del resultado" className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="valor" value={r.valor} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, valor: e.target.value } : x))} />
+              <input aria-label="Unidad del resultado" className="rounded-md border px-2 py-1 text-xs bg-transparent" placeholder="unidad" value={r.unidad ?? ''} onChange={e => setResForm(f => f.map((x, j) => j === i ? { ...x, unidad: e.target.value } : x))} />
               <button type="button" title="Marcar crítico" onClick={() => setResForm(f => f.map((x, j) => j === i ? { ...x, critico: !x.critico } : x))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid ' + (r.critico ? '#dc2626' : 'var(--border)'), background: r.critico ? 'color-mix(in srgb, var(--red) 12%, transparent)' : 'transparent', color: r.critico ? '#dc2626' : 'var(--text3)', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>{r.critico ? '⚠ crítico' : 'crítico'}</button>
             </div>
           ))}
@@ -1673,7 +1674,7 @@ export default function EpisodioPage() {
         {corrigiendoId && (
           <div style={{ marginBottom: 12 }}>
             <label style={{ fontSize: 12, color: 'var(--text3)' }}>¿Por qué se corrige?</label>
-            <input className={inputCls} value={motivoCorr} onChange={e => setMotivoCorr(e.target.value)}
+            <input aria-label="¿Por qué se corrige?" className={inputCls} value={motivoCorr} onChange={e => setMotivoCorr(e.target.value)}
               placeholder="Ej.: dedazo al capturar la SpO₂" maxLength={200} />
             {medidoOriginal && (
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
@@ -1730,11 +1731,11 @@ export default function EpisodioPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text3)' }}>Flujo (L/min)</label>
-                <input className={inputCls} inputMode="decimal" value={sg.o2Flujo} onChange={e => setSg(s => ({ ...s, o2Flujo: e.target.value }))} />
+                <input aria-label="Flujo (L/min)" className={inputCls} inputMode="decimal" value={sg.o2Flujo} onChange={e => setSg(s => ({ ...s, o2Flujo: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text3)' }}>FiO₂ (%)</label>
-                <input className={inputCls} inputMode="decimal" value={sg.o2FiO2} onChange={e => setSg(s => ({ ...s, o2FiO2: e.target.value }))} />
+                <input aria-label="FiO₂ (%)" className={inputCls} inputMode="decimal" value={sg.o2FiO2} onChange={e => setSg(s => ({ ...s, o2FiO2: e.target.value }))} />
               </div>
             </div>
           )}

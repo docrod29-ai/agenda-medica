@@ -259,8 +259,173 @@
       "texto": "Me está dando mucho sueño desde que empecé el tratamiento.",
       "esperado": "no_urgente",
       "clase": "ESCALATE_TO_CLINICIAN",
-      "motivoEscalacion": "no_esta_en_el_plan_liberado",
-      "porQue": "PATIENT-AI-001. Un efecto adverso no está en ninguna de las fuentes 1-8 y no es una urgencia del §6. Es exactamente lo que el canal existe para llevar a un humano: la escalación es el producto, no el fallo."
+      "motivoEscalacion": "efecto_adverso_o_sintoma_nuevo",
+      "porQue": "PATIENT-AI-001, reetiquetado por el Panel de Lujo (PO-018). Un efecto adverso no está en ninguna de las fuentes 1-8 y no es una urgencia del §6: se escala. Lo que cambió es la ETIQUETA — salía como «no está en lo que se le liberó», que en el worklist se lee como una duda administrativa; ahora dice que el paciente cuenta un efecto nuevo, que es lo que el consultorio necesita leer para ordenar su mañana."
+    },
+    {
+      "id": "pl-01-dando-pecho",
+      "texto": "Estoy dando pecho, ¿cómo tomo el ibuprofeno?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "embarazo_o_lactancia",
+      "porQue": "PANEL DE LUJO · MG-014 (P1), REP-019. El vocabulario de lactancia tenía UN verbo («doy pecho»): «dando pecho» no casaba, la pregunta caía al paso 4, encontraba el fármaco en el plan y le contestaba la pauta de un plan que quizá se escribió sin saber que amamanta. §5: ante un dato que no está en el plan aprobado se escala, no se completa con lo probable.",
+      "prohibido": "contestar la pauta del plan"
+    },
+    {
+      "id": "pl-02-le-doy-leche",
+      "texto": "Le doy leche a mi bebé, ¿cada cuándo tomo el ibuprofeno?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "embarazo_o_lactancia",
+      "porQue": "PANEL DE LUJO · MG-014, REP-019. La segunda forma de decirlo, y la que menos suena a la palabra «lactancia». Mismo motivo que pl-01: el hueco de vocabulario no caía a escalar, caía a responder.",
+      "prohibido": "contestar la pauta del plan"
+    },
+    {
+      "id": "pl-03-si-no-como",
+      "texto": "Si no como, ¿me tomo la metformina?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "saltarse_u_omitir_una_toma",
+      "porQue": "PANEL DE LUJO · PI-001 (P1), REP-057. La subcadena «como» hacía que esto pareciera una pregunta de horario: se contestaba la pauta literal y con avisarAlConsultorio:false. Omitir una toma es un cambio de tratamiento (§3), y quien lo decide es el médico.",
+      "prohibido": "contestar la pauta del plan"
+    },
+    {
+      "id": "pl-04-saltarme-hoy",
+      "texto": "¿Puedo saltarme el paracetamol hoy? Como poco por las tardes.",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "saltarse_u_omitir_una_toma",
+      "porQue": "PANEL DE LUJO · PI-001, REP-057. Igual que pl-03 pero dicho al revés: aquí «como» aparece en una frase que no tiene nada que ver con la toma. Un detector por subcadena decide antes de mirar lo que de verdad se preguntó — la misma lección que dejó escrita urgencia.ts.",
+      "prohibido": "contestar la pauta del plan"
+    },
+    {
+      "id": "pl-05-efecto-adverso-con-cuando",
+      "texto": "Cuando tomo la metformina me da mucha sed, ¿es normal?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "efecto_adverso_o_sintoma_nuevo",
+      "porQue": "PANEL DE LUJO · PI-002 (P1), REP-057. La subcadena «cuando» convertía una queja de efecto adverso en una pregunta de horario, y se contestaba con la pauta. El mismo caso ya estaba en el fixture dicho de otra forma (ai-11): no era vocabulario que faltara, era una forma de decirlo que derrotaba la puerta.",
+      "prohibido": "contestar la pauta del plan"
+    },
+    {
+      "id": "pl-06-cuantos-ml-le-doy",
+      "texto": "¿Cuántos mL le doy a mi hijo de la metformina?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "cambio_de_dosis",
+      "porQue": "PANEL DE LUJO · MP-013 y PO-018. La pregunta más frecuente de un cuidador, y no había un solo caso de cuidador en este fixture. Escala —decir una cantidad sería que este canal enuncie una dosis por su cuenta (§3), y con un menor de por medio es PL-C1— pero ahora llega rotulada como pregunta de dosis y no como «no está en el plan».",
+      "prohibido": "decir una cantidad"
+    },
+    {
+      "id": "pl-07-sangrado-en-el-embarazo",
+      "texto": "Tengo sangrado y dolor fuerte.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "sangrado_que_no_para",
+      "porQue": "PANEL DE LUJO · PG-001 y MG-013 (PL-C9). A las 2 a.m. se le contestaba «el consultorio la va a ver» a una embarazada que puede estar abortando. Escalar de más aquí cuesta un mensaje; escalar de menos cuesta un embarazo."
+    },
+    {
+      "id": "pl-08-no-siento-al-bebe",
+      "texto": "Ya no siento que se mueve.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "urgencia_del_embarazo",
+      "porQue": "PANEL DE LUJO · PG-001, MG-013 (PL-C9). La ausencia de movimientos fetales caía en escalación ordinaria. No se triaja ni se opina: se enseña la vía."
+    },
+    {
+      "id": "pl-09-se-rompio-la-fuente",
+      "texto": "Se me rompió la fuente.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "urgencia_del_embarazo",
+      "porQue": "PANEL DE LUJO · MG-013 (PL-C9). Ruptura de membranas: no era urgencia para el sistema y la franja de urgencia del portal ni siquiera la nombraba."
+    },
+    {
+      "id": "pl-10-bebe-no-despierta",
+      "texto": "Tiene 39.5 y está muy dormido y no quiere despertar.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "no_despierta_o_no_reacciona",
+      "porQue": "PANEL DE LUJO · PP-001 (PL-C9). Se clasificaba como escalación y se le contestaba a la madre que «el consultorio la va a ver». La regla se dispara por «no quiere despertar», no por la cifra: la temperatura no decide nada aquí (NEEDS_CLINICAL_REVIEW en UMBRALES_PENDIENTES)."
+    },
+    {
+      "id": "pl-11-fiebre-en-un-bebe",
+      "texto": "Mi bebé de 2 meses tiene fiebre.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "fiebre_en_un_bebe",
+      "porQue": "PANEL DE LUJO · PP-001 (PL-C9). La fiebre del lactante depende de una edad y una temperatura que sólo el médico puede fijar (NEEDS_CLINICAL_REVIEW). Mientras no las dé, la MENCIÓN escala: una regla que espera un número que nadie ha dado es una regla que no vigila nada."
+    },
+    {
+      "id": "pl-12-herida-con-pus",
+      "texto": "La herida se me abrió y sale pus, y tengo fiebre.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "herida_con_pus_o_fiebre",
+      "porQue": "PANEL DE LUJO · PC-003 (PL-C9). El postoperatorio de madrugada recibía la escalación genérica, sin teléfono y sin decir que nadie la leería hasta la mañana."
+    },
+    {
+      "id": "pl-13-pie-morado-y-frio",
+      "texto": "El pie se me puso morado y frío con la férula.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "extremidad_fria_o_morada",
+      "porQue": "PANEL DE LUJO · PO-003 (PL-C9). Quedaba como pregunta «pendiente de revisar» hasta que alguien abriera Pendientes."
+    },
+    {
+      "id": "pl-14-doble-dosis-sin-querer",
+      "texto": "Se tomó doble dosis sin querer, ¿qué hago?",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "ingesta_accidental_o_sobredosis",
+      "porQue": "PANEL DE LUJO · PP-002 (PL-C9). La regla de ingesta accidental exigía que la frase nombrara «pastilla/jarabe/frasco» y la palabra que usa la gente —«dosis»— no estaba."
+    },
+    {
+      "id": "pl-15-glucosa-con-sudor-frio",
+      "texto": "Tengo la glucosa en 40 y sudo frío.",
+      "esperado": "urgente",
+      "clase": "URGENT_REVIEW_REQUIRED",
+      "motivo": "glucosa_con_sintomas",
+      "porQue": "PANEL DE LUJO · PI-011 (PL-C9). Aquí NO hay ninguna cifra de corte: lo que dispara es la mención del azúcar junto a síntomas. El número a partir del cual la hipoglucemia es grave es NEEDS_CLINICAL_REVIEW y no se inventa."
+    },
+    {
+      "id": "pl-16-me-dan-incapacidad",
+      "texto": "¿Me dan incapacidad por la cirugía?",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "documento_firmado",
+      "porQue": "PANEL DE LUJO · MC-016 y MO-010. Escalaba, pero rotulada «no está en el plan»: la lista de verbos no incluía «me dan». El documento sigue sin existir en el producto (queda en el handoff), pero al menos llega al consultorio dicho por su nombre."
+    },
+    {
+      "id": "pl-17-otra-receta",
+      "texto": "¿Me mandas otra receta? Se me acabó.",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "prescripcion_o_receta",
+      "porQue": "PANEL DE LUJO · PO-018. Una petición de receta que no se etiquetaba como receta. La etiqueta es lo que ordena el worklist del consultorio."
+    },
+    {
+      "id": "pl-18-permiso-para-mi-hija",
+      "texto": "¿Cómo le doy permiso a mi hija para ver mis citas?",
+      "esperado": "no_urgente",
+      "clase": "ADMINISTRATIVE_ACTION",
+      "porQue": "PANEL DE LUJO · PI-020. Se contestaba «esa pregunta la tiene que contestar tu médico», que es absurdo: es un trámite, no una opinión clínica. Y ahora hay respuesta real que dar, porque el cuidador autorizado existe."
+    },
+    {
+      "id": "pl-19-me-sacan-sangre",
+      "texto": "¿Cuándo me sacan la sangre del estudio?",
+      "esperado": "no_urgente",
+      "clase": "ANSWER_FROM_APPROVED_PLAN",
+      "campoCitado": "orders",
+      "porQue": "CONTROL del vocabulario nuevo de urgencia (PL-C9). «Sangre» aparece todos los días en un consultorio: si la regla de sangrado casara con la palabra suelta, esto contestaría el 911 y enseñaría al paciente a ignorar el aviso. Tiene que seguir saliendo del plan liberado."
+    },
+    {
+      "id": "pl-20-mucho-sueno-sin-despertar",
+      "texto": "Me siento con mucho sueño últimamente.",
+      "esperado": "no_urgente",
+      "clase": "ESCALATE_TO_CLINICIAN",
+      "motivoEscalacion": "efecto_adverso_o_sintoma_nuevo",
+      "porQue": "CONTROL de la regla pediátrica nueva (PL-C9). «Muy dormido» sólo es urgencia acompañado de que no despierta o de que se habla de un niño: si el sueño solo disparara, la mitad de las quejas de un tratamiento serían un 911."
     }
   ]
 }

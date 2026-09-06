@@ -15,8 +15,9 @@ import { permiteLlamar, anotarVeredicto, type Veredicto } from '@/lib/red/interr
 import {
   veredictoDeRespuestaWA, veredictoDeExcepcionWA, claveCircuitoWA,
 } from '@/lib/whatsapp/fallo-del-proveedor'
+import { idDeIndiceDeCanal, pistaDeLlave } from '@/lib/security/indice-canal-whatsapp'
 
-interface SendResult {
+export interface SendResult {
   ok: boolean
   error?: string
   /** true si no se envió por baja del contacto (opt-out). No es un fallo. */
@@ -29,6 +30,21 @@ interface SendResult {
    * supervivencia de un recordatorio al formato de un mensaje de registro.
    */
   veredicto?: Veredicto
+  /**
+   * EL ID DEL MENSAJE QUE DEVOLVIÓ EL PROVEEDOR (wamid) — Panel de Lujo ASM-011.
+   *
+   * Es lo único que ata un acuse de entrega (`whatsapp_status/{wamid}`) al
+   * envío que lo produjo. Se tiraba: la respuesta del proveedor se leía sólo
+   * para saber si era `ok`. Sin esto, «failed 131026» (el número no está en
+   * WhatsApp) no se podía colgar de la cita que lo mandó.
+   */
+  messageId?: string
+  /**
+   * El mensaje NO salió porque lo inicia el negocio y la ventana de 24 h está
+   * cerrada (Panel de Lujo ASM-009). No es un fallo del proveedor: es una
+   * regla de Meta, y el remedio es una plantilla aprobada, no un reintento.
+   */
+  ventanaCerrada?: boolean
 }
 
 interface SendOpts {
@@ -38,6 +54,85 @@ interface SendOpts {
    * Las respuestas REACTIVAS del bot (que el paciente inició) omiten esto.
    */
   proactivo?: boolean
+  /**
+   * QUIÉN INICIA LA CONVERSACIÓN (Panel de Lujo ASM-009).
+   *
+   * La ventana de 24 h sólo la respetaba la puerta proactiva (`proactivo.ts`);
+   * cinco llamadores mandaban texto libre directo —confirmación del portal a
+   * quien reservó por web, avisos al número del consultorio, alerta
+   * hospitalaria, reseña del cron— y se topaban con el rechazo de Meta sin que
+   * nadie lo viera. Con `iniciadoPorElNegocio: true` se mira la ventana ANTES
+   * de llamar al proveedor: si está cerrada, no se envía texto libre, se
+   * registra en `whatsapp_no_entregados` con el motivo «ventana-cerrada» (lo
+   * enseña Entregas) y se devuelve `ventanaCerrada: true` para que el llamador
+   * escale a plantilla o a la notificación interna.
+   *
+   * Opcional a propósito: la respuesta REACTIVA del bot (el paciente acaba de
+   * escribir) no lo pasa y sigue como antes. Los llamadores que sí lo inician
+   * están censados en `whatsapp-send-quien-inicia.test.ts`; la lista sólo baja.
+   */
+  iniciadoPorElNegocio?: boolean
+  /** Para el asiento de «no entregado»: quién quería mandar (booking, cron…). */
+  origen?: string
+}
+
+/**
+ * POR CUÁL VÍA SALE EL MENSAJE (Panel de Lujo N-025).
+ *
+ * La cascada de credenciales —llave del consultorio, o las variables globales
+ * de la plataforma— vivía sólo dentro de `sendWhatsApp`, así que el médico no
+ * podía saber por cuál de las tres vías salía su mensaje: el mismo defecto que
+ * ya se pagó con las llaves de IA (`fuenteEfectiva` en ai-keys.ts). Ésta es LA
+ * cascada, pura, y `sendWhatsApp` la usa: la pantalla que la informe no puede
+ * divergir del envío real. Decisión PL-D8 por omisión: los consultorios en
+ * prueba SÍ salen por la plataforma, y hay que decirlo.
+ */
+export type ViaDeEnvio =
+  | { via: 'clinica'; proveedor: '360dialog' | 'meta' }
+  | { via: 'plataforma'; proveedor: 'meta' | 'twilio' }
+  | { via: 'ninguna'; proveedor: null }
+
+export function viaDeEnvio(
+  waConfig: ClinicWhatsApp | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): ViaDeEnvio {
+  if (waConfig?.connected) {
+    if (waConfig.provider === '360dialog' && waConfig.apiKey) return { via: 'clinica', proveedor: '360dialog' }
+    if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) return { via: 'clinica', proveedor: 'meta' }
+  }
+  const provider = env.WHATSAPP_PROVIDER || 'meta'
+  if (provider === 'meta') {
+    return env.WHATSAPP_API_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID
+      ? { via: 'plataforma', proveedor: 'meta' }
+      : { via: 'ninguna', proveedor: null }
+  }
+  if (provider === 'twilio') {
+    return env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_WHATSAPP_FROM
+      ? { via: 'plataforma', proveedor: 'twilio' }
+      : { via: 'ninguna', proveedor: null }
+  }
+  return { via: 'ninguna', proveedor: null }
+}
+
+/** Texto para la pantalla, en una frase, con la MISMA cascada del envío. */
+export function describirViaDeEnvio(v: ViaDeEnvio): string {
+  if (v.via === 'clinica') return `Tus mensajes salen de tu propio número de WhatsApp (${v.proveedor === 'meta' ? 'Meta' : '360dialog'}).`
+  if (v.via === 'plataforma') return 'Tus mensajes salen del número de Ausculta, con el nombre de tu consultorio en el texto. Puedes conectar tu propio número cuando quieras.'
+  return 'Hoy no hay ningún número desde el que mandar WhatsApp: ni el tuyo está conectado ni la plataforma tiene uno configurado.'
+}
+
+/**
+ * Lee el id del mensaje (wamid) de la respuesta de 360dialog/Meta. Las dos
+ * contestan `{ messages: [{ id }] }`. Tolerante: si no viene, `undefined`.
+ */
+export function messageIdDeRespuesta(cuerpo: unknown): string | undefined {
+  const m = (cuerpo as { messages?: { id?: unknown }[] } | null)?.messages
+  const id = Array.isArray(m) ? m[0]?.id : undefined
+  return typeof id === 'string' && id ? id : undefined
+}
+
+async function leerMessageId(res: Response): Promise<string | undefined> {
+  try { return messageIdDeRespuesta(await res.json()) } catch { return undefined }
 }
 
 /**
@@ -73,7 +168,7 @@ async function sendVia360dialog(apiKey: string, to: string, body: string): Promi
       const err = await res.text()
       return { ok: false, error: `360dialog ${res.status}: ${err}`, veredicto: veredictoDeRespuestaWA(res.status) }
     }
-    return { ok: true, veredicto: 'contesto' }
+    return { ok: true, veredicto: 'contesto', messageId: await leerMessageId(res) }
   } catch (e) {
     return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
@@ -100,7 +195,7 @@ async function sendViaMeta(token: string, phoneNumberId: string, to: string, bod
       const err = await res.text()
       return { ok: false, error: `Meta ${res.status}: ${err}`, veredicto: veredictoDeRespuestaWA(res.status) }
     }
-    return { ok: true, veredicto: 'contesto' }
+    return { ok: true, veredicto: 'contesto', messageId: await leerMessageId(res) }
   } catch (e) {
     return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
@@ -185,6 +280,23 @@ export async function sendWhatsApp(
     outgoing = conPieOptout(body) // pie "Responda BAJA…" visible
   }
 
+  // ── 0b. Ventana de 24 h para lo que inicia el negocio (ASM-009) ──
+  if (opts.iniciadoPorElNegocio) {
+    const { ultimoEntranteAt } = await import('@/lib/whatsapp/contacts')
+    const { ventanaAbierta } = await import('@/lib/whatsapp/window')
+    const ultimo = await ultimoEntranteAt(clinicId, phone).catch(() => null)
+    if (!ventanaAbierta(ultimo, Date.now())) {
+      const { registrarNoEntregado } = await import('@/lib/whatsapp/no-entregados')
+      await registrarNoEntregado(clinicId, phone, body, opts.origen ?? 'iniciado-por-el-negocio', 'ventana-cerrada')
+      return {
+        ok: false,
+        ventanaCerrada: true,
+        veredicto: 'contesto',
+        error: 'Fuera de la ventana de 24 h de WhatsApp: el paciente no ha escrito recientemente y el texto libre sería rechazado. Hace falta una plantilla aprobada.',
+      }
+    }
+  }
+
   // ── 1. Load clinic WhatsApp config from Firestore ─────────────
   let waConfig: ClinicWhatsApp | undefined
   try {
@@ -196,51 +308,46 @@ export async function sendWhatsApp(
     // Firestore unavailable — fall through to env vars
   }
 
-  // ── 2. Use clinic-specific credentials ─────────────────────────
-  if (waConfig?.connected) {
-    if (waConfig.provider === '360dialog' && waConfig.apiKey) {
-      const apiKey = waConfig.apiKey
-      const result = await conInterruptor(
-        claveCircuitoWA('360dialog', true, clinicId),
-        () => sendVia360dialog(apiKey, phone, outgoing),
-      )
-      if (!result.ok) console.error(`[WhatsApp] 360dialog error for clinic ${clinicId}:`, result.error)
-      return result
-    }
+  // ── 2 y 3. LA cascada (N-025): la misma que informa la pantalla ──
+  const via = viaDeEnvio(waConfig)
 
-    if (waConfig.provider === 'meta' && waConfig.apiKey && waConfig.phoneNumberId) {
-      const { apiKey, phoneNumberId } = waConfig
-      return conInterruptor(
-        claveCircuitoWA('meta', true, clinicId),
-        () => sendViaMeta(apiKey, phoneNumberId, phone, outgoing),
-      )
-    }
+  if (via.via === 'clinica' && via.proveedor === '360dialog') {
+    const apiKey = waConfig!.apiKey!
+    const result = await conInterruptor(
+      claveCircuitoWA('360dialog', true, clinicId),
+      () => sendVia360dialog(apiKey, phone, outgoing),
+    )
+    if (!result.ok) console.error(`[WhatsApp] 360dialog error for clinic ${clinicId}:`, result.error)
+    return result
   }
 
-  // ── 3. Fall back to global env vars ────────────────────────────
-  const provider = process.env.WHATSAPP_PROVIDER || 'meta'
+  if (via.via === 'clinica' && via.proveedor === 'meta') {
+    const apiKey = waConfig!.apiKey!
+    const phoneNumberId = waConfig!.phoneNumberId!
+    return conInterruptor(
+      claveCircuitoWA('meta', true, clinicId),
+      () => sendViaMeta(apiKey, phoneNumberId, phone, outgoing),
+    )
+  }
 
-  if (provider === 'meta') {
-    const token = process.env.WHATSAPP_API_TOKEN
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID
-    if (!token || !phoneNumberId) {
-      console.warn(`[WhatsApp] No credentials for clinic ${clinicId} and no global env vars set.`)
-      return { ok: false, error: 'WhatsApp not configured for this clinic' }
-    }
+  if (via.via === 'plataforma' && via.proveedor === 'meta') {
+    const token = process.env.WHATSAPP_API_TOKEN!
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!
     return conInterruptor(
       claveCircuitoWA('meta', false, clinicId),
       () => sendViaMeta(token, phoneNumberId, phone, outgoing),
     )
   }
 
-  if (provider === 'twilio') {
+  if (via.via === 'plataforma' && via.proveedor === 'twilio') {
     return conInterruptor(
       claveCircuitoWA('twilio', false, clinicId),
       () => sendViaTwilio(phone, outgoing),
     )
   }
 
-  return { ok: false, error: 'No WhatsApp provider configured' }
+  console.warn(`[WhatsApp] No credentials for clinic ${clinicId} and no global env vars set.`)
+  return { ok: false, error: 'WhatsApp not configured for this clinic' }
 }
 
 // ── Plantillas HSM (mensajes proactivos fuera de la ventana de 24 h) ───────────
@@ -274,7 +381,7 @@ async function sendVia360dialogTemplate(apiKey: string, to: string, t: TemplateP
       }),
     }, TIMEOUT.whatsapp)
     if (!res.ok) return { ok: false, error: `360dialog ${res.status}: ${await res.text()}`, veredicto: veredictoDeRespuestaWA(res.status) }
-    return { ok: true, veredicto: 'contesto' }
+    return { ok: true, veredicto: 'contesto', messageId: await leerMessageId(res) }
   } catch (e) {
     return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
@@ -293,7 +400,7 @@ async function sendViaMetaTemplate(token: string, phoneNumberId: string, to: str
       }),
     }, TIMEOUT.whatsapp)
     if (!res.ok) return { ok: false, error: `Meta ${res.status}: ${await res.text()}`, veredicto: veredictoDeRespuestaWA(res.status) }
-    return { ok: true, veredicto: 'contesto' }
+    return { ok: true, veredicto: 'contesto', messageId: await leerMessageId(res) }
   } catch (e) {
     return { ok: false, error: String(e), veredicto: veredictoDeExcepcionWA(e) }
   }
@@ -360,11 +467,39 @@ export async function sendWhatsAppTemplate(
 /**
  * Quick lookup: find clinicId from a 360dialog api_key.
  * Uses the whatsapp_channels index collection for O(1) lookup.
+ *
+ * EL ÍNDICE SE CONSULTA POR HUELLA, NO POR LA LLAVE (Panel de Lujo S-004).
+ *
+ * `whatsapp_channels/{apiKey}` usaba la llave viva como NOMBRE del documento:
+ * viajaba a los registros de acceso, a las exportaciones y a la consola, justo
+ * lo que el gestor de secretos existe para evitar. Ahora el id es
+ * `idDeIndiceDeCanal(apiKey)` (SHA-256) y el documento guarda sólo `clinicId`
+ * y una pista de cuatro caracteres. Migración PEREZOSA, como la del gestor de
+ * secretos: si el documento por huella no está pero sí el heredado (nombrado
+ * con la llave), se copia al nuevo id y se borra el viejo. El índice sigue
+ * siendo O(1) y ninguna clínica se queda sin enrutar durante la transición.
  */
 export async function findClinicByDialog360ApiKey(apiKey: string): Promise<string | null> {
+  const limpia = String(apiKey ?? '').trim()
+  if (!limpia) return null
   try {
-    const snap = await adminDb.collection('whatsapp_channels').doc(apiKey).get()
-    return snap.exists ? (snap.data()!.clinicId as string) : null
+    const col = adminDb.collection('whatsapp_channels')
+    const porHuella = await col.doc(idDeIndiceDeCanal(limpia)).get()
+    if (porHuella.exists) return (porHuella.data()?.clinicId as string | undefined) ?? null
+
+    // Heredado: el documento todavía se llama como la llave. Se migra y se borra.
+    const heredado = await col.doc(limpia).get()
+    if (!heredado.exists) return null
+    const datos = heredado.data() ?? {}
+    const clinicId = (datos.clinicId as string | undefined) ?? null
+    try {
+      await col.doc(idDeIndiceDeCanal(limpia)).set(
+        { ...datos, pista: pistaDeLlave(limpia), migradoEn: new Date().toISOString() },
+        { merge: true },
+      )
+      await col.doc(limpia).delete()
+    } catch { /* si la migración falla, el enrutado de este ciclo ya resolvió */ }
+    return clinicId
   } catch {
     return null
   }

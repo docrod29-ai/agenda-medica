@@ -15,6 +15,10 @@
  */
 import type { ClinicConfig, RecetaConfig } from '@/types'
 import type { Medicamento } from '@/types/expediente'
+import { SIN_REGISTRO_DE_ALERGIAS } from '@/lib/impreso-medico'
+import { fechaISOLocal } from '@/lib/timezone'
+import { conEtiquetaDeEdad } from '@/lib/edad-legible'
+import { marcaDelRenglonImpreso } from '@/lib/receta-renglon-impreso'
 
 export interface RecetaWordData {
   tipo: 'receta' | 'orden'
@@ -102,11 +106,18 @@ export function construirRecetaHTML(
   // Cuerpo: medicamentos (receta) o estudios (orden)
   let cuerpo = ''
   if (data.tipo === 'receta' && data.medicamentos?.length) {
-    cuerpo = `<ol style="margin:0;padding-left:18pt;">` + data.medicamentos.map(m => `
+    // MP-005 — si al renglón le falta la concentración (o la unidad, o la
+    // cantidad), la marca viaja con el documento: el .doc se reenvía por
+    // WhatsApp y se enseña en el mostrador, donde nadie ve la pantalla del
+    // médico.
+    cuerpo = `<ol style="margin:0;padding-left:18pt;">` + data.medicamentos.map(m => {
+      const marca = marcaDelRenglonImpreso(m)
+      return `
       <li style="margin-bottom:6pt;">
-        <b>${esc(m.nombre)}${m.dosis ? ' ' + esc(m.dosis) : ''}</b>${m.via ? ' · ' + esc(m.via) : ''}<br/>
+        <b>${esc(m.nombre)}${m.dosis ? ' ' + esc(m.dosis) : ''}</b>${m.via ? ' · ' + esc(m.via) : ''}${marca ? ` <span style="color:#b91c1c;font-weight:bold;">· ${esc(marca)}</span>` : ''}<br/>
         <span style="font-size:10.5pt;">${esc(m.frecuencia)}${m.duracion ? ' por ' + esc(m.duracion) : ''}${m.indicacion ? ' — ' + esc(m.indicacion) : ''}</span>
-      </li>`).join('') + `</ol>`
+      </li>`
+    }).join('') + `</ol>`
   } else if (data.tipo === 'orden' && data.estudios?.length) {
     cuerpo = `<div style="font-weight:bold;margin-bottom:4pt;">Estudios solicitados:</div>
       <ol style="margin:0;padding-left:18pt;">` + data.estudios.map(e => `<li style="margin-bottom:3pt;">${esc(e)}</li>`).join('') + `</ol>`
@@ -128,7 +139,7 @@ export function construirRecetaHTML(
   const alergiaTexto = (data.alergias ?? '').trim()
   const alergias = recetaConfig.mostrarAlergias !== false
     ? `<div style="border:1pt solid #b91c1c;color:#b91c1c;padding:3pt 8pt;font-size:10pt;font-weight:bold;margin:6pt 0;">
-        ALERGIAS: ${esc(alergiaTexto || 'Sin registro en el expediente')}</div>`
+        ALERGIAS: ${esc(alergiaTexto || SIN_REGISTRO_DE_ALERGIAS)}</div>`
     : ''
 
   const dx = (recetaConfig.mostrarDiagnostico !== false && data.diagnostico)
@@ -168,7 +179,7 @@ export function construirRecetaHTML(
     <td><b>${titulo}</b></td>
     <td style="text-align:right;color:#666;">Folio: ${esc(data.folio)} · ${fechaTxt}</td>
   </tr></table>
-  <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${data.pacienteEdad ? ' · Edad: ' + esc(String(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}${data.pacienteFechaNac ? ' · F. nac.: ' + esc(fmtFechaNacWord(data.pacienteFechaNac)) : ''}</div>
+  <div><b>Paciente:</b> ${esc(data.pacienteNombre)}${conEtiquetaDeEdad(data.pacienteEdad) ? ' · ' + esc(conEtiquetaDeEdad(data.pacienteEdad)) : ''}${data.pacienteSexo ? ' · ' + esc(data.pacienteSexo) : ''}${data.pacienteFechaNac ? ' · F. nac.: ' + esc(fmtFechaNacWord(data.pacienteFechaNac)) : ''}</div>
   ${alergias}
   ${dx}
   <hr style="border:none;border-top:0.5pt solid #ccc;margin:6pt 0;"/>
@@ -235,7 +246,9 @@ export async function descargarRecetaWord(
   const blob = new Blob(['﻿', html], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
   const nombrePac = (data.pacienteNombre || 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-  const fechaCorta = data.fecha.toISOString().slice(0, 10)
+  // C-015 — mismo motivo que en la nota: el día en UTC corría la fecha del
+  // nombre del archivo.
+  const fechaCorta = fechaISOLocal(data.fecha)
   const a = document.createElement('a')
   a.href = url
   a.download = `${data.tipo === 'receta' ? 'Receta' : 'Orden'}_${nombrePac}_${fechaCorta}.doc`
@@ -244,3 +257,71 @@ export async function descargarRecetaWord(
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+/**
+ * VER E IMPRIMIR LA RECETA SIN WORD — PC-022 · PP-014.
+ *
+ * ── EL DEFECTO ───────────────────────────────────────────────────────────────
+ *
+ * El único botón de «Descargar» del portal del paciente entrega un `.doc`
+ * (HTML disfrazado de Word). En un teléfono de gama baja sin Word no abre; la
+ * madre que va a la farmacia acaba enseñando una captura de pantalla. Y el
+ * archivo que queda en la carpeta de descargas compartida lleva el nombre del
+ * paciente, así que se identifica solo.
+ *
+ * ── LO QUE HACE ──────────────────────────────────────────────────────────────
+ *
+ * Abre EL MISMO documento —el mismo HTML— en una ventana del navegador y lanza
+ * el diálogo de impresión, desde donde cualquier teléfono moderno guarda un
+ * PDF. No se genera un segundo formato ni una segunda plantilla: una entidad,
+ * dos vistas.
+ *
+ * El `.doc` se queda: hay médicos que lo quieren editable, y REG-507 lo
+ * documenta. Lo que cambia es que deja de ser la ÚNICA salida.
+ *
+ * ── LO QUE NO CUBRE ──────────────────────────────────────────────────────────
+ *
+ * · No firma electrónicamente la receta ni añade el QR de verificación: eso
+ *   vive en el impreso del médico (`RecetaDocumento`), no aquí.
+ * · No cablea el botón del portal (`src/app/mi/[token]`): esa pantalla es de
+ *   otra rebanada y está en el handoff.
+ * · Si el navegador bloquea las ventanas emergentes se avisa y NO se abre nada,
+ *   el mismo criterio de `print-element.ts`.
+ */
+export type ResultadoImprimible = 'abierta' | 'bloqueada' | 'sin-navegador'
+
+export async function abrirRecetaParaImprimir(
+  data: RecetaWordData,
+  config: ClinicConfig | null,
+  recetaConfig: RecetaConfig,
+  onError?: (mensaje: string) => void,
+): Promise<ResultadoImprimible> {
+  if (typeof window === 'undefined') return 'sin-navegador'
+  const membreteResuelto = recetaConfig.disenoCompletoDataUrl
+    ? undefined
+    : await resolverMembreteParaWord(recetaConfig.membreteDataUrl ?? '')
+  const html = construirRecetaHTML(data, config, recetaConfig, membreteResuelto)
+  const win = window.open('', '_blank', 'width=900,height=1000')
+  if (!win) {
+    const msg = 'No se pudo abrir la ventana para imprimir (el navegador la bloqueó). ' +
+      'Permite las ventanas emergentes de este sitio, o usa «Descargar» para guardar el archivo.'
+    if (onError) onError(msg)
+    // eslint-disable-next-line no-alert
+    else window.alert(msg)
+    return 'bloqueada'
+  }
+  win.document.open()
+  win.document.write(html)
+  win.document.close()
+  win.onafterprint = () => { try { win.close() } catch { /* — */ } }
+  // Un respiro para que el navegador maquete antes del diálogo; si no llega a
+  // tiempo, la ventana queda abierta con el documento y el paciente imprime
+  // desde el menú. Nunca se cierra sola sin haber enseñado nada.
+  setTimeout(() => { try { win.focus(); win.print() } catch { /* — */ } }, 250)
+  return 'abierta'
+}
+
+export const POR_QUE_NO_BASTA_EL_DOC =
+  'Porque el paciente no necesita editar su receta: necesita verla y ' +
+  'enseñarla. Un formato editable que su teléfono no abre es, para él, un ' +
+  'archivo roto.'

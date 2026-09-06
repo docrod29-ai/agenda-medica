@@ -288,7 +288,19 @@ export default function ConsultorPage() {
                       return (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, marginRight: 6, fontSize: 11, fontWeight: 600, borderRadius: 8, padding: '4px 9px', color: ok ? '#16a34a' : '#b45309', background: ok ? 'color-mix(in srgb, var(--green) 10%, transparent)' : 'color-mix(in srgb, var(--amber) 10%, transparent)', border: `1px solid ${ok ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}` }}>
                           {ok
-                            ? `✓ ${citadas.length} cita${citadas.length === 1 ? '' : 's'} verificada${citadas.length === 1 ? '' : 's'} contra las fuentes`
+                            /*
+                               * RT-007 — decía «verificadas contra las fuentes»
+                               * en verde después de comprobar únicamente que los
+                               * números de cita caben en la lista de artículos.
+                               * No se ha leído un solo artículo, así que la
+                               * palabra «verificada» prometía una comprobación de
+                               * CONTENIDO que no ocurrió. Se dice lo que de
+                               * verdad se midió. Enchufar `verificarAfirmaciones`
+                               * —que ya existe y está probado— exige pedirle al
+                               * consultor el pasaje literal, y eso toca la ruta
+                               * de la API: va en el handoff.
+                               */
+                            ? `${citadas.length} cita${citadas.length === 1 ? '' : 's'} apunta${citadas.length === 1 ? '' : 'n'} a un artículo de la lista`
                             : t.articulos.length === 0
                               ? `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} sin fuente: no hay artículos contra los que comprobarlas`
                               : `⚠ ${fuera.length} cita${fuera.length === 1 ? '' : 's'} fuera de rango`}
@@ -373,7 +385,7 @@ export default function ConsultorPage() {
       */}
       <div className="nx-consultor-barra" style={{ position: 'fixed', bottom: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <textarea
+          <textarea aria-label="Escribe tu pregunta clínica… (Enter para enviar)"
             value={pregunta}
             onChange={e => setPregunta(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); preguntar(pregunta) } }}

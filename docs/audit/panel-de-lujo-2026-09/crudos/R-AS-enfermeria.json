@@ -1,0 +1,106 @@
+{
+  "auditor": "AS-enfermeria",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ASN-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:3494 (`vacio` no cuenta signos) + :3493 (`if (!b) return` sin fijar autoRestRef) + :3564 (setSignos con el espejo) + :3575 (`voz` en las deps) + :3630 (el espejo SÍ cuenta signos, por el-borrador-no-se-pierde.ts:103)",
+      "nota": "REPRODUCIDO EN VIVO 3/3 contra localhost:3200 con contexto de navegador limpio (Playwright, /citas → «Iniciar consulta» → #signo-<k>.type(txt,{delay})): peso '154'→'14' (80 ms), TA '120/80'→'10/80' (80 ms), temperatura '36.7'→'3.7' (400 ms); el segundo campo tecleado en la misma página ('987' en #signo-fc) queda intacto en las tres corridas. MECANISMO: `voz` (page.tsx:485) es un objeto literal nuevo en cada render (useGrabacionVoz no memoiza su retorno), así que el efecto de restauración (3472-3575) corre en CADA commit; en el commit de la 1ª tecla lee el espejo vacío y sale por 3493 SIN marcar autoRestRef; después, el efecto del espejo (3608-3631, sin deps) escribe borradorMem con {signos:{peso:'1'}} porque hayAlgoQuePerder sí cuenta signos; en el commit de la 2ª tecla el efecto de restauración corre PRIMERO (está declarado antes), lee ese espejo de hace una tecla, `vacio` da true porque 3494-3495 no mira signos, queHacerConElRespaldoLocal devuelve APLICAR_SOLO (local-drafts.ts:136, con notaAbierta=null por entrar desde /citas sin ?nota=) y 3564 repone el signo de una tecla encima del vivo. De ahí en adelante autoRestRef=true y no vuelve a pasar: por eso sólo se pierde la SEGUNDA tecla del PRIMER campo. No es dev-only: no depende de StrictMode ni de la velocidad (falla igual a 400 ms/tecla); queda por verificar en build de producción, como el propio auditor declara."
+    },
+    {
+      "id": "ASN-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6756-6758 (única validación: /^\\d*\\.?\\d*$/) y src/lib/expediente/copiloto.ts:555,565,593,603 (umbrales sin cota superior)",
+      "nota": "Comprobado que no hay cota de plausibilidad en ninguna capa del camino: ni en el onChange (6754-6760), ni en signosNum (728-737, sólo Number.isFinite), ni en copiloto (521-612), ni en el tipo (types/expediente.ts:203-214). El patrón SÍ existe en el repositorio pero sólo en UCI (`motivo: 'implausible'`, uci/Verificacion.tsx:220, uci/page.tsx:1281, REG-031/REG-036) y nunca se llevó a Practice. Bajo a P2 respecto del P1 del auditor por dos razones: el valor extremo NO pasa en silencio (dispara alerta crítica visible del copiloto, que es lo que el auditor mismo describe), y los límites por signo y edad son NEEDS_CLINICAL_REVIEW —decisión del dueño—, así que no hay defecto reparable sin ella. Dato que el auditor no vio y agrava el caso: con talla en metros, `imc()` (pediatria.ts:444) no tiene guarda superior y ofrece a la nota un IMC de seis cifras."
+    },
+    {
+      "id": "ASN-003",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "Confirma: page.tsx:2109 (`if (!clinicId || !patientId || !notaIdParam) return` — el servidor sólo se consulta con ?nota=) y :3478-3493 (memoria + localStorage) y citas/page.tsx:774 (push sin ?nota=). REFUTA el impacto: page.tsx:898-903 + src/lib/expediente/firestore.ts:519-536",
+      "nota": "El núcleo del hallazgo se sostiene: abrir /consulta/<id> desde la agenda no lee ninguna nota borrador del servidor, así que los signos capturados en otro equipo no están delante del médico. Pero la consecuencia declarada —«el siguiente autoguardado crea una segunda nota»— es FALSA justo en el flujo descrito: con cita de hoy, `claveEncuentro()` vale `cita:<id>` (898-901) y `createNota` deriva un id determinista y escribe DENTRO de una transacción que sólo hace `set` si el documento no existe (firestore.ts:528-536), de modo que el segundo dispositivo converge al MISMO borrador sin pisarlo; y el autoguardado siguiente choca con la guarda de versión (firestore.ts:826-832, ConflictoDeVersion) y avisa «Otra sesión modificó esta nota. NO se guardó» en vez de sobrescribir. No hay nota gemela ni pérdida de los signos de la enfermera: hay invisibilidad y un aviso confuso. Bajo a P2 por eso."
+    },
+    {
+      "id": "ASN-004",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/authz/matriz-acceso.ts:125-126 y :244-245 (isMedico) confirman el hueco en Practice; :73 (`isClinicoHospital: ['medico','admin','enfermeria','farmacia','laboratorio']`) refuta «sin capacidad alguna»",
+      "nota": "Las tres citas existen literalmente y el selector de Configuración ofrece el rol sin condición (secciones-cuenta.tsx:726, sin bandera de módulo). Pero el rol NO es un botón muerto: `enfermeria` satisface `isClinicoHospital`, que es la guarda de las colecciones de hospital/UCI —el módulo para el que ese rol se creó—, así que la etiqueta `boton_muerto` es incorrecta; lo que hay es un rol sin alcance EN PRACTICE. Y el propio hallazgo declara que el alcance clínico de «Enfermería» en Practice es una decisión pendiente del dueño, no un defecto reparable. El sub-hallazgo verificable y accionable hoy es el de trazabilidad: SignosVitales no tiene autor ni hora (types/expediente.ts:203-214), y eso no depende de ninguna decisión."
+    },
+    {
+      "id": "ASN-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6758 (`if (!/^\\d*\\.?\\d*$/.test(v)) return s`), :6727 (unidad sólo como placeholder), :6325 (pesoKg a la verificación de dosis); src/components/PanelPediatria.tsx:49 (único llamador de revisarPesoPediatrico)",
+      "nota": "Ejecutado el parser puro con jiti (copia literal del onChange 6754-6760, tecla a tecla): '154 lb' → '154'; '70,5' → '70.5'; '1.70' → '1.70'; '36,5' → '36.5'. O sea: la ' ' y las letras se descartan sin decirlo (regla 3) y la talla en metros se guarda como cm. Verificado también que `revisarPesoPediatrico` (pediatria.ts:136, la guarda de REG-013 con su cota de 120 kg y su detección ≈×2.2) tiene UN solo llamador en toda la app, PanelPediatria.tsx:49, así que el bloque de signos no la cruza. Bajo a P2 porque lo tecleado no se transforma —los dígitos se conservan tal cual, la etiqueta dice «Peso» y el marcador dice «kg»— y la banda de peso/talla que haría falta es NEEDS_CLINICAL_REVIEW."
+    },
+    {
+      "id": "ASN-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:127 y :132 (`/(\\d{2,3})\\s*\\/\\s*(\\d{2,3})/`); page.tsx:6755 (la TA se acepta sin validación)",
+      "nota": "Ejecutado con jiti sobre el módulo real: sistolica('12/8')=undefined, sistolica('120-80')=undefined, sistolica('')=undefined, sistolica('120/80')=120. Es decir, «no supe leerla» y «no hay TA» devuelven exactamente lo mismo y nada en la interfaz distingue los dos casos — regla 4 al revés, tal como lo plantea el auditor. Prioridad P2 correcta: no hay corrupción de dato, hay silencio."
+    },
+    {
+      "id": "ASN-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/expediente/ResumenPaciente.tsx:92-99 (sin unidad en TA/FC/FR/T°, talla ausente) y :187 (la fecha que sí se imprime es «última visita», del `orden[0]`); refuta el «nadie calcula IMC»: src/lib/expediente/copiloto.ts:622-639 con `imc()` de pediatria.ts:444",
+      "nota": "Las omisiones citadas existen tal cual. Pero la premisa «nunca calcula IMC / nadie lo calcula» es falsa a nivel de producto: el copiloto de la consulta SÍ lo calcula con motor determinista y lo ofrece a la nota; lo que no ocurre es persistir `signos.imc` (0 escrituras de `imc:` en src/), por eso la línea del expediente nunca lo pinta. Y «sin fecha» está matizado: el mismo bloque imprime «última visita <fecha>» dos renglones abajo (187), aunque puede mentir, porque los signos salen de la primera nota hacia atrás que traiga alguno (25-30) y no necesariamente de la más reciente. Es fricción cosmética con una trampa de procedencia: P3."
+    },
+    {
+      "id": "ASN-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/expediente/ResumenPaciente.tsx:25-30 (recorre `orden` sin mirar `n.estado`) frente a src/app/(dashboard)/expediente/[patientId]/page.tsx:182 (`notas.filter(n => n.estado === 'firmada')` para el bloque vecino)",
+      "nota": "Verificado el llamador: expediente/page.tsx:356 pasa `notas` SIN filtrar (useExpediente devuelve borradores y firmadas; PatientAnchor depende de ello para detectar el encuentro abierto), mientras el bloque de Problemas/Toma que se pinta al lado sí filtra por firmada en :182. La incoherencia que denuncia el auditor está entre esas dos líneas y es exacta. Se mantiene P2."
+    },
+    {
+      "id": "ASN-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/tareas-clinicas/modelo.ts:242-243 (origen 'manual' documentado) frente a los dos únicos importadores de `tareas-clinicas/abrir`: consulta/[patientId]/page.tsx:170 y orden/[patientId]/[notaId]/page.tsx:14; pendientes/page.tsx:574 («Cuando firmes una consulta…»)",
+      "nota": "Comprobado con grep en todo src/ (sin __tests__): ningún llamador crea con origen 'manual'; el único `crearTareas` de la pantalla (pendientes/page.tsx:364) es la recuperación de las que no se abrieron al firmar, no una alta a mano. `por-que-esta-aqui.ts` tiene el `case 'manual'` preparado y nadie lo alcanza: es «escrito y sin conectar» de manual. P2 correcto."
+    },
+    {
+      "id": "ASN-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/FlowRail.tsx:231 (`senal={!enEncuentro && !!abierto}` sólo en Encuentro) y :232-233 (RailLink «Seguimiento» sin prop `senal`)",
+      "nota": "Las líneas son exactas y `abierto` viene de localStorage (nav/encuentro-abierto.ts:92-99), así que ni siquiera esa señal cruza de dispositivo. Bajo a P2 respecto del P1 porque el propio hallazgo documenta dos superficies donde la tarea crítica SÍ se ve (agrupada en rojo en /pendientes y en «Siguiente acción» del /dashboard): falta amplificación, no es una alerta invisible; y la vía urgente de contacto es responsabilidad del portal (patient-facing-ai.md §6), no del riel."
+    },
+    {
+      "id": "ASN-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/tareas-clinicas/firestore.ts:368-370 (`patch.ownerNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''`) y pendientes/page.tsx:169 (`{t.ownerNombre || 'sin dueño'}`)",
+      "nota": "Citas literales y correctas. Es cosmética con un borde de privacidad menor (un correo del equipo impreso en una lista clínica); P3 tal como lo puso el auditor."
+    },
+    {
+      "id": "ASN-012",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "agent-state/OWNER_DECISIONS_REQUIRED.md:14 — «C-5 · ¿El motivo de una corrección de signos es obligatorio? · Pedirlo y enseñarlo, sin bloquear» sigue ABIERTA",
+      "nota": "Los hechos se verifican: `motivoCorreccion` existe sólo en hospitalizacion/[internamientoId]/page.tsx (915, 1626) y cero veces en Practice; el campo de signos se apaga con `disabled={firmada}` (page.tsx:6765). Pero el hallazgo es de tipo `mejora` y depende íntegramente de una decisión del dueño todavía pendiente (C-5), incluida la pregunta que el propio auditor formula: si C-5 aplica a Practice. Por la regla 7 del briefing queda `parcial`, no confirmado."
+    },
+    {
+      "id": "ASN-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/types/expediente.ts:212-214 (glucometria/glasgow/escalaDolor) contra page.tsx:6727 (los siete campos: ta, fc, fr, temperatura, spo2, peso, talla) y ResumenPaciente.tsx:99 (lector de glucometria)",
+      "nota": "Grep de `glucometria` en todo src/ sin pruebas: sólo el tipo, el lector del resumen, el exportador FHIR (fhir/recursos.ts:90) y el vocabulario clínico. CERO escritores — ni input, ni extracción de voz, ni laboratorio. Es un lector sin escritor, exactamente la familia «escrito y sin conectar». Se mantiene P2."
+    },
+    {
+      "id": "ASN-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/OnboardingTour.tsx:55 (`setTimeout(() => setVisible(true), 700)`) y :112-127 (role=dialog con telón `nx-dialogo-telon` sobre la pantalla)",
+      "nota": "REPRODUCIDO 2/2 en vivo con contexto limpio: el clic en «Iniciar consulta» no navega y Playwright falla por elemento cubierto («TimeoutError: locator.click») tanto pulsando en cuanto el botón es visible (0 ms de espera extra) como tras 4 s, con `[role=dialog]` ya presente en el segundo caso. Corrijo al auditor en un punto: la probabilidad no es «baja», es CIERTA en el primer ingreso de cada navegador —el telón aparece a los 700 ms de montar, dentro de la ventana en que el médico alcanza el botón—. Aun así P3: severidad mínima, se sale con «Saltar» y sólo pasa una vez por dispositivo."
+    }
+  ],
+  "ratio": { "total": 14, "confirmados": 10, "refutados": 0, "parciales": 4 },
+  "observaciones_del_auditor": "No pude refutar ninguno de los catorce: todas las citas archivo:línea caen dentro de ±2 líneas de lo que dice el JSON, ningún hallazgo está en código muerto, tras bandera apagada ni en un módulo en pausa (D-030), y ninguno estaba ya cerrado en el ledger —REG-013 y REG-031/036 son el patrón que el auditor usa como referencia, no cobertura del caso—. ASN-001 lo reproduje 3/3 en la app viva, con el mismo resultado literal que reporta. El patrón de error del auditor es otro y es consistente: afirma negativos sobre TODO el producto desde la lectura de UN componente, sin comprobar el camino vecino. Tres veces: «nadie calcula el IMC» (lo calcula el copiloto con motor determinista, copiloto.ts:622-639; lo que falta es persistirlo), «el siguiente autoguardado crea una segunda nota» (la idempotencia GP9 converge al mismo documento y la guarda de versión impide pisarlo, firestore.ts:519-536 y 826-832) y «el rol Enfermería no tiene capacidad alguna» (la tiene en las colecciones de hospital, matriz-acceso.ts:73). Segundo patrón, más leve: infla prioridad cuando el defecto ya tiene una superficie que lo enseña —ASN-002 dispara alerta visible, ASN-010 se ve en /pendientes y /dashboard— y cuando la reparación depende de una cifra clínica que él mismo marca NEEDS_CLINICAL_REVIEW o de una decisión abierta del dueño (C-5). En su favor: declara sus límites (dev vs producción, la cuenta única, qué NO cubre cada hallazgo) y no fija ni una cifra clínica."
+}

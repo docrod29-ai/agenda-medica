@@ -74,7 +74,25 @@ export default function ResenaPage() {
         <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--text)', margin: '0 0 8px' }}>
           ¿Cómo fue tu experiencia con {req.medicoNombre}?
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 18px' }}>Tu opinión es anónima en la página pública.</p>
+        {/*
+          ── PO-011 · «ANÓNIMA» NO ERA VERDAD ──────────────────────────────
+
+          Decía «Tu opinión es anónima en la página pública» y lo que se publica
+          es «Nombre A.» — el nombre de pila del paciente y la inicial de su
+          apellido. En un pueblo, o en una consulta de especialidad, eso
+          identifica a una persona: «María G.» con una reseña de ginecología es
+          una María G. que fue a esa consulta.
+
+          Se dice lo que pasa, antes de escribir, que es cuando el paciente
+          todavía puede decidir. Cambiar lo que se PUBLICA (dejarlo de verdad
+          anónimo, o preguntarle) toca `lib/reviews.ts`, que es de otra
+          rebanada: va en el handoff. Lo que no puede seguir es que el texto
+          prometa una cosa y el sistema haga otra.
+        */}
+        <p style={{ fontSize: 14, color: 'var(--text3)', margin: '0 0 18px', lineHeight: 1.55 }}>
+          Si se publica en la página del consultorio, aparecerá con tu nombre de
+          pila y la inicial de tu apellido — por ejemplo, «María G.».
+        </p>
 
         {/*
           LAS CINCO ESTRELLAS (A11Y-GATE-001). Eran cinco botones sin una sola

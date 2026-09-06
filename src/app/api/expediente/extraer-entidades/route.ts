@@ -19,6 +19,7 @@ import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas, TOPE_TEXTO_NER } from '@/lib/expediente/medical-ner'
+import { GUARDA_INYECCION, neutralizarDelimitador } from '@/lib/expediente/prompts'
 import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -31,6 +32,8 @@ import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
+/** Un `"""` dentro del texto cerraría la valla del NER; se vuelve inerte y visible. */
+const sinCierres = (t: string): string => neutralizarDelimitador(String(t ?? '')).replace(/"""/g, '\u201d\u201d\u201d')
 
 const MODELOS_CANDIDATOS = [
   'claude-sonnet-4-5',
@@ -149,8 +152,15 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model,
         max_tokens: 4000,
-        system: NER_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: buildNerUserPrompt(texto, alergiasRegistradas) }],
+        /**
+         * RT-002 (equipo rojo): el NER no llevaba la guarda y su valla de
+         * comillas triples se cerraba desde el dictado. La reparación de
+         * `buildNerUserPrompt` es de MOTORES (medical-ner.ts); desde esta ruta
+         * se pone la guarda delante y se neutraliza, sin borrar, cualquier
+         * cierre de valla que venga en el texto o en las alergias.
+         */
+        system: GUARDA_INYECCION + '\n\n' + NER_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: buildNerUserPrompt(sinCierres(texto), alergiasRegistradas.map(sinCierres)) }],
       }),
       signal: AbortSignal.timeout(45000),   // aborta limpio si tarda, sin "error de red" ambiguo
     })

@@ -1,0 +1,686 @@
+{
+  "rol": "recepcion-agenda",
+  "panel": "asistente",
+  "fecha": "2026-09-06",
+  "nota_del_auditor": "Personaje interpretado por un modelo: recepcionista de consultorio privado. Recorrí la app viva en http://localhost:3200 con un consultorio SINTÉTICO (escritorio 1440×900 y móvil 390×844) con una copia propia del recorredor; abrí las capturas. Todo hallazgo se ancló a archivo:línea con grep/sed antes de escribirlo. No modifiqué src/; creé datos sintéticos (un intento de cita «Prueba Recepción Auditoría» que el servidor rechazó con 500, un expediente homónimo «Rosalía Mendieta Cuevas» con teléfono 5550000999, y cambios de estado en citas del día: Aurelio 11:00 → en sala, Tadeo 12:00 → cancelada).",
+  "tareas_en_clics": {
+    "1_agendar_paciente_existente": "Dashboard «Nueva cita» (1) → /asistente: teclear nombre, elegir sugerencia (1), tipo (1), día (1), hora (1), «Agendar cita» (1) = 5-6 clics. Hoy termina en «No se pudo agendar la cita» (ASR-001).",
+    "2_agendar_paciente_nuevo_con_telefono": "Igual sin la sugerencia: 4 clics + 2 campos. Crea el expediente ANTES de la cita (ASR-011) y la cita nace «confirmada» (ASR-015).",
+    "3_confirmar_una_cita": "Por WhatsApp: 1 clic («Confirmar» abre WhatsApp) pero no registra nada. Por teléfono: ⋮ → Editar cita → Estado → «confirmada» → Guardar = 5 clics con un select en enum (ASR-004, ASR-006).",
+    "4_reprogramar": "⋮ → Editar cita → Fecha → Hora (select) → Guardar cambios = 5-6 clics; bloqueado con «ocupado» si el día está cerrado (ASR-008).",
+    "5_cancelar": "⋮ → Cancelada = 2 clics, sin confirmación, sin motivo, sin deshacer (ASR-005).",
+    "6_marcar_llegada": "⋮ → En sala de espera = 2 clics; toast «Estado actualizado: en-sala» (ASR-009, ASR-006).",
+    "7_ver_agenda_de_manana": "1 clic («mañana: 1 cita» o «Día siguiente») → /citas?d=…; estado vacío bien escrito.",
+    "8_bloquear_horario_de_comida": "Configuración → Horario de atención → por día «+ Añadir descanso» + inicio + fin (×5) → Guardar ≈ 18 interacciones (ASR-010)."
+  },
+  "cual_de_las_40_veces_sale_mal": "La confirmación por teléfono. De las 40 llamadas del día, la mitad son «sí, ahí estaré»; el botón «Confirmar» abre WhatsApp y no registra nada, y el menú de estados no tiene «Confirmada» (ASR-004). Así que o me meto a Editar cita y elijo `pendiente-confirmar → confirmada` en un select que habla como máquina (5 clics, 40 veces), o dejo la cita como está — y entonces el tablero me repite «Confirmar cita de…» todo el día, el riesgo de no-show se calcula con un dato falso y al paciente le vuelve a llegar «confirma tu cita». La segunda que sale mal es la cancelación en móvil: «Cancelada» está pegada a «Finalizada» y «No asistió» en un menú de diez ítems de 34 px y se aplica al instante sin pregunta (ASR-005); un dedo torpe cancela, le ofrece el hueco a otro por WhatsApp y borra el evento de Google. Y el día que el consultorio estrena la app, ninguna de las 40 sale: agendar devuelve 500 hasta que alguien guarde el horario (ASR-001).",
+  "no_alcanzado": [
+    "Doble reserva en vivo: no se pudo crear ninguna cita (POST 500, ASR-001); la defensa se verificó sólo en código (AppointmentModal.tsx:228, route.ts:202-224).",
+    "Reprogramar y cancelar mi propia cita de prueba: no llegó a existir; cancelé una cita sintética del día en su lugar.",
+    "Google Calendar con cuenta real y envío real de WhatsApp (prohibidos).",
+    "Los pasos 2-5 de la reserva pública (fecha, hora, datos, consentimientos): la página no ofrece tipos (ASR-002).",
+    "Configuración: zona horaria y horario NO se cambiaron para no romper a los demás auditores; sólo se leyó y se pulsó «+ Añadir descanso» sin guardar.",
+    "Pantalla /consulta (rol médico), fuera de mi rebanada."
+  ],
+  "revisado": [
+    {
+      "pieza": "/dashboard · src/app/(dashboard)/dashboard/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio/móvil. Fecha del navegador vs consultorio (ASR-003); aviso flotante tapa filas (ASR-017); «Nueva cita» → /asistente. Móvil: 5 destinos, sin desborde."
+    },
+    {
+      "pieza": "/citas · src/app/(dashboard)/citas/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio/móvil. Pulsado: Nueva cita, Confirmar, Cobrar (Escape cierra), ⋮ de 5 filas, En sala de espera, Cancelada, Eliminar (pide confirmación; Escape cierra), Editar cita (Escape cierra), WhatsApp: recordatorio, Calendario descuadrado, filtros «2 por confirmar»/«1 por cobrar», Día anterior/siguiente, «mañana: 1 cita», picker de fecha, búsqueda con y sin acento. Clics: confirmar por teléfono 5 (ASR-004); reprogramar 5-6 (ASR-008); cancelar 2 sin confirmar (ASR-005); marcar llegada 2 (ASR-009); agenda de mañana 1. Estado vacío correcto («Sin citas agendadas. El día siguiente tiene 1.»)."
+    },
+    {
+      "pieza": "/calendario · src/app/(dashboard)/calendario/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio/móvil (día/semana/mes). Celdas y citas son `role=button` vía `activable`; «Nueva cita» manda a /asistente?fecha (ASR-015). No se pudo completar la doble reserva desde la celda porque el POST falla (ASR-001); el chequeo existe en cliente (AppointmentModal.tsx:228) y en servidor (route.ts:202-224, transacción)."
+    },
+    {
+      "pieza": "/pacientes · src/app/(dashboard)/pacientes/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio/móvil. Búsqueda normaliza acentos (:137). Nuevo paciente: modal cierra con Escape; «Edad *» y formato de nombre (ASR-020). Detector de parejas visible tras el homónimo (ASR-011)."
+    },
+    {
+      "pieza": "/lista-espera · src/app/(dashboard)/lista-espera/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio. Lista vacía con texto humano y dos «Agregar»; modal cierra con Escape; campos prioridad/rango (ASR-014)."
+    },
+    {
+      "pieza": "/pendientes · src/app/(dashboard)/pendientes/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "recorrido: sí, escritorio. Fuera de mi rebanada salvo verificar que «Seguimiento» del menú lleva aquí; los botones «Tomarla / Ya no aplica / ¿Por qué está aquí?» existen; no se pulsaron (auditor M)."
+    },
+    {
+      "pieza": "/configuracion (Datos, Horario de atención, Vacaciones y bloqueos) · src/app/(dashboard)/configuracion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio. Zona horaria y intervalo con label asociado (:550, :556). Descansos por día sin «aplicar a todos» (ASR-010): bloquear comida ≈ 18 interacciones. Bloqueos Desde/Hasta sin label asociado (ASR-013). No se guardó nada para no romper a otros auditores."
+    },
+    {
+      "pieza": "/asistente · src/app/(dashboard)/asistente/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, escritorio. Agendar existente: sugerencia + tipo + día + hora + Agendar = 5 clics; nuevo con teléfono = 4 clics + 2 campos. Los dos intentos terminaron en 500 (ASR-001). Homónimo creó expediente (ASR-011). Nace «confirmada» (ASR-015). Inputs sin label (ASR-013)."
+    },
+    {
+      "pieza": "/reservar (sin id) · src/app/not-found.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, sin sesión, escritorio/móvil. 404 con texto de caché/dashboard (ASR-012)."
+    },
+    {
+      "pieza": "/reservar/consultorio-demo-v10 · src/app/reservar/[clinicId]/page.tsx + src/app/api/public/clinic/[clinicId]/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "recorrido: sí, sin sesión, escritorio/móvil. Tarjeta de tipos vacía sin mensaje (ASR-002); no se pudo avanzar al paso de fecha."
+    },
+    {
+      "pieza": "/dr/consultorio-demo-v10 · src/app/dr/[clinicId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "recorrido: sí, sin sesión, escritorio. Nombre, especialidad, cédula ficticia, enlace «Agendar cita en línea» (objetivo 688×20, pequeño en alto pero de ancho completo)."
+    },
+    {
+      "pieza": "src/components/AppointmentModal.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Abierto desde Editar cita: conflicto contra día cerrado (ASR-008), select de estado con enum (ASR-006), POST al mismo endpoint que falla (ASR-001)."
+    },
+    {
+      "pieza": "src/lib/availability.ts (hasConflict, getAvailableSlots)",
+      "veredicto": "con hallazgos",
+      "nota": "`!schedule → true` se reporta como «ocupado» (ASR-008). Paso de huecos = max(intervalo, duración) (:178), correcto: Seguimiento ofrece cada 30 min."
+    },
+    {
+      "pieza": "src/app/api/appointments/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "Lee config/main sin valores por omisión (ASR-001). Sí valida día/horario/bloqueos y usa transacción con centinela del día (:202-224) — la doble reserva está defendida en código; no se pudo reproducir en vivo."
+    },
+    {
+      "pieza": "Google Calendar (badge «Calendario descuadrado», repararSync)",
+      "veredicto": "con hallazgos",
+      "nota": "Pulsado en vivo: repara al clic (ASR-019). No se auditó la integración con cuenta real (prohibido)."
+    },
+    {
+      "pieza": "docs/audit/regression-ledger.md (REG-011, REG-039, REG-067, REG-100)",
+      "veredicto": "sin hallazgo",
+      "nota": "REG-011 y REG-067 cerrados; el dashboard reabre el patrón con `new Date()` (ASR-003, no es la misma línea). REG-039 se mantiene cerrado: el homónimo NO se fundió."
+    }
+  ],
+  "hallazgos": [
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-001",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Agendar desde el Portal del Asistente falla con 500 y sólo dice «No se pudo agendar la cita» cuando el consultorio no ha guardado su horario",
+      "archivo": "src/app/api/appointments/route.ts",
+      "linea": 165,
+      "evidencia": "route.ts:145-146 `const cfgSnap = await adminDb…doc('main').get(); const cfg = cfgSnap.data()` → 157 `let cfgEfectiva = cfg as ClinicConfig` → 165 `const schedule = getDaySchedule(fecha, cfgEfectiva)`. Sin DEFAULT_CONFIG. dev.log: «⨯ TypeError: Cannot read properties of undefined (reading 'lunes') at POST (src/app/api/appointments/route.ts:165:22) · POST /api/appointments 500» (dos veces). La pantalla ofrecía 18 lugares porque el cliente sí mezcla `{ ...DEFAULT_CONFIG, ...snap.data() }` (src/hooks/useConfig.ts:33). El toast es asistente/page.tsx:404 `toast(data.error || 'No se pudo agendar la cita')`.",
+      "reproduccion": "Consultorio sintético cuyo `config/main` no tiene `horario` (la API pública lo confirma: `horarios: {}`). /asistente → nombre «Prueba Recepción Auditoría», tel 5559990001 → Seguimiento → Lunes 7 → 09:00 → «Agendar cita». Resultado: toast rojo «No se pudo agendar la cita», red 500 POST /api/appointments. AppointmentModal.tsx:294 llama al mismo endpoint, así que la celda del calendario falla igual.",
+      "impacto": {
+        "paciente": "Se queda sin cita aunque la recepcionista le dijo la hora por teléfono.",
+        "medico": "Agenda vacía sin saber por qué; el consultorio recién dado de alta no puede agendar hasta tocar «Horario de atención».",
+        "negocio": "Prueba de 14 días que muere en la primera cita; ticket de soporte seguro."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "ninguno: el 500 se traga en `toast(data.error || …)`; no hay prueba de POST con config sin horario",
+      "prioridad": "P1",
+      "propuesta": "En route.ts construir `cfgEfectiva = { ...DEFAULT_CONFIG, ...cfg }` (misma regla que useConfig.ts:33) o, si no hay horario, responder 409 con texto claro («Configura el horario de atención antes de agendar»). El toast debe enseñar la causa.",
+      "prueba_que_faltaria": "Test de `POST /api/appointments` con `config/main = { nombreMedico }` (sin `horario`): hoy lanza TypeError/500; con el arreglo devuelve 201 o 409 explicado.",
+      "que_no_cubre": "Un `horario` presente pero con un día ausente (`horario.lunes` undefined) ni el mismo patrón en /api/public/booking.",
+      "relacionado": [
+        "REG-100",
+        "REG-067",
+        ".claude/rules/el-dato-tiene-que-llegar.md"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-002",
+      "modulo": "publico",
+      "tipo": "defecto",
+      "titulo": "La reserva pública muestra «¿Qué tipo de consulta deseas?» sin ninguna opción ni mensaje: callejón sin salida para el paciente",
+      "archivo": "src/app/api/public/clinic/[clinicId]/route.ts",
+      "linea": 83,
+      "evidencia": "route.ts:61 `const config = cfg ?? {}` y :83 `tiposCita: Object.entries(config.duraciones ?? {})…`, :84 `horarios: config.horario ?? {}` — sin DEFAULT_CONFIG. `curl /api/public/clinic/consultorio-demo-v10` → `\"medicos\":[],\"tiposCita\":[],\"horarios\":{}`. reservar/[clinicId]/page.tsx:151 `const tiposCita = info?.tiposCita.filter(...) ?? []` y :203 `{tiposCita.map(...)}` sin rama vacía.",
+      "reproduccion": "Sin sesión, /dr/consultorio-demo-v10 → «Agendar cita en línea» → /reservar/consultorio-demo-v10: tarjeta con el título y nada más (captura asr-reservar_consultorio-demo-v10.png, escritorio y móvil). Ninguna petición fallida; simplemente no hay botones.",
+      "impacto": {
+        "paciente": "Cree que la página está rota y llama o se va.",
+        "medico": "El enlace que imprime en sus tarjetas no sirve hasta que edite duraciones en Configuración, y nadie se lo dice.",
+        "negocio": "El portal de auto-agenda es argumento de venta y se ve vacío en el primer uso."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "ninguno en la página; /asistente sí funciona porque usa los valores por omisión",
+      "prioridad": "P1",
+      "propuesta": "Servir `{ ...DEFAULT_CONFIG, ...cfg }` en la API pública (duraciones y horario por omisión) y, en la página, un estado vacío que diga «Este consultorio aún no abrió su agenda en línea; llama al …».",
+      "prueba_que_faltaria": "Test de `GET /api/public/clinic/:id` con `config/main` sin `duraciones`: hoy devuelve `tiposCita: []`; con el arreglo devuelve los tipos por omisión. Y un test de la página con `tiposCita: []` que exija un mensaje.",
+      "que_no_cubre": "Un consultorio con `publicBookingEnabled: false` (ese caso sí tiene mensaje) ni la disponibilidad real de horarios.",
+      "relacionado": [
+        "REG-100",
+        "ASR-001"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-003",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El tablero y la agenda no están de acuerdo en qué día es hoy: el encabezado, el saludo y «próxima cita en 4h» usan el reloj del navegador, la agenda usa la zona del consultorio",
+      "archivo": "src/app/(dashboard)/dashboard/page.tsx",
+      "linea": 126,
+      "evidencia": "dashboard/page.tsx:125-126 `const now = new Date(); const fechaLabel = now.toLocaleDateString('es-MX', { weekday: 'long', … })`; :71 `const h = new Date().getHours()` (saludo); :120 `a.fechaHora >= \\`${today} ${new Date().toTimeString().slice(0, 5)}\\`` (próxima cita) y :337 `const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)` («EN 4H 44MIN»). En cambio `today` sale de `hoyISO()` (:63) y /citas usa `hoyISO()` + `useAhoraMinutos` (citas/page.tsx:56, 313-315).",
+      "reproduccion": "Navegador en UTC, consultorio en America/Mexico_City, a las 21:16 hora del consultorio: /dashboard dice «DOMINGO, 6 DE SEPTIEMBRE DE 2026 · Buenos días» y «PRÓXIMA CITA · EN 4H 44MIN» para la cita de las 08:00; /citas dice «Sábado 5 de septiembre de 2026» con el marcador de ahora en 21:16 (capturas asr-dashboard.png y asr-citas.png, misma sesión, mismo minuto).",
+      "impacto": {
+        "paciente": "Le confirman «mañana» mirando una pantalla que ya dice mañana.",
+        "medico": "Dos pantallas con dos fechas; el «en 4h» se calcula con la hora de la computadora sobre la fecha del consultorio.",
+        "negocio": "Es la clase de error de REG-011/REG-067, que el dueño ya pagó dos veces."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "REG-067 arregló `hoyISO`/`ahoraMinutosDelDia` publicando la zona; estas cuatro llamadas a `new Date()` quedaron fuera del trinquete",
+      "prioridad": "P2",
+      "propuesta": "Encabezado con `hoyISO()` formateado en la zona activa; saludo y «en X min» con `ahoraMinutosDelDia()`; añadir estas llamadas al trinquete de REG-067.",
+      "prueba_que_faltaria": "Test del dashboard con `TZ=UTC` y zona del consultorio Mexico_City a las 03:16Z: hoy el encabezado y `today` difieren en un día; con el arreglo coinciden.",
+      "que_no_cubre": "Las otras 40 llamadas que REG-067 ya cubre ni el corte de caja (REG-011).",
+      "relacionado": [
+        "REG-011",
+        "REG-067"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-004",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "No hay forma de marcar «Confirmada» una cita que el paciente confirmó por teléfono: el botón «Confirmar» abre WhatsApp y el menú de estados no tiene esa opción",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 1061,
+      "evidencia": ":901-903 `if (ESTADOS_PENDIENTES.includes(e) && appt.pacienteTelefono) return { tipo: 'confirmar', label: 'Confirmar' }`; :1088 `case 'confirmar': handleWA(); break`; :1013-1017 `handleWA = () => { … openWhatsApp(appt.pacienteTelefono, msg) }`; :1061 `const QUICK_STATUSES = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']` — sin 'confirmada'. Quien pone `estado: 'confirmada'` es el webhook de WhatsApp (api/whatsapp/webhook/route.ts:660) o el portal (api/portal/route.ts:388).",
+      "reproduccion": "/citas → fila 09:45 PENDIENTE CONFIRMAR → «Confirmar»: url sin cambio, sin diálogo, la fila sigue «PENDIENTE CONFIRMAR» (abre WhatsApp en otra pestaña). Menú ⋮ → «Cambiar estado»: En sala, En consulta, Atendida, Finalizada, Cancelada, No asistió. Única vía: ⋮ → Editar cita → Estado (select con `pendiente-confirmar`, AppointmentModal.tsx:653-656) → Guardar = 5 clics.",
+      "impacto": {
+        "paciente": "Sigue recibiendo «confirma tu cita» aunque ya confirmó por teléfono.",
+        "medico": "El tablero repite «Confirmar cita de …» como siguiente acción todo el día y el riesgo de no-show («Riesgo 66 de 100») se calcula con un estado falso.",
+        "negocio": "La tarea que más se repite en recepción (40/día) cuesta 5 clics y un select en inglés-máquina, o no se hace."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "parcial: Editar cita permite cambiar el estado",
+      "prioridad": "P1",
+      "propuesta": "Añadir 'confirmada' a QUICK_STATUSES (o un ítem «Confirmó por teléfono») y renombrar el botón primario a «WhatsApp: pedir confirmación» para que no prometa lo que no hace.",
+      "prueba_que_faltaria": "Test de `QUICK_STATUSES` (o del menú renderizado) que exija un ítem que lleve la cita a `confirmada`; hoy no existe.",
+      "que_no_cubre": "La confirmación automática vía WhatsApp ni el estado `recordatorio-enviado`.",
+      "relacionado": [
+        "ASR-006"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-005",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "«Cancelada» desde el menú rápido cancela al instante, sin confirmación, sin motivo y sin deshacer — y dispara aviso a lista de espera y borrado en Google Calendar",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 406,
+      "evidencia": ":406 `const r = await cambiarEstadoCita(clinicId!, appt.id, newStatus)` sin `confirm(…)`; :427 `toast(\\`Estado actualizado: ${newStatus}\\`, 'success')`; :432-457 `liberado` → `fetchAutenticado('/api/whatsapp/waitlist-notify'…)`; :439-445 borra el evento de Google. Contraste: eliminar sí pregunta (:511 `confirm('¿Eliminar esta cita permanentemente?', { peligro: true })`). Menú: :1251-1254 `QUICK_STATUSES.map(s => <button … onClick={() => onStatusChange(s)}>)` — «Cancelada» pegado a «Finalizada» y «No asistió», ítems de 206×34 px.",
+      "reproduccion": "/citas → ⋮ de Tadeo 12:00 → «Cancelada»: fila tachada al instante, toast «✓ Estado actualizado: cancelada», sin pregunta ni campo de motivo (captura asr-k2-Cancelada.png). En móvil el menú tiene 10 ítems de 34 px (asr-k1-M_s_acciones_para_Rosal_a_Mend-movil.png).",
+      "impacto": {
+        "paciente": "Un dedo equivocado le cancela la cita y otro paciente de la lista de espera recibe el hueco por WhatsApp.",
+        "medico": "No sabe si canceló el paciente, la asistente o el error; la bitácora guarda `de/a` pero no motivo.",
+        "negocio": "Doble reserva inversa: hueco ofrecido a dos personas."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "bitácora `cita_estado_cambiado` (quién y cuándo) y `aplicado:false` si ya estaba cancelada",
+      "prioridad": "P2",
+      "propuesta": "Para cancelada/no-asistió: confirmación in-app con motivo (paciente / consultorio / error) y un «Deshacer» en el toast durante unos segundos antes de avisar a la lista de espera.",
+      "prueba_que_faltaria": "Test del menú: pulsar «Cancelada» no debe llamar a `cambiarEstadoCita` sin pasar por `confirm`; hoy lo llama directo.",
+      "que_no_cubre": "La cancelación desde Editar cita ni desde el portal del paciente.",
+      "relacionado": [
+        "ASR-006"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-006",
+      "modulo": "nucleo",
+      "tipo": "friccion",
+      "titulo": "La agenda habla como sistema: «Estado actualizado: en-sala», «Ya estaba en «cancelada»» y un select con `pendiente-confirmar`",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 427,
+      "evidencia": ":427 `toast(\\`Estado actualizado: ${newStatus}\\`, 'success')`; :411 `toast(\\`Ya estaba en «${newStatus}»\\`, 'info')`; AppointmentModal.tsx:654-656 `{STATUSES_EDIT.map(s => <option key={s} value={s}>{s}</option>)}`. El propio menú sí traduce: :1253 `{estadoCita(s)?.label ?? s}`.",
+      "reproduccion": "⋮ → «En sala de espera» → toast literal «✓ Estado actualizado: en-sala». Editar cita → Estado: «pendiente-confirmar» (captura asr-k2-Editar_cita.png).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Lee un identificador interno donde esperaba «Ya está en sala».",
+        "negocio": "Lente 2 del dueño: texto que habla como sistema."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "`estadoCita(s).label` existe y se usa en el menú",
+      "prioridad": "P2",
+      "propuesta": "Usar `estadoCita(newStatus).label` en los dos toasts («Rosalía ya está en sala») y en las opciones del select.",
+      "prueba_que_faltaria": "Test que renderice el toast tras cambiar a `en-sala` y exija que no contenga el guion del enum.",
+      "que_no_cubre": "Otros toasts de otras pantallas.",
+      "relacionado": [
+        "ASR-004",
+        "ASR-005"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-007",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Buscar «Rosalia» sin acento en la agenda esconde las 8 citas del día; en Pacientes la misma búsqueda sí funciona",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 219,
+      "evidencia": ":219 `if (search && !a.pacienteNombre.toLowerCase().includes(search.toLowerCase())) return false` — sin `normalize('NFD')`. Pacientes sí: pacientes/page.tsx:137 `const norm = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')`.",
+      "reproduccion": "/citas → «Buscar paciente…» = «Rosalia» → «Hay 8 citas este día, y el filtro las esconde. Filtrando por la búsqueda «Rosalia»» (captura asr-csinacento-citas.png). Con «Rosalía» aparecen las 2 filas.",
+      "impacto": {
+        "paciente": "«No la tengo agendada» al teléfono, cuando sí lo está.",
+        "medico": "—",
+        "negocio": "La recepcionista teclea sin acentos el 100 % de las veces."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Reutilizar `normalizarNombre` (src/lib/csv-pacientes.ts:14) en el filtro de /citas.",
+      "prueba_que_faltaria": "Test del filtro de citas con búsqueda «rosalia» contra «Rosalía»: hoy 0 resultados.",
+      "que_no_cubre": "Búsqueda por teléfono en la agenda (no existe).",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-008",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Editar una cita que cae en un día cerrado del horario dice «Ese horario ya está ocupado» y deja «Guardar cambios» apagado aunque no se toque nada",
+      "archivo": "src/lib/availability.ts",
+      "linea": 297,
+      "evidencia": "availability.ts:295-297 `if (config) { const schedule = getDaySchedule(fecha, config); if (!schedule) return true // día inactivo o festivo`; el modal lo pinta como ocupado: AppointmentModal.tsx:228 `setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, …))` y :504 `disabled={saving || (conflict && (!esMedicoReal || motivoSobreagenda.trim().length < 5))}`.",
+      "reproduccion": "/citas (sábado; Configuración → Horario: Sábado «Cerrado») → ⋮ de Tadeo 12:00 → Editar cita: «Hora * (1 disponibles)», aviso rojo «Ese horario ya está ocupado», campo «Motivo para sobreagendar» y «Guardar cambios» atenuado sin haber cambiado nada (captura asr-k2-Editar_cita.png).",
+      "impacto": {
+        "paciente": "No le corrigen el teléfono ni el motivo de una cita que ya existe.",
+        "medico": "Tiene que inventar un «motivo para sobreagendar» para guardar un teléfono.",
+        "negocio": "Pasa cada vez que el médico acepta una cita fuera de horario o cambia el horario después de agendar."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "el médico puede escribir un motivo ≥5 letras; la asistente no puede guardar",
+      "prioridad": "P2",
+      "propuesta": "Al editar sin cambiar fecha/hora, no evaluar conflicto; y distinguir el mensaje: «El consultorio no abre ese día» ≠ «ocupado».",
+      "prueba_que_faltaria": "Test: abrir el modal en modo edición con la misma fecha/hora en un día inactivo → `conflict` debe ser false; hoy es true.",
+      "que_no_cubre": "El chequeo del servidor (route.ts:166-167) que también rechazaría un PUT por día inactivo.",
+      "relacionado": [
+        "REG-100"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-009",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Para la recepcionista, la acción primaria de cada fila es «Iniciar consulta» (trabajo del médico); «Llegó / En sala de espera» está a dos clics en un menú de diez ítems",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 905,
+      "evidencia": ":904-907 `if (e === 'confirmada' || e === 'recordatorio-enviado') { if (esHoy && appt.pacienteId) return { tipo: 'consulta', label: 'Iniciar consulta' } }` — no mira el rol; :774 `onConsulta={pid => router.push(\\`/consulta/${pid}\\`)}`; «En sala de espera» sólo en :1251-1254 dentro del menú. La página conoce el rol (`esMedicoReal`, usado en :1257).",
+      "reproduccion": "/citas: cinco filas CONFIRMADA muestran «Iniciar consulta» como botón grande; marcar llegada = ⋮ → «En sala de espera» (2 clics, captura asr-k2-En_sala_de_espera.png).",
+      "impacto": {
+        "paciente": "Espera en la sala sin que el médico vea que llegó.",
+        "medico": "Botón «Iniciar consulta» pulsado por la asistente abre /consulta desde recepción.",
+        "negocio": "Tarea 6 (marcar llegada) 40 veces al día a dos clics y con riesgo de abrir consulta por error."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "`accionPrimaria(appt, esHoy, rol)`: para asistente, «Llegó» (→ en-sala) y luego «Cobrar»; «Iniciar consulta» sólo para médico.",
+      "prueba_que_faltaria": "Test de `accionPrimaria` con rol asistente y cita confirmada de hoy → label «Llegó»; hoy devuelve «Iniciar consulta».",
+      "que_no_cubre": "El tablero (/dashboard), que tiene su propio botón «Consulta» por fila.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-010",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Bloquear la hora de comida cuesta unas 18 interacciones: un descanso por día, sin «aplicar a todos», y luego «Guardar» arriba",
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "linea": 691,
+      "evidencia": ":667-691 descansos por día `{(h.descansos ?? []).map(…)}` … `<button …>+ Añadir descanso</button>` dentro del bucle de días; no existe «copiar a todos los días» (grep «aplicar a todos|Copiar horario» = 0). «Vacaciones y bloqueos» (:2197-2203) sólo admite rangos con fecha (`datetime-local`), no recurrencia.",
+      "reproduccion": "Configuración → Horario de atención → «+ Añadir descanso» (lunes) → dos campos de hora → repetir martes…viernes → Guardar. Medido: 2 clics + 2 horas sólo para el lunes (captura asr-descanso-configuracion-2clicks.png).",
+      "impacto": {
+        "paciente": "Le dan cita a las 14:30 porque la recepcionista no terminó de bloquear los cinco días.",
+        "medico": "Come con paciente.",
+        "negocio": "Tarea 8 de recepción."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Un descanso «comida» a nivel de semana («14:00–15:00, todos los días activos») con opción de excepciones por día.",
+      "prueba_que_faltaria": "Prueba de interfaz: fijar un descanso semanal y comprobar que `getAvailableSlots` lo excluye los 5 días.",
+      "que_no_cubre": "Bloqueos puntuales (vacaciones), que ya funcionan.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-011",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Agendar a un homónimo con otro teléfono crea un segundo expediente sin preguntar — y lo crea antes de saber si la cita se escribió",
+      "archivo": "src/app/(dashboard)/asistente/page.tsx",
+      "linea": 348,
+      "evidencia": ":341-352 `const existente = elegirExpedienteParaCita({ nombre, telefono }, pacientes); if (existente) { … } else { pacienteId = await conTiempoLimite(createPatient(clinicId!, { nombre: nombreLimpio, telefono: tel, … }))`; el POST de la cita va después (:374-400). En Pacientes sí se pregunta: pacientes/page.tsx:1026 `Ya existe \"${…}\" — … ¿Crearlo de todas formas?`.",
+      "reproduccion": "/asistente → «Rosalía Mendieta Cuevas» + 5550000999: la sugerencia muestra a la existente (5555010101) y «¿Nuevo? Sigue escribiendo el nombre completo» (captura asr-k1-css_input_placeholder__Escribe.png) → Agendar. La cita falló (ASR-001) pero /pacientes ya tiene 2 Rosalías y avisa «Hay 1 pareja de expedientes que podrían ser la misma persona» (captura asr-prosal-pacientes.png).",
+      "impacto": {
+        "paciente": "Su historial (alergias, notas) queda partido en dos.",
+        "medico": "Ve un expediente vacío el día de la consulta.",
+        "negocio": "REG-039 sigue cerrado (no fundió), pero el duplicado lo fabrica la puerta principal de agendar."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "`elegirExpedienteParaCita` (no funde por teléfono solo) y el aviso de parejas en /pacientes",
+      "prioridad": "P2",
+      "propuesta": "Cuando el nombre coincide con un expediente y el teléfono difiere, preguntar «¿Es la misma persona? Actualizar teléfono / Crear otro expediente» antes de crear; y crear el expediente sólo después de que el servidor escribió la cita.",
+      "prueba_que_faltaria": "Test del flujo: homónimo con teléfono distinto → no debe llamar a `createPatient` sin confirmación explícita; hoy lo llama.",
+      "que_no_cubre": "Homónimos sin teléfono (REG-039 ya cubierto) ni la fusión posterior en /pacientes.",
+      "relacionado": [
+        "REG-039",
+        "ASR-001"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-012",
+      "modulo": "publico",
+      "tipo": "friccion",
+      "titulo": "A un paciente que abre un enlace de reserva mal copiado se le habla de «caché», «versión vieja de la app» y se le ofrece «Ir al dashboard»",
+      "archivo": "src/app/not-found.tsx",
+      "linea": 89,
+      "evidencia": ":89-90 «Es posible que tu navegador esté usando una versión vieja de la app. Toca <strong>Reintentar</strong> para limpiar la caché y volver al inicio.» y :120 `Ir al dashboard`.",
+      "reproduccion": "Sin sesión, /reservar (sin id de consultorio) → 404 con ese texto, «URL fallida: /reservar», «Versión: nexusmed-v1185» (captura asr-reservar.png).",
+      "impacto": {
+        "paciente": "De 70 años, lee «limpiar la caché» y «dashboard».",
+        "medico": "—",
+        "negocio": "Primera impresión del portal público."
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "Página no encontrada distinta para rutas públicas: «Este enlace no está completo. Pide a tu consultorio el enlace de citas» sin jerga ni «dashboard».",
+      "prueba_que_faltaria": "Test de render de not-found bajo /reservar/* que exija ausencia de «caché» y «dashboard».",
+      "que_no_cubre": "El 404 dentro de la app del médico, donde el texto sí tiene sentido.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-013",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Campos de agenda sin etiqueta asociada: nombre y teléfono en el Portal del Asistente, Desde/Hasta/Motivo en bloqueos",
+      "archivo": "src/app/(dashboard)/asistente/page.tsx",
+      "linea": 455,
+      "evidencia": "asistente/page.tsx:452-455 `<label style=…>Nombre completo *</label> <input …>` sin `htmlFor`/`id` ni `aria-label`; :498-503 igual para teléfono. configuracion/page.tsx:2198-2199 `<label …>Desde</label><input type=\"datetime-local\" …>` y :2202-2203 «Hasta», sin asociación. El recorredor marca SIN-LABEL en los cinco.",
+      "reproduccion": "Recorrido de /asistente y Configuración → Vacaciones y bloqueos (controles «input type=text … SIN-LABEL», «input type=datetime-local \"\" SIN-LABEL»).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Con lector de pantalla el campo se anuncia sin nombre; pulsar la etiqueta no enfoca el campo.",
+        "negocio": "Regla de diseño: «campo sin etiqueta» falla la compuerta WCAG."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "`htmlFor`/`id` en los cinco pares (Configuración ya lo hace en :550 y :556).",
+      "prueba_que_faltaria": "Escaneo axe/a11y de /asistente y de la sección de bloqueos: hoy reporta `label` sin control.",
+      "que_no_cubre": "El resto de Configuración (otras secciones) ni Editar cita, que sí lleva `label className=\"label\"` sin `htmlFor` pero fuera de este recorrido.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-014",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "Lista de espera pide «Prioridad (1 = mayor prioridad)» del 1 al 10 y un «Rango horario preferido» de texto libre: nadie pondera eso al teléfono",
+      "archivo": "src/app/(dashboard)/lista-espera/page.tsx",
+      "linea": 303,
+      "evidencia": ":303 `<Input label=\"Prioridad (1 = mayor prioridad)\" type=\"number\" min={1} max={10} …>` (por omisión 3, :254) y :301 `<Input label=\"Rango horario preferido\" … placeholder=\"Ej. Mañana, 9-12\" />`.",
+      "reproduccion": "/lista-espera → Agregar (captura asr-k1-Agregar.png). Vacía: «La lista de espera está vacía… te avisamos cuando se libere una cita» (el aviso sí existe: citas/page.tsx:456-457 → /api/whatsapp/waitlist-notify).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "—",
+        "negocio": "Campos que se rellenan a ojo y no cambian a quién se avisa primero de forma que la recepcionista entienda."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "esconder · prioridad como «Urgente / Normal» y rango como fichas «Mañana / Tarde / Cualquiera»; el número del 1 al 10 sólo si el dueño confirma que el aviso lo usa.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "La lógica de aviso a la lista, que no se auditó a fondo.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-015",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "Dos formularios distintos para «Nueva cita»: el Portal del Asistente (sin motivo, nace «confirmada») y el modal de la celda del calendario (con Origen, Duración, Estado, Motivo y Notas)",
+      "archivo": "src/app/(dashboard)/asistente/page.tsx",
+      "linea": 387,
+      "evidencia": "Todas las puertas «Nueva cita» van a /asistente: dashboard/page.tsx:175, citas/page.tsx:617 `router.push('/asistente')`, calendario/page.tsx:196-200 `openNew` → `/asistente?fecha=`. Pero la celda del calendario (calendario/page.tsx:516 `activable(() => onCellClick(ds, hourStr)…)`) abre `AppointmentModal` con Origen (:532), Duración (:549), Estado (:653), Motivo (:662), Notas (:668). El asistente manda `motivo: ''` (:386) y `estado: 'confirmada'` (:387) con `confirmadoPaciente: false` (:393).",
+      "reproduccion": "Comparar captura asr-asistente.png con asr-k2-Editar_cita.png (mismo formulario que la celda).",
+      "impacto": {
+        "paciente": "Una cita agendada por teléfono aparece «Confirmada» sin que él haya confirmado; luego nadie le pide confirmación.",
+        "medico": "La cita de recepción llega sin motivo de consulta; el médico lo pregunta en la puerta.",
+        "negocio": "Dos flujos = dos sitios donde fallar (ASR-001 y ASR-008 ya lo muestran)."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "fusionar · un solo flujo de alta (/asistente) con «Motivo» opcional y estado inicial `pendiente-confirmar` salvo que la recepcionista marque «confirmó al teléfono»; dejar el modal sólo para editar.",
+      "prueba_que_faltaria": "Test de /asistente: la cita creada nace `pendiente-confirmar` (o la decisión del dueño), no `confirmada`.",
+      "que_no_cubre": "La reserva pública, que tiene su propio flujo con consentimientos.",
+      "relacionado": [
+        "ASR-004"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-016",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "Al cerrar el día, las citas confirmadas que ya pasaron siguen ofreciendo «Iniciar consulta» y no hay un «No vino» de un clic",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 962,
+      "evidencia": ":962 `if (esHoy && ahoraHHMM && appt.fechaHora.slice(11, 16) < ahoraHHMM) return 'pasado'` sólo atenúa; el comentario :941-947 lo declara intencional («la acción primaria NO se quita»). `no-asistio` está sólo en el menú (:1061).",
+      "reproduccion": "A las 21:16: filas 09:00, 16:00 y 17:00 «CONFIRMADA · Iniciar consulta» (captura asr-citas.png).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Las estadísticas de inasistencia se llenan a mano o no se llenan.",
+        "negocio": "El «Riesgo 66 de 100» de no-show se alimenta de `noShowCount`, que nadie sube."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "menú ⋮ → No asistió (2 clics por cita)",
+      "prioridad": "P3",
+      "propuesta": "Para citas `pasado` sin resolver, primaria «No vino» con deshacer; y un «Cerrar el día» que las liste juntas. Desacuerdo argumentado con el comentario :941-947: se puede conservar «Iniciar consulta» en el menú.",
+      "prueba_que_faltaria": "Test de `accionPrimaria` con momento `pasado` y estado confirmada → «No vino».",
+      "que_no_cubre": "Citas de días anteriores (fuera de hoy).",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-017",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El aviso «Recordatorios de citas» flota encima de los botones «Consulta» de las filas de las 11:00 y 12:00 del tablero",
+      "archivo": "src/components/NotificacionesPushOptIn.tsx",
+      "linea": 100,
+      "evidencia": ":100 `<div className=\"nx-push-optin\" role=\"region\" …>`; src/app/globals.css:1098-1101 `position: fixed; bottom: 16px; right: 16px; z-index: 44`.",
+      "reproduccion": "/dashboard a 1440×900: el aviso tapa los botones de las filas 11:00 y 12:00 (captura asr-dashboard.png).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Pulsa «Después» para poder pulsar «Consulta».",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "botón «Después» y «Cerrar aviso»",
+      "prioridad": "P3",
+      "propuesta": "Mostrarlo como banda arriba del contenido o dentro de «Siguiente acción», no flotando sobre la lista.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "Móvil, donde no se observó solape.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-018",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El menú ofrece «Registrar cobro» a una cita que aún no confirma ni ha llegado",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 1102,
+      "evidencia": ":1102 `const puedeCobrar = !['cancelada', 'no-asistio', 'reagendada'].includes(appt.estado) && !appt.cobroId && !appt.cobroExento && !!onCobrar`; :1205-1208 `{puedeCobrar && accion?.tipo !== 'cobrar' && (<button …>Registrar cobro</button>)}`.",
+      "reproduccion": "⋮ de María 09:45 PENDIENTE CONFIRMAR → primer ítem «Registrar cobro» (captura asr-k1-M_s_acciones_para_Mar_a_Guadal.png).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Cobro registrado a quien no vino, si la asistente confunde la fila.",
+        "negocio": "Corte de caja con cobros de citas pendientes."
+      },
+      "severidad": 2,
+      "probabilidad": "baja",
+      "control_existente": "el modal de cobro muestra el nombre del paciente",
+      "prioridad": "P3",
+      "propuesta": "Ofrecer «Registrar cobro» sólo desde `en-sala` en adelante (o anticipo con etiqueta «Anticipo»).",
+      "prueba_que_faltaria": "Test de `puedeCobrar` con estado `pendiente-confirmar` → false.",
+      "que_no_cubre": "Anticipos legítimos, que hoy no tienen tipo propio en este menú.",
+      "relacionado": [
+        "REG-015"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-019",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "La etiqueta «Calendario descuadrado» es un botón de 148×22 px que, al pulsarlo para leerlo, dispara la reparación en Google Calendar",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 1157,
+      "evidencia": ":1156-1164 `<button onClick={repararSync} disabled={reparando} title={avisoDesincronizada(appt.estado)} className=\"riel-aviso\">… {reparando ? 'Reparando…' : 'Calendario descuadrado'}`.",
+      "reproduccion": "/citas → pulsar la etiqueta ámbar de Nadia 17:00 → «Reparando…» (DISABLED) sin pregunta (captura asr-k1-Calendario_descuadrado.png). Objetivo 148×22 (bandera «pequeño»).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Una escritura en su Google Calendar disparada por curiosidad.",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "`title` con la explicación; es idempotente",
+      "prioridad": "P3",
+      "propuesta": "Etiqueta informativa + acción explícita «Reparar» en el menú ⋮, con objetivo ≥44 px.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "La lógica de sincronización en sí.",
+      "relacionado": []
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-020",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Dos convenciones de nombre para el mismo paciente: «Apellido Apellido, Nombre» en Nuevo paciente y «Nombre completo» en el asistente; y Nuevo paciente exige «Edad *»",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 1175,
+      "evidencia": "pacientes/page.tsx:1175 `placeholder=\"Apellido Apellido, Nombre\"`, :1191 `<label className=\"label\">Edad *</label>`; asistente/page.tsx:453 «Nombre completo *» y :460 `placeholder=\"Escribe para buscar o crear paciente\"`.",
+      "reproduccion": "/pacientes → Nuevo paciente (captura asr-k1-Nuevo_paciente.png) vs /asistente (asr-asistente.png).",
+      "impacto": {
+        "paciente": "«Mendieta Cuevas, Rosalía» y «Rosalía Mendieta Cuevas» son dos expedientes.",
+        "medico": "—",
+        "negocio": "Alimenta los duplicados que ASR-011 describe."
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "`normalizarNombre` y el detector de parejas",
+      "prioridad": "P3",
+      "propuesta": "Una sola convención (nombre y apellidos en campos separados, o un solo formato) y Edad opcional cuando hay fecha de nacimiento.",
+      "prueba_que_faltaria": "Test de `candidatosDePaciente` con orden apellido-nombre invertido.",
+      "que_no_cubre": "Importación CSV (auditor L).",
+      "relacionado": [
+        "ASR-011",
+        "REG-039"
+      ]
+    },
+    {
+      "panel": "asistente",
+      "rol": "recepcion-agenda",
+      "decision_del_dueno": null,
+      "id": "ASR-021",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El tour de bienvenida «Tu agenda, siempre a la mano… Es tu pantalla de inicio» se abre encima de Configuración y de la agenda y bloquea los botones hasta pulsar «Saltar»",
+      "archivo": "src/components/OnboardingTour.tsx",
+      "linea": 55,
+      "evidencia": ":49-55 `useEffect(() => { … if (localStorage.getItem(claveVisto(user.uid))) return … const t = setTimeout(() => setVisible(true), 700)` — se dispara en cualquier página del dashboard la primera vez por usuario; :22 `titulo: 'Tu agenda, siempre a la mano'`.",
+      "reproduccion": "Primera sesión de un usuario → /configuracion → Vacaciones y bloqueos: el paso 1 del tour habla de la agenda encima del formulario de bloqueos (captura asr-k1-Vacaciones_y_bloqueos.png); en /citas tapó ⋮ y «Confirmar» hasta pulsar Saltar.",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Una asistente nueva ve un cartel que describe otra pantalla.",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "«Saltar» y marca por usuario en localStorage",
+      "prioridad": "P3",
+      "propuesta": "Arrancar el tour sólo en /dashboard o /citas, y para el rol asistente con pasos de recepción.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "Contenido de los pasos 2-4.",
+      "relacionado": [
+        "REG-057"
+      ]
+    }
+  ]
+}

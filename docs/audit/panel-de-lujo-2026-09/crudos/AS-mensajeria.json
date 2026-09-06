@@ -1,0 +1,983 @@
+{
+  "rol": "mensajeria-recordatorios",
+  "fecha": "2026-09-06",
+  "metodo": "Recorrido real en http://localhost:3200 (escritorio 1440x900 y móvil 390x844, sesión demo sintética) de /citas, /configuracion (pestañas Notificaciones, Mensajes de WhatsApp, Entregas de WhatsApp, Integraciones), /chat, /crm, /reactivacion, /resenas, /lista-espera, /pacientes; prueba de teléfono inválido sobre paciente sintético (guardado y restaurado); lectura completa de src/lib/whatsapp.ts, whatsapp-send.ts, los 31 archivos de src/lib/whatsapp/, las 9 rutas de src/app/api/whatsapp/, api/cron/reminders, contacto.ts, reactivacion.ts, retencion.ts, reviews.ts, push-notifications.ts. Ningún mensaje real: el único botón «enviar» del panel abre wa.me en otra pestaña (openWhatsApp → window.open) y el emulador no tiene proveedor. Comprobaciones puras de normalización ejecutadas con node sobre la misma lógica.",
+  "clics_40_veces_al_dia": {
+    "confirmar_cita_por_whatsapp": "1 clic («Confirmar») abre wa.me con el texto → cambiar de app → enviar. La cita NO cambia de estado. Cuando el paciente contesta (al teléfono personal de la asistente, no a la app): ⋮ → «Editar cita» → desplegable de estado → «Guardar» = 4 clics más. Total ≈ 7 acciones en dos aplicaciones.",
+    "recordatorio_manual": "⋮ → «WhatsApp: recordatorio» → enviar en WhatsApp = 3 acciones. Sólo aparece si la cita tiene teléfono; si no lo tiene, no hay botón ni aviso de por qué.",
+    "corregir_telefono": "Paciente → buscar → «Editar» → campo → «Guardar» = 4-5 clics. Acepta cualquier cosa (probado: «12345» → «Paciente actualizado»). Y NO llega a las citas ya agendadas: el recordatorio de mañana sale al número viejo (ASM-004). Para que llegue hay que abrir cada cita futura → «Editar cita» → teléfono → «Guardar» (+4 por cita).",
+    "quien_no_ha_confirmado_manana": "«Día siguiente» → «N por confirmar» = 2 clics. Correcto. Lo que NO se ve: a quién le falló el recordatorio (ASM-007) ni a quién se le omitió por falta de plantilla (ASM-005).",
+    "contestar_a_un_paciente": "No se puede desde la app. /chat es «entre médico y asistente»; las respuestas del paciente llegan al teléfono personal (wa.me) o al bot, que no tiene bandeja. 0 clics porque hay que salir de la app.",
+    "cual_de_las_40_sale_mal": "La que corrige un teléfono: se guarda sin validar, no se propaga a la cita, y el recordatorio de mañana —con nombre completo, médico y nombre del consultorio— sale al número equivocado; si el número es de EE.UU. (Tijuana), la normalización lo convierte en silencio en un número mexicano de otra persona (ASM-002)."
+  },
+  "revisado": [
+    {
+      "pieza": "src/app/(dashboard)/citas/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Recorrido escritorio y móvil; pulsado el botón real «Confirmar» (selector button.btn-primary) y el menú ⋮ de una cita pendiente."
+    },
+    {
+      "pieza": "src/components/AppointmentModal.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "handleWhatsApp / handleEnviarPortal / handlePedirResena: los tres abren wa.me."
+    },
+    {
+      "pieza": "src/app/(dashboard)/configuracion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Pestañas Notificaciones, Mensajes de WhatsApp, Entregas de WhatsApp e Integraciones recorridas en escritorio; general en móvil."
+    },
+    {
+      "pieza": "src/app/(dashboard)/configuracion/secciones-comunicacion.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "EntregasWhatsAppTab y PlantillasHsmSection sí están cableados a sus rutas."
+    },
+    {
+      "pieza": "src/app/(dashboard)/chat/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Recorrido: chat interno médico-asistente, no con pacientes."
+    },
+    {
+      "pieza": "src/app/(dashboard)/crm/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Recorrido. El enlace «Configurar →» va a /configuracion?tab=integraciones y la página sí lee ?tab (configuracion/page.tsx:107)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/reactivacion/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Recorrido. Bloquea el contacto si no pudo leer las bajas (puede-contactar.ts). Abre wa.me; nada automático."
+    },
+    {
+      "pieza": "src/app/(dashboard)/resenas/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Recorrido. Moderación; sin envíos."
+    },
+    {
+      "pieza": "src/app/(dashboard)/lista-espera/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Recorrido escritorio y móvil, lista vacía en el demo. enviarAviso abre wa.me y marca contactado."
+    },
+    {
+      "pieza": "src/app/(dashboard)/pacientes/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Prueba real: teléfono «12345» guardado con «Paciente actualizado»; restaurado a 5555010101."
+    },
+    {
+      "pieza": "src/app/(dashboard)/operaciones/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Texto del índice para /chat promete «mensajes con pacientes»."
+    },
+    {
+      "pieza": "src/lib/whatsapp.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp-send.ts",
+      "veredicto": "con hallazgos",
+      "nota": "El uso de la api_key como id de documento (línea 366) ya está en S-004: no se duplica."
+    },
+    {
+      "pieza": "src/lib/whatsapp/templates.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/window.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/proactivo.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/outbox.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Cola sólo la usa la lista de espera; los recordatorios no encolan (por decisión documentada en no-entregados.ts)."
+    },
+    {
+      "pieza": "src/lib/whatsapp/reintentos.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/consent.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/contacts.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/puede-contactar.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/telefono.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/telefono-candidatos.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/dedup.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Fail-open declarado y razonado."
+    },
+    {
+      "pieza": "src/lib/whatsapp/fallo-del-proveedor.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/frecuencia.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/horario.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/status.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/no-entregados.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/entregas.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/avisar-consultorio.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/intencion.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/ofrecer-hueco.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Freno de tasa: ya en S-014."
+    },
+    {
+      "pieza": "src/lib/whatsapp/lista-espera.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/aviso-bot.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/cita-ya-agendada.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/citas-cancelables.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/adapter.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/connection.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/whatsapp/tenant.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/secreto-canal.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/reclamar-canal.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/horario-legible.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/whatsapp/rango-horario.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/webhook/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "Leído completo (1636 líneas)."
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-webhook/route.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/entregas/route.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/waitlist-notify/route.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/plantillas-config/route.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/manual-connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Conexión de canal: dominio de S. Token en query string de Graph (línea 36): se deja a S."
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-connect/route.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/meta-connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Sólo revisado por grep (conexión de canal, dominio de S)."
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-callback/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Sólo revisado por grep (conexión de canal, dominio de S)."
+    },
+    {
+      "pieza": "src/app/api/cron/reminders/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "Leído completo."
+    },
+    {
+      "pieza": "src/app/api/public/booking/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "Sólo el bloque de confirmación por WhatsApp (líneas 415-450)."
+    },
+    {
+      "pieza": "src/app/api/portal/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Sólo el bloque de aviso al consultorio (905-940). La pregunta escalada viaja completa por decisión D-034: no se reporta."
+    },
+    {
+      "pieza": "src/app/api/hospital/alerta/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "modulo hospital; sólo el envío (95-112)."
+    },
+    {
+      "pieza": "src/lib/contacto.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/reactivacion.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/retencion.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "No es mensajería; leído por encargo."
+    },
+    {
+      "pieza": "src/lib/reviews.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/push-notifications.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Cableado vía NotificacionesPushOptIn y useNotificacionesCitas."
+    },
+    {
+      "pieza": "src/lib/agenda/",
+      "veredicto": "sin hallazgo",
+      "nota": "No hay lógica de recordatorios ahí (sólo una mención en prompts.ts)."
+    },
+    {
+      "pieza": "src/lib/firestore.ts (updatePatient)",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "docs/whatsapp/policy-risk-register.md, iteration-06-templates-window.md, template-inventory.md",
+      "veredicto": "sin hallazgo",
+      "nota": "Leídos para no duplicar WA-1..WA-10."
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": "ASM-001",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "El teléfono del paciente se guarda sin validar («12345», letras, sin lada) y con él salen los recordatorios",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 950,
+      "evidencia": "handleSave sólo valida nombre y edad: `if (!f.nombre.trim()) { toast('El nombre es requerido'...` / `if (!f.edad.trim()) { toast('La edad es requerida'...` — nada sobre el teléfono. El campo (línea 1185) es `<input className=\"input\" type=\"tel\" value={f.telefono} onChange={upd('telefono')} placeholder=\"6641234567\" />` sin pattern ni longitud. AppointmentModal.tsx:257 sólo hace `pacienteTelefono: telefono.replace(/\\D/g, '')`. Observado: editar a Rosalía (sintética), teléfono «12345», «Guardar» → toast «Paciente actualizado», sin aviso.",
+      "reproduccion": "/pacientes → Editar (paciente sintético) → Teléfono: 12345 → Guardar. Resultado: «Paciente actualizado». Con «55A5010101» la normalización de envío (telefono.ts:19) deja 9 dígitos → 52555010101 y el proveedor responde 400 sin que nadie lo vea.",
+      "impacto": {
+        "paciente": "No recibe el recordatorio ni la confirmación; o lo recibe otra persona si el error produce un número válido.",
+        "medico": "No-show que parecía cubierto: las casillas de recordatorio están en verde.",
+        "negocio": "Cada teléfono mal capturado es un envío rechazado (400) que sólo suma en `totals.failed` del cron."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "ninguno en captura; en envío, normalizarTelefonoWa añade «52» y quita el «1» de móvil pero no comprueba longitud.",
+      "prioridad": "P1",
+      "propuesta": "Validar en los tres formularios (pacientes, AppointmentModal, lista-espera) con la misma función pura: 10 dígitos nacionales o E.164 con «+»; enseñar el número como lo verá WhatsApp («+52 55 5501 0101») antes de guardar; bloquear «Confirmar»/«Recordar» cuando el teléfono no pasa y decir por qué.",
+      "prueba_que_faltaria": "Prueba de contrato de `construirGuardadoDePaciente`/handleSave que rechace «12345», «55A5010101» y «+1 619» sin país declarado; hoy pasan.",
+      "que_no_cubre": "El número válido pero de otra persona (error de dedo en un dígito): eso sólo lo cubre el acuse de entrega ligado al paciente (ASM-011).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-002",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "Un teléfono de EE.UU. se convierte en silencio en un número mexicano de otra persona: +1 619 555 1234 → 52 619 555 1234",
+      "archivo": "src/lib/whatsapp/telefono.ts",
+      "linea": 18,
+      "evidencia": "`let d = (raw || '').replace(/\\D/g, ''); if (!d.startsWith('52')) d = `52${d}`; if (d.length === 13 && d[2] === '1') d = `52${d.slice(3)}`; return d` — «+1 619 555 1234» → 16195551234 → 5216195551234 (13 dígitos, tercer dígito «1») → 526195551234. Verificado ejecutando la misma lógica en node. Esta función es la clave de opt-out, ventana de 24 h, sesión del bot y destinatario de todo envío (whatsapp-send.ts:50-52).",
+      "reproduccion": "normalizarTelefonoWa('+1 619 555 1234') === '526195551234'. Un consultorio en Tijuana (zona que la propia configuración ofrece) con paciente de San Diego: el recordatorio con nombre completo, médico, fecha, hora y nombre del consultorio sale a un abonado de Mexicali/Tijuana que no es el paciente.",
+      "impacto": {
+        "paciente": "Su cita y el consultorio al que va (que suele nombrar la especialidad) llegan a un desconocido; él no recibe nada.",
+        "medico": "Fuga de datos personales de salud a un tercero, atribuible al consultorio.",
+        "negocio": "Incumplimiento de aviso de privacidad; imposible de detectar desde la app porque el envío es «ok»."
+      },
+      "severidad": 4,
+      "probabilidad": "media",
+      "control_existente": "ninguno: la función no distingue país y ningún formulario pide el código de país.",
+      "prioridad": "P1",
+      "propuesta": "Normalizar sólo lo que se entiende: si el crudo empieza por «+», respetar el país; si son 10 dígitos, asumir MX; en cualquier otra longitud devolver «no válido» y NO enviar. Guardar el teléfono en E.164 desde la captura (ASM-001).",
+      "prueba_que_faltaria": "Golden de telefono.ts con «+1 619 555 1234» → no se convierte en 52…; «+34 600 000 000» ídem; hoy ambos se mutilan y pasan.",
+      "que_no_cubre": "Números mexicanos escritos con lada de 3 dígitos y 7 locales de antes de 2019: siguen siendo 10 dígitos y se tratan bien.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-003",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "Inventario de PHI por plantilla: cinco mensajes llevan nombre completo del paciente y el nombre del consultorio (que en este producto nombra la especialidad) y salen sin comprobar el destinatario",
+      "archivo": "src/app/api/cron/reminders/route.ts",
+      "linea": 212,
+      "evidencia": "Recordatorio 24 h (texto libre, cron:212): `Hola {paciente} 👋 Te recordamos que tienes una cita *mañana* con {medico}. 📅 {fecha} 🕐 {hora} {clinicaLinea}{donde} ... Consultorio: {telefono}` con `paciente: appt.pacienteNombre` (nombre COMPLETO, 292) y `clinicaLinea: 📍 ${config.nombreClinica}` (300). Mismo día (cron:215): ídem sin fecha. HSM recordatorio_cita_24h (templates.ts:67-68 y secciones-comunicacion.tsx:256): `{{1}} paciente · {{2}} médico · {{3}} fecha · {{4}} hora · {{5}} clínica`. Confirmación manual (whatsapp.ts:43): `Hola ${cita.pacienteNombre}, su cita con ${config.nombreMedico}...` + dirección (`lugar.lineas`). Recordatorio manual 24 h (whatsapp.ts:59-61): nombre completo + médico + dirección. Cancelación (whatsapp.ts:86): nombre completo + fecha. Confirmación del portal (booking:437): primer nombre + `en ${cfg.nombreClinica}`. Menú del bot (webhook:1524): `🏥 *${clinicName}*`. Lista de espera (ofrecer-hueco.ts:212, whatsapp.ts:91): primer nombre + consultorio/médico. Reseña (cron:399): primer nombre + médico. Ninguna plantilla lleva motivo ni diagnóstico. El demo se llama «Consultorio de Medicina Interna» y el placeholder de Especialidad es «Infectología» (configuracion/page.tsx, recorrido).",
+      "reproduccion": "Con un teléfono mal capturado (ASM-001/002) cualquiera de los cinco primeros mensajes revela a un tercero: nombre y apellidos del paciente, con qué médico, en qué consultorio (p. ej. «Clínica de Infectología …»), cuándo y dónde.",
+      "impacto": {
+        "paciente": "Un desconocido sabe que Fulano Pérez López va el jueves a infectología.",
+        "medico": "Fuga de dato sensible con membrete del consultorio.",
+        "negocio": "Es el escenario de queja ante INAI que más fácil se produce con un error de dedo."
+      },
+      "severidad": 4,
+      "probabilidad": "media",
+      "control_existente": "parcial: lista de espera y reseña usan sólo el primer nombre; el resto no.",
+      "prioridad": "P1",
+      "propuesta": "Regla única para mensajes proactivos: primer nombre, sin apellidos; el nombre del consultorio y la dirección sólo tras confirmación del destinatario (o sólo si el paciente ya escribió al número, es decir dentro de la ventana). En la HSM de 24 h sustituir {{5}} clínica por el teléfono del consultorio. Enseñar en Configuración > Mensajes qué dato de identidad lleva cada plantilla.",
+      "prueba_que_faltaria": "Guardián sobre los generadores de mensajes proactivos que falle si el texto contiene el apellido del paciente o `config.nombreClinica` cuando la ventana está cerrada; hoy no existe.",
+      "que_no_cubre": "Los mensajes reactivos del bot (el paciente escribió primero): ahí el destinatario se identificó solo.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-9"
+      ]
+    },
+    {
+      "id": "ASM-004",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Corregir el teléfono del paciente no corrige el de sus citas: el recordatorio de mañana sale al número viejo",
+      "archivo": "src/lib/firestore.ts",
+      "linea": 638,
+      "evidencia": "updatePatient escribe sólo el documento del paciente: `await updateDoc(ref, sinUndefined({ ...data, updatedAt: ... })); invalidarCachePacientes(clinicId)`. El cron lee el teléfono de la CITA: `const phone = appt.pacienteTelefono` (cron/reminders/route.ts:219) y el menú de la cita llama a `appt.pacienteTelefono` (citas/page.tsx:1227). grep de escrituras de `pacienteTelefono` fuera de la creación: ninguna.",
+      "reproduccion": "Paciente con cita mañana y teléfono mal capturado. /pacientes → Editar → teléfono correcto → Guardar → «Paciente actualizado». Mañana el cron manda el recordatorio al número viejo (o a nadie). /citas → ⋮ → «Llamar · <número viejo>».",
+      "impacto": {
+        "paciente": "Sigue sin recibir nada después de que la asistente «lo arregló».",
+        "medico": "No-show.",
+        "negocio": "La corrección más frecuente del día no surte efecto y nadie lo sabe: la pantalla dijo «actualizado»."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "ninguno; hay que editar cada cita futura a mano y nada lo sugiere.",
+      "prioridad": "P1",
+      "propuesta": "Al cambiar el teléfono de un paciente con citas futuras en estado recordable, actualizar `pacienteTelefono` de esas citas (y de sus entradas de lista de espera) en la misma operación, o hacer que el cron resuelva el teléfono desde `patients/{pacienteId}` cuando existe pacienteId. Decir en el toast: «Actualizado en el expediente y en 2 citas próximas».",
+      "prueba_que_faltaria": "Prueba de updatePatient (o de una función nueva) que, con una cita futura del paciente, falle si la cita conserva el teléfono viejo.",
+      "que_no_cubre": "Citas huérfanas sin pacienteId (bot antiguo): ahí no hay a quién seguir.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-323"
+      ]
+    },
+    {
+      "id": "ASM-005",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Por omisión ningún recordatorio automático sale a quien no escribió al bot en las últimas 24 h (la mayoría): se «omite» con un console.warn y las casillas siguen en verde",
+      "archivo": "src/lib/whatsapp/proactivo.ts",
+      "linea": 96,
+      "evidencia": "`// omitir: fuera de ventana y sin plantilla aprobada` / `console.warn('[whatsapp/proactivo] omitido (fuera de ventana 24h, sin plantilla ...') ` / `return { resultado: 'omitido', via: 'ninguno' }`. `resolverPlantillaClinica` devuelve null si la clínica no registró un nombre (templates.ts:102-104). El cron lo cuenta como `skipped` (reminders:354) y no toca la cita. `ventanaAbierta` es false para quien nunca escribió (window.ts:19). La pestaña Notificaciones sólo avisa «WhatsApp no está conectado» (configuracion:806-808); con proveedor conectado y 0/3 plantillas no avisa nada. Recorrido: pestaña Mensajes de WhatsApp muestra «0/3 registradas» en el demo.",
+      "reproduccion": "Conectar proveedor, dejar plantillas sin registrar (estado por omisión), cita mañana de paciente que nunca escribió al bot → cron: resultado 'omitido', totals.skipped++, sin registro por cita, sin aviso en pantalla.",
+      "impacto": {
+        "paciente": "No recibe el recordatorio que la app promete.",
+        "medico": "Cree que la app recuerda; lo descubre por los no-shows.",
+        "negocio": "La función que vende la página de registro no opera hasta un trámite externo que la pantalla de Notificaciones no menciona."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "parcial: el badge «0/3 registradas» en otra pestaña y el comentario en el código; documentado en docs/whatsapp/iteration-06 como paso externo pendiente.",
+      "prioridad": "P1",
+      "propuesta": "En Notificaciones, junto a cada casilla, decir la verdad operativa: «Sale sólo a pacientes que te escribieron hoy; para los demás faltan las plantillas (0/3) → registrarlas». Registrar cada omisión en whatsapp_no_entregados con el id de la cita y enseñarlo en /citas como «sin recordatorio». Considerar que el aviso 'omitido' cuente como fallo visible del vigilante.",
+      "prueba_que_faltaria": "Prueba del cron que, con plantillas vacías y ventana cerrada, exija un registro por cita (hoy sólo hay un contador agregado).",
+      "que_no_cubre": "El trámite en Meta en sí (externo, del dueño).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-1",
+        "WA-5"
+      ]
+    },
+    {
+      "id": "ASM-006",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "El «SÍ» del paciente al recordatorio se pierde si contesta más de 2 h después: el bot borra la sesión y le manda el menú",
+      "archivo": "src/app/api/whatsapp/webhook/route.ts",
+      "linea": 574,
+      "evidencia": "`if (session?.lastMessageAt) { ... if (elapsed > 2 * 60 * 60 * 1000) { await clearSession(clinicId, from); await send(from, buildMenu(clinicName)); await saveSession(..., { estado: 'menu', datos: {} }); return } }` — corre ANTES del bloque `if (estado === 'confirmando_cita' || estado === 'confirmando_cancelacion')` (línea 618). El cron deja la sesión `confirmando_cita` con `lastMessageAt: now.toISOString()` al mandar el recordatorio (reminders:334-350), 23-26 h antes de la cita. El único test del estado (bot-si-no-cancela.test.ts) no cubre la caducidad.",
+      "reproduccion": "Recordatorio a las 09:00; paciente responde «Sí» a las 13:00 → elapsed 4 h > 2 h → sesión borrada, respuesta: menú de bienvenida. La cita sigue «pendiente confirmar». Con «NO» tampoco se cancela y el hueco no se ofrece a la lista de espera.",
+      "impacto": {
+        "paciente": "Confirmó y le contestan «¡Bienvenido! 1️⃣ Agendar cita…»; cree que algo va mal o que confirmó.",
+        "medico": "Doble llamada de la asistente; no-shows no cancelados.",
+        "negocio": "El flujo confirmar-por-WhatsApp, que es el argumento de venta, sólo funciona si el paciente contesta en menos de 2 h."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "ninguno; el mensaje de texto libre del cron dice «Responde SÍ» sin plazo.",
+      "prioridad": "P1",
+      "propuesta": "Eximir de la caducidad de 2 h a los estados que esperan una respuesta a un mensaje proactivo (`confirmando_cita`, `confirmando_cancelacion`, `esperando_lista`) o darles su propia vigencia ligada a la hora de la cita. Si aun así caduca, contestar «¿Es por tu cita de mañana a las 10? Responde SÍ o NO» en vez del menú.",
+      "prueba_que_faltaria": "handleMessage con sesión `confirmando_cita` de hace 5 h y texto «sí» → la cita debe quedar `confirmada`; hoy queda igual y se manda el menú.",
+      "que_no_cubre": "La respuesta que llega al teléfono personal de la asistente (flujo wa.me): ésa no pasa por el bot.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-007",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Un recordatorio que falla no deja huella por cita: la asistente no puede saber a quién no le llegó, y el «libro de no entregados» no tiene pantalla",
+      "archivo": "src/app/api/cron/reminders/route.ts",
+      "linea": 353,
+      "evidencia": "`} else if (resultado === 'fallo') { totals.failed++ }` (24 h) y `else if (resultado === 'fallo') { totals.failed++ }` (mismo día, 371): sólo un contador agregado; la cita no se marca y no se llama a `registrarNoEntregado` (el cron no lo importa). Comparar con el bot (webhook:478-481) y el portal (booking:441-444), que sí registran. Y la colección `whatsapp_no_entregados` no la lee ninguna pantalla: grep en src/app, src/components, src/hooks → 0 lectores (sólo un comentario en api/portal/route.ts:925).",
+      "reproduccion": "Teléfono inválido en una cita de mañana → proveedor 400 → `resultado: 'fallo'` → totals.failed++. En /citas la cita aparece igual que una a la que sí le llegó; `recordatorio24hEnviado` queda false y se reintenta cada hora hasta que la ventana 23-26 h se cierra; después, nada.",
+      "impacto": {
+        "paciente": "Sin recordatorio.",
+        "medico": "No-show.",
+        "negocio": "El dato que permitiría corregir el teléfono a tiempo existe en el servidor y no llega a nadie."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "parcial: `latido` del cron con enviados/fallidos agregados para el vigilante (REG-397).",
+      "prioridad": "P2",
+      "propuesta": "Marcar en la cita `recordatorio24hFallo: { at, motivo }` y pintar en /citas «recordatorio no entregado» con el botón «Llamar»; una lista «Mensajes que no salieron» (whatsapp_no_entregados) en Operaciones o en la pestaña Entregas.",
+      "prueba_que_faltaria": "Prueba del cron con proveedor que responde 400: la cita debe quedar marcada; hoy sólo cambia `totals`.",
+      "que_no_cubre": "Fallos que el proveedor reporta después por status callback (131026): ver ASM-011.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-397"
+      ]
+    },
+    {
+      "id": "ASM-008",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La reseña automática sale como texto libre fuera de la ventana de 24 h, sin plantilla, sin horas de silencio ni tope, y se marca «solicitada» aunque el proveedor la rechace",
+      "archivo": "src/app/api/cron/reminders/route.ts",
+      "linea": 399,
+      "evidencia": "`const msg = `Hola ${nombre} 🙏 ¿Nos ayudas con una reseña de tu consulta con ${config.nombreMedico}...` / `const ok = await sendWhatsApp(a.pacienteTelefono, msg, config, clinicId)` (wrapper de línea 81 → sendWA texto libre, no `enviarProactivo`) / `// Marcar siempre (un intento) para no spamear ante fallos transitorios` / `.update({ resenaSolicitada: true ... })`. Se manda entre 2 y 72 h después de la cita (395): para quien no escribió al bot ese día la ventana está cerrada y Meta rechaza texto libre (docs/whatsapp/iteration-06:7).",
+      "reproduccion": "Activar «Pedir reseña automáticamente» con proveedor conectado; cita atendida ayer de paciente que no ha escrito al bot → envío rechazado → totals.failed++ y `resenaSolicitada: true`: nunca se volverá a pedir.",
+      "impacto": {
+        "paciente": "Nada (no le llega).",
+        "medico": "Cree que pide reseñas; no llegan.",
+        "negocio": "Una casilla activada que no produce reseñas, y de madrugada si la cita fue a las 20:00 (sin silencio)."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno para ventana/silencio; opt-out sí se respeta (proactivo: true).",
+      "prioridad": "P2",
+      "propuesta": "Pasar la reseña por `enviarProactivo` con una cuarta clave de plantilla (`resena`) y sólo marcar `resenaSolicitada` cuando `resultado === 'enviado'`; registrar el fallo por cita.",
+      "prueba_que_faltaria": "Prueba del cron con ventana cerrada y sin plantilla: la cita NO debe quedar `resenaSolicitada`; hoy queda.",
+      "que_no_cubre": "La reseña manual desde AppointmentModal (wa.me), que sí llega porque la manda una persona.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-1"
+      ]
+    },
+    {
+      "id": "ASM-009",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "La ventana de 24 h sólo la respeta la puerta proactiva: cinco llamadores mandan texto libre directo y se topan con el rechazo del proveedor",
+      "archivo": "src/lib/whatsapp-send.ts",
+      "linea": 171,
+      "evidencia": "`export async function sendWhatsApp(clinicId, to, body, opts)` no mira la ventana (no importa window.ts ni contacts.ts). Llamadores directos: booking:440 (confirmación del portal a un paciente que reservó por web, no por WhatsApp → ventana cerrada), webhook:1199 y 1433 y 375 (avisos «🔔 Nueva cita»/cancelación al teléfono del consultorio, que casi nunca ha escrito al bot), avisar-consultorio.ts:51 (avisos del portal), hospital/alerta:108, cron:400 (reseña). Sólo enviarProactivo (proactivo.ts:68-71) decide texto/plantilla.",
+      "reproduccion": "Consultorio con proveedor conectado cuyo número admin nunca escribió al bot: cada «🔔 Nueva cita por WhatsApp» sale como texto libre → rechazo → `registrarNoEntregado(..., 'bot')` (webhook:480) en una colección sin pantalla (ASM-007). El consultorio nunca recibe el aviso y nunca sabe que no lo recibe.",
+      "impacto": {
+        "paciente": "El portal le dice «Recibimos tu solicitud» y no le llega; y el consultorio tampoco se entera de que tiene que confirmarle.",
+        "medico": "Citas solicitadas que nadie ve.",
+        "negocio": "El aviso al consultorio —la pieza que evita perder la cita— es el que menos probabilidades tiene de salir."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "parcial: los fallos se registran en whatsapp_no_entregados (sin pantalla).",
+      "prioridad": "P2",
+      "propuesta": "Que `sendWhatsApp` reciba la clase de mensaje y, si es iniciado por el negocio y la ventana está cerrada, escale a plantilla o registre «omitido» con motivo visible; para el consultorio, usar además la notificación push interna (ya existe NotificacionesPushOptIn) como canal que no depende de Meta.",
+      "prueba_que_faltaria": "Prueba de contrato: ningún llamador de `sendWhatsApp` fuera de proactivo.ts y del `send` reactivo del bot; hoy hay seis.",
+      "que_no_cubre": "Twilio (no soporta plantillas por esta vía, whatsapp-send.ts:305).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-1",
+        "WA-5",
+        "REG-521"
+      ]
+    },
+    {
+      "id": "ASM-010",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "«Confirmar» no confirma: abre WhatsApp y deja la cita igual; marcarla confirmada cuesta 4 clics más y «Confirmada» no está en el menú rápido",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 1061,
+      "evidencia": "`const QUICK_STATUSES: AppointmentStatus[] = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']` — sin 'confirmada'. `handleWA` (1013-1017): `const msg = msgConfirmacion(appt, config); openWhatsApp(appt.pacienteTelefono, msg)`; `ejecutar` (1083): `case 'confirmar': handleWA(); break`. Recorrido: pulsado el botón «Confirmar» de una cita pendiente → URL sin cambio, estado sigue «PENDIENTE CONFIRMAR»; menú ⋮ ofrece «Cambiar estado: En sala de espera · En consulta · Atendida · Finalizada · Cancelada · No asistió».",
+      "reproduccion": "/citas → «Confirmar» (cita pendiente) → se abre wa.me → el paciente contesta al teléfono de la asistente → para registrarlo: ⋮ → Editar cita → estado → Guardar.",
+      "impacto": {
+        "paciente": "Le preguntan dos veces si la asistente pierde el hilo.",
+        "medico": "«2 por confirmar» miente si la asistente no completó los 4 clics.",
+        "negocio": "40 veces al día, 7 acciones en dos apps para lo que el botón dice que hace en una."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Renombrar el primario a «Pedir confirmación» y, tras abrir WhatsApp, dejar en la fila un segundo paso de un clic «Confirmada ✓ / No contesta»; añadir 'confirmada' a QUICK_STATUSES.",
+      "prueba_que_faltaria": "Prueba de accionPrimaria/menú que exija 'confirmada' entre los estados rápidos de una cita pendiente.",
+      "que_no_cubre": "Objetivo táctil de 30 px de alto del botón (diseño).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-011",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El acuse de entrega no se puede atar a ninguna cita: el envío tira el id del mensaje y `whatsapp_status` sólo sirve para porcentajes",
+      "archivo": "src/lib/whatsapp-send.ts",
+      "linea": 72,
+      "evidencia": "`if (!res.ok) { ... } return { ok: true, veredicto: 'contesto' }` — nunca se lee `res.json().messages[0].id` (grep de `messages[0]`, `wamid`, `messageId` en whatsapp-send.ts: 0). El adaptador declarado sí lo contempla (`SendResult.messageId` en adapter.ts:15) pero no tiene implementación. `registrarStatus` guarda `whatsapp_status/{wamid}` con teléfono y código (status.ts:73-78) sin cita ni paciente; la pestaña Entregas agrega conteos (secciones-comunicacion.tsx:91-108). Un `failed 131026` (número no está en WhatsApp) no puede decir de quién es.",
+      "reproduccion": "Pestaña Configuración > Entregas de WhatsApp: «Fallidos: 3 (2 permanentes)» — y no hay forma de saber a qué pacientes corregirles el teléfono.",
+      "impacto": {
+        "paciente": "Su teléfono seguirá mal.",
+        "medico": "Métricas sin acción posible.",
+        "negocio": "La función de «corregir teléfonos mal capturados» no puede alimentarse del proveedor, que es la única fuente que sabe si el número existe."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Leer el wamid de la respuesta, guardarlo en la cita (`recordatorio24hWamid`) y, al llegar el status `failed` permanente, marcar la cita/paciente «teléfono no está en WhatsApp» y listarlo en Entregas con enlace al expediente.",
+      "prueba_que_faltaria": "Prueba de sendVia360dialog/sendViaMeta con respuesta `{ messages: [{ id: 'wamid.X' }] }` que exija `messageId` en el resultado.",
+      "que_no_cubre": "Proveedores que no devuelven id (Twilio devuelve SID, formato distinto).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-012",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Tres vocabularios para el paciente (CONFIRMAR/CAMBIAR/CANCELAR, SÍ/NO, botones que no existen) y el bot no entiende dos de ellos",
+      "archivo": "src/app/api/whatsapp/webhook/route.ts",
+      "linea": 620,
+      "evidencia": "Al recordatorio el bot acepta `esSi = /^(si|sí|s|ok|okay|confirmo|confirmado|va|claro|asi es|así es|1)\\b/` y `esNo = /^(no|n|cancelar|cancela|no puedo|2)\\b/`. La confirmación manual (whatsapp.ts:48-51) pide «✅ *CONFIRMAR* · 🔄 *CAMBIAR* · ❌ *CANCELAR*»; la cancelación (whatsapp.ts:86) pide «responda *CITA*». «confirmar» no casa con esSi (verificado: false); «cambiar» a secas no es intención (intencion.ts:39 exige «cambiar (mi )?cita»); «cita» sola sólo funciona en estado menu (webhook:860). El texto del cron y la HSM piden «SÍ/NO» (reminders:212; secciones-comunicacion:256). Palabras de baja que NO se entienden: «no me escribas más» (consent.ts:41-47, verificado false).",
+      "reproduccion": "Paciente responde «CONFIRMAR» a un recordatorio del bot → cae a intención/FAQ → menú. Responde «CAMBIAR» → menú. Responde «no me escribas más» → menú (no es baja).",
+      "impacto": {
+        "paciente": "Hace lo que el mensaje le pidió y recibe un menú.",
+        "medico": "Confirmaciones perdidas.",
+        "negocio": "Cada palabra no entendida es una llamada de la asistente."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "parcial: los sinónimos más comunes de sí/no sí están.",
+      "prioridad": "P2",
+      "propuesta": "Un solo vocabulario en las cinco plantillas (SÍ / NO / CAMBIAR) y un solo módulo puro de respuestas (`respuesta-al-recordatorio.ts`) que incluya confirmar/confirmado/cambiar/reagendar/no puedo/no voy; ampliar esPalabraBaja con «no me escrib(as|an) (más)». Lista de palabras que SÍ entiende hoy: si, s, ok, okay, confirmo, confirmado, va, claro, así es, 1 · no, n, cancelar, cancela, no puedo, 2 · baja, stop, unsubscribe, «dar de baja», «no quiero recibir mensajes», «no molestar», «dejen de mandar», «quítenme de la lista», «ya no me manden». NO entiende: confirmar, confirmada, cambiar, reagendar, cita, «no voy», «no me escribas más», audios, botones, emojis.",
+      "prueba_que_faltaria": "Golden con las palabras que las propias plantillas piden (CONFIRMAR, CAMBIAR, CITA); hoy fallan.",
+      "que_no_cubre": "Respuestas que no son texto (ASM-013).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-4"
+      ]
+    },
+    {
+      "id": "ASM-013",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Un audio, una foto o el botón de respuesta de una plantilla se ignoran sin contestar nada: la cita sigue viva y el paciente cree que avisó",
+      "archivo": "src/app/api/whatsapp/webhook/route.ts",
+      "linea": 1615,
+      "evidencia": "`for (const msg of messages) { if (msg.type !== 'text') continue ...` — Meta entrega los botones de respuesta rápida de una plantilla como `type: 'button'` y los interactivos como `type: 'interactive'`; los audios como `type: 'audio'`. Igual en 360dialog-webhook:69 `if (msg.type !== 'text' || !msg.text?.body) continue`. No hay respuesta de «sólo entiendo texto».",
+      "reproduccion": "Paciente manda nota de voz «no voy a poder ir mañana» → silencio absoluto; la cita queda pendiente y el hueco no se ofrece.",
+      "impacto": {
+        "paciente": "Avisó y nadie le contestó.",
+        "medico": "No-show avisado y no registrado.",
+        "negocio": "Si algún día se aprueban plantillas con botones (lo natural en Meta), los botones no harán nada."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Tratar `button`/`interactive` como texto (button.text / interactive.button_reply.title); para audio/imagen contestar «Por aquí sólo puedo leer texto: responde SÍ o NO, o llama al <teléfono>» y registrar el intento para la asistente.",
+      "prueba_que_faltaria": "POST al webhook con `type: 'button'` y sesión `confirmando_cita` → la cita debe confirmarse; hoy se ignora.",
+      "que_no_cubre": "Transcribir el audio (no se propone: el bot no debe interpretar voz clínica).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-4"
+      ]
+    },
+    {
+      "id": "ASM-014",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El webhook de Meta contesta 200 antes de terminar de procesar: en serverless la confirmación puede quedar a medias",
+      "archivo": "src/app/api/whatsapp/webhook/route.ts",
+      "linea": 1626,
+      "evidencia": "`// Handle async, don't block webhook response` / `handleMessage(from, text, clinicId).catch(err => { ... })` sin await, y a continuación `return NextResponse.json({ ok: true })`. handleMessage hace varias escrituras y envíos en serie (update de la cita, send, avisarCancelacion, saveSession). El camino de 360dialog sí espera (`await handleMessage(...)`, 360dialog-webhook:78). Ningún `waitUntil`/`after` en el código (grep: 0).",
+      "reproduccion": "En Vercel, tras responder, la función puede congelarse: el «SÍ» marcó `marcarProcesado` (dedup) y no llegó a `citaRef.update` → Meta no reintenta (recibió 200) y el dedup descartaría un reintento manual del paciente.",
+      "impacto": {
+        "paciente": "Confirmó y no quedó confirmado, sin mensaje de error.",
+        "medico": "Estado inconsistente imposible de reproducir.",
+        "negocio": "Fallo intermitente que sólo aparece en producción."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "parcial: dedup fail-open, cita-ya-agendada para reintentos.",
+      "prioridad": "P2",
+      "propuesta": "Esperar `handleMessage` (Meta tolera hasta ~20 s; el propio código ya acota lecturas) o usar `after()` de Next para el trabajo posterior a la respuesta; medir la duración en el latido.",
+      "prueba_que_faltaria": "Prueba de contrato que exija `await handleMessage` en los dos webhooks (hoy uno sí y otro no).",
+      "que_no_cubre": "Tiempos de espera del proveedor en `send` (ya con timeout, REG-346).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-3"
+      ]
+    },
+    {
+      "id": "ASM-015",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "La «vista previa de los mensajes que se envían automáticamente» enseña un texto que el cron nunca manda",
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "linea": 974,
+      "evidencia": "`<p ...>Vista previa de los mensajes de WhatsApp que se envían automáticamente.</p>` seguido de `msgConfirmacion(demoAppt, form)`, `msgRecordatorio24h(demoAppt, form)`, `msgRecordatorioDia(demoAppt, form)` (976-978) — funciones de whatsapp.ts que sólo usan los botones manuales (wa.me). Lo automático sale de `template24h`/`templateSameDay` en cron/reminders/route.ts:212-215 («Te recordamos que tienes una cita *mañana* con {medico}… Responde *SÍ*») o de la HSM aprobada. Recorrido: pestaña «Mensajes de WhatsApp» muestra «Confirmación de cita / ⏰ Recordatorio 24 horas / Recordatorio mismo día» con el texto manual.",
+      "reproduccion": "Configuración → Mensajes de WhatsApp: leer «Favor de confirmar su asistencia respondiendo *CONFIRMAR*»; el paciente recibe «Responde *SÍ* para confirmar o *NO* para cancelar».",
+      "impacto": {
+        "paciente": "Recibe un texto distinto del que su médico revisó.",
+        "medico": "Revisa y aprueba un mensaje que no existe.",
+        "negocio": "Imposible ajustar el tono real desde la pantalla que dice servir para eso."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Una sola fuente de texto por clave (manual y automática), o etiquetar la vista previa como «mensajes que abre WhatsApp desde la agenda» y enseñar aparte los textos del cron.",
+      "prueba_que_faltaria": "Prueba que compare el texto de la vista previa con el que construye el cron para la misma cita; hoy difieren.",
+      "que_no_cubre": "El texto de la HSM (se enseña bien más abajo en la misma pestaña).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-016",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "titulo": "«Hora de resumen diario» se guarda y nadie la lee: no existe el envío del resumen",
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "linea": 843,
+      "evidencia": "`<input id=\"cfg-hora-de-resumen-diario\" className=\"input\" type=\"time\" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />`. grep de `horaResumenDiario` en src: sólo types/index.ts:547 y 758 (default '07:00') y esta línea. `msgResumenDiario` (whatsapp.ts:101) no tiene ningún llamador. Recorrido: pestaña Notificaciones muestra «Hora de resumen diario» con un campo de hora.",
+      "reproduccion": "Poner 06:30 y guardar: no pasa nada a las 06:30 ni nunca.",
+      "impacto": {
+        "paciente": "ninguno",
+        "medico": "Espera un resumen que no llega.",
+        "negocio": "Ajuste muerto en la pantalla más leída de configuración."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P2",
+      "propuesta": "Retirar el campo (y msgResumenDiario) o implementarlo: el cron ya recorre las citas del día; un envío al teléfono admin a esa hora cabe en el mismo bucle. Recomendación: retirar hasta que exista.",
+      "prueba_que_faltaria": "Guardián «escrito y sin conectar» que falle si un campo de config tiene UI y ningún lector.",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-017",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El recordatorio termina «Consultorio: undefined» si el consultorio no tiene teléfono admin ni WhatsApp (el demo está así)",
+      "archivo": "src/app/api/cron/reminders/route.ts",
+      "linea": 304,
+      "evidencia": "`telefono: config.whatsappConsultorio || config.telefonoAdmin,` (puede ser undefined) y `buildWhatsAppMessage` hace `.replace(/\\{telefono\\}/g, data.telefono)` (71): `'Consultorio: {telefono}'.replace(/\\{telefono\\}/g, undefined)` → «Consultorio: undefined» (verificado en node). Las plantillas 24 h y mismo día terminan con `Consultorio: {telefono}` / `Cualquier duda: {telefono}` (212, 215). En el recorrido, «Teléfono admin» y «WhatsApp consultorio» están vacíos en el demo.",
+      "reproduccion": "Consultorio sin ambos teléfonos + recordatorio dentro de la ventana → el paciente lee «Cualquier duda: undefined».",
+      "impacto": {
+        "paciente": "Mensaje que habla como sistema y sin a dónde llamar.",
+        "medico": "Imagen.",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "`telefono: ... || ''` y omitir la línea entera cuando no hay teléfono; avisar en Notificaciones que falta el teléfono del consultorio.",
+      "prueba_que_faltaria": "buildWhatsAppMessage con telefono undefined no debe contener «undefined».",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-018",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Notificaciones manda a conectar el número «en la pestaña WhatsApp», que no existe (se llama Integraciones)",
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "linea": 806,
+      "evidencia": "`avisos están activados, pero <strong>no se está enviando ninguno</strong> hasta que conectes el número del consultorio en la pestaña <em>WhatsApp</em>.` Pestañas reales (recorrido): Notificaciones · Mensajes de WhatsApp · Entregas de WhatsApp · … · Integraciones. La conexión vive en Integraciones («WhatsApp Business · No conectado · Conectar manualmente»).",
+      "reproduccion": "Configuración → Notificaciones → leer el aviso → buscar la pestaña «WhatsApp» → abrir «Mensajes de WhatsApp» (no conecta nada).",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Vuelta por tres pestañas para conectar.",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "Enlace directo «Conectar WhatsApp →» a `?tab=integraciones` (la página ya lee `tab`, línea 107).",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-019",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "Idempotencia del recordatorio: la marca «enviado» se escribe después de enviar y sin transacción; si esa escritura falla, la hora siguiente lo manda otra vez",
+      "archivo": "src/app/api/cron/reminders/route.ts",
+      "linea": 313,
+      "evidencia": "`if (resultado === 'enviado') { await adminDb...doc(appt.id).update({ recordatorio24hEnviado: true, ... })` — el envío ya salió; si el update lanza, el `catch` del consultorio (456) lo traga y en el ciclo siguiente (ventana 23-26 h = hasta 4 ciclos) `!appt.recordatorio24hEnviado` vuelve a ser cierto. El tope diario por contacto (frecuencia.ts, default 3) limita a 3 el daño. Del lado entrante, el dedup por wamid es fail-open a propósito (dedup.ts:8-11).",
+      "reproduccion": "Simular fallo de Firestore justo tras `enviarProactivo` → 'enviado' → segundo mensaje idéntico una hora después.",
+      "impacto": {
+        "paciente": "Dos recordatorios iguales.",
+        "medico": "—",
+        "negocio": "Coste por conversación y calidad del número."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "parcial: tope diario de 3 proactivos por contacto; latido del cron.",
+      "prioridad": "P3",
+      "propuesta": "Reservar antes de enviar (`recordatorio24hIntentoAt`) y confirmar después; si la confirmación falla, la reserva reciente (<2 h) impide reenviar.",
+      "prueba_que_faltaria": "Prueba del cron con update que lanza: el segundo ciclo no debe volver a enviar.",
+      "que_no_cubre": "Dos instancias del cron corriendo a la vez (Vercel no lo hace con el mismo schedule).",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-020",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "Si no se puede leer la lista de bajas, el recordatorio se manda igual (fail-open), al revés que la pantalla de reactivación",
+      "archivo": "src/lib/whatsapp/consent.ts",
+      "linea": 94,
+      "evidencia": "`export async function estaDadoDeBaja(...) { try { ... } catch (e) { console.warn('[whatsapp/consent] no se pudo leer opt-out (fail-open):', ...); return false } }` — con razón declarada («un fallo transitorio de Firestore no debe bloquear TODOS los recordatorios»). puede-contactar.ts:16-27 toma la decisión contraria para reactivación: «escribirle a quien pidió la baja … no se puede devolver». Dos criterios para la misma pregunta.",
+      "reproduccion": "Caída parcial de Firestore durante el cron → recordatorio a un contacto con BAJA registrada.",
+      "impacto": {
+        "paciente": "Recibe lo que pidió no recibir.",
+        "medico": "Incumplimiento de la promesa «No le enviaremos más».",
+        "negocio": "Riesgo Meta/LFPDPPP bajo, pero es exactamente el caso que la otra pantalla decidió no correr."
+      },
+      "severidad": 2,
+      "probabilidad": "baja",
+      "control_existente": "parcial: el registro de status de Meta (131050) también da de baja.",
+      "prioridad": "P3",
+      "propuesta": "Desacuerdo argumentado: hacer fail-closed sólo para proactivos (dejar el mensaje en la cola con motivo «no se pudo comprobar la baja») — el outbox ya sabe pausar por proveedor.",
+      "prueba_que_faltaria": "estaDadoDeBaja con Firestore que lanza → enviarProactivo debe devolver 'fallo' (o un resultado nuevo), no enviar.",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-2"
+      ]
+    },
+    {
+      "id": "ASM-021",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "adapter.ts y connection.ts: un contrato de proveedor y una máquina de estados de conexión que nadie implementa ni llama",
+      "archivo": "src/lib/whatsapp/adapter.ts",
+      "linea": 41,
+      "evidencia": "`export interface WhatsAppProviderAdapter { sendText…, sendTemplate…, sendButtons…, sendList…, sendFlow…, verifyWebhook…, normalizeWebhook… }` — grep de `WhatsAppProviderAdapter`, `from '@/lib/whatsapp/adapter'` y `from '@/lib/whatsapp/connection'` fuera de tests: 0 resultados. El envío real vive en whatsapp-send.ts con `if (waConfig.provider === '360dialog' …)` y no pasa por el adaptador. Lo mismo `puedeOperar`/`transicionValida` de connection.ts.",
+      "reproduccion": "—",
+      "impacto": {
+        "paciente": "—",
+        "medico": "—",
+        "negocio": "Dos archivos que prometen una arquitectura que no existe; el próximo que los lea creerá que se usan."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "Retirar o mover a docs/whatsapp como diseño futuro; si se conservan, marcar en cabecera «SIN IMPLEMENTACIÓN». Recomendación: retirar.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-10"
+      ]
+    },
+    {
+      "id": "ASM-022",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "Cuatro pantallas de «mensajería» para la asistente y ninguna sirve para contestar a un paciente; /chat se anuncia como «mensajes con pacientes» y es interno",
+      "archivo": "src/app/(dashboard)/operaciones/page.tsx",
+      "linea": 154,
+      "evidencia": "`{ href: '/chat', label: 'Chat', para: 'Mensajes con pacientes y con el equipo', ... }` mientras /chat dice «Chat de la clínica · 0 mensajes · entre médico y asistente» (recorrido). /crm: tablero de tasas con dos enlaces (a /citas y a configuración), 2 pruebas; /resenas: moderación, 0 pruebas que citen la página; /reactivacion: lista + wa.me, 2 pruebas. Ninguna muestra las respuestas del bot ni los mensajes no entregados (ASM-007).",
+      "reproduccion": "Operaciones → Chat esperando responder a un paciente → sólo hay chat interno.",
+      "impacto": {
+        "paciente": "Su respuesta al bot no la ve nadie salvo que cambie el estado de la cita.",
+        "medico": "—",
+        "negocio": "Cuatro destinos con nombre de mensajería, cero bandeja."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "Corregir el texto de /chat en el índice («entre médico y asistente»). Fusionar Reseñas y Reactivación en «Seguimiento de pacientes» (una pantalla, dos pestañas). Dejar CRM. Si se quiere una bandeja de pacientes, que nazca de whatsapp_no_entregados + respuestas del bot, no una quinta pantalla.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-7"
+      ]
+    },
+    {
+      "id": "ASM-023",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Una cita pendiente sin teléfono no ofrece ninguna acción ni dice por qué",
+      "archivo": "src/app/(dashboard)/citas/page.tsx",
+      "linea": 901,
+      "evidencia": "`if (ESTADOS_PENDIENTES.includes(e) && appt.pacienteTelefono) { return { tipo: 'confirmar', label: 'Confirmar' } }` … `return null` — sin teléfono la fila queda sin botón primario, y en el menú `{appt.pacienteTelefono && (… Llamar …)}` (1226) y `{appt.pacienteTelefono && accion?.tipo !== 'confirmar' && (… WhatsApp …)}` (1231) desaparecen. Nada dice «sin teléfono: captúralo».",
+      "reproduccion": "Nueva cita sin teléfono, estado pendiente → fila sin acción; para saber por qué hay que abrir «Editar cita».",
+      "impacto": {
+        "paciente": "Nadie le pide confirmación.",
+        "medico": "«2 por confirmar» incluye citas que no se pueden confirmar por WhatsApp.",
+        "negocio": "—"
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "Acción primaria «Falta teléfono» que abra el editor en el campo teléfono; contar aparte en el riel «1 sin teléfono».",
+      "prueba_que_faltaria": "accionPrimaria(cita pendiente sin teléfono) debe devolver una acción (hoy null).",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASM-024",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "hospital",
+      "tipo": "defecto",
+      "titulo": "La alerta hospitalaria sale por texto libre sin ventana ni plantilla y con hasta 500 caracteres de texto clínico",
+      "archivo": "src/app/api/hospital/alerta/route.ts",
+      "linea": 106,
+      "evidencia": "`const texto = String(mensaje).slice(0, 500)` / `const { ok } = await sendWhatsApp(clinicId, telefono, texto)` — directo, sin `enviarProactivo`. El destinatario es el teléfono del médico/consultorio (destino), no el paciente, y el módulo está en pausa (D-030).",
+      "reproduccion": "Alerta a un médico que no ha escrito al número del consultorio en 24 h → rechazo → `registrarFallo('envio-rechazado')`.",
+      "impacto": {
+        "paciente": "La alerta no llega al médico.",
+        "medico": "Confía en un canal que se rechaza fuera de ventana.",
+        "negocio": "—"
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "parcial: registra el fallo y lo devuelve en la respuesta (`enviado: false`).",
+      "prioridad": "P3",
+      "propuesta": "Cuando se reactive el módulo: plantilla HSM de alerta interna (categoría utility) o canal push interno. No se propone retirar (D-030).",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "WA-1"
+      ]
+    },
+    {
+      "id": "ASM-025",
+      "panel": "asistente",
+      "rol": "mensajeria-recordatorios",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "En la pestaña Mensajes de WhatsApp los campos de plantilla, silencio y tope no tienen etiqueta asociada (SIN-LABEL)",
+      "archivo": "src/app/(dashboard)/configuracion/secciones-comunicacion.tsx",
+      "linea": 385,
+      "evidencia": "Recorrido: `input type=text \"recordatorio_cita_24h\" SIN-LABEL`, `input type=text \"es_MX\" SIN-LABEL` (×3), `input type=time SIN-LABEL` (×2), `input type=number SIN-LABEL`. En el código las etiquetas son `<label className=\"t-caption\">` sin `htmlFor` y los inputs sin `id`/`aria-label`.",
+      "reproduccion": "Lector de pantalla sobre «Nombre aprobado en Meta»: campo sin nombre.",
+      "impacto": {
+        "paciente": "—",
+        "medico": "Pantalla de configuración inaccesible por teclado/lector.",
+        "negocio": "Falla el mínimo de la compuerta de diseño (campo sin etiqueta)."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "ninguno",
+      "prioridad": "P3",
+      "propuesta": "`htmlFor`/`id` por campo.",
+      "prueba_que_faltaria": "Escáner a11y sobre la pestaña (el auditor de diseño tiene uno).",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    }
+  ]
+}

@@ -83,8 +83,24 @@ describe('LA RUTA QUE DE VERDAD TRANSCRIBE LO LEE', () => {
   })
 
   it('y la especialidad, que estaba declarada en el contrato y nadie llenaba', () => {
-    expect(ruta).toContain('especialidad: comoLista(body?.especialidades)')
-    expect(ruta).toContain("especialidad: comoLista(formData.get('especialidades'))")
+    /**
+     * ── Y EL MÓDULO, QUE LLEGABA Y NO SE LEÍA (B-009) ─────────────────────
+     *
+     * Esto exigía `especialidad: comoLista(...especialidades)` a secas. Sigue
+     * ahí, y ahora lleva al lado el MÓDULO desde el que se dicta: el cliente
+     * mandaba `contexto` por los dos caminos desde hacía tiempo y esta ruta no
+     * lo leía, así que el vocabulario de UCI o de hospitalización sesgaba
+     * únicamente a Whisper — que aquí es el REPUESTO. Justo al revés de lo que
+     * hace falta: el sesgo es lo único que cambia lo que la máquina OYE, y el
+     * motor bueno se quedaba sin él.
+     */
+    expect(ruta).toContain('...comoLista(body?.especialidades)')
+    expect(ruta).toContain("...comoLista(formData.get('especialidades'))")
+    expect(ruta).toContain('...nombresDelModulo(comoModulo(body?.contexto))')
+    expect(ruta).toContain("...nombresDelModulo(comoModulo(formData.get('contexto')))")
+    // Y el módulo se valida contra la lista cerrada: un valor cualquiera del
+    // cable no puede colar un cajón de vocabulario que no existe.
+    expect(ruta).toContain('MODULOS_DE_DICTADO')
   })
 })
 

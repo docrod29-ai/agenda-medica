@@ -16,7 +16,7 @@ TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes y el proxy del contenedor rechaza al instante. Es intermitente: en una corrida de la suite entera pasó. NO tocar la aserción.
 BUILD=compila
 BLOCKED_EXTERNAL=iPhone/WebKit real · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
-DO_NOT_REGRESS=REG-542…REG-555
+DO_NOT_REGRESS=REG-542…REG-602
 ```
 
 ### La fusión, y lo que enseñó

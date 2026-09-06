@@ -28,7 +28,18 @@
  *   sobredosis**, que es justo el caso que la puerta de `evals/patient-ai/`
  *   cazó en las doce preguntas del §0 («me tomé por accidente la medicina de
  *   otra persona»). Una lista de seguridad copiada a mano se queda atrás sin
- *   que nadie lo note.
+ *   que nadie lo note. Lo demostró PL-C9: el vocabulario pasó de cuatro motivos
+ *   a once y esta pantalla los enseñó todos sin tocar una línea de prosa.
+ *
+ * · **En lista, y no en una frase con comas.** Con cuatro motivos cabía una
+ *   línea; con once, una frase corrida es un muro que nadie lee — y esta caja
+ *   existe para leerse a las dos de la mañana. Cada motivo, un renglón.
+ *
+ * · **Y dice lo que NO vigila** (`LO_QUE_NO_SE_VIGILA`). Es la recomendación
+ *   por omisión del dueño para PL-C9: mientras el vocabulario definitivo no
+ *   esté firmado por especialidad, el portal tiene que decir qué se queda
+ *   fuera. Una lista de seguridad que se presenta como completa es peor que
+ *   ninguna.
  *
  * · **Dice que aquí no hay nadie leyendo.** Es lo que ya dice
  *   `mensajeDeUrgencia()` por WhatsApp. Prometer atención en un canal que
@@ -43,7 +54,7 @@
  * «sólo si» sino «si tienes algo de esto **o cualquier otro malestar grave**».
  */
 import { Phone, Siren } from 'lucide-react'
-import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'
+import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS, LO_QUE_NO_SE_VIGILA } from '@/lib/paciente/urgencia'
 
 const MOTIVOS = Object.values(MOTIVO_LABEL)
 
@@ -67,8 +78,14 @@ export default function ViaDeUrgencia({ telefonoConsultorio }: { telefonoConsult
             Si es una urgencia, no esperes por aquí
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text2)', lineHeight: 1.55 }}>
-            {MOTIVOS.join(', ')} — o cualquier otro malestar grave. Nadie está
-            leyendo esta pantalla ahora mismo.
+            Nadie está leyendo esta pantalla ahora mismo. Marca el {TELEFONO_EMERGENCIAS} si
+            tienes algo de esto — o cualquier otro malestar grave:
+          </p>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+            {MOTIVOS.map(m => <li key={m}>{m}</li>)}
+          </ul>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>
+            {LO_QUE_NO_SE_VIGILA}
           </p>
         </div>
       </div>

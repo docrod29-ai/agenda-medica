@@ -9,7 +9,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { getInternamientos } from '@/lib/hospital/firestore'
 import { diasEstancia, TIPO_EGRESO_LABEL, type Internamiento } from '@/types/hospital'
-import { Spinner } from '@/components/ui'
+import { NoSePudoLeer, Spinner } from '@/components/ui'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 
 function Kpi({ valor, label, color = 'var(--nexus)' }: { valor: string | number; label: string; color?: string }) {
@@ -27,11 +27,29 @@ export default function IndicadoresPage() {
   const { clinicId } = useClinic()
   const [todos, setTodos] = useState<Internamiento[]>([])
   const [loading, setLoading] = useState(true)
+  /**
+   * UN CERO CALCULADO SOBRE NADA NO ES UN CERO — Panel de Lujo C-010.
+   *
+   * `.catch(() => {})` dejaba `todos` en `[]` y el tablero pintaba «0 internados»,
+   * «0 egresos», «Sin pacientes internados» y una estancia media de 0 días, todo
+   * con la misma cara de dato bueno. Un indicador hospitalario que se lee para
+   * decidir dotación no puede confundir «hoy no hay nadie» con «hoy no se pudo
+   * preguntar».
+   */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     if (!clinicId) return
-    getInternamientos(clinicId).then(setTodos).catch(() => {}).finally(() => setLoading(false))
-  }, [clinicId])
+    /* El `setLoading(true)` que había aquí encadenaba un render de más y lo
+       marcaba el compilador de React: el estado ya nace en `true` y sólo hace
+       falta volver a levantarlo cuando se reintenta, que es lo que hace el
+       botón. */
+    getInternamientos(clinicId)
+      .then(r => { setTodos(r); setFalloAlLeer(undefined) })
+      .catch((e: unknown) => { setFalloAlLeer(e ?? new Error('lectura fallida')) })
+      .finally(() => setLoading(false))
+  }, [clinicId, intento])
 
   const m = useMemo(() => {
     const activos = todos.filter(i => i.estado === 'activo')
@@ -63,7 +81,17 @@ export default function IndicadoresPage() {
         <BarChart3 size={22} style={{ color: 'var(--nexus)' }} /> Indicadores hospitalarios
       </h1>
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : (<>
+      {/* El fallo de lectura se pinta ANTES que ninguna cifra: si no se pudo
+          leer, ningún número de abajo es un dato. */}
+      {falloAlLeer !== undefined && (
+        <NoSePudoLeer
+          que="los episodios de hospitalización"
+          error={falloAlLeer}
+          alReintentar={() => { setLoading(true); setIntento(n => n + 1) }}
+        />
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><Spinner /></div> : falloAlLeer !== undefined ? null : (<>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 24 }}>
           <Kpi valor={m.activos} label="Internados ahora" color="var(--teal)" />
           <Kpi valor={m.estMedia} label="Estancia media (días)" />

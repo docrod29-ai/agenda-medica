@@ -343,7 +343,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
         {filas.map((f, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input value={f.antibiotico} onChange={e => setFila(i, { antibiotico: e.target.value })}
+            <input aria-label="Antibiótico" value={f.antibiotico} onChange={e => setFila(i, { antibiotico: e.target.value })}
               placeholder="Antibiótico" list="ab-comunes" style={{ ...input, flex: 1 }} />
             <div style={{ display: 'flex', gap: 3 }}>
               {(['S', 'I', 'R'] as SIR[]).map(v => (
@@ -351,7 +351,7 @@ export function AntibiogramaTool({ embebido, onAgregarANota }: {
                   style={sirBtn(f.interpretacion === v, v)}>{v}</button>
               ))}
             </div>
-            <input value={f.cmi} onChange={e => setFila(i, { cmi: e.target.value })}
+            <input aria-label="CMI" value={f.cmi} onChange={e => setFila(i, { cmi: e.target.value })}
               placeholder="CMI" inputMode="decimal" style={{ ...input, width: 66, textAlign: 'center' }} />
             <button type="button" onClick={() => quitar(i)} style={delBtn} aria-label="Quitar"><Trash2 size={15} /></button>
           </div>

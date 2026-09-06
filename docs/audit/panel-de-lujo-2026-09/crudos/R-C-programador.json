@@ -1,0 +1,279 @@
+{
+  "auditor": "C-programador",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "C-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/public/clinic/[clinicId]/route.ts:80",
+      "nota": "Grep exhaustivo de `publicBookingNote` en src: sólo types/index.ts:558,762 y configuracion/page.tsx:2253,2266,2297. La ruta pública devuelve `publicBookingEnabled` (l.80) y NO la nota; /reservar/[clinicId] no tiene ninguna variable de nota (grep note/mensaje/aviso). El dato se guarda y muere. Bajo a P2: es un aviso opcional, sin consecuencia clínica ni pérdida de datos."
+    },
+    {
+      "id": "C-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:843",
+      "nota": "Verificado el campo en pantalla (pestaña Notificaciones, sin bandera). `horaResumenDiario` sólo existe en types/index.ts:547,758 y en ese input; ningún cron lo lee (src/app/api/cron/{reminders,retencion,vigilante,asientos,limpiar-audio}). Además `msgResumenDiario` (src/lib/whatsapp.ts:101) tampoco tiene llamador: no existe el resumen, no sólo la hora. P3: campo muerto sin consecuencia."
+    },
+    {
+      "id": "C-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/RecetaDocumento.tsx:745",
+      "nota": "El toggle existe (secciones-recetas.tsx:1076) y `mostrarSignosVitales` no aparece fuera de types/index.ts:691,772 y esa pestaña. RecetaDocumento sí lee mostrarDiagnostico/mostrarAlergias/mostrarQR (l.745,769,834) pero la palabra «signos» no aparece en el archivo, y en orden/[notaId]/page.tsx sólo está en un comentario (l.6). Bajo a P3 para igualarlo a C-002/C-004: misma familia (campo de config sin lector), sin consecuencia clínica."
+    },
+    {
+      "id": "C-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/secciones-recetas.tsx:1071",
+      "nota": "Grupo 3 promete «y cuántas copias salen» y las únicas apariciones de `copiasEnHoja`/`registroAntidopaje` en src son types/index.ts:679,687,768 y CAMPOS_VERIFICABLES (l.177-179). No hay input ni impresión. Deuda menor, prioridad correcta."
+    },
+    {
+      "id": "C-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/privacidad/[clinicId]/page.tsx:114",
+      "nota": "La línea existe literal (`onClick={() => window.close()}`) y el propio guardián native-dialogs-guard.test.ts:5-9 documenta que los diálogos nativos se ignoran en WebViews. Bajo a P2→P3: el trámite ya terminó y el folio (l.107) es el cierre real; el botón muerto es cosmético, no bloquea el derecho ARCO."
+    },
+    {
+      "id": "C-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/privacidad/[clinicId]/page.tsx:65",
+      "nota": "Confirmados `alert('Por favor llena los campos obligatorios')` (l.65) y `alert(\\`Error al enviar: ${(e as Error).message}\\`)` (l.85). Busqué el guardián que lo impediría: native-dialogs-guard.test.ts:22 sólo recorre `src/app/(dashboard)` y `src/components`, así que esta pantalla pública queda fuera de su alcance. Se le enseña el mensaje crudo de Firestore a un paciente."
+    },
+    {
+      "id": "C-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/cumplimiento/page.tsx:352",
+      "nota": "`prompt()` nativo confirmado en l.352, y es el ÚNICO de src/app fuera de comentarios (los demás aciertos del grep son JSDoc de arco/acceso y arco/oponerse). El guardián native-dialogs-guard no vigila `prompt(`. Bajo a P3: es fricción del lado del médico, el texto SÍ se guarda, y REG-154 ya sacó del prompt los dos tipos que exigían una acción real (acceso l.342, oposición l.351)."
+    },
+    {
+      "id": "C-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/crm/page.tsx:60",
+      "nota": "El `.catch` sólo hace console.error (l.60-63) y no hay estado de error; con appts=[] la l.176-179 pinta «sin citas en el periodo» y los KPI en 0. Comprobado que no existe ninguna variable de error en el archivo. Ausencia de dato pintada como dato."
+    },
+    {
+      "id": "C-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/membresias/page.tsx:54",
+      "nota": "`.catch(e => console.error('[membresias]', e))` (l.54) y `<Vacio texto=\"Sin membresías activas todavía.\" />` (l.126). Sin estado de error. Confirmado con la lectura del archivo."
+    },
+    {
+      "id": "C-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/hospitalizacion/indicadores/page.tsx:33",
+      "nota": "`.catch(() => {})` literal en l.33; Kpi «Internados ahora» l.72 y «Sin pacientes internados.» l.82. Bajo a P3: /hospitalizacion está en pausa D-030 (src/lib/navegacion/modulos-en-pausa.ts:33), no se ofrece en navegación y el módulo es ALPHA que no se vende."
+    },
+    {
+      "id": "C-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/chat/page.tsx:114",
+      "nota": "`catch (e) { console.error(e) }` en l.113-115, sin toast; `setTexto('')` sólo en la rama de éxito (l.111). El mensaje no se envía y nadie lo dice. Verificado leyendo `enviar` completo."
+    },
+    {
+      "id": "C-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/resenas/page.tsx:19",
+      "nota": "`try { setReviews(await listarResenas(clinicId)) } finally {…}` sin catch (l.19) y `useEffect(() => { recargar() … })` (l.21): promesa rechazada sin manejar. `toast('Error al moderar')` en l.29. Prioridad correcta."
+    },
+    {
+      "id": "C-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/hospitalizacion/camas/page.tsx:206",
+      "nota": "El onClick de la papelera llama a `borrarCama` sin confirm y sin try/catch (l.206); `grep confirm` en ese archivo: 0 resultados. Bajo a P3: módulo en pausa D-030, sólo admin y sólo camas sin ocupante."
+    },
+    {
+      "id": "C-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelGineco.tsx:31",
+      "nota": "Abrí el componente: sus Props son {sexo, edadAnios, onAgregarANota, embebido} (l.19-26) — NO recibe la fecha del consultorio por ninguna otra vía, y el montaje en consulta/[patientId]/page.tsx:7072 tampoco se la pasa. `hoy` sale de `new Date().toISOString()` (UTC) y alimenta gestacionPorFUM/gestacionPorUltrasonido (l.42-43). `hoyISO()` con zona del consultorio existe en src/lib/timezone.ts:137 y timezone-sitios.test.ts no vigila `toISOString()` crudo, así que REG-067 no lo cubre. Matiz: en PanelPediatria:41 sólo se calcula el valor INICIAL de meses, y un día de desfase rara vez cambia el entero de meses; el caso real es gineco."
+    },
+    {
+      "id": "C-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/referencia/[patientId]/page.tsx:119",
+      "nota": "Verificadas una por una: referencia:52 y :119, orden:506, receta:534, nota:137, superadmin/costos:53, contabilidad:52, uci/ResumenPase:71. `grep -c 'new Date().toISOString().slice(0, 10)'` en src/app+src/components = 15 (el auditor dijo 12: se quedó corto). P3 correcto: nombres de archivo y meses."
+    },
+    {
+      "id": "C-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/mi/[token]/page.tsx:1139",
+      "nota": "`timeZone: 'America/Mexico_City'` fijo en PanelReagenda (l.1139) y su firma (l.1138) no recibe `tzClinica`, que sí existe en el mismo archivo (l.465) y se usa en l.556, 591, 906. Sólo afecta la fecha inicial del selector; el servidor revalida."
+    },
+    {
+      "id": "C-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/asistente/page.tsx:807",
+      "nota": "Comprobadas las citas: asistente:807 («{lugares} lugares») frente a :733 que sí distingue singular; finanzas:181, pendientes:371, mi/[token]:614, DemoWorkflow:52. Todas literales."
+    },
+    {
+      "id": "C-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx:441",
+      "nota": "Verificadas nota:441, referencia:239, expediente:921, pacientes:424 y PatientAnchor:126-129. Todas concatenan «años» sin condicional."
+    },
+    {
+      "id": "C-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/reservar/[clinicId]/page.tsx:107",
+      "nota": "Verificadas reservar:107 y :138, resena/[token]:25 y :33, teleconsulta:23 y :35. Todas existen literalmente. Es fricción de tono en la puerta pública (lente 2 del dueño), sin fallo funcional: el error sí se pinta en pantalla."
+    },
+    {
+      "id": "C-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:1675",
+      "nota": "`toast('Error', 'error')` literal en configuracion:1675 y lista-espera:106. El conteo real de `toast('Error` / `toast(\\`Error` en src es 45, no 28: el auditor se quedó corto, no exageró."
+    },
+    {
+      "id": "C-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:232",
+      "nota": "`toast(\\`Error al guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}\\`)` literal en l.232. Confirmado el patrón; prioridad P3 correcta (médico, no paciente)."
+    },
+    {
+      "id": "C-022",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/login/page.tsx:113",
+      "nota": "El código crudo sí llega a pantalla (login:53 y :120; registro:74 y :136). PERO la reproducción del auditor es imposible: login y registro usan `signInWithRedirect`, NUNCA popup (login:106-113 «Redirección SIEMPRE (no popup)»; registro:127-129), así que `auth/popup-closed-by-user` no puede ocurrir; además los fallos de red (`esFalloDeRed` → MENSAJE_SIN_RED, l.92 y :117) y `auth/unauthorized-domain` ya están traducidos. Queda como cola de códigos raros: probabilidad baja, no media."
+    },
+    {
+      "id": "C-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:950",
+      "nota": "Literal: `toast('El nombre es requerido')` y `toast('La edad es requerida')` en l.950-951. Anglicismo, prioridad correcta."
+    },
+    {
+      "id": "C-024",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/AppointmentModal.tsx:522",
+      "nota": "Leídas las l.510-535: `<label className=\"label\">` sin htmlFor y `<input className=\"input\">` sin id. `grep -c htmlFor` = 1 en todo el archivo y `aria-label` = 0. Falla la compuerta mínima de .claude/rules/design-system.md («campo sin etiqueta»)."
+    },
+    {
+      "id": "C-025",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/guia/page.tsx:79",
+      "nota": "Verificados guia:79-80, uci/dosificacion:153-154, Cie10Autocomplete:68-78, chat:172-174 y hospitalizacion/page.tsx:307-324. Cie10Autocomplete además no acepta ninguna prop de etiqueta (Props = value/onChange/placeholder/style, l.13-23), así que sus dos llamadores (consulta:6846, hospitalizacion:441) no pueden arreglarlo desde fuera."
+    },
+    {
+      "id": "C-026",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/ui/Tabs.tsx:20",
+      "nota": "Confirmado: `<div className='tabs'>` con `<button>` sueltos, sin role ni aria-selected. Matiz que corrige al auditor: el único consumidor real es /cumplimiento (cumplimiento/page.tsx:27,387) — «arreglarlo aquí arregla todas sus instancias» son exactamente una."
+    },
+    {
+      "id": "C-027",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/membresias/page.tsx:119",
+      "nota": "Verificados membresias:119 (`disabled={planes.length === 0}` sin title), finanzas:219, hospitalizacion/unidades:128-136, y el contraste de uci/page.tsx:935 que sí lleva title explicativo."
+    },
+    {
+      "id": "C-028",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/operacion/page.tsx:39",
+      "nota": "Confirmado sólo a medias. «Membresías de pacientes: roadmap» (l.39) es falso: /membresias está en Sidebar.tsx:51 y operaciones/page.tsx:137 y cobra cuotas. Pero «Comisiones: parcial» (l.38) es defendible: PanelComisiones calcula por MÉDICO (src/components/PanelComisiones.tsx:32-39) y no por servicio, que es justo lo que el texto llama «en construcción». Además la lista es material de venta: su redacción es decisión del dueño."
+    },
+    {
+      "id": "C-029",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts:16",
+      "nota": "La premisa («escrito y sin conectar, hay que enlazarla») es falsa: /motores está DESENLAZADA A PROPÓSITO por decisión del dueño (REG-292) — «al cliente le importan lo funcional… eso escóndelo» (l.9-18) — y un guardián comprueba que ninguna superficie del cliente la ofrezca (l.65-79), mientras otro exige que la página siga existiendo (l.108-117). Implementar la propuesta del auditor pondría el CI en rojo."
+    },
+    {
+      "id": "C-030",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/modulos-sin-conectar.test.ts:120",
+      "nota": "La premisa («código muerto que confunde al siguiente») es falsa: el huérfano está DECLARADO y congelado en el trinquete de huérfanos con su motivo — 'src/components/DoctorOnboarding.tsx': 'Alta guiada del médico: escrita, sin pantalla que la monte todavía.' — y el guardián (cabecera l.1-30) impide que aparezca uno nuevo. La deuda no está escondida; el hallazgo no aporta nada que el CI no diga ya."
+    },
+    {
+      "id": "C-031",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/superadmin/page.tsx:514",
+      "nota": "Literales `alert(...)` en l.514, 516, 528, 530 y `window.confirm(...)` en l.521. Fuera del alcance de native-dialogs-guard.test.ts:22, que sólo recorre (dashboard) y components. Panel del dueño: P3 correcto."
+    },
+    {
+      "id": "C-032",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/expediente/HistorialVersiones.tsx:20",
+      "nota": "Los dos componentes y los dos lectores existen (listarVersiones en lib/expediente/versioning.ts:37 vs getVersionesNota en lib/expediente/firestore.ts:969, ambos sobre …/notas/{id}/versions). PERO la diferencia de conducta NO es un descuido: expediente/HistorialVersiones.tsx:20-24 documenta que en la nota firmada se COPIA y no se restaura («una restauración silenciosa sobre un documento clínico es exactamente el problema que esto viene a resolver»), y components/HistorialVersiones.tsx:7-19 explica el rescate del BORRADOR. Duplicación de lector: sí; «dos pantallas para lo mismo»: no."
+    },
+    {
+      "id": "C-033",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/finanzas/page.tsx:30",
+      "nota": "Verificados los tres imports: consulta:235 y expediente:913 con `import('@/app/(dashboard)/antibiograma/page')`, y finanzas:30 `import { CorteCajaContenido } from '../corte-caja/page'`. Aviso para quien lo ejecute: el primero está fijado por src/__tests__/v15-rtc09-ia-contextual.test.ts:146, que habría que actualizar en el mismo cambio."
+    },
+    {
+      "id": "C-034",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/Sidebar.tsx:28",
+      "nota": "NAV existe con 22 entradas (l.28-57) y es una lista aparte de GRUPOS: eso es cierto. Lo que no se sostiene es la divergencia de etiquetas: /asistente es «Agendar rápido» EN LAS DOS (Sidebar:29 y operaciones:84), y /pacientes, /consultor y /antibiograma no están en GRUPOS, así que no hay etiqueta con la que diverjan («falla en ≥4» no está demostrado). Además contextos.ts no es una tercera lista de destinos: es un mapa ruta→familia sin etiquetas (contextos.ts:75-79)."
+    },
+    {
+      "id": "C-035",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/robots.ts:19",
+      "nota": "Confirmado: no existen src/app/**/agenda ni waitlist (ls de (dashboard)). Y el auditor se quedó corto en el lado que importa: FALTAN en disallow /membresias, /motores, /operaciones, /pendientes, /uci y /antibiograma, todas rutas privadas. Sigue siendo P3 (la autorización no depende de robots.txt)."
+    },
+    {
+      "id": "C-036",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/uci/benchmark/page.tsx:257",
+      "nota": "`onClick={() => setCapturas([])}` literal, sin confirm. Módulo UCI en pausa D-030 y uso interno: P3 correcto."
+    },
+    {
+      "id": "C-037",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/AsientosSection.tsx:23",
+      "nota": "`.catch(() => {})` en l.23 y `if (cargando || !st || !st.conAsientos) return null` en l.36; FacturacionSection:76 igual. El `return null` también es la vía legítima cuando no hay asientos, así que un fallo de red es indistinguible de «no aplica»."
+    },
+    {
+      "id": "C-038",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:449",
+      "nota": "Literal `Ingreso ${new Date(inter.fechaIngreso).toLocaleDateString('es-MX')}` dentro del document.write del brazalete, sin timeZone. Módulo en pausa D-030; el folio, no la fecha, es lo que identifica."
+    }
+  ],
+  "ratio": {
+    "total": 38,
+    "confirmados": 32,
+    "refutados": 2,
+    "parciales": 4
+  },
+  "observaciones_del_auditor": "Precisión de citas: MUY alta. Abrí las 38 líneas citadas y todas existen dentro de ±5 líneas; ningún «evidencia no coincide». Los greps de «nadie lo lee» (C-001 a C-004) los repetí uno por uno sobre src completo y se sostienen los cinco campos. Tiende a quedarse CORTO en los conteos, no a exagerar: dijo 28 toasts «Error…» y hay 45; dijo 12 `new Date().toISOString().slice(0,10)` y hay 15; en robots.ts vio dos rutas de más y no vio seis rutas privadas de menos. Su punto ciego es la INTENCIÓN declarada: no consultó los guardianes que ya declaran la deuda o la decisión. Por eso caen C-029 (/motores está desenlazada por decisión del dueño, REG-292, con test que lo fija) y C-030 (DoctorOnboarding es un huérfano congelado en modulos-sin-conectar.test.ts). Antes de decir «nadie lo enlaza / nadie lo importa» hay que preguntar si alguien decidió que fuera así. Prioriza de forma desigual dentro de una misma familia: C-002 P2 y C-004 P3 siendo el mismo defecto (campo de config sin lector); C-001 lo sube a P1 sin daño clínico ni pérdida de dato. Bajé C-001→P2, C-002/C-003→P3, y bajé a P3 los cuatro del módulo en pausa D-030 (C-010, C-013, C-036, C-038), que no llegan a Practice. Alguna reproducción es de manual y no del código: en C-022 supone un popup de Google que este código nunca abre (usa signInWithRedirect), y en C-026 dice «arreglarlo aquí arregla todas sus instancias» cuando ui/Tabs tiene exactamente un consumidor."
+}

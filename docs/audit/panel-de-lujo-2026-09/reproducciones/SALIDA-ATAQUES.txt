@@ -1,0 +1,170 @@
+
+ RUN  v4.1.10 /home/user/agenda-medica
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts (6 tests | 2 failed) 15ms
+     × HOY FALLA · caso A: un solo expediente homónimo SIN teléfono no funde con la reserva que trae celular 7ms
+     × HOY FALLA · caso C: dos homónimos —uno sin teléfono, otro con teléfono contradictorio— no funde con el que quedó 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts (5 tests | 3 failed) 40ms
+     × HOY FALLA: `NER_SYSTEM_PROMPT` contiene la guarda anti-inyección 10ms
+     × HOY FALLA: el dictado no puede fabricar un segundo bloque «ALERGIAS YA REGISTRADAS EN EL EXPEDIENTE» 1ms
+     × HOY FALLA: el dictado no cambia la estructura de la valla (mismo número de cierres que con un dictado benigno) 2ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-082-cita-inventada-entra-a-la-nota-firmada.test.ts (4 tests | 1 failed) 14ms
+     × HOY FALLA: entre limpiarMarkdown y setSecciones se comprueban las citas [n] contra `articulos` 5ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts (5 tests | 2 failed) 272ms
+     × HOY FALLA: «Digoxina 250 mg» (mil veces la escala del digitálico) no puede salir sin ninguna señal 46ms
+     × HOY FALLA: «Enoxaparina 60 mcg» (la milésima parte del anticoagulante) no puede salir sin ninguna señal 78ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts > REP-080 · un homónimo con teléfono no se cuelga del expediente sin teléfono > HOY FALLA · caso A: un solo expediente homónimo SIN teléfono no funde con la reserva que trae celular
+AssertionError: fundió con «Juan Pérez Ramírez» (id papa) sólo por el nombre y sin ninguna segunda señal: expected { id: 'papa', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "edad": 68,
+  "id": "papa",
+  "nombre": "Juan Pérez Ramírez",
+  "telefono": "",
+}
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts:86:105
+     84|     const existentes = [{ id: 'papa', nombre: 'Juan Pérez Ramírez', te…
+     85|     const r = elegirExpedienteParaCita(RESERVA_JUAN, existentes)
+     86|     expect(r, `fundió con «${r?.nombre}» (id ${r?.id}) sólo por el nom…
+       |                                                                                                         ^
+     87|   })
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts > REP-080 · un homónimo con teléfono no se cuelga del expediente sin teléfono > HOY FALLA · caso C: dos homónimos —uno sin teléfono, otro con teléfono contradictorio— no funde con el que quedó
+AssertionError: hay dos Marías en el directorio y fundió con «e1»: la contradicción de e2 se tiró antes del desempate: expected { id: 'e1', …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "id": "e1",
+  "nombre": "María García López",
+  "telefono": "",
+}
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts:95:126
+     93|     ]
+     94|     const r = elegirExpedienteParaCita({ nombre: 'Maria Garcia Lopez',…
+     95|     expect(r, `hay dos Marías en el directorio y fundió con «${r?.id}»…
+       |                                                                                                                              ^
+     96|   })
+     97|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts > REP-081 · una unidad imposible para el fármaco produce al menos una señal > HOY FALLA: «Digoxina 250 mg» (mil veces la escala del digitálico) no puede salir sin ninguna señal
+AssertionError: ni alerta alta/crítica ni motivo de confirmación: el renglón se imprime en silencio: expected [] to not deeply equal []
+
+Compared values have no visual difference.
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts:113:106
+    111|   it('HOY FALLA: «Digoxina 250 mg» (mil veces la escala del digitálico…
+    112|     const s = señales('Digoxina', '250 mg', 'Digoxina 250 miligramos c…
+    113|     expect(s, 'ni alerta alta/crítica ni motivo de confirmación: el re…
+       |                                                                                                          ^
+    114|   })
+    115|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts > REP-081 · una unidad imposible para el fármaco produce al menos una señal > HOY FALLA: «Enoxaparina 60 mcg» (la milésima parte del anticoagulante) no puede salir sin ninguna señal
+AssertionError: ni alerta alta/crítica ni motivo de confirmación: el renglón se imprime en silencio: expected [] to not deeply equal []
+
+Compared values have no visual difference.
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts:118:106
+    116|   it('HOY FALLA: «Enoxaparina 60 mcg» (la milésima parte del anticoagu…
+    117|     const s = señales('Enoxaparina', '60 mcg', 'Le doy enoxaparina 60 …
+    118|     expect(s, 'ni alerta alta/crítica ni motivo de confirmación: el re…
+       |                                                                                                          ^
+    119|   })
+    120|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-082-cita-inventada-entra-a-la-nota-firmada.test.ts > REP-082 · el análisis que se agrega a la nota comprueba sus citas [n] contra las referencias > HOY FALLA: entre limpiarMarkdown y setSecciones se comprueban las citas [n] contra `articulos`
+AssertionError: ninguna comprobación de [n] antes de escribir la sección en la nota: expected null not to be null
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-082-cita-inventada-entra-a-la-nota-firmada.test.ts:116:90
+    114|   it('HOY FALLA: entre limpiarMarkdown y setSecciones se comprueban la…
+    115|     const m = cuerpo!.match(COMPRUEBA_CITAS)
+    116|     expect(m, 'ninguna comprobación de [n] antes de escribir la secció…
+       |                                                                                          ^
+    117|   })
+    118|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts > REP-083 · el cross-check alergia↔fármaco lleva la guarda y una valla que el dictado no puede cerrar > HOY FALLA: `NER_SYSTEM_PROMPT` contiene la guarda anti-inyección
+AssertionError: el system del NER no lleva GUARDA_INYECCION: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts:99:112
+     97|   it('HOY FALLA: `NER_SYSTEM_PROMPT` contiene la guarda anti-inyección…
+     98|     // Booleano a propósito: si fallara con `toContain`, vitest volcar…
+     99|     expect(NER_SYSTEM_PROMPT.includes(GUARDA_INYECCION.trim()), 'el sy…
+       |                                                                                                                ^
+    100|   })
+    101|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts > REP-083 · el cross-check alergia↔fármaco lleva la guarda y una valla que el dictado no puede cerrar > HOY FALLA: el dictado no puede fabricar un segundo bloque «ALERGIAS YA REGISTRADAS EN EL EXPEDIENTE»
+AssertionError: el bloque legítimo y el inyectado son indistinguibles dentro del prompt: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts:104:108
+    102|   it('HOY FALLA: el dictado no puede fabricar un segundo bloque «ALERG…
+    103|     const p = buildNerUserPrompt(DICTADO_ATAQUE, ['Penicilina'])
+    104|     expect(cuenta(p, ETIQUETA), 'el bloque legítimo y el inyectado son…
+       |                                                                                                            ^
+    105|   })
+    106|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts > REP-083 · el cross-check alergia↔fármaco lleva la guarda y una valla que el dictado no puede cerrar > HOY FALLA: el dictado no cambia la estructura de la valla (mismo número de cierres que con un dictado benigno)
+AssertionError: el texto dictado produjo líneas de cierre propias: la valla se cierra desde dentro: expected 8 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 8
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts:111:8
+    109|     const ataque = buildNerUserPrompt(DICTADO_ATAQUE, ['Penicilina'])
+    110|     expect(lineasDeCierre(ataque), 'el texto dictado produjo líneas de…
+    111|       .toBe(lineasDeCierre(benigno))
+       |        ^
+    112|   })
+    113| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  8 failed | 12 passed (20)
+   Start at  02:14:27
+   Duration  1.34s (transform 1.08s, setup 72ms, import 1.32s, tests 340ms, environment 1ms)
+

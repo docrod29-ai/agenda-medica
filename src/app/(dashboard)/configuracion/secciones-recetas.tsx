@@ -21,6 +21,7 @@ import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
 import { Upload, X as IconX, Pill, ClipboardList, Printer, Loader2, Ruler, Save, Sparkles, Settings2, ChevronDown, UserRound, AlertTriangle, Check } from 'lucide-react'
@@ -173,10 +174,22 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
    * Se comparan los campos que el médico TECLEA (no las imágenes, que cambian de
    * data URL a URL de Storage al guardarse, y compararlas daría falsos fallos).
    */
+  /**
+   * TRES CAMPOS FUERA — Panel de Lujo C-003 y C-004.
+   *
+   * `registroAntidopaje`, `copiasEnHoja` y `mostrarSignosVitales` estaban en
+   * esta lista y **ningún input los edita ni nada los imprime**: sólo existían
+   * en el tipo y aquí. Verificar que quedó guardado un campo que nadie escribe
+   * ni lee no comprueba nada; lo que hace es dar por vigilado un hueco.
+   *
+   * Se sacan de la verificación, no del tipo: quitarlos del tipo es tocar
+   * `src/types/index.ts`, que es de otra rebanada de esta reparación y va en el
+   * handoff. Y si algún consultorio tuviera un valor guardado, sigue ahí.
+   */
   const CAMPOS_VERIFICABLES: (keyof RecetaConfig)[] = [
-    'rfc', 'registroDGP', 'registroAntidopaje', 'vigenciaDias', 'avisoLegal',
-    'mostrarQR', 'mostrarAlergias', 'mostrarDiagnostico', 'mostrarSignosVitales',
-    'copiasEnHoja', 'paperSize', 'estilo',
+    'rfc', 'registroDGP', 'vigenciaDias', 'avisoLegal',
+    'mostrarQR', 'mostrarAlergias', 'mostrarDiagnostico',
+    'paperSize', 'estilo',
   ]
 
   const confirmarQueQuedo = async (esperado: RecetaConfig, medico: string) => {
@@ -268,7 +281,7 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
     } catch (e) {
       // Mostrar la causa real — un "Error al guardar" mudo es indepurable
       const msg = e instanceof Error ? e.message.slice(0, 160) : String(e).slice(0, 160)
-      toast(`Error al guardar: ${msg}`, 'error')
+      toast(noSePudo('guardar la receta de ejemplo', msg), 'error')
       setResultado({ ok: false, texto: `No se guardó: ${msg}` })
       console.error('[recetas/guardar]', e)
     } finally {
@@ -847,7 +860,7 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
                   })()}
                   <div style={{ marginTop: 10 }}>
                     <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
-                    <input
+                    <input aria-label="Tamaño de letra del contenido (px)"
                       type="range" min={8} max={16} step={0.5}
                       value={rx.disenoFontSize ?? 11}
                       onChange={(e) => actualizar({ disenoFontSize: parseFloat(e.target.value) })}
@@ -1068,12 +1081,31 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
           </Section>
 
           {/* Opciones */}
-          <Grupo n={3} t="Qué se imprime" d="Qué datos del paciente aparecen en la hoja y cuántas copias salen." />
+          {/*
+            C-004 — «y cuántas copias salen» prometía un control que no existe:
+            `copiasEnHoja` no tiene input, ni impresión, ni lector. La frase se
+            retira; el campo se queda en el tipo para no perder valores guardados
+            y su retirada va en el handoff.
+          */}
+          <Grupo n={3} t="Qué se imprime" d="Qué datos del paciente aparecen en la hoja." />
           <Section title="Opciones">
             <div style={{ display: 'grid', gap: 8 }}>
               <Toggle label="Mostrar caja de alergias" checked={rx.mostrarAlergias !== false} onChange={(v) => actualizar({ mostrarAlergias: v })} />
               <Toggle label="Mostrar diagnóstico" checked={rx.mostrarDiagnostico !== false} onChange={(v) => actualizar({ mostrarDiagnostico: v })} />
-              <Toggle label="Mostrar signos vitales (en órdenes)" checked={rx.mostrarSignosVitales === true} onChange={(v) => actualizar({ mostrarSignosVitales: v })} />
+              {/*
+                C-003 — «Mostrar signos vitales (en órdenes)» RETIRADO.
+
+                El interruptor se movía y no cambiaba nada: `mostrarSignosVitales`
+                no aparece en `RecetaDocumento`, ni en la pantalla de la orden, ni
+                en ningún impreso. Sus hermanos de esta misma caja
+                (`mostrarDiagnostico`, `mostrarAlergias`, `mostrarQR`) sí se leen,
+                y por eso éste engañaba especialmente bien: estaba en buena
+                compañía.
+
+                Se retira el CONTROL, no el dato guardado. Conectarlo a la orden
+                exige tocar `src/app/(dashboard)/orden/**`, que es de otra
+                rebanada: va en el handoff.
+              */}
               <Toggle label="QR de verificación al pie" checked={rx.mostrarQR !== false} onChange={(v) => actualizar({ mostrarQR: v })} />
             </div>
           </Section>
@@ -1083,19 +1115,19 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
                 <label style={cfgLabel}>RFC</label>
-                <input value={rx.rfc ?? ''} onChange={(e) => actualizar({ rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
+                <input aria-label="RFC" value={rx.rfc ?? ''} onChange={(e) => actualizar({ rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
               </div>
               <div>
                 <label style={cfgLabel}>Registro DGP/SSA (psicotrópicos)</label>
-                <input value={rx.registroDGP ?? ''} onChange={(e) => actualizar({ registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
+                <input aria-label="Registro DGP/SSA (psicotrópicos)" value={rx.registroDGP ?? ''} onChange={(e) => actualizar({ registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
               </div>
               <div>
                 <label style={cfgLabel}>Vigencia default (días)</label>
-                <input type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => actualizar({ vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
+                <input aria-label="Vigencia default (días)" type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => actualizar({ vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
               </div>
               <div>
                 <label style={cfgLabel}>Aviso legal al pie</label>
-                <textarea value={rx.avisoLegal ?? ''} onChange={(e) => actualizar({ avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
+                <textarea aria-label="Aviso legal al pie" value={rx.avisoLegal ?? ''} onChange={(e) => actualizar({ avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
               </div>
             </div>
           </Section>

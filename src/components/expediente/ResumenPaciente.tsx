@@ -5,6 +5,7 @@ import type { NotaMedica } from '@/types/expediente'
 import { Activity } from 'lucide-react'
 import { fechaCorta } from '@/lib/formato/fecha'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
+import { imc as calcularImc } from '@/lib/expediente/cardiometabolico/obesidad'
 
 /**
  * RESUMEN DEL PACIENTE — "todo en un solo lugar".
@@ -22,12 +23,34 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
   const orden = useMemo(() => [...notas].sort((a, b) => (b.fechaConsulta || b.createdAt || '').localeCompare(a.fechaConsulta || a.createdAt || '')), [notas])
   const ultima = orden[0] ?? null
 
-  const signos = useMemo(() => {
-    for (const n of orden) {
-      if (n.signosVitales && Object.values(n.signosVitales).some(Boolean)) return n.signosVitales
-    }
-    return null
-  }, [orden])
+  /**
+   * ASN-008 — DE QUÉ NOTA SALEN ESTOS SIGNOS, Y SI ESTÁ FIRMADA.
+   *
+   * Esto recorría `orden` sin mirar `n.estado`, así que tomaba los signos de un
+   * BORRADOR sin firmar —el de la consulta que está abierta ahora mismo— y los
+   * pintaba sin marca, mientras el bloque de al lado (`#spine-problemas`)
+   * promete que lo suyo sale «de sus notas firmadas» y sí filtra. Dos bloques
+   * vecinos, dos verdades distintas y ninguna manera de saber cuál era cuál.
+   *
+   * No se filtra el borrador: el signo que el médico acaba de tomar es
+   * información REAL y esconderla sería peor. Lo que se hace es DECIRLO — la
+   * marca «borrador, sin firmar» y la fecha de la toma viajan con la cifra.
+   * Es PROCEDENCIA, que es lo que distingue este producto: no se cambia el
+   * dato, se dice de dónde salió.
+   */
+  /*
+    Se memoriza la NOTA, no un objeto nuevo con sus tres datos: devolver un
+    objeto recién construido rompe la memorización que el compilador de React
+    puede preservar (lo caza el lint), y además obliga a leerlo por un nombre
+    intermedio. La nota ya existe; lo demás se deriva de ella.
+  */
+  const notaDeLosSignos = useMemo(
+    () => orden.find(n => n.signosVitales && Object.values(n.signosVitales).some(Boolean)) ?? null,
+    [orden],
+  )
+  const signos = notaDeLosSignos?.signosVitales ?? null
+  const signosFirmados = notaDeLosSignos?.estado === 'firmada'
+  const fechaDeLaToma = notaDeLosSignos?.fechaConsulta || notaDeLosSignos?.createdAt || ''
 
   /**
    * ── AQUÍ SE PERDÍA QUIÉN PUSO CADA DIAGNÓSTICO ───────────────────────────
@@ -87,16 +110,42 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
      Ahora sale del módulo único (`@/lib/formato/fecha`). */
   const fmt = (iso?: string) => fechaCorta(iso) || null
 
+  /**
+   * ASN-007 — CADA CIFRA CON SU UNIDAD, Y LA TALLA QUE FALTABA.
+   *
+   * «TA 118/74 · FC 82 · FR 16 · T° 36.8» son cuatro números pelados. Un
+   * expediente no puede pintar cifras clínicas sin unidad: la misma línea que
+   * se lee de un vistazo es la que se copia a una interconsulta.
+   *
+   * `talla` existía en el tipo (`SignosVitales.talla`) y NO se pintaba en
+   * ninguna parte, así que el dato se capturaba y se perdía de vista.
+   *
+   * ── EL IMC SE CALCULA, Y CON EL MOTOR QUE YA EXISTE ───────────────────────
+   *
+   * `signos.imc` es un lector sin escritor: ninguna pantalla lo persiste (0
+   * escrituras de `imc:` en `src/`), así que esta línea nunca lo pintaba. Se
+   * deriva de peso y talla con `imc()` de `cardiometabolico/obesidad`, que es
+   * el motor determinista que ya usa la consulta — no se escribe una segunda
+   * fórmula, que sería otra fuente de verdad para el mismo número.
+   *
+   * Lo que NO se hace, y es deliberado: **clasificarlo**. `clasificarIMC()`
+   * existe al lado y devuelve «Sobrepeso», «Obesidad clase I»… Eso es un juicio
+   * clínico con su fuente (consenso AACE 2025), no un resumen de un vistazo, y
+   * el sitio donde se emite es el copiloto de la consulta, con su sello. Aquí
+   * sólo va la aritmética.
+   */
   const vitales: { label: string; valor: string }[] = []
   if (signos) {
-    if (signos.ta) vitales.push({ label: 'TA', valor: `${signos.ta}` })
-    if (signos.fc) vitales.push({ label: 'FC', valor: `${signos.fc}` })
-    if (signos.fr) vitales.push({ label: 'FR', valor: `${signos.fr}` })
-    if (signos.temperatura) vitales.push({ label: 'T°', valor: `${signos.temperatura}` })
-    if (signos.spo2) vitales.push({ label: 'SpO₂', valor: `${signos.spo2}%` })
+    if (signos.ta) vitales.push({ label: 'TA', valor: `${signos.ta} mmHg` })
+    if (signos.fc) vitales.push({ label: 'FC', valor: `${signos.fc} lpm` })
+    if (signos.fr) vitales.push({ label: 'FR', valor: `${signos.fr} rpm` })
+    if (signos.temperatura) vitales.push({ label: 'T°', valor: `${signos.temperatura} °C` })
+    if (signos.spo2) vitales.push({ label: 'SpO₂', valor: `${signos.spo2} %` })
     if (signos.peso) vitales.push({ label: 'Peso', valor: `${signos.peso} kg` })
-    if (signos.imc) vitales.push({ label: 'IMC', valor: `${signos.imc}` })
-    if (signos.glucometria) vitales.push({ label: 'Gluc', valor: `${signos.glucometria}` })
+    if (signos.talla) vitales.push({ label: 'Talla', valor: `${signos.talla} cm` })
+    const imcCalculado = signos.imc ?? (signos.peso && signos.talla ? calcularImc(signos.peso, signos.talla) : null)
+    if (imcCalculado) vitales.push({ label: 'IMC', valor: `${imcCalculado} kg/m²` })
+    if (signos.glucometria) vitales.push({ label: 'Gluc', valor: `${signos.glucometria} mg/dL` })
   }
 
   /**
@@ -161,6 +210,21 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
                 <span className="nx-num" style={{ color: 'var(--text)' }}>{v.valor}</span>
               </span>
             ))}
+            {/*
+              ASN-007/ASN-008 — DE CUÁNDO SON, Y DE DÓNDE SALEN.
+
+              La fecha no se podía deducir de «última visita» dos renglones más
+              abajo: estos signos salen de la primera nota HACIA ATRÁS que traiga
+              alguno, que no tiene por qué ser la más reciente. Y si la nota es
+              un borrador, se dice — el bloque vecino promete «notas firmadas» y
+              éste no filtraba.
+            */}
+            {notaDeLosSignos && (
+              <span className="nx-meta" style={{ marginLeft: 6, color: signosFirmados ? 'var(--text3)' : 'var(--amber)' }}>
+                {fmt(fechaDeLaToma) ? `tomados el ${fmt(fechaDeLaToma)}` : 'sin fecha de la toma'}
+                {!signosFirmados && ' · de un borrador sin firmar'}
+              </span>
+            )}
           </div>
         )}
 

@@ -32,6 +32,7 @@ import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
+import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 
 export const runtime = 'nodejs'
 /**
@@ -172,9 +173,9 @@ export async function POST(req: NextRequest) {
   const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
   async function consultasIA(): Promise<string[]> {
     const sys = 'Eres experto en búsqueda en PubMed. Genera 2 o 3 consultas MUY CORTAS en INGLÉS (2 a 4 palabras clave / términos MeSH cada una — NO frases largas, que traen 0 resultados), PRIORIZANDO el MOTIVO DE CONSULTA (problema activo de HOY); comorbilidades solo si son directamente relevantes. Traduce abreviaturas MX (IVU/ITU=urinary tract infection, DM2=type 2 diabetes, HAS/HTA=hypertension, ERC=chronic kidney disease). Devuelve SOLO un arreglo JSON de strings, la 1ª del motivo. Ej "IVU recurrente": ["recurrent urinary tract infection","recurrent UTI prophylaxis","recurrent UTI diabetes"]'
-    const user = `MOTIVO (principal): ${motivo || dx[0] || '—'}\nComorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`
+    const user = delimitar(`MOTIVO (principal): ${motivo || dx[0] || '—'}\nComorbilidades: ${dx.join('; ') || '—'}\nTratamiento: ${meds.join('; ') || '—'}`, 'NOTA')
     async function llamar(model: string) {
-      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 250, system: sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(9000) })
+      return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, max_tokens: 250, system: GUARDA_INYECCION + '\n\n' + sys, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(9000) })
     }
     try {
       let r = await llamar(MODELOS_HAIKU[0])
@@ -288,6 +289,8 @@ export async function POST(req: NextRequest) {
       : '(PubMed no devolvió artículos para estos términos — razona con tu conocimiento clínico, guías y consenso, y decláralo.)'
 
   const system = [
+    // B-006 (Panel de Lujo): el resumen y los diagnósticos salen del dictado; llevan guarda y valla.
+    GUARDA_INYECCION,
     'Eres un CONSULTOR CLÍNICO de altísimo nivel (subespecialista).',
     'Tu trabajo: ENTENDER el caso, PROCESARLO, ANALIZARLO y RAZONARLO a fondo — SIEMPRE das un análisis útil y accionable, tengas o no artículos de PubMed.',
     `PRIORIDAD ABSOLUTA: el análisis debe girar en torno al MOTIVO DE CONSULTA / problema activo que se atiende HOY${motivo ? ` (= "${motivo.slice(0, 160)}")` : ''}. Empieza y enfócate en ESE problema; las comorbilidades solo se mencionan si son directamente relevantes a él, y AL FINAL.`,
@@ -311,7 +314,7 @@ export async function POST(req: NextRequest) {
     'Responde SOLO JSON válido: {"evaluacion":[{"punto":"...","sustento":"...","citas":[n],"pasajes":["cita textual del resumen n"]}],"alternativas":[{"opcion":"...","porque":"...","citas":[n],"pasajes":["..."]}],"diferencial":[{"dx":"...","razon":"...","citas":[n],"pasajes":["..."]}]}. Da al menos 2-3 puntos de evaluación y, cuando aplique, alternativas y diferenciales.',
     '(5) "citas" y "pasajes" van EMPAREJADOS y del mismo largo: por cada [n] que cites, copia en "pasajes" —LITERAL, palabra por palabra, del texto que se te dio— la frase de ESE artículo que respalda lo que afirmas. No parafrasees el pasaje ni lo traduzcas: se comprueba carácter a carácter contra el original. Si una afirmación tuya no tiene una frase literal que la respalde, deja "citas" y "pasajes" VACÍOS en vez de citar de más — decirlo sin cita es honesto; citar algo que no lo dice, no.',
   ].join('\n')
-  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dxParaElModelo.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO: ${resumen.slice(0, 1500)}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
+  const userMsg = `PACIENTE: edad ${ctx.edad ?? '?'}, sexo ${ctx.sexo ?? '?'}, alergias: ${alergias}.\nDIAGNÓSTICOS: ${dxParaElModelo.join('; ') || '—'}\nTRATAMIENTO: ${meds.join('; ') || '—'}${resumen ? `\nRESUMEN CLÍNICO:\n${delimitar(resumen.slice(0, 1500), 'NOTA')}` : ''}\n\nEVIDENCIA (PubMed):\n${fuentesTxt}\n\nAnaliza y razona el caso. Devuelve solo el JSON.`
 
   const conThinking = false   // NUNCA razonamiento extendido aquí (causaba timeouts de 40s)
   type Parsed = Record<string, unknown>

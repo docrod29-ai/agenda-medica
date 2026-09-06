@@ -208,6 +208,16 @@ export const COLECCIONES_RAIZ: readonly ColeccionRaiz[] = [
  */
 export const RAIZ_EXCLUIDAS: Record<string, string> = {
   'platform_*': 'Estado de la PLATAFORMA (planes, pagos, recargas, incidentes, latidos, CSP), no de este consultorio. Meterlo en el archivo que el médico descarga sería entregarle datos de otros consultorios.',
+  /**
+   * `googleTokens` tenía regla propia (`if false`) y no estaba declarada ni
+   * aquí ni en COLECCIONES_RAIZ (Panel de Lujo ASE-017). Consecuencia real:
+   * tras restaurar, cada médico amanece desconectado del calendario y el
+   * manifiesto no lo decía. Se excluye A PROPÓSITO —es una credencial
+   * persistente, y un respaldo es un archivo que se manda por correo— y por
+   * eso figura en `LO_QUE_HAY_QUE_RECONECTAR_A_MANO`.
+   */
+  googleTokens: 'Credenciales de Google Calendar por usuario (access/refresh token). Credencial persistente: no va en un archivo que se descarga. Tras restaurar, cada médico vuelve a conectar su calendario desde Integraciones.',
+  pruebas_estrenadas: 'Marca de que un correo ya estrenó la prueba de 14 días (huella, sin el correo). Es de la plataforma y se reconstruye al alta.',
   errores: 'Informes de error ya redactados, de toda la plataforma. Sirven para operar el producto, no para reconstruir un consultorio.',
   soporte: 'Mensajes de soporte de toda la plataforma.',
   rate_limits: 'Ventanas de limitación de tasa. Viven minutos y se reconstruyen solas.',
@@ -218,6 +228,19 @@ export const RAIZ_EXCLUIDAS: Record<string, string> = {
   anticipos_procesados: 'Marcas de idempotencia de Stripe, de toda la plataforma.',
   recargas_procesadas: 'Marcas de idempotencia de recargas, de toda la plataforma.',
 }
+
+/**
+ * LO QUE UN RESPALDO RESTAURADO NO DEVUELVE Y ALGUIEN TIENE QUE VOLVER A HACER.
+ *
+ * El acta de restauración lo lista tal cual, para que «restaurado» no se lea
+ * como «todo como antes». Cada entrada es una exclusión deliberada de arriba
+ * cuyo efecto se nota en el consultorio.
+ */
+export const LO_QUE_HAY_QUE_RECONECTAR_A_MANO: readonly { coleccion: string; accion: string }[] = [
+  { coleccion: 'secretos', accion: 'Volver a pegar las llaves de IA y el token de WhatsApp en Configuración.' },
+  { coleccion: 'googleTokens', accion: 'Cada médico vuelve a conectar Google Calendar desde Integraciones.' },
+  { coleccion: 'whatsapp_channels', accion: 'Si el número de WhatsApp era propio, volver a conectarlo desde Configuración → WhatsApp.' },
+]
 
 export const EXCLUIDAS: Record<string, string> = {
   secretos: 'Las llaves de API del consultorio. Meterlas en un archivo que el médico descarga, manda por correo y deja en su escritorio convertiría un respaldo en una filtración de credenciales. Se vuelven a pegar en Configuración.',

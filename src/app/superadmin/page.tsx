@@ -12,6 +12,8 @@ import { Modal, Button, Spinner } from '@/components/ui'
 import { MODULOS, MODULO_LABEL } from '@/lib/modulos'
 import { PLANES, PLANES_ORDEN, MODULOS_POR_PLAN } from '@/lib/planes-ia'
 import { type ModeloPrecio, explicarPrecio } from '@/lib/pricing'
+import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { Calculator, Route, Tag, ShieldCheck, Search, Gift, Ban, Play, CalendarPlus, StickyNote, Lock, RefreshCw, Package, Plus, Trash2, Boxes, Sparkles, TrendingUp, LogIn, LifeBuoy, Bug, Coins } from 'lucide-react'
 
 interface Cliente {
@@ -500,6 +502,7 @@ const NUEVO: BorradorPaquete = { nombre: '', precio: 0, modulos: [], descripcion
 function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio: () => void }) {
   const [editar, setEditar] = useState<BorradorPaquete | null>(null)
   const [busy, setBusy] = useState(false)
+  const { toast, confirm } = useToast()
 
   const guardar = async () => {
     if (!editar || !editar.nombre.trim() || editar.modulos.length === 0) return
@@ -511,23 +514,30 @@ function PaquetesManager({ paquetes, onCambio }: { paquetes: Paquete[]; onCambio
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: editar.id ? 'editar' : 'crear', id: editar.id, paquete: editar }),
       })
-      if (!r.ok) { alert('No se pudo guardar el paquete. Reintenta.'); return }
+      if (!r.ok) { toast(noSePudo('guardar el paquete'), 'error'); return }
       setEditar(null); onCambio()
-    } catch { alert('No se pudo guardar el paquete (revisa tu conexión).') }
+    } catch (e) { toast(noSePudo('guardar el paquete', e), 'error') }
     finally { setBusy(false) }
   }
   const borrar = async (id: string) => {
-    // Confirmación en una acción destructiva (los otros borrados de la app sí confirman).
-    if (!window.confirm('¿Eliminar este paquete? No se puede deshacer.')) return
+    /*
+     * C-031 — la consola del dueño usaba `alert()` y `window.confirm()` nativos,
+     * los únicos del producto. No es sólo estética: el diálogo nativo no sigue el
+     * tema, no se puede etiquetar como peligroso y en algunos navegadores se
+     * suprime tras varios seguidos, así que una confirmación destructiva puede
+     * dejar de aparecer sin que nadie se entere. Se usan el `confirm` y el
+     * `toast` del producto, que ya atrapan el foco y cierran con Escape.
+     */
+    if (!(await confirm('¿Eliminar este paquete? No se puede deshacer.', { peligro: true, confirmar: 'Eliminar' }))) return
     setBusy(true)
     try {
       const r = await fetchAutenticado('/api/superadmin/paquetes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'borrar', id }),
       })
-      if (!r.ok) { alert('No se pudo eliminar el paquete.'); return }
+      if (!r.ok) { toast(noSePudo('eliminar el paquete'), 'error'); return }
       onCambio()
-    } catch { alert('No se pudo eliminar el paquete (revisa tu conexión).') }
+    } catch (e) { toast(noSePudo('eliminar el paquete', e), 'error') }
     finally { setBusy(false) }
   }
   const toggle = (k: string) => setEditar(e => e ? { ...e, modulos: e.modulos.includes(k) ? e.modulos.filter(x => x !== k) : [...e.modulos, k] } : e)

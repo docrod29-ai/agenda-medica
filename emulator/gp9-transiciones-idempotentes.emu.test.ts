@@ -79,7 +79,7 @@ vi.mock('@/lib/firebase', async () => {
 
 const { abrirEntorno, sembrar } = await import('./entorno')
 const { cambiarEstadoCita } = await import('@/lib/agenda/transicion-cita')
-const { registrarCobro, cobrosDeCita } = await import('@/lib/cobros')
+const { registrarCobro, cobrosDeCita, CobroPosiblementeDuplicado } = await import('@/lib/cobros')
 const { createNota, listarNotasCompat } = await import('@/lib/expediente/firestore')
 const { idIdempotente, claveDeIntento } = await import('@/lib/idempotencia')
 
@@ -234,14 +234,38 @@ describe('GP9 - cobro', () => {
   it('el orden de llegada no cambia cual es la entidad canonica', async () => {
     // Dos intentos distintos, lanzados al reves. Sigue habiendo exactamente un
     // documento por intento: el orden no fabrica ni pierde ninguno.
+    //
+    // `esOtroDistinto` es lo que RT-005 añadió, y aquí es lo que este caso ya
+    // decia con palabras: son DOS ABONOS distintos del mismo importe el mismo
+    // dia. Sin esa confirmacion el motor pregunta —«¿ya hay un cobro igual de
+    // hoy, es otro?»— porque desde fuera no se distinguen de un doble clic. La
+    // pregunta la contesta una persona; aqui la contesta el fixture, que es
+    // quien sabe que son dos.
+    //
+    // Lo que NO cambia, y es lo que mide esta prueba: cada clave converge a SU
+    // documento, llegue en el orden que llegue.
     const k1 = claveDeIntento()
     const k2 = claveDeIntento()
-    const segundo = await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k2 })
-    const primero = await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k1 })
+    const sonDos = { esOtroDistinto: true }
+    const segundo = await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k2, ...sonDos })
+    const primero = await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k1, ...sonDos })
     expect(primero).not.toBe(segundo)
     expect(await contar(`clinics/${H.TENANT_A}/cobros`)).toBe(2)
     // Y repetir el PRIMERO, ya llegado tarde, sigue convergiendo al suyo.
-    expect(await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k1 })).toBe(primero)
+    expect(await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: k1, ...sonDos })).toBe(primero)
+  })
+
+  it('al reves: SIN esa confirmacion, el segundo abono igual de hoy PREGUNTA', async () => {
+    /**
+     * El control del caso de arriba. Si `esOtroDistinto` no hiciera nada, el
+     * caso anterior pasaria igual y esta prueba dejaria de proteger a RT-005:
+     * un doble clic sobre «Cobrar» volveria a cobrar dos veces en silencio.
+     */
+    const a = await registrarCobro(H.TENANT_A, abono, { claveIdempotencia: claveDeIntento(), esOtroDistinto: true })
+    expect(a).toBeTruthy()
+    await expect(
+      registrarCobro(H.TENANT_A, abono, { claveIdempotencia: claveDeIntento() }),
+    ).rejects.toBeInstanceOf(CobroPosiblementeDuplicado)
   })
 
   it('un cobro SUELTO (sin cita) tampoco se duplica al reintentar', async () => {

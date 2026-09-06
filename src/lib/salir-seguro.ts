@@ -207,7 +207,24 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
    */
   const purgarAudio = () => { if (!r.audioSinTranscribir) limpiarAudioLocal() }
 
-  if (r.todoGuardado) {
+  /**
+   * «NADIE TENÍA NADA QUE GUARDAR» NO ES «SE INTENTÓ Y FALLÓ» (Panel de Lujo
+   * ASE-013 · REP-040).
+   *
+   * Las dos situaciones devolvían `todoGuardado: false`, y la prudencia pensada
+   * para la consulta dictada se aplicaba al cierre más frecuente —Pacientes,
+   * Agenda, Operaciones— donde no hay ninguna promesa que esperar. Resultado:
+   * la caché IndexedDB de Firestore con los expedientes se quedaba en el equipo
+   * compartido, mientras Operaciones prometía «nada del consultorio se queda
+   * guardado aquí».
+   *
+   * Se purga cuando el trabajo está a salvo O cuando no había trabajo: sin
+   * oyentes no hay borrador ni cola pendiente que proteger. La caché sólo se
+   * conserva cuando alguien SÍ intentó guardar y no se pudo confirmar.
+   */
+  const seguroPurgar = r.todoGuardado || !r.huboAcuse
+
+  if (seguroPurgar) {
     limpiarBorradoresLocales()
     try { await auth.signOut() } finally {
       purgarAudio()
@@ -221,11 +238,35 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
     await auth.signOut()
   } finally {
     purgarAudio()
-    const aviso = r.seAgotoElTiempo
-      ? 'guardado_lento'
-      : r.huboAcuse ? 'guardado_fallido' : 'sin_confirmar'
-    window.location.href = `${destino}${destino.includes('?') ? '&' : '?'}pendiente=${aviso}`
+    const aviso: AvisoPendiente = r.seAgotoElTiempo ? 'guardado_lento' : 'guardado_fallido'
+    window.location.href = `${destino}${destino.includes('?') ? '&' : '?'}${PARAMETRO_PENDIENTE}=${aviso}`
   }
+}
+
+/**
+ * EL AVISO CON EL QUE SALE LA SESIÓN — Y QUIÉN LO LEE (Panel de Lujo ASE-014).
+ *
+ * `?pendiente=…` se emitía y NADIE lo leía: /login sólo mira `invite`. El
+ * médico nunca se enteraba de que algo no se guardó. Aquí vive el catálogo
+ * —parámetro, valores y texto en lenguaje de persona— para que la pantalla de
+ * entrada lo pinte sin reinventarlo. `sin_confirmar` ya no se emite: sin
+ * oyentes se purga (ASE-013); se conserva en el tipo por los enlaces viejos.
+ */
+export const PARAMETRO_PENDIENTE = 'pendiente'
+export type AvisoPendiente = 'guardado_lento' | 'guardado_fallido' | 'sin_confirmar'
+export const MENSAJE_PENDIENTE: Record<AvisoPendiente, string> = {
+  guardado_lento:
+    'Quedó trabajo sin confirmar en este equipo: el guardado tardó demasiado. Vuelve a entrar aquí mismo, en este navegador, para recuperarlo.',
+  guardado_fallido:
+    'Quedó trabajo sin guardar en este equipo. Vuelve a entrar aquí mismo, en este navegador, para recuperarlo antes de cerrar.',
+  sin_confirmar:
+    'No se pudo confirmar que todo quedara guardado. Si estabas a media consulta, vuelve a entrar en este navegador para recuperarla.',
+}
+
+/** Lee el aviso de una URL de entrada; `null` si no viene o no es de los nuestros. */
+export function avisoPendienteDe(search: string): AvisoPendiente | null {
+  const v = new URLSearchParams(search.startsWith('?') ? search : `?${search}`).get(PARAMETRO_PENDIENTE)
+  return v && v in MENSAJE_PENDIENTE ? (v as AvisoPendiente) : null
 }
 
 export const POR_QUE_NO_SE_PURGA_SI_FALLA =
