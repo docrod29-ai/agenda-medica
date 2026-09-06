@@ -97,7 +97,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'
+import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS, LO_QUE_NO_SE_VIGILA } from '@/lib/paciente/urgencia'
 
 const leer = (rel: string) => readFileSync(join(process.cwd(), rel), 'utf8')
 const PORTAL = leer('src/app/mi/[token]/page.tsx')
@@ -140,7 +140,7 @@ describe('la vía de urgencia llega la primera, no la última', () => {
 
 describe('la lista de motivos no se copia a mano', () => {
   it('sale de MOTIVO_LABEL, que es donde vive la política', () => {
-    expect(VIA).toContain("import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'")
+    expect(VIA).toContain("import { MOTIVO_LABEL, TELEFONO_EMERGENCIAS, LO_QUE_NO_SE_VIGILA } from '@/lib/paciente/urgencia'")
     expect(VIA).toContain('Object.values(MOTIVO_LABEL)')
   })
 
@@ -148,7 +148,35 @@ describe('la lista de motivos no se copia a mano', () => {
     // La prosa nombraba tres de cuatro. El que faltaba es el que cazó la puerta
     // de evals/patient-ai/ en las doce preguntas del §0.
     expect(Object.keys(MOTIVO_LABEL)).toContain('ingesta_accidental_o_sobredosis')
-    expect(Object.values(MOTIVO_LABEL).length, 'cambió el número de motivos: revisa la pantalla').toBe(4)
+  })
+
+  it('y cuando el vocabulario creció, la pantalla creció sola', () => {
+    /**
+     * ── ESTE CASO EXIGÍA «EXACTAMENTE CUATRO», Y ESO ERA UN TECHO ──────────
+     *
+     * Decía `toBe(4)` con el mensaje «cambió el número de motivos: revisa la
+     * pantalla». Cumplió su trabajo: PL-C9 amplió el vocabulario de cuatro
+     * motivos a once —obstetricia, pediatría, postoperatorio, ortopedia e
+     * interna pidieron lo mismo el mismo día— y este caso obligó a mirar cómo
+     * quedaba la caja. Con once, la frase con comas era un muro; ahora es una
+     * lista.
+     *
+     * Lo que se conserva es el invariante de verdad, y va en la dirección
+     * SEGURA: el vocabulario de urgencia **sólo puede crecer**. Quitar un
+     * motivo es dejar de vigilar un cuadro, y eso no puede pasar en silencio.
+     */
+    expect(Object.values(MOTIVO_LABEL).length, 'el vocabulario de urgencia sólo puede crecer').toBeGreaterThanOrEqual(11)
+    // Y todos se pintan: si la pantalla enseñara un subconjunto, el paciente
+    // leería una lista de seguridad recortada sin saberlo.
+    expect(VIA).toContain('MOTIVOS.map(')
+  })
+
+  it('la caja dice también lo que NO vigila (PL-C9)', () => {
+    // La recomendación por omisión del dueño: mientras el vocabulario
+    // definitivo no esté firmado por especialidad, el portal tiene que decir
+    // qué se queda fuera. Una lista de seguridad que parece completa es peor.
+    expect(VIA).toContain('LO_QUE_NO_SE_VIGILA')
+    expect(LO_QUE_NO_SE_VIGILA.toLowerCase()).toContain('no incluye')
   })
 
   it('el aviso NO se presenta como una lista cerrada', () => {
