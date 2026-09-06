@@ -78,11 +78,12 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 343,
-    "ultimaREG": "REG-555",
+    "regsEnElLedger": 391,
+    "ultimaREG": "REG-602",
     "archivosDePrueba": 968,
     "casosDePrueba": 11601,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1185"
+  "versionEnElRepo": "nexusmed-v1185",
+  "ultimaREG": null
 }

@@ -92,13 +92,28 @@ describe('REP-053 · el peso de signos vitales pasa por revisarPesoPediatrico an
   })
 
   /**
-   * HANDOFF A RECETA-DOCS (declarado, no silenciado): la pantalla de la receta
-   * vuelve a leer el peso de la nota y llama a `revisarDosis` sin pasar por
-   * `revisarPesoPediatrico`. Ese archivo no es de esta rebanada; el caso queda
-   * escrito para activarse en cuanto su dueno lo repare — activarlo aqui dejaria
-   * la suite roja por trabajo ajeno, que no es lo que mide una prueba.
+   * EL HANDOFF SE CERRO AL INTEGRAR (6-sep-2026).
+   *
+   * Estaba escrito como `it.todo` porque la pantalla de la receta era de otra
+   * rebanada y activarlo habria dejado la suite roja por trabajo ajeno. Con las
+   * dos rebanadas fusionadas ya no hay a quien esperar, asi que se activa: la
+   * receta llama a `revisarPesoPediatrico` con el peso que alimenta mg/kg, y
+   * con el peso de la ULTIMA nota firmada que tenga uno — sin ese segundo dato
+   * solo se puede cazar el peso implausible, y no el x2.2, que es la forma real
+   * en que se cuela una bascula en libras.
+   *
+   * QUE NO CUBRE: que el aviso se vea. Eso lo mide el recorrido del navegador.
    */
-  it.todo('HANDOFF RECETA-DOCS · la receta, que alimenta revisarDosis con el peso de la nota, revisa ese peso')
+  it('la receta, que alimenta revisarDosis con el peso de la nota, revisa ese peso', () => {
+    const receta = leer(RECETA)
+    expect(/revisarPesoPediatrico/.test(receta), `${RECETA} no menciona revisarPesoPediatrico`).toBe(true)
+    // Y con el peso PREVIO, no consigo mismo: `revisarPesoPediatrico(20, 20)`
+    // devuelve ok y la deteccion x2.2 no dispararia nunca.
+    expect(receta).toMatch(/revisarPesoPediatrico\(pesoParaDosis, pesoPrevioDeLaNota/)
+    expect(receta).toMatch(/setPesoPrevioDeLaNota\(/)
+    // Y el aviso se pinta: calcularlo y no ensenarlo es el mismo defecto.
+    expect(receta).toMatch(/!avisoDelPeso\.ok &&/)
+  })
 
   it('control del handoff: la receta sigue siendo la pantalla que dosifica con el peso de la nota', () => {
     expect(leer(RECETA)).toMatch(/kgMasa\(pesoParaDosis\)/)

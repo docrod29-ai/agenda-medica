@@ -43,6 +43,7 @@ import { creatininaDelExpediente, creatininaParaDosificar, comoSeDiceLaCreatinin
 import { terapiaDuplicadaDeLaLista } from '@/lib/seguridad/terapia-duplicada'
 import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
+import { revisarPesoPediatrico } from '@/lib/expediente/pediatria'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import { edadParaDosificar, AVISO_SIN_EDAD_PARA_DOSIFICAR } from '@/lib/seguridad/edad-para-dosificar'
 import { pesoParaDosificar, AVISO_SIN_PESO_PARA_DOSIFICAR } from '@/lib/receta-peso-para-dosificar'
@@ -196,6 +197,7 @@ export default function GeneradorRecetaPage() {
     [edadCongelada, fechaNacimiento],
   )
   const pesoDeLaNota = nota?.signosVitales?.peso
+  const [pesoPrevioDeLaNota, setPesoPrevioDeLaNota] = useState<number | null>(null)
 
   /**
    * EMBARAZO Y LACTANCIA — MG-002.
@@ -235,6 +237,25 @@ export default function GeneradorRecetaPage() {
   const esPediatrico = edadPaciente != null && edadPaciente < 18
   const pesoDosis = pesoParaDosificar(esPediatrico, pesoDeLaNota, pesoKg)
   const pesoParaDosis = pesoDosis.peso
+
+  /**
+   * ── EL PESO PASA POR LA MISMA GUARDA QUE EN LA CONSULTA — MP-006 ───────────
+   *
+   * El hard-stop kg/lb protegía SÓLO al panel de pediatría. Aquí se volvía a
+   * leer el peso de la nota y se alimentaba `revisarDosis` sin pasar por
+   * `revisarPesoPediatrico`, así que una captura en libras —el error de unidad
+   * más común en una báscula— multiplicaba por 2.2 todas las dosis mg/kg de la
+   * receta que se imprime y se firma.
+   *
+   * Es un aviso, no un bloqueo: hay adolescentes de más de 120 kg y hay pesos
+   * que suben de verdad. Lo que no puede pasar es que nadie lo mire.
+   *
+   * QUÉ NO CUBRE: sin peso previo no se puede detectar el ×2.2, sólo el
+   * implausible. Ese hueco es el mismo que en la consulta y está declarado ahí.
+   */
+  const avisoDelPeso = esPediatrico && pesoParaDosis != null
+    ? revisarPesoPediatrico(pesoParaDosis, pesoPrevioDeLaNota ?? undefined)
+    : { ok: true as const }
 
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
@@ -408,13 +429,27 @@ export default function GeneradorRecetaPage() {
          * «Ketorolaco ya figura como vigente… y hoy se receta Ketorolaco»: se
          * cruzaba consigo misma. Se vio en el navegador, no en las pruebas.
          */
-        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaId)
+        const otrasFirmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaId)
+        const firmadas = otrasFirmadas
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
             diagnosticos: n.diagnosticos,
           }))
         setVigentes([...estadoDeMedicamentos(firmadas, new Date().toISOString(), { historialIncompleto: truncada }).vigentes])
+        /**
+         * EL PESO DE LA CONSULTA ANTERIOR — MP-006.
+         *
+         * Sin él, la guarda kg/lb sólo puede cazar el peso implausible; el
+         * ×2.2, que es la forma REAL en que se cuela una báscula en libras, no
+         * se puede ver sin algo con qué comparar. Se toma el de la nota firmada
+         * más reciente que tenga peso, que es exactamente lo que el médico
+         * miraría.
+         */
+        const conPeso = otrasFirmadas
+          .filter(n => typeof n.signosVitales?.peso === 'number' && (n.signosVitales.peso as number) > 0)
+          .sort((x, y) => String(y.fechaConsulta ?? '').localeCompare(String(x.fechaConsulta ?? '')))
+        setPesoPrevioDeLaNota(conPeso.length ? Number(conPeso[0].signosVitales?.peso) : null)
       })
       .catch(e => console.error('medicación vigente:', e))
   }, [clinicId, patientId, notaId])
@@ -841,6 +876,23 @@ export default function GeneradorRecetaPage() {
             }}>
               <Scale size={15} className="ds-icon" style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
               <span>{AVISO_SIN_PESO_PARA_DOSIFICAR}</span>
+            </div>
+          )}
+
+          {/* MP-006 — el peso que alimenta mg/kg pasa por la misma guarda kg/lb
+              que en la consulta. Avisa, no bloquea: hay adolescentes de más de
+              120 kg y hay pesos que suben de verdad. Lo que no puede pasar es
+              que una báscula en libras multiplique por 2.2 toda la receta sin
+              que nadie lo mire. */}
+          {!avisoDelPeso.ok && (
+            <div role="status" style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
+              fontSize: 12, color: 'var(--text)', lineHeight: 1.45,
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <Scale size={15} className="ds-icon" style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+              <span>{avisoDelPeso.motivo}</span>
             </div>
           )}
 
