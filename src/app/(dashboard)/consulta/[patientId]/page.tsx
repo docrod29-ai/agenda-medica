@@ -5588,40 +5588,32 @@ export default function ConsultaActivaPage() {
                 )}
 
                 {/*
-                  PALABRAS QUE EL AUDIO NO OYÓ BIEN.
-                  Va aquí, junto al dictado y ANTES de firmar, porque es donde el
-                  médico todavía se acuerda de lo que dijo el paciente. En la nota
-                  ya terminada llegaría tarde: para entonces la palabra dudosa ya
-                  se lee como un hecho.
+                  LA CAJA ÁMBAR DE «PALABRAS QUE EL AUDIO NO OYÓ» SE RETIRÓ — D-032.
+
+                  Decisión del dueño, 5-sep-2026, probando la app en su iPhone:
+                  «no quiero que aparezca, sólo confunde; que haga lo que se
+                  tenga que hacer pero que no salga».
+
+                  LO QUE SE FUE es SÓLO la caja. Nada del trabajo se tocó:
+
+                   · el marcado sigue corriendo — `palabrasAVerificar` se calcula
+                     igual (arriba, con `paraElMedico`) y sigue viajando a la nota
+                     que se archiva, unas líneas más abajo en este mismo archivo.
+                     La IA sigue sin dar por hechas esas palabras, que era el
+                     punto;
+                   · el audio crudo se conserva, como siempre;
+                   · la procedencia por frase sigue igual: pulsar una frase sigue
+                     llevando al segundo exacto del dictado.
+
+                  LO QUE SÍ SE PIERDE, dicho para que nadie crea que salió gratis:
+                  el médico ya no ve DE UN VISTAZO qué palabra dudó el motor. Si
+                  algún día se echa en falta, el sitio correcto es una marca
+                  discreta sobre la palabra en el texto —no un bloque de color
+                  que compite con la nota—, y el dato para pintarla sigue estando.
+
+                  No se borra el cálculo: eso convertiría una decisión de
+                  interfaz en una pérdida de dato clínico, que es otra cosa.
                 */}
-                {audio.estado === 'listo' && palabrasAVerificar.palabras.length > 0 && (
-                  <div style={{
-                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
-                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
-                  }}>
-                    <b>Palabras que el audio no oyó con seguridad.</b>{' '}
-                    No se corrigieron ni se adivinaron: se marcaron para que la IA no las dé por hechas.
-                    Vuelve al audio en el minuto indicado si alguna cambia el sentido.
-                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {palabrasAVerificar.palabras.map((w, i) => (
-                        <span key={`${w.texto}-${w.momento}-${i}`} style={{
-                          padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 12,
-                          background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}>
-                          «{w.texto}» · {w.momento} · {w.seguridad}%
-                        </span>
-                      ))}
-                    </div>
-                    {palabrasAVerificar.ocultas > 0 && (
-                      <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>
-                        Y {palabrasAVerificar.ocultas} más, menos dudosas que éstas. Se enseñan las más dudosas,
-                        no las primeras.
-                      </div>
-                    )}
-                  </div>
-                )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
                   /* Escuchar comandos también es «te estoy oyendo»: cobalto y el
