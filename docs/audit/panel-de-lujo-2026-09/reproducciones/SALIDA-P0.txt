@@ -1,0 +1,137 @@
+
+ RUN  v4.1.10 /home/user/agenda-medica
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts (2 tests | 1 failed) 16ms
+     × FALLA HOY · la sesión se abre en la cuenta del consultorio, con destino al consultorio, o no se abre (409) 7ms
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts (6 tests | 4 failed) 20ms
+     × FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dosis es un volumen sin concentración 6ms
+     × FALLA HOY · en conjunto — entre TODOS los tramos hay al menos un aviso (hoy son cero) 2ms
+     × FALLA HOY · `comoTomarlo` no compone una línea con un volumen sin concentración 3ms
+     × FALLA HOY · `componerPaquete` no deja en `medicationInstructions` un volumen sin concentración 4ms
+stdout | docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts > REP-002 · N-001 — al cambiar de plan, la suscripción anterior no se cancela sin abono > FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono
+[Stripe Webhook] checkout.session.completed
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts (2 tests | 1 failed) 27ms
+     × FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — un volumen SIN concentración no puede quedar sin ningún aviso > FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dosis es un volumen sin concentración
+AssertionError: expected null not to be null
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:101:23
+     99|   it('FALLA HOY · tramo 1 — la compuerta de unidad avisa cuando la dos…
+    100|     const aviso = revisarUnidadDosis(RENGLON.nombre, RENGLON.dosis)
+    101|     expect(aviso).not.toBeNull()
+       |                       ^
+    102|     expect(aviso?.mensaje ?? '').toMatch(/concentraci[óo]n/i)
+    103|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — un volumen SIN concentración no puede quedar sin ningún aviso > FALLA HOY · en conjunto — entre TODOS los tramos hay al menos un aviso (hoy son cero)
+AssertionError: expected 0 to be greater than 0
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:116:27
+    114|     if (unidad) avisos.push(unidad)
+    115|     for (const h of dosisPeligrosasDeLaLista([RENGLON], CONTEXTO)) avi…
+    116|     expect(avisos.length).toBeGreaterThan(0)
+       |                           ^
+    117|   })
+    118|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — el paquete del paciente no entrega «5 mL» sin concentración > FALLA HOY · `comoTomarlo` no compone una línea con un volumen sin concentración
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:152:46
+    150|     const linea = comoTomarlo(RENGLON)
+    151|     // Hoy: «Amoxicilina · 5 mL · por la boca · cada 8 horas (3 veces …
+    152|     expect(esVolumenSinConcentracion(linea)).toBe(false)
+       |                                              ^
+    153|   })
+    154|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts > REP-001 · MP-005 — el paquete del paciente no entrega «5 mL» sin concentración > FALLA HOY · `componerPaquete` no deja en `medicationInstructions` un volumen sin concentración
+AssertionError: expected [ { nombre: 'Amoxicilina', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "instruccion": "Amoxicilina · 5 mL · por la boca · cada 8 horas (3 veces al día) · durante 7 días",
++     "nombre": "Amoxicilina",
++   },
++ ]
+
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-001-mp-005-ml-sin-concentracion.test.ts:163:40
+    161|     // O el renglón lleva su concentración, o no baja al paciente (se …
+    162|     // se le dice al médico). Lo que no puede es bajar así.
+    163|     expect(conVolumenSinConcentracion).toEqual([])
+       |                                        ^
+    164|   })
+    165| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts > REP-002 · N-001 — al cambiar de plan, la suscripción anterior no se cancela sin abono > FALLA HOY · la cancelación lleva prorrateo, o se sustituye por un update con proration_behavior, o se asienta un abono
+Error: hoy: {"cancelaConProrrateo":false,"actualizaEnVezDeCancelar":false,"abonoEnStripe":false,"constanciaEnClinica":false} · cancel se llamó con [["sub_sintetica_clinica_anual"]]: [2mexpect([22m[31mreceived[39m[2m).toSatisfy()[22m
+
+Expected value to satisfy:
+[32m[Function anonymous][39m
+
+Received:
+[31mObject {
+  "abonoEnStripe": false,
+  "actualizaEnVezDeCancelar": false,
+  "cancelaConProrrateo": false,
+  "constanciaEnClinica": false,
+}[39m
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-002-n-001-cancelacion-sin-prorrateo.test.ts:225:8
+    223|     const visto = { cancelaConProrrateo, actualizaEnVezDeCancelar, abo…
+    224|     expect(visto, `hoy: ${JSON.stringify(visto)} · cancel se llamó con…
+    225|       .toSatisfy((v: typeof visto) => v.cancelaConProrrateo || v.actua…
+       |        ^
+    226|   })
+    227| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts > REP-003 · N-002 — el anticipo del paciente no se cobra en la cuenta de la plataforma > FALLA HOY · la sesión se abre en la cuenta del consultorio, con destino al consultorio, o no se abre (409)
+Error: hoy: {"status":200,"rechazadaPorBandera":false,"enCuentaDelConsultorio":false,"sesionesAbiertas":1} · create se llamó con [[{"mode":"payment","line_items":[{"price_data":{"currency":"mxn","product_data":{"name":"Anticipo de cita · Consultorio Sintético","description":"Cita en Consultorio Sintético"},"unit_amount":80000},"quantity":1}],"success_url":"https://agenda-medica-one.vercel.app/pago/exito?cita=cita-sintetica-n002","cancel_url":"https://agenda-medica-one.vercel.app/pago/cancelado?cita=cita-sintetica-n002","metadata":{"clinicId":"clinica-sintetica-n002","citaId":"cita-sintetica-n002","tipo":"paciente_anticipo"}}]]: [2mexpect([22m[31mreceived[39m[2m).toSatisfy()[22m
+
+Expected value to satisfy:
+[32m[Function anonymous][39m
+
+Received:
+[31mObject {
+  "enCuentaDelConsultorio": false,
+  "rechazadaPorBandera": false,
+  "sesionesAbiertas": 1,
+  "status": 200,
+}[39m
+ ❯ docs/audit/panel-de-lujo-2026-09/reproducciones/REP-003-n-002-anticipo-en-cuenta-de-plataforma.test.ts:190:8
+    188|     const visto = { status: res.status, rechazadaPorBandera, enCuentaD…
+    189|     expect(visto, `hoy: ${JSON.stringify(visto)} · create se llamó con…
+    190|       .toSatisfy((v: typeof visto) => v.rechazadaPorBandera || v.enCue…
+       |        ^
+    191|   })
+    192| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  3 failed | 1 passed (4)
+      Tests  6 failed | 5 passed (11)
+   Start at  21:47:15
+   Duration  1.07s (transform 975ms, setup 177ms, import 1.28s, tests 67ms, environment 1ms)
+
