@@ -1,0 +1,176 @@
+{
+  "auditor": "D-diseno",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "D-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/CambiosCifrasPanel.tsx:47 · src/components/CorreccionesPanel.tsx:46 · src/lib/asr/pipeline.ts:108-131 (mitigación) · src/app/(dashboard)/consulta/[patientId]/page.tsx:5663-5689 y :5931",
+      "nota": "El defecto existe: los dos `return null` están literalmente donde dice, el sellado está en consultorio-ledgers-tecnicos-no-se-muestran.test.ts:19-26, y NO se enseña por ninguna otra vía: SelloProcedencia (:6459) pinta origen y cita pero no el par antes→después, AlertasDictado sólo enseña lo que NO se aplicó, y `deshacerCorreccion` (:4636) es el de «Corregir con IA». No hay decisión del dueño: GP4/GP12 no aparece en agent-state/DECISION_LOG.md ni en V10_DECISION_LOG.md ni en ningún .md del repo; `git log -S` sitúa el filtro en 118ce84 (orquestador autónomo #390), no en un acta. BAJO A P2 por dos mitigaciones que el hallazgo cuenta de menos: (1) pipeline.ts:108-110 vuelve a pasar el guardián DESPUÉS de normalizar y revierte al texto pre-normalización ante cambio_unidad/cambio_dosis/corrimiento_decimal, y :117-118 lo escala como `dosis_o_unidad_ambigua` a la caja ámbar «Conviene confirmar antes de firmar» (page:5663) — el caso «g leído por mg» del impacto NO llega en silencio; (2) el texto resultante es visible y editable en el editor antes de firmar y `transcripcionMotor` se archiva (page:3131). Lo que queda invisible es sólo la normalización que el guardián consideró segura («dos» → «2»), que es real y contradice src/lib/asr/cambios-visibles.ts:17-24 y la regla 3 de clinical-safety."
+    },
+    {
+      "id": "D-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:460 · src/components/laboratorio/PanelLaboratorios.tsx:298",
+      "nota": "Reproducido con el propio analizador del repo (scripts/design/lib/a11y-jsx.mjs) sobre los 224 .tsx de src/app+src/components: `botonSoloIconoSinNombre` = 2, y son exactamente esas dos líneas. Salida literal: «botonSoloIconoSinNombre src/app/(dashboard)/pacientes/page.tsx:460 / botonSoloIconoSinNombre src/components/laboratorio/PanelLaboratorios.tsx:298». El diálogo de laboratorios sí atrapa foco y cierra con Escape (useDialogoDeTeclado, :92), así que la X no es la única salida — pero el nombre accesible sigue faltando (WCAG 4.1.2)."
+    },
+    {
+      "id": "D-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/AppointmentModal.tsx:513,533,541,550,556,570,579,654 · src/components/CobrarModal.tsx:369,388,407,439 · src/app/(dashboard)/pacientes/page.tsx:1192",
+      "nota": "Contado por mí con a11y-jsx.mjs sobre src/app+src/components: 230 `campoSinEtiqueta`, de los que 115 no tienen NADA y 115 sólo placeholder. El agregado del hallazgo (111 / 116) queda a ±4; las citas por archivo son exactas: AppointmentModal 8 y CobrarModal 4 coinciden línea por línea con mi salida. Dos correcciones al alza: configuracion/page.tsx son 11, no 8; y «46 en Practice» se queda corto — Practice sin hospital/UCI/superadmin da 65. El defecto y su reproducción (axe regla `label`, critical) se sostienen."
+    },
+    {
+      "id": "D-004",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/uci/antimicrobianos/page.tsx:291,301,303,305,309,311,315,560,564,567,569,573,575,579,581,585,587 (17, coincide) · src/app/(dashboard)/uci/page.tsx:102-104 (refuta esa cita) · src/lib/navegacion/modulos-en-pausa.ts",
+      "nota": "El defecto por archivo es real y el 17 de antimicrobianos es exacto, pero el titular está inflado: la suma de su propia enumeración es 43 y mi conteo verificable de hospital+UCI es 42 (17+9+4+4+3+3+2), no 58. Además `uci/page:104` es un FALSO POSITIVO: el <select> está envuelto en un <label> que pinta {label} (:102-104) y el analizador no lo marca — el único hallazgo de uci/page.tsx está en :1158 y es sólo-placeholder. Las líneas de hospitalizacion/[internamientoId] van desfasadas 6 (cita 1063, es 1069). Bajo a P3: módulos en pausa (D-030), no se venden, no aparecen en navegación."
+    },
+    {
+      "id": "D-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6933,6936,6976,6979 (placeholder=\"Medicamento\"/\"Dosis\"/\"Frecuencia\"/\"Duración\")",
+      "nota": "Las cuatro líneas existen literalmente y mi conteo independiente da 115 campos sólo-placeholder en el repo (él dice 116). Es `mejora` con evidencia exacta y lectura razonable: se confirma. Matiz: :6844 («Diagnóstico») está en la rama `firmada` y es `disabled`, así que no es operable y pesa menos que los otros siete."
+    },
+    {
+      "id": "D-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/RevisionPanel.tsx:171-172 (minHeight 32, minWidth 32) · src/app/(dashboard)/asistente/page.tsx:664 (width 34, height 34) · src/app/globals.css:1706-1710 (min-width sólo para .btn-icon)",
+      "nota": "Verificado: la regla `pointer: coarse` da min-height 44 a todo <button> (:1710) pero min-width sólo a `.btn-icon` (:1706), así que el ojo de RevisionPanel queda 44×32 y las flechas de mes 44×34. Los demás citados (Copiloto 36, QueNotaEs 40, antibiograma h30 con minWidth 44) SÍ los repara la regla en táctil: el defecto residual son 3 botones estrechos, no quince. Cumple WCAG 2.2 AA (24×24) e incumple la regla propia (44×44): friccion P3, como él mismo dice."
+    },
+    {
+      "id": "D-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/privacidad/[clinicId]/page.tsx:218 (color '#9ca3af', fontSize 10.5) sobre la tarjeta de :285 (background '#fff') · scripts/design/medir-a11y-superficies-paciente.mjs:199-213",
+      "nota": "Ratio recalculado con el propio scripts/design/lib/contraste-wcag.mjs. Salida literal: «D-007 contador ARCO sobre tarjeta #fff #9ca3af sobre #FFFFFF = 2.54 / D-007 sobre --bg claro #9ca3af sobre #FAFAF7 = 2.43». El fondo real es #fff (:285), luego 2.54:1 contra un mínimo de 4.5. El hueco de la compuerta también es cierto: el medidor sólo evalúa PARES_DE_CONTRASTE de tokens de globals.css y no hay ninguna regla de hex en línea (grep de '#' en el medidor: 0 reglas). var(--text3) claro daría 5.76 sobre #fff."
+    },
+    {
+      "id": "D-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/cumplimiento/page.tsx:965 · src/app/(dashboard)/configuracion/page.tsx:2550-2551",
+      "nota": "Confirmado y PEOR de lo que dice. Con contraste-wcag.mjs: el badge RECHAZADA no se pinta sobre blanco sino sobre su propio `rgba(156,163,175,0.15)` compuesto sobre el fondo claro → «RECHAZADA sobre su propio fondo (claro): 2.16» (en tema oscuro 6.23, o sea es un defecto exclusivo del tema claro, misma familia que REG-549). El rótulo de la simulación da «#999 sobre #fafafa: 2.73», no 2.85. También verifiqué su afirmación lateral: los grises literales en `color:` de toda la app son exactamente 3 (config:2551, cumplimiento:965, privacidad:218)."
+    },
+    {
+      "id": "D-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "grep de '/motores' en src/app + src/components + src/lib: 0 enlaces entrantes (sólo el import interno motores/page.tsx:32) · ausente de Sidebar.tsx NAV, de operaciones GRUPOS, de contextos.ts y de PaletteBusqueda.tsx",
+      "nota": "Premisa comprobada: no hay ningún camino a /motores sin escribir la URL, y /cumplimiento/motores sí está enlazada. Bajo a P3: severidad 1 declarada por él mismo, cero riesgo clínico y cero impacto en el flujo — es una pantalla de demostración inalcanzable, no un botón que engaña al médico."
+    },
+    {
+      "id": "D-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/DoctorOnboarding.tsx:139 · grep de DoctorOnboarding fuera del propio archivo: 0 · src/__tests__/modulos-sin-conectar.test.ts:120",
+      "nota": "Verificado: 0 consumidores y la clase Tailwind de plantilla está literal en :139. Conteo cruzado: rounded-full aparece 13 veces en exactamente 3 archivos y DoctorOnboarding aporta 3 de ellas, más los 2 únicos rounded-xl y el único rounded-2xl. Es opinión de producto con evidencia: se confirma, P3."
+    },
+    {
+      "id": "D-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/i18n.ts:44 ('app.name': 'Agenda Médica') · consumidores en src/app|components|hooks: 0 (sólo src/__tests__/permissions-i18n-branches.test.ts:3 y un comentario en mi/[token]:1071)",
+      "nota": "Comprobado con grep: la única mención en producción es un comentario que reconoce el hueco. La marca del diccionario está desactualizada (hoy NexusMED). Mejora legítima; su propia recomendación (no retroajustar 78 pantallas) es la sensata y depende del dueño."
+    },
+    {
+      "id": "D-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "grep de 'consulta-cierre' en src/app|components|hooks: 0 (sólo src/__tests__/consulta-cierre.test.ts:2 y modulos-sin-conectar.test.ts:101)",
+      "nota": "Huérfano verificado, congelado en HUERFANOS_ACEPTADOS. Riesgo real: dos fuentes de verdad potenciales para «qué va arriba al cerrar». P3, decisión de producto (retirar o conectar)."
+    },
+    {
+      "id": "D-013",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/BottomNav.tsx:87-90 y :170-178 (Link a la misma URL) — confirmado · src/hooks/useAvisoAlSalirGrabando.ts:69-73 «Enlace a la pantalla en la que ya estamos: el botón central de la barra inferior es exactamente eso durante una consulta. Ni se desmonta ni se pregunta» — refuta la parte grave",
+      "nota": "Mitad confirmada, mitad refutada. Que la acción central enlace a la URL en la que ya se está durante la consulta es literal (:88-90). La parte grave —«si Next la remonta, la grabación muere»— él mismo la marca «SUPUESTO, NO VERIFICADO» y choca con una determinación ya escrita y cerrada en REG-303 (regression-ledger.md:7058-7060 y el propio hook :69-72), que excluye ese enlace del aviso precisamente porque no desmonta. Sin acta de navegador no se puede subir de aquí: queda P3 como friccion (botón coronado que no lleva a ningún sitio), no como riesgo de pérdida de dictado."
+    },
+    {
+      "id": "D-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/Sidebar.tsx:32 ('Consulta' → /pacientes) y :28 ('Dashboard') · src/components/BottomNav.tsx:64,66,76,77 · src/components/FlowRail.tsx:221,223",
+      "nota": "Las siete citas existen literalmente. La misma secretaria ve «Consulta» en su cajón de escritorio y «Pacientes» en su barra del pulgar, para la misma ruta; y el médico que cambia de modo ve «Consulta»/«Paciente». Friccion real contra el principio CONTINUIDAD; P3 por impacto."
+    },
+    {
+      "id": "D-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/finanzas/page.tsx:30 `import { CorteCajaContenido } from '../corte-caja/page'` · src/components/PaletteBusqueda.tsx:15 (único enlace entrante a /corte-caja)",
+      "nota": "Verificado, incluido el «1 enlace entrante» (la paleta). El patrón alternativo que propone ya existe en expedientes/page.tsx. Simplificación de producto, P3."
+    },
+    {
+      "id": "D-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:297 ({ key: 'entregas', label: 'Entregas de WhatsApp' }) y :1057 · scripts/design/techos-de-diseno.json peores[0] = configuracion/page.tsx, total 163, tam 95, rad 41",
+      "nota": "Todo verificado, incluidos los números del trinquete. Matiz que le resta peso: las 17 pestañas no están planas, van en 5 grupos con título (:286-325), así que «17 pestañas» exagera el desorden. La observación de fondo —una bitácora operativa viviendo en Ajustes— se sostiene."
+    },
+    {
+      "id": "D-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/guia/page.tsx:42 `<AsistenteChat alto={220} />` · src/components/BotonAyuda.tsx:150 `<AsistenteChat alto={320} />` · src/app/(dashboard)/layout.tsx:859 `<BotonAyuda />` sin condición",
+      "nota": "Verificado: el FAB se monta en el shell de todo el dashboard, así que en /guia conviven las dos cajas del mismo bot. P3, decisión de producto."
+    },
+    {
+      "id": "D-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/uci/antimicrobianos/page.tsx:3-5 «probar un caso y cargar los topes. Dos cosas en una pantalla porque son la misma conversación»",
+      "nota": "La confesión está literal en la cabecera. Pero «es la única de las 45 cuyo propósito no cabe en una frase sin y» lo desmiente su propia revisión de /cumplimiento («tres trabajos») y de /configuracion. Módulo en pausa (D-030): P3, se anota para cuando vuelva."
+    },
+    {
+      "id": "D-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:63 · src/components/pacientes/ValoracionInmuno.tsx:44,55,67",
+      "nota": "Conteo reproducido: `rounded-full` = 13 usos en exactamente 3 archivos ([internamientoId] 5, ValoracionInmuno 5, DoctorOnboarding 3), y `rounded-xl`/`rounded-2xl` sólo en DoctorOnboarding. El trinquete mide valores CSS y no ve clases: cierto. P3."
+    },
+    {
+      "id": "D-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/crm/page.tsx:188 · src/app/(dashboard)/hospitalizacion/camas/page.tsx:24 · src/app/(dashboard)/configuracion/secciones-cuenta.tsx:666 · docs/design/GENERIC_AI_AESTHETIC_AUDIT.md:26 («el último literal violeta murió con RT-01»)",
+      "nota": "Las cuatro citas existen y la frase del documento de diseño es falsa. Se queda CORTO, no largo: el grep de la familia violeta da ≥12 archivos (configuracion/page.tsx:1713, secciones-recetas.tsx:1286-87, uci/antimicrobianos:39, uci/enfermeria:41, uci/MarPaciente:22, superadmin ×6). Contraste medido de #a855f7 sobre blanco: 3.96 — por debajo de AA para texto normal, así que su «no medido aquí» sí era un problema."
+    },
+    {
+      "id": "D-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "docs/design/ACCESSIBILITY.md:262-265 · scripts/design/medir-a11y-superficies-paciente.mjs:74-85 (10 rutas) · grep de analizarTsx/a11y-jsx en todo el repo: sólo el medidor del paciente y a11y-el-detector-si-puede-fallar.test.ts · agent-state/RISK_REGISTER.md:8-15 (R-01…R-08, ninguna de accesibilidad)",
+      "nota": "La premisa se sostiene: el analizador de 15 reglas sólo se aplica a las 10 superficies del paciente y ningún guardián cuenta campos del dashboard. Matiz que suaviza el titular «no hay red»: sí existen siete guardianes puntuales de a11y (a11y-flujo-central-etiquetas, a11y-zoom-guard y los cinco v15-a11y-*). Bajo a P3 porque sus manifestaciones concretas ya están contadas en D-002 y D-003: aquí lo nuevo es el proceso, no un defecto adicional."
+    },
+    {
+      "id": "D-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "grep de SelloProcedencia|DeDondeSalioEsto|ProcedenciaDeLaNota|EscucharElMomento en nota/[patientId]/[notaId]/page.tsx, receta/[...]/page.tsx y orden/[...]/page.tsx: 0 en los tres",
+      "nota": "Verificado con grep -c: cero en las tres superficies documentales. Las que sí lo tienen son /consulta, /expediente y /demo/razonamiento (no /pendientes, como decía el comentario de ProcedenciaDeLaNota:7-10). Mejora de producto, P3."
+    },
+    {
+      "id": "D-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/expediente/[patientId]/page.tsx:96-97 (useState sin URL) frente a citas/page.tsx:105,124,125 (useSearchParams) · src/components/BottomNav.tsx:65 + src/lib/navegacion/contextos.ts:74 (/citas pertenece a 'hoy', y el ítem activo navega a /calendario)",
+      "nota": "Los tres puntos verificados línea por línea, incluido que contextoDeRuta('/citas') === 'hoy' hace que la pestaña «Agenda» se ilumine en /citas mientras su href es /calendario. Friccion menor, P3, como él propone."
+    },
+    {
+      "id": "D-024",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/Sidebar.tsx:41-56 (11 entradas modos:'medico') y :91 (filtro) · src/app/(dashboard)/layout.tsx:702,717,766 · src/context/ModeContext.tsx:33",
+      "nota": "La cadena se cierra: navPrimaria = esMedicoReal && mode==='medico' → FlowRail; los DOS únicos renders de <Sidebar/> (layout:717 y :766) están tras !navPrimaria, y ModeContext:33 fuerza 'secretaria' a quien no es médico real. Luego el filtro de :91 nunca deja pasar una entrada 'medico'. Código muerto de navegación, P3. (Ojo: en su lista de revisados este hallazgo aparece como D-025 y en hallazgos como D-024.)"
+    }
+  ],
+  "ratio": { "total": 24, "confirmados": 22, "refutados": 0, "parciales": 2 },
+  "observaciones_del_auditor": "Auditor sólido en lo local y flojo en lo agregado: TODAS las citas archivo:línea que abrí existen (con dos desfases: hospitalizacion/[internamientoId] va 6 líneas corrida y uci/antimicrobianos 2), pero los totales que titula no salen de sus propias enumeraciones — D-004 titula 58 campos y su lista suma 43 (yo mido 42), D-003 titula 111/46 y yo mido 115/65, D-020 dice «cuatro archivos» donde hay doce. Un falso positivo real: uci/page:104, que está envuelto en <label> (D-004). Tiende a redactar el titular en su versión más alarmante y a esconder la mitigación en el campo 'control_existente' (D-001 no menciona que el guardián se repasa DESPUÉS de normalizar y escala unidad/dosis a la caja ámbar; D-006 titula quince botones cuando la regla pointer:coarse repara doce). Es honesto donde no verificó: marca «SUPUESTO, NO VERIFICADO» en D-013 — y ahí ignora que REG-303 ya había resuelto por escrito ese mismo enlace. Prioriza alto lo que es meta (D-021) y lo inalcanzable (D-009). No inventa citas: no encontré ni una sola evidencia fabricada."
+}
