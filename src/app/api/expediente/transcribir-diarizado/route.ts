@@ -14,6 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { topeDe, TOPE_TERMINOS, componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
@@ -414,7 +415,7 @@ export async function POST(req: NextRequest) {
     )
     return NextResponse.json({ ok: true, id })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 
@@ -548,6 +549,6 @@ export async function GET(req: NextRequest) {
     // queued | processing
     return NextResponse.json({ ok: true, status: d.status ?? 'processing' })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }

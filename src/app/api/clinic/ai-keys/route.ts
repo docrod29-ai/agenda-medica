@@ -7,6 +7,7 @@
  * La llave nunca se devuelve al cliente; solo "configurada: true · ····1234".
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { verificarMiembro } from '@/lib/auth-server'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { estadoClavesIA, guardarClaveIA, type ProveedorIA } from '@/lib/ai-keys'
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
   try {
     return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId, acceso.uid)) })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 
@@ -49,6 +50,6 @@ export async function POST(req: NextRequest) {
     await guardarClaveIA(clinicId, proveedor as ProveedorIA, key ?? '')
     return NextResponse.json({ ok: true, ...(await estadoClavesIA(clinicId, acceso.uid)) })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }

@@ -19,9 +19,11 @@
  * del médico.
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
 import {
-  deDondeSale, loQueSeReceta, loQueYaTomaba, fusionarMedicamentos,
+  deDondeSale, loQueSeReceta, loQueYaTomaba, fusionarMedicamentos, medicamentosDeLaReceta,
 } from '@/lib/expediente/que-va-en-la-receta'
 import type { Medicamento } from '@/types/expediente'
 
@@ -224,5 +226,81 @@ describe('está conectado de verdad', () => {
     expect(src).toContain('medicamentosDeLaReceta(n.medicamentos ?? [])')
     // Y no queda una segunda composición a mano que pueda divergir de la puerta.
     expect(src).not.toContain('loQueSeReceta(')
+  })
+})
+
+/**
+ * ── REG-515 · LA ATRIBUCIÓN MANDA SOBRE LA OPINIÓN DEL MODELO ───────────────
+ *
+ * QUÉ PASABA. El dueño volvió a reportar, con la app en la mano: «sigues
+ * poniéndome en la receta medicamentos de sus antecedentes». Y esta vez el
+ * módulo YA existía y YA estaba conectado a la página de receta — o sea que no
+ * era «escrito y sin conectar»: la regla corría y aun así se colaban.
+ *
+ * CÓMO SE DESCUBRIÓ. Leyendo `loQueSeReceta` con la queja delante. Sólo
+ * apartaba lo etiquetado `ya_lo_toma`. Un antecedente que el modelo etiquetara
+ * `se_prescribe_hoy` pasaba entero, y no había NADA detrás que lo parara.
+ *
+ * CAUSA RAÍZ, en dos mitades:
+ *   1. El único dato que separa un antecedente de un plan —QUIÉN LO DIJO— se
+ *      borraba en la frontera: la lista plana de `extraction-schema.ts` no
+ *      declaraba `speaker`, y `z.object` borra las claves que no declara. Es
+ *      exactamente el mismo defecto que ya se arregló para `procedenciaClinica`
+ *      en ese mismo objeto, un campo más allá.
+ *   2. Con el dato borrado, la única palabra sobre si algo se receta era la
+ *      etiqueta que el propio modelo se pone.
+ *
+ * LA REGLA QUE LO HACE SEGURO. Un antecedente lo dice el paciente; un plan lo
+ * dice el médico. Lo que trae atribución y NO es del médico no baja al papel.
+ *
+ * LO QUE NO CUBRE, dicho:
+ *   · Un renglón SIN `speaker` sigue imprimiéndose. No viene del dictado: lo
+ *     escribió el médico a mano, o es de una nota anterior a este campo.
+ *     Castigarlo sería quitarle del papel algo que él escribió.
+ *   · Si la diarización atribuye mal la frase, esto hereda ese error. No es una
+ *     defensa contra un audio mal separado.
+ *   · No mira la SECCIÓN de la nota. Sigue sin existir un campo que diga «esto
+ *     salió del plan»; lo que hay es quién habló, y con eso se decide.
+ */
+describe('REG-515 · lo que dijo el paciente no baja al papel', () => {
+  const base = { nombre: 'metformina', dosis: '850 mg', via: 'oral' as const, frecuencia: 'cada 12 h', duracion: '30 días' }
+
+  it('EL CASO: un antecedente MAL etiquetado por el modelo ya no se imprime', () => {
+    // El paciente dijo «tomo metformina» y el modelo se equivocó al clasificarlo.
+    // Antes de REG-515 esto bajaba a la receta con cédula profesional.
+    const meds = [{ ...base, procedenciaClinica: 'se_prescribe_hoy' as const, speaker: 'paciente' as const }]
+    expect(medicamentosDeLaReceta(meds)).toEqual([])
+  })
+
+  it('y lo que dijo el médico sí se imprime', () => {
+    const meds = [{ ...base, nombre: 'amoxicilina', procedenciaClinica: 'se_prescribe_hoy' as const, speaker: 'medico' as const }]
+    expect(medicamentosDeLaReceta(meds)).toHaveLength(1)
+  })
+
+  it('un renglón sin atribución sigue imprimiéndose: lo escribió el médico a mano', () => {
+    // La ausencia NO se castiga. Quitarle del papel lo que él escribió es el
+    // error caro en la otra dirección.
+    const meds = [{ ...base, nombre: 'losartán', procedenciaClinica: 'se_prescribe_hoy' as const }]
+    expect(medicamentosDeLaReceta(meds)).toHaveLength(1)
+  })
+
+  it('«acompanante» y «desconocido» tampoco pasan: la duda no es permiso', () => {
+    for (const quien of ['acompanante', 'desconocido'] as const) {
+      const meds = [{ ...base, procedenciaClinica: 'se_prescribe_hoy' as const, speaker: quien }]
+      expect(medicamentosDeLaReceta(meds), `${quien} no debería imprimirse`).toEqual([])
+    }
+  })
+
+  it('EL DATO LLEGA: el esquema plano declara `speaker`, o se borraría en la frontera', () => {
+    /**
+     * Prueba de FRONTERA, no de lógica. La regla de arriba es inútil si el campo
+     * se pierde antes de llegar: `z.object` borra las claves que no declara, y
+     * así se coló el defecto de `procedenciaClinica` la vez anterior.
+     */
+    const esquema = readFileSync(join(process.cwd(), 'src/lib/expediente/extraction-schema.ts'), 'utf8')
+    const plana = esquema.slice(esquema.indexOf('  medicamentos: z.array('))
+    const cierre = plana.indexOf('  alergias:')
+    expect(plana.slice(0, cierre), 'la lista PLANA volvió a no declarar speaker')
+      .toMatch(/speaker: Hablante\.optional\(\)/)
   })
 })

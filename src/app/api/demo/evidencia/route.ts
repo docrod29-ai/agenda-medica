@@ -74,7 +74,7 @@ export async function GET() {
     return NextResponse.json({ ok: true, articulos: arts, cacheado: false })
   } catch (e) {
     return NextResponse.json(
-      { ok: false, articulos: [], error: `No se pudo recuperar evidencia en vivo: ${String(e).slice(0, 120)}` },
+      { ok: false, articulos: [], error: 'No se pudo recuperar evidencia en vivo. Intenta de nuevo.' },
       { status: 200 },
     )
   }

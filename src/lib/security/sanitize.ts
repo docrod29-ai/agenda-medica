@@ -10,9 +10,15 @@
  *   - Correos electrónicos
  *   - Teléfonos (MX y formatos internacionales)
  *   - Números de tarjeta (Visa, MasterCard, AmEx)
- *   - Tokens tipo Bearer / API keys
+ *   - Tokens tipo Bearer / API keys (OpenAI, Anthropic, Google, GitHub) y las
+ *     llaves de Stripe (`sk_live_`, `sk_test_`, `rk_live_`, `whsec_`) — REG-532
  *   - JWT (header.payload.signature)
- *   - Nombres de pacientes (en estructura conocida `paciente.nombre`)
+ *   - Nombres de pacientes y lo que dijeron: las llaves `nombre`, `apellidos`,
+ *     `pacienteNombre`, `diagnostico(s)`, `motivo`, `padecimiento`, `alergias`
+ *     se redactan ENTERAS por nombre de llave (REG-532). Antes esta cabecera lo
+ *     prometía «en estructura conocida `paciente.nombre`» y el código no lo hacía
+ *     por ninguna estructura. Sobre-redactar un log es barato; un nombre de
+ *     paciente en Vercel no se puede borrar.
  *
  * Diseño:
  *   - Síncrono, puro, sin dependencias externas
@@ -44,6 +50,11 @@ const PATRONES_STRING: Array<{ regex: RegExp; reemplazo: string; nombre: string 
   // Bearer / API keys conocidos
   { regex: /\b(?:Bearer\s+|sk-(?:proj-|ant-)?|AIza|ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_-]{16,}\b/gi, reemplazo: '[TOKEN]', nombre: 'TOKEN' },
 
+  // Stripe — REG-532: llave secreta, llave restringida y secreto de webhook. La
+  // cabecera de arriba prometía «API keys» y estas tres no las cazaba nadie.
+  { regex: /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{8,}\b/g, reemplazo: '[TOKEN]', nombre: 'STRIPE' },
+  { regex: /\bwhsec_[A-Za-z0-9]{8,}\b/g, reemplazo: '[TOKEN]', nombre: 'STRIPE_WEBHOOK' },
+
   // Número de tarjeta — Visa/MC/Amex (13-19 dígitos con/sin separadores)
   { regex: /\b(?:\d[ -]?){13,19}\b/g, reemplazo: '[PAN]', nombre: 'PAN' },
 
@@ -66,6 +77,17 @@ const LLAVES_SENSIBLES = new Set([
   'cvv', 'cvc',
   // Datos clínicos sensibles que no deben aparecer en logs
   'transcripcion', 'transcription', 'audioblob',
+  /**
+   * REG-532 — quién es el paciente y qué le pasa. La cabecera lo prometía y no
+   * estaba. Se redacta por NOMBRE DE LLAVE, sin mirar el valor: un nombre no
+   * tiene forma reconocible por expresión regular. Que también borre el nombre
+   * de un consultorio o de un fármaco en un log es un precio aceptable.
+   */
+  'nombre', 'nombres', 'apellidos', 'apellidopaterno', 'apellidomaterno',
+  'pacientenombre', 'nombrepaciente', 'nombrecompleto', 'paciente',
+  'diagnostico', 'diagnosticos', 'motivo', 'motivoconsulta', 'padecimiento', 'alergias',
+  // `email` y `telefono` NO van aquí: sus valores ya los redacta el patrón con
+  // su propio centinela ([EMAIL], [TEL]), y las pruebas de siempre lo pinan.
 ])
 
 const PROFUNDIDAD_MAX = 8

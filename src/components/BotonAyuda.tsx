@@ -122,6 +122,12 @@ export function BotonAyuda() {
             background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 16,
             boxShadow: '0 12px 40px rgba(0,0,0,0.35)', overflow: 'hidden',
             display: 'flex', flexDirection: 'column',
+            /*
+             * TOPE DE ALTO — REG-518. Con `overflow: hidden` y sin tope, un
+             * panel que crece se RECORTA y lo de abajo no se alcanza: peor que
+             * desbordar, porque ni siquiera se ve que falta algo.
+             */
+            minHeight: 0, maxHeight: 'calc(100dvh - 96px)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--nexus) 6%, transparent)' }}>
@@ -139,7 +145,8 @@ export function BotonAyuda() {
               <X size={18} />
             </button>
           </div>
-          <div style={{ padding: 14 }}>
+          {/* El cuerpo es lo que scrollea; la cabecera se queda. Ver REG-518. */}
+          <div className="nx-dialogo-cuerpo" style={{ padding: 14 }}>
             <AsistenteChat alto={320} />
           </div>
         </div>

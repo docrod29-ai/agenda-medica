@@ -17,6 +17,7 @@ import { condicionesNegadas, corregirCertezaPorNegacion } from '@/lib/expediente
 import { mencionesEnPasado, avisosTemporalesDelExtractor } from '@/lib/expediente/temporalidad'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { NER_SYSTEM_PROMPT, buildNerUserPrompt, EntidadesExtraidas, TOPE_TEXTO_NER } from '@/lib/expediente/medical-ner'
 import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
@@ -226,6 +227,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     safeLog.error('[extraer-entidades] Exception:', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

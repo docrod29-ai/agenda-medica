@@ -8,6 +8,7 @@
  *  - Días festivos
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { validarFechaDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
@@ -219,6 +220,6 @@ export async function GET(
     return NextResponse.json({ ok: true, slots, duracion })
   } catch (err) {
     safeLog.error('[public/availability]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

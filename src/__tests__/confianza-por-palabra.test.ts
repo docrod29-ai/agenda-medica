@@ -259,10 +259,38 @@ describe('ESTÁ CONECTADO DE PUNTA A PUNTA', () => {
     expect(page).toMatch(/dudosas\.length > 0 \?/)
   })
 
-  it('y la pantalla se lo enseña al médico ANTES de firmar', () => {
+  it('el cálculo SIGUE corriendo aunque la caja ya no se pinte — D-032', () => {
+    /**
+     * ── ESTE CASO CAMBIÓ DE FORMA, Y CONVIENE SABER POR QUÉ ──────────────────
+     *
+     * Antes exigía que la pantalla ENSEÑARA la caja ámbar «Palabras que el audio
+     * no oyó con seguridad». El dueño la retiró el 5-sep-2026, probando la app
+     * en su iPhone: «no quiero que aparezca, sólo confunde; que haga lo que se
+     * tenga que hacer pero que no salga».
+     *
+     * El caso NO se borra, porque lo que protegía sigue importando. Cambia de
+     * objetivo: ya no vigila que se PINTE, vigila que se SIGA CALCULANDO y que
+     * el dato SIGA VIAJANDO a la nota archivada.
+     *
+     * La diferencia es la que separa una decisión de interfaz de una pérdida de
+     * dato clínico. Quitar una caja es lo primero; dejar de medir la duda del
+     * motor sería lo segundo, y eso ningún dueño lo pidió.
+     */
     const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
-    expect(page).toContain('Palabras que el audio no oyó con seguridad')
-    expect(page).toContain('paraElMedico(audio.utterances)')
+    expect(page, 'se dejó de calcular la duda por palabra')
+      .toContain('paraElMedico(audio.utterances)')
+    expect(page, 'la duda dejó de archivarse en la nota')
+      .toMatch(/palabrasAVerificar: palabrasAVerificar\.palabras\.length > 0/)
+  })
+
+  it('y la retirada de la caja queda EXPLICADA donde estaba, no borrada en silencio', () => {
+    /**
+     * Un bloque que desaparece sin dejar rastro invita a que alguien lo
+     * «restaure» dentro de seis meses creyendo que se perdió por descuido.
+     */
+    const page = leer('src', 'app', '(dashboard)', 'consulta', '[patientId]', 'page.tsx')
+    expect(page).toContain('D-032')
+    expect(page).toMatch(/LO QUE SÍ SE PIERDE/)
   })
 })
 

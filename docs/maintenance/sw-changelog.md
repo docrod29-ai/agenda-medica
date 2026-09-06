@@ -3,6 +3,36 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1184 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
+
+**Diecisiete cortes desde v1182, fusionados sobre v1183** (17 cortes + fusión + contabilidad) · 40 rutas de
+API, 5 pantallas, 8 módulos nuevos, 17 pruebas nuevas · `firestore.rules` sin
+tocar.
+
+Un día de auditoría con seis frentes en paralelo (API, voz, medicación,
+test-the-test, seguridad, experiencia del paciente), verificado hallazgo por
+hallazgo antes de tocar nada, y diecisiete cortes chicos, cada uno con su
+prueba que falla sin el arreglo (REG-519 a REG-535). Lo que más pesa para el
+médico: la **receta** ahora cruza lo de hoy con la medicación vigente y la
+creatinina del expediente (REG-527), avisa cuando la misma sustancia va dos
+veces —«Paracetamol» y «Tempra»— con la suma contra el techo del catálogo
+(REG-528), y no supone adulto cuando falta la edad (REG-524). Para el
+paciente: el enlace revocado ya no abre la sala de video (REG-519), la
+cancelación ARCO apaga su portal (REG-526), y su pregunta escalada llega a
+alguien aunque el consultorio no tenga teléfono (REG-521, REG-523). Para la
+seguridad: cuarenta rutas dejan de devolver el error crudo (REG-534), el
+redactor de logs cumple lo que prometía (REG-532) y el candado del canal de
+WhatsApp resiste una carrera (REG-533).
+
+Y una lección que queda escrita: la primera verificación en navegador de la
+rama destapó REG-535 con las 33 pruebas de la receta en verde. Un `git diff`
+que se ve bien no es una pantalla que funciona.
+
+---
+
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
 **Publicado el 5-sep 23:28 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #22).
@@ -3493,3 +3523,16 @@ arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
 
 Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
+
+## v1183 — 6-sep-2026
+
+Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
+auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime
+antecedentes; la atribución manda sobre la etiqueta del modelo), REG-516 (un
+código CIE-10 sin diagnóstico ya no sale impreso, y la regla deja de estar
+duplicada), REG-517 (el diálogo de firmar deja de esconder sus botones y de ser
+un muro de texto), REG-518 (tres diálogos más con la misma herida, un patrón
+compartido y un guardián) y D-032 (la caja ámbar se retira; sólo la caja).
+
+Primer paquete de la sesión que sale de uso real en un aparato real. Ninguna de
+las cuatro la había cazado el arnés, que corre en Chromium a 390 px.

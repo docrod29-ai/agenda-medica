@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
@@ -479,6 +480,6 @@ export async function GET(req: NextRequest) {
       ok: false, duracionMs: Date.now() - arranqueCron,
       error: err instanceof Error ? err.message : 'error',
     })
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }
