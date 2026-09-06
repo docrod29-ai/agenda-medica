@@ -54,7 +54,10 @@ const CAMPOS_ACEPTADOS: Record<string, string> = {
 
   // ── Campos del expediente sin captura todavía ────────────────────────────
   'Diagnostico.fechaDiagnostico': 'Cuándo se hizo el diagnóstico. Ninguna pantalla lo pregunta y el impreso no lo enseña; ponerlo por defecto a la fecha de la nota sería inventar la fecha de un diagnóstico que puede ser de hace años.',
-  'Medicamento.instruccionesEspeciales': 'Indicaciones adicionales de un medicamento. Ninguna pantalla lo captura, así que la receta no puede imprimir lo que nadie escribe. Pendiente de una casilla en el recetario.',
+  /* `Medicamento.instruccionesEspeciales` salió de esta lista el 6-sep-2026:
+     el botón «Recetar» del panel de pediatría (MP-008, Panel de Lujo) lo escribe
+     con la procedencia de la dosis calculada por peso. Ya no es un campo que
+     promete lo que nadie llena. */
 
   // ── Modelo de evidencia, escrito para más fuentes de las que hay ─────────
   'Poblacion.criteriosInclusion': 'Estructura PICO completa: el extractor de hoy no separa criterios de inclusión del resumen.',

@@ -6,7 +6,7 @@
  * Jerarquía visual (lo más crítico arriba):
  *  1. 🚨 RIESGO_MAXIMO (alergia con anafilaxia + fármaco prescrito)
  *  2. ⚠️ Interacciones MAYORES / contraindicadas
- *  3. ⚠️ Otros cross-checks (riesgo medio, interacciones moderadas)
+ *  3. ⚠️ Otros avisos de riesgo menor (alergias cruzadas, interacciones moderadas)
  *  4. Listas de entidades por categoría (condiciones, medicamentos,
  *     procedimientos, estudios, alergias, anatomía)
  *
