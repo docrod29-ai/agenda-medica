@@ -1,0 +1,197 @@
+{
+  "auditor": "AS-expedientes",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ASE-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:168 · src/lib/firestore.ts:333,352-354 · src/lib/pacientes/vacio-de-la-lista.ts:131",
+      "nota": "Las tres líneas son literales. Con una sola palabra («iparraguirre») el único plan es prefijo sobre `nombre`, que no casa un apellido intermedio; el `return busquedaServidor.pacientes` de :168 pisa el `includes` local de :171 y la pantalla imprime el texto de vacio-de-la-lista.ts:131 («Ninguno de los N expedientes coincide con «…»»). Comprobé además el rescate por parecidos con jiti: similitudNombre('iparraguirre','Tadeo Iparraguirre Nolasco') = 0.6666666666666666 contra UMBRAL_NOMBRE = 0.8 → buscarPosiblesDuplicados devuelve []. CORRECCIÓN AL AUDITOR: su repro cita «Barquin Salcedo» como mismo caso, y ahí el bloque de parecidos SÍ rescata ([{id:p2, motivo:'Nombre muy parecido', certeza:'probable', puntaje:50}]); el fallo sin red es el de una sola palabra. Y su propuesta de «quitar el filtro de :354» es un no-op: con q de una palabra el sondeo por palabra sería la MISMA consulta de prefijo, cosa que el propio golden fija en src/__tests__/el-orden-de-los-nombres-no-decide-si-existes.test.ts:167 («con una sola palabra no se sondea dos veces lo mismo»). Lo que arregla es unir servidor+local en :168."
+    },
+    {
+      "id": "ASE-002",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/firestore.ts:333 y 299 (tituloCase sólo capitaliza) · src/__tests__/el-orden-de-los-nombres-no-decide-si-existes.test.ts:210-215 «y los acentos siguen contando: «Lopez» no encuentra a «López»»",
+      "nota": "La premisa técnica es cierta y la línea coincide, pero no es un defecto nuevo: es un límite DECLARADO y sellado, con un caso que lo afirma al derecho en el golden de REG-358 y con su párrafo «qué NO cubre» en regression-ledger.md:10225-10228. Además, para el paciente ya cargado el filtro local de :137 (`normalize('NFD')`) sí lo iguala — o sea que en la práctica ASE-002 sólo muerde por encima del techo de REG-341, y por debajo queda subsumido en ASE-001. Baja a P3: cerrarlo exige el campo normalizado + backfill, que es el mismo trabajo de ASE-001 y no una corrección aparte."
+    },
+    {
+      "id": "ASE-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:211,215 · src/lib/fecha-local.ts:34-48 (SOLO_FECHA) · src/lib/expediente/pediatria.ts:391-399 · src/lib/firestore.ts:568-572 (createPatient no valida nada) · firestore.rules:194 (create sin forma congelada)",
+      "nota": "Ejecutado con jiti desde /tmp sobre `csv-pacientes.ts` + `pediatria.ts` + `fecha-local.ts`, salida literal: `fechaNacimiento cruda = \"15/03/1980\" | fechaLocalDesdeISO = Invalid Date | edadEnAnios = null`; `\"03/04/1975\" | Tue Mar 04 1975 | edadEnAnios = 51`; `\"1990-11-02\" | Fri Nov 02 1990 | edadEnAnios = 35`. Y la mitad más cara del hallazgo también se reproduce: `compararPacientes({nombre:'Ernestina Quiroga',fechaNacimiento:'15/03/1980'}, {…,'1980-03-15'})` devuelve `null` — el mismo paciente importado y capturado a mano son DOS personas para el motor, para siempre. Ni createPatient ni las reglas ponen una línea en medio. Familia REG-160 confirmada."
+    },
+    {
+      "id": "ASE-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/csv-pacientes.ts:80-91 (SINONIMOS) y :93-95 (mapearEncabezados) y :116 (construirFilas ignora campo null)",
+      "nota": "Ejecutado con jiti, salida literal: `ENCABEZADOS: [\"Nombre\",\"Apellido paterno\",\"Apellido materno\",\"Teléfono\",…]` → `MAPEO: [\"nombre\",null,null,\"telefono\",…]` → `FILAS: [{\"nombre\":\"Ernestina\",…},{\"nombre\":\"Leocadio\",…},{\"nombre\":\"Fermina\",…}]`. Los apellidos se pierden en el mapeo, no en la escritura, y nada en la pantalla lista las columnas descartadas (migracion/page.tsx:356-389 sólo pinta nombre y teléfono). Se sostiene entero."
+    },
+    {
+      "id": "ASE-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:216-217 · src/lib/curp.ts:22,47 · grep de validarCURP|normalizarCURP|sexoDesdeCURP|fechaNacimientoDesdeCURP fuera de lib/curp.ts y de __tests__: CERO resultados en todo src/",
+      "nota": "Salida literal de mi corrida: `sexo escrito = undefined | curp escrito = INVALIDO123` para la fila con «Mujer»/«INVALIDO123», y `sexo escrito = undefined` para la fila con «M». El auditor se queda CORTO en un punto: no es que validarCURP «no se llame aquí», es que no la llama NADIE en todo el producto (tampoco el alta manual, pese a lo que él anotó en `revisado` sobre campos-que-se-guardan.ts). P2 se sostiene: el motor de duplicados exige CURP de 18 (duplicados.ts) así que un CURP basura no funde a nadie."
+    },
+    {
+      "id": "ASE-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:227-229 (`} catch { errores++ }`), :232 setReporte sólo con conteos, :233 `setClasificadas(null); setTexto('')`, :401 «⚠️ {reporte.errores} con error (revisa el formato)»",
+      "nota": "Literal en las cuatro líneas (el texto del reporte está en 401, no 402: dentro de tolerancia). El `catch` no guarda ni la fila ni el motivo y el textarea se vacía en la misma sentencia, así que reintentar sólo las fallidas es imposible sin volver a subir el archivo."
+    },
+    {
+      "id": "ASE-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/csv-pacientes.ts:185 · src/app/(dashboard)/migracion/page.tsx:363 y 374-382",
+      "nota": "Reproducido con jiti: padre existente `{'Leocadio Zubiaurre Iparraguirre', tel 555…2, fn 1975-04-03}` contra fila del CSV con el mismo nombre y teléfono y SIN fecha → `clasificarFilas` = `[{…,\"estado\":\"duplicado\"}]`, y `compararPacientes` = `{\"certeza\":\"probable\",\"motivo\":\"Mismo nombre y mismo teléfono\",\"puntaje\":75}`. O sea: se omite con certeza «probable» y la fila pintada no dice contra quién chocó. MATIZ: el umbral bajo es DELIBERADO y está razonado en csv-pacientes.ts:170-184 (evitar duplicar el consultorio al reimportar), así que lo que queda en pie no es «bajen el umbral» sino «enseñen la evidencia y dejen forzar»."
+    },
+    {
+      "id": "ASE-008",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:327 (`accept=\".csv,text/csv\"`), :319 («Sube un CSV o Excel…»), :152 (`r.readAsText(f, 'utf-8')`), :163-164",
+      "nota": "Las cuatro citas son literales y la contradicción del texto es real. Pero el repro descrito no es el camino por omisión: con `accept=\".csv,text/csv\"` el selector del sistema oculta/atenúa el .xlsx, y no hay zona de arrastre, así que para llegar a «No se encontró una columna de Nombre» hay que forzar el filtro a «todos los archivos». Queda como desalineación de texto (una línea), no como botón muerto: baja a P3."
+    },
+    {
+      "id": "ASE-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:404-406 («Abre los dos y compáralos. Nada se junta ni se borra solo…») · firestore.rules:193 `allow delete: if false;`",
+      "nota": "El texto del modal es literal en :404. La cita a las reglas está DESPLAZADA (dice 186; el `allow delete: if false;` está en 193, y el comentario que lo explica en 175-192), pero el hecho se sostiene y el único borrado real vive en /api/arco/cancelar. Grep confirmado: no existe ninguna función de fusión en src/. P2 correcto — no hay pérdida de dato, hay ausencia de remedio."
+    },
+    {
+      "id": "ASE-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/arco.ts:100-102 (origen:'portal-publico', identidadVerificada:false) · único llamador src/app/privacidad/[clinicId]/page.tsx:70 (grep de crearSolicitudArco en todo src: 2 resultados, ambos ése) · src/app/(dashboard)/cumplimiento/page.tsx:259-261 y 931-938 · firestore.rules:742-751 (create público sin patientId) y 780-786 (update de miembro que SÍ permitiría ligarlo)",
+      "nota": "Seguido el flujo entero y confirmado del otro lado: la única escritura de arco_requests desde el cliente es `resolverSolicitudArco` (arco.ts:145), que manda `{estado, resolucion, resueltoPor, fechaResolucion}` y NUNCA `patientId`; las tres rutas de servidor sólo hacen `set({estado, fechaResolucion, …})`. Grep de «arco» en src/app/(dashboard)/expediente/[patientId]/page.tsx: 0 resultados. Las reglas dejan la puerta abierta (780-786 no congela patientId) y ningún código la cruza: el derecho está escrito y no se puede ejecutar. P1 se sostiene."
+    },
+    {
+      "id": "ASE-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/cumplimiento/page.tsx:268 (`identidadVerificada: true` constante) y :314 (igual en oposición) frente a :433 `disabled={… || !identidadOk}` y :474 `checked={identidadOk}` · src/app/api/arco/acceso/route.ts:105-110",
+      "nota": "Literal, y peor de lo que dice el título: la MISMA constante quemada aparece en dos sitios (acceso :268 y oposición :314). El servidor documenta en 94-104 que «el candado no puede estar en el formulario… el médico afirma que verificó», y el cliente afirma por él. La asimetría con la cancelación (casilla real) es la prueba de que el patrón correcto ya existe en el archivo."
+    },
+    {
+      "id": "ASE-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/cumplimiento/page.tsx:352 (`const resolucion = prompt(...)`) · src/lib/arco.ts:20 (ArcoTipo con 'rectificacion' y 'revocacion') · `ls src/app/api/arco/` = acceso, cancelar, oponerse",
+      "nota": "Las tres comprobaciones dan lo que dice el auditor. Acceso y oposición ya salen del prompt por los early-return de :342 y :349; rectificación y revocación caen al prompt y `resolverSolicitudArco` (arco.ts:145) sólo escribe en arco_requests: nada toca patients/{id}. Es el resto de REG-154."
+    },
+    {
+      "id": "ASE-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/salir-seguro.ts:101-104 (promesas.length===0 → todoGuardado:false), :192-199 (única rama con `await limpiarCacheFirestore()`), :202-210 (rama de salida sin purga) · src/lib/firebase.ts:106-108 persistentLocalCache · grep de limpiarCacheFirestore en todo src: 3 resultados, y el único uso es salir-seguro.ts:196",
+      "nota": "Leído el archivo entero: la rama sin promesas devuelve todoGuardado:false, entra por :202 y sale por `window.location.href` sin `limpiarBorradoresLocales()` ni `limpiarCacheFirestore()`. No hay otro purgador en el producto (el grep del símbolo da un solo llamador). AutoLogout.tsx:56, Sidebar.tsx:99, FlowRail.tsx:167, layout.tsx:504,671 y operaciones/page.tsx:335 pasan todos por aquí, y operaciones/page.tsx:342 promete «Cierra y limpia este dispositivo: nada del consultorio se queda guardado aquí». El hueco de prueba también es cierto: src/__tests__/salir-seguro.test.ts sólo tiene 6 casos, todos de `guardarTodoYEsperar`, ninguno de `salirSeguro`. P1 sostenido — contradice data-privacy.md («al cerrar sesión se limpia IndexedDB») en el cierre más frecuente."
+    },
+    {
+      "id": "ASE-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/salir-seguro.ts:206-209 · grep de `pendiente=`|guardado_lento|guardado_fallido|sin_confirmar en src/app y src/components: CERO resultados; src/app/login/page.tsx:25-26 sólo lee `invite`",
+      "nota": "Comprobado del otro lado, que es lo que pide la regla «el dato tiene que LLEGAR»: el emisor existe y no hay un solo lector. El destinatario (login) lee `searchParams` pero únicamente para `invite`."
+    },
+    {
+      "id": "ASE-015",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/arco/cancelar/route.ts:174 (citas por pacienteId, sin filtro de fecha) y :195-198 (recursiveDelete de notas, citas y paciente) · `cobros` es colección de clínica, no subcolección del paciente, así que recursiveDelete(pacienteRef) no la alcanza · src/lib/arco/cancelacion.ts:62-64",
+      "nota": "Los hechos se sostienen: se borran también las citas pasadas y los cobros sobreviven con el nombre. Un matiz contra el auditor: el texto de cancelacion.ts:63 sí enumera lo que borra («datos del paciente, borradores y sus citas»), no promete «todo»; lo que calla es que los cobros y notification_logs se quedan. Parcial porque el remedio (borrar / anonimizar / conservar por colección) es decisión del dueño con su asesor fiscal-legal, no del código: va a 04-DECISIONES-DEL-DUEÑO."
+    },
+    {
+      "id": "ASE-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/authz/registro-rutas.ts:267 · grep de «clinic/importar» en src: 13 resultados, TODOS en __tests__, en la propia ruta o en comentarios de lib/durability; ninguno en src/app (fuera de la ruta), src/components ni src/hooks · src/app/(dashboard)/operaciones/page.tsx:481 descargarRespaldo",
+      "nota": "Verificado con grep: la vuelta no tiene botón en ninguna pantalla. La ida sí. Es `mejora` con evidencia exacta; se queda en P2 y colgada de R-07/O-2, que ya están declarados y no se duplican aquí."
+    },
+    {
+      "id": "ASE-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/clinica/respaldo.ts:208-220 (RAIZ_EXCLUIDAS, sin googleTokens) · firestore.rules:1182 `match /googleTokens/{uid}` · grep de «googleTokens» en todo src/: 0 resultados",
+      "nota": "Cruce rehecho: `googleTokens` aparece en las reglas y en ningún sitio del manifiesto (ni COLECCIONES_RAIZ ni RAIZ_EXCLUIDAS ni EXCLUIDAS). La regla de los tres sitios pide declararlo aunque se excluya. P3 correcto: la colección está cerrada al cliente (`read, write: if false`) y el impacto es reconectar Google Calendar."
+    },
+    {
+      "id": "ASE-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/Sidebar.tsx:54-56 (los tres con modos:'medico') · src/context/ModeContext.tsx:34 (clamp a 'secretaria') · src/app/(dashboard)/operaciones/page.tsx:145-147 y :261 (filtro `it.modos === 'ambos' || mode === 'medico'`) · src/app/(dashboard)/layout.tsx:575-577 RUTAS_SOLO_MEDICO contiene '/cumplimiento' y NO '/migracion' ni '/legal'",
+      "nota": "Las cinco citas son literales. La consecuencia también: la asistente no tiene camino por menú a /migracion ni a /legal, pero el guard del layout sí le deja la ruta por URL — o sea, escondido, no cerrado. Confirmado como friccion; qué pantalla pasa a modos:'ambos' es decisión del dueño."
+    },
+    {
+      "id": "ASE-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:277-278 («…está el respaldo completo en Pacientes…») · src/app/(dashboard)/pacientes/page.tsx:123-135 (comentario RTC-15/RTC-29: «EL RESPALDO SE MUDÓ A /operaciones») · src/app/(dashboard)/operaciones/page.tsx:481",
+      "nota": "Texto que apunta a una pantalla de la que la función se mudó, con el comentario del propio repo documentando la mudanza. Una línea. P3."
+    },
+    {
+      "id": "ASE-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:1174-1175, 1184-1185, 1190-1191, 1199-1200, 1206-1207, 1216-1217, 1224-1225: siete `<label className=\"label\">` sin `htmlFor` y siete controles sin `id`",
+      "nota": "Contados uno a uno en el formulario corto: nombre, teléfono, edad, fecha de nacimiento, sexo (select), servicio médico y alergias. Ninguno lleva htmlFor/id ni aria-label, y no están envueltos en el label. design-system.md lista «campo sin etiqueta» entre los mínimos que fallan la compuerta WCAG 2.2 AA, así que P2 es correcto y no exagerado."
+    },
+    {
+      "id": "ASE-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/firestore.ts:574 (export sin llamador de producción) y :678-680 (`nombreMatch || telefonoMatch`) · grep: los únicos llamadores están en src/__tests__/un-borrado-que-deja-citas-no-es-un-borrado.test.ts · firestore.rules:178-181 lo describe como «una función sin un solo llamador»",
+      "nota": "El hecho se sostiene (código muerto, y la disyunción por teléfono a solas contradice duplicados.ts). DOS correcciones al auditor: (1) la cita del telefonoMatch está desplazada 40 líneas — dice 637-643, está en 678-680; (2) su propuesta de «retirar la función» choca con testing-gates: está SELLADA en src/lib/clinical/invariantes-clinicos.json:1764 con 13 casos y con entrada en regression-ledger.md:10648 (REG-352). Retirarla exige tocar el sello, no es gratis. P3."
+    },
+    {
+      "id": "ASE-022",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/cumplimiento/retencion/page.tsx:5 — la frase «con acciones disponibles» está dentro del comentario de cabecera del archivo; grep de «acciones disponibles» en esa pantalla: 1 resultado, ése. No hay PageHeader ni subtitle que la renderice.",
+      "nota": "La premisa del título es falsa: la pantalla NO «dice con acciones disponibles» a nadie — es una línea de documentación interna, invisible para el médico. Lo que queda en pie (una lista cuya única acción es «Abrir») es real pero no promete nada que incumpla, y qué hacer con un expediente que superó los 5 años es política del dueño con su asesor. Se refuta el hallazgo tal como está redactado; si se quiere conservar, hay que reescribirlo sin la promesa inexistente."
+    },
+    {
+      "id": "ASE-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/OnboardingTour.tsx:24-26 (primer paso: «Tu agenda, siempre a la mano… Es tu pantalla de inicio») · src/app/(dashboard)/layout.tsx:861 `<OnboardingTour enabled={esMedicoReal} />`",
+      "nota": "Verificado en código lo que el auditor vio en la app: el tour se monta en el LAYOUT del dashboard, no en /dashboard, así que se abre encima de cualquier pantalla por la que se entre — incluida /pacientes. La cita de línea va 2-3 desplazada (22 vs 24), dentro de tolerancia."
+    },
+    {
+      "id": "ASE-024",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/arco.ts:77-86 (`while (agregados < 20) { … if (d.getDay() !== 0 && d.getDay() !== 6) agregados++ }`)",
+      "nota": "La línea es literal y el cálculo sólo salta fines de semana. Parcial porque el hallazgo depende de una interpretación legal que el auditor mismo marca NEEDS_LEGAL_REVIEW (si «días hábiles» del art. 32 LFPDPPP excluye el art. 74 LFT): sin esa decisión no hay defecto demostrable, y el sesgo actual es conservador (el contador avisa antes, no después)."
+    },
+    {
+      "id": "ASE-025",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/curp.ts:42 `const siglo = parseInt(aa) <= ahoraAA ? '20' : '19'` (línea exacta) · grep de fechaNacimientoDesdeCURP fuera de lib/curp.ts y __tests__: 0 resultados",
+      "nota": "Literal y sin llamador. Es «escrito y sin conectar», por eso P3: hoy no puede producir un centenario de edad 0 porque nadie la llama. La observación que importa es la condicional — si se conecta para arreglar ASE-005, hay que corregir el siglo antes."
+    },
+    {
+      "id": "ASE-026",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/cumplimiento/page.tsx:273 (Blob de JSON) y :277 (`a.download = arco_acceso_${req.id}.json`) · src/app/api/arco/acceso/route.ts:113-114 (hash sha256 sobre ese mismo JSON)",
+      "nota": "Las líneas coinciden y el propio auditor reconoce que el acuse con hash es correcto. Parcial: si el «formato legible» del art. 33 LFPDPPP se satisface con JSON es decisión del asesor legal del dueño, no de esta auditoría; y hoy, por ASE-010, el botón ni siquiera se ejecuta con solicitudes reales."
+    },
+    {
+      "id": "ASE-027",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:204-230 (bucle secuencial con `await createPatient` por fila, sin lotes, sin progreso, sin reanudación) y :233 `setClasificadas(null); setTexto('')`",
+      "nota": "Literal. P3 correcto: el propio auditor declara el control (reanalizar el mismo CSV reclasifica como duplicado lo ya importado) y la migración asistida por correo (:409-411) es el camino real para volumen. Ojo: ese control depende de que las fechas se comparen igual las dos veces, que es justo lo que ASE-003 rompe."
+    }
+  ],
+  "ratio": { "total": 27, "confirmados": 21, "refutados": 1, "parciales": 5 },
+  "observaciones_del_auditor": "Auditor inusualmente preciso: 26 de 27 citas caen en la línea exacta o a ±3, y todo lo que dijo haber visto en la app viva se corrobora en el código (el texto «Ninguno de los N expedientes coincide» sale de vacio-de-la-lista.ts:131; el tour se monta en el layout, no en /dashboard). Reprodujo lo verificable y declaró lo que no pudo medir (la caché persistente no existe en el emulador). Patrones de error, pocos y menores: (1) citas a firestore.rules y a archivos largos desplazadas — 186 vs 193 en ASE-009, 637-643 vs 678-680 en ASE-021, 750/775 vs 749/780 en ASE-010; (2) una propuesta técnicamente no-op (quitar el filtro de firestore.ts:354 en ASE-001 repetiría la misma consulta de prefijo, cosa que el golden de REG-358 ya fija); (3) una propuesta que choca con testing-gates (retirar deletePatientExpediente, sellada en invariantes-clinicos.json:1764); (4) un hallazgo cuya premisa es una línea de COMENTARIO presentada como texto de pantalla (ASE-022); (5) generaliza un repro a tres términos cuando uno de ellos («Barquin Salcedo») sí lo rescata el bloque de parecidos. No exagera prioridades: los cinco P1 se sostienen los cinco, y en ASE-005 más bien se queda corto (validarCURP no tiene NINGÚN llamador en el producto, ni siquiera en el alta manual). La familia dominante de sus P1 es la misma: el dato cruza una frontera sin que nadie mire del otro lado (REG-160/167/170)."
+}
