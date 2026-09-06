@@ -25,6 +25,11 @@
  *           donde la enfermera y el médico tocan el mismo campo.
  *   D-005   Los campos de la receta dentro de la consulta se nombraban sólo por
  *           marcador de posición, que desaparece al escribir.
+ *   B-009   El módulo desde el que se dicta (uci, hospitalización) sesgaba sólo
+ *           al motor de REPUESTO: `contexto` únicamente lo leían las rutas de
+ *           Whisper, que es lo que corre cuando la diarización se cae.
+ *   B-017   Al corregir turno por turno se tiraban las violaciones y los motivos
+ *           de ese turno — y los turnos son lo que se le manda al modelo.
  *   ASN-007 (llegó por el handoff de EXPEDIENTES) El copiloto calculaba el IMC
  *           con motor determinista y `signos.imc` no lo escribía NADIE —cero
  *           escrituras de `imc:` en `src/`—, así que el expediente no podía
@@ -148,6 +153,31 @@ describe('ASN-012 · corregir un signo ya guardado deja rastro', () => {
     expect(consulta).toMatch(/Motivo \(ej\./)
     expect(consulta).toMatch(/agregarASeccion\('correccionDeSignos', 'Correcciones de signos vitales'\)/)
     expect(consulta).toMatch(/sin motivo declarado/)
+  })
+})
+
+describe('B-009 · B-017 — el dictado no tira lo que descubrió', () => {
+  const hook = leer('src', 'hooks', 'useGrabacionAudio.ts')
+
+  it('B-009 · el módulo viaja también a la diarización, por sus dos caminos', () => {
+    // Camino corto (multipart) y camino largo (JSON con la URL de Storage).
+    expect(hook).toMatch(/if \(ctx\.contexto\) fd\.append\('contexto', ctx\.contexto\)/)
+    expect(hook).toMatch(/if \(c\.contexto\) out\.contexto = c\.contexto/)
+    // Y sigue viajando por donde ya iba: Whisper y el trozo en vivo (REG-520).
+    expect(hook).toMatch(/if \(c\.contexto\) fd\.append\('contexto', c\.contexto\)/)
+    expect(hook).toContain("fd.append('contexto', contextoRef.current.contexto)")
+  })
+
+  it('B-017 · corregir los turnos devuelve también sus alertas y motivos', () => {
+    expect(hook).toMatch(/interface CorreccionDeTurnos/)
+    expect(hook).toMatch(/alertas: AlertaDictado\[\]/)
+    expect(hook).toMatch(/motivos: MotivoConfirmacion\[\]/)
+    expect(hook).toContain('extrasDeTurnosRef')
+  })
+
+  it('B-017 · y se funden con los del texto corrido, sin duplicar', () => {
+    expect(hook).toMatch(/const vistas = new Set\(r\.alertas\.map/)
+    expect(hook).toMatch(/extrasDeTurnosRef\.current\.motivos\.filter\(m => !r\.motivos\.includes\(m\)\)/)
   })
 })
 

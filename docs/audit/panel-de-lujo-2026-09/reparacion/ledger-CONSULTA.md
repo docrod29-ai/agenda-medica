@@ -16,8 +16,8 @@ integrar.
 | ASN-005 | consulta · signos | «154 lb» se tragaba la unidad y viajaba como 154 kg a la verificación mg/kg | CLOSED | `src/__tests__/los-signos-capturados-se-preguntan-no-se-tragan.test.ts` |
 | ASN-007 | consulta · signos (handoff de EXPEDIENTES) | El IMC se calculaba y no se persistía: `signos.imc` no lo escribía nadie, así que el expediente no podía pintarlo | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
 | ASN-012 | consulta · signos | Corregir un signo ya guardado no pedía motivo ni dejaba rastro (C-5 sólo existía en Hospital) | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
-| B-009 | voz · sesgo | El módulo desde el que se dicta sesgaba sólo al motor de repuesto | CLOSED (mitad de la consulta; la ruta, en handoff) | `src/__tests__/lo-aprendido-llega-al-motor-que-transcribe.test.ts` (existente, sigue verde) |
-| B-017 | voz · turnos | Al corregir turno por turno se tiraban las violaciones y los motivos de ese turno | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` no lo cubre: lo cubre el propio tipo `CorreccionDeTurnos` y `npx tsc`; ver decisiones |
+| B-009 | voz · sesgo | El módulo desde el que se dicta sesgaba sólo al motor de repuesto | CLOSED (mitad de la consulta; la ruta, en handoff) | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
+| B-017 | voz · turnos | Al corregir turno por turno se tiraban las violaciones y los motivos de ese turno | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
 | C-014 | paneles | Edad gestacional y edad en meses con la fecha del navegador en UTC | CLOSED | `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts` |
 | D-001 | consulta · dictado | Las correcciones automáticas de cifras y unidades no se veían ni se deshacían en /consulta | CLOSED | `src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts` |
 | D-005 | consulta · accesibilidad | Los campos de la receta sólo se nombraban por marcador de posición | CLOSED | `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` |
@@ -70,7 +70,7 @@ integrar.
 | `src/__tests__/el-consentimiento-dice-donde-va-el-audio.test.ts` | nueva | 7 |
 | `src/__tests__/cirugia-programada-y-anticoagulante-se-cruzan.test.ts` | nueva | 9 |
 | `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts` | nueva | 20 |
-| `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` | nueva | 15 |
+| `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts` | nueva | 18 |
 | `src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts` | invierte el sello anterior | 7 |
 
 ## Módulos nuevos (puros, junto a la pantalla que los usa)

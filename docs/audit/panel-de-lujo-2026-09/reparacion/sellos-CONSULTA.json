@@ -57,7 +57,7 @@
   },
   {
     "archivo": "src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts",
-    "minCasos": 15,
-    "hallazgos": ["MC-002", "PO-004", "PG-002", "MO-004", "ASN-003", "ASN-012", "D-005", "ASN-007"]
+    "minCasos": 18,
+    "hallazgos": ["MC-002", "PO-004", "PG-002", "MO-004", "ASN-003", "ASN-012", "D-005", "ASN-007", "B-009", "B-017"]
   }
 ]
