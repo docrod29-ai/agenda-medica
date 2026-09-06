@@ -88,48 +88,40 @@ export const FAMILIA_BETALACTAMICOS = [
  * la alergia del expediente (MI-005). Un corticoide y un antihipertensivo no
  * comparten nada con la penicilina salvo cinco letras.
  *
- * QUÉ DISPARA QUÉ. Un término de SUBFAMILIA alerta sobre su propia subfamilia;
- * el término paraguas alerta sobre todas. Extenderlo —que una alergia a
- * cefalosporinas alerte también sobre penicilinas— es criterio clínico sobre
- * reactividad cruzada, no una decisión de programación: `NEEDS_CLINICAL_REVIEW`.
- * Se deja en el lado que no fabrica alarmas, porque la alarma de más ya causó
- * el defecto de arriba.
+ * QUÉ NO CAMBIA. Que una alergia a penicilina alerte sobre una cefalosporina es
+ * una decisión clínica que este repositorio ya tomó y selló en pruebas
+ * (auditoría 2026-07: un alérgico a penicilina podía recibir cefazolina —la
+ * profilaxis quirúrgica más usada— sin alerta). Aquí no se toca: la familia
+ * sigue siendo una sola. Lo único que cambia es CÓMO se reconoce la alergia
+ * escrita — por nombre de fármaco o por nombre de clase, nunca por un trozo de
+ * palabra.
  */
-export const SUBFAMILIAS_BETALACTAMICOS: Record<string, string[]> = {
-  penicilinas: ['penicilina', 'amoxicilina', 'ampicilina', 'dicloxacilina', 'oxacilina', 'piperacilina'],
-  cefalosporinas: ['cefalexina', 'ceftriaxona', 'cefepime', 'cefuroxima', 'cefotaxima', 'cefazolina', 'ceftazidima', 'cefixima'],
-  carbapenemicos: ['meropenem', 'imipenem', 'ertapenem', 'doripenem'],
-}
-
-/**
- * Cómo se escribe cada clase en un expediente mexicano. Van con límite de
- * palabra al comparar: «beta» suelto es lo que produjo MI-005.
- */
-const DISPARADORES_DE_CLASE: Record<'todas' | keyof typeof SUBFAMILIAS_BETALACTAMICOS, RegExp> = {
-  todas: /\bbeta[\s-]?lact[áa]mic[oa]s?\b|\bbetalactamas?\b/i,
-  penicilinas: /\bpenicilinas?\b|\bpenicilinicos?\b/i,
-  cefalosporinas: /\bcefalosporinas?\b|\bcefalospor[íi]nicos?\b|\bcefas\b/i,
-  carbapenemicos: /\bcarbapen[ée]mic[oa]s?\b|\bcarbapenems?\b/i,
-}
+const DISPARADORES_DE_CLASE: RegExp[] = [
+  /\bbeta[\s-]?lact[áa]mic[oa]s?\b/i,
+  /\bbetalactamas?\b/i,
+  /\bpenicilinas?\b/i,
+  /\bpenicil[íi]nic[oa]s?\b/i,
+  /\bcefalosporinas?\b/i,
+  /\bcefalospor[íi]nic[oa]s?\b/i,
+  /\bcarbapen[ée]mic[oa]s?\b/i,
+  /\bcarbapenems?\b/i,
+]
 
 /**
  * Los miembros de la familia que cubre esta alergia escrita, o lista vacía.
+ *
  * Puro y exportado para poder probarlo solo — incluida la prueba al revés, que
- * es la que caza el regreso de MI-005.
+ * es la que caza el regreso de MI-005: «betametasona» y «betabloqueadores»
+ * tienen que devolver lista vacía.
  */
 export function miembrosCubiertosPorAlergia(textoAlergia: string): string[] {
   const a = (textoAlergia ?? '').toLowerCase()
   if (!a.trim()) return []
-  if (DISPARADORES_DE_CLASE.todas.test(a)) return [...FAMILIA_BETALACTAMICOS]
-  const cubiertos = new Set<string>()
-  for (const [clase, miembros] of Object.entries(SUBFAMILIAS_BETALACTAMICOS)) {
-    if (DISPARADORES_DE_CLASE[clase as keyof typeof SUBFAMILIAS_BETALACTAMICOS].test(a)) {
-      for (const m of miembros) cubiertos.add(m)
-    }
-  }
-  // Y el fármaco nombrado tal cual, que es el caso de siempre.
-  for (const f of FAMILIA_BETALACTAMICOS) if (a.includes(f)) cubiertos.add(f)
-  return [...cubiertos]
+  if (DISPARADORES_DE_CLASE.some(re => re.test(a))) return [...FAMILIA_BETALACTAMICOS]
+  // El fármaco nombrado tal cual: alergia a un miembro cubre a la familia, que
+  // es la política sellada desde 2026-07.
+  if (FAMILIA_BETALACTAMICOS.some(f => a.includes(f))) return [...FAMILIA_BETALACTAMICOS]
+  return []
 }
 
 /* ─── Normalización conservadora ─────────────────────────────────── */
