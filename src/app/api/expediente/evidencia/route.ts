@@ -9,7 +9,8 @@
  *
  * Nivel Premium usa Opus 4.8 + razonamiento; Pro usa Sonnet 5.
  *
- * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}], contexto:{edad,sexo,alergias} }
+ * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}],
+ *         contexto:{edad,sexo,alergias,embarazo,tfg:{valor,vigente},problemas,medicamentosActuales} }
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -30,6 +31,7 @@ import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 /**
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
     key = (r.key as string) ?? ''; fuente = r.fuente; clinicId = r.clinicId ?? ''
   } catch { /* key queda vacía → mensaje claro abajo, nunca 500 */ }
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
-  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
+  if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('evidencia').mensaje }, { status: 503 })
 
   let body: {
     diagnosticos?: { descripcion?: string; tipo?: string }[]
@@ -107,7 +109,14 @@ export async function POST(req: NextRequest) {
     motivo?: string
     resumen?: string
     motor?: string   // 'rapida' | 'estandar' | 'maxima' — el motor que el médico eligió para la nota
-    contexto?: { edad?: number; sexo?: string; alergias?: unknown }
+    contexto?: {
+      edad?: number; sexo?: string; alergias?: unknown
+      /* WS-09 — lo que el motor de aplicabilidad ya sabía leer y no le llegaba. */
+      embarazo?: boolean
+      tfg?: { valor?: number; vigente?: boolean }
+      problemas?: unknown
+      medicamentosActuales?: unknown
+    }
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
@@ -483,7 +492,7 @@ export async function POST(req: NextRequest) {
       _verificacion: verificacion,
     })
   } catch (e) {
-    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
+    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'No se pudo analizar la evidencia. Muestro los artículos encontrados.' })
   }
 
   } catch (fatal) {

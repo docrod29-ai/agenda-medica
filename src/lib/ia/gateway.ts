@@ -33,6 +33,7 @@ import { registrarCosto } from '@/lib/finanzas/cost-ledger-server'
 import { usoDe } from '@/lib/finanzas/medir-ia'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { safeLog } from '@/lib/security/sanitize'
+import { CABECERA_CORRELACION, esCorrelacionValida } from '@/lib/observabilidad/correlacion'
 import { fetchConTimeout, TiempoAgotado, TIMEOUT } from '@/lib/fetch-con-timeout'
 import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/finanzas/cartera-server'
 import {
@@ -230,9 +231,28 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
        */
       res = await fetchConTimeout(URL[o.proveedor], {
         method: 'POST',
-        headers: o.proveedor === 'anthropic'
-          ? { 'x-api-key': o.clave, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
-          : { Authorization: `Bearer ${o.clave}`, 'Content-Type': 'application/json' },
+        /**
+         * ── LA TRAZA TAMBIÉN VIAJA AL PROVEEDOR — REG-566 ──────────────────
+         *
+         * El hilo llegaba del navegador al asiento del libro de costos y se
+         * paraba ahí. Cuando el proveedor dice «esa petición nos llegó rara», no
+         * había forma de señalar CUÁL: nuestro identificador no existía en su
+         * lado y el suyo no existía en el nuestro.
+         *
+         * Va como cabecera propia y no en el cuerpo: el cuerpo lleva PHI
+         * minimizada y es lo que el proveedor procesa; una cabecera opaca es
+         * inerte. Y va la MISMA que se escribe en el asiento —no una nueva—,
+         * porque una traza que cambia al cruzar la frontera no correlaciona nada.
+         *
+         * `x-correlacion` es un nombre nuestro: un proveedor que no lo conozca lo
+         * ignora, que es el comportamiento correcto para una cabecera de traza.
+         */
+        headers: {
+          ...(o.proveedor === 'anthropic'
+            ? { 'x-api-key': o.clave, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
+            : { Authorization: `Bearer ${o.clave}`, 'Content-Type': 'application/json' }),
+          ...(esCorrelacionValida(ctx.correlacion) ? { [CABECERA_CORRELACION]: ctx.correlacion } : {}),
+        },
         body: JSON.stringify(o.proveedor === 'anthropic' ? cuerpoAnthropic(p) : cuerpoOpenAI(p)),
       }, TIMEOUT.ia)
     } catch (e) {

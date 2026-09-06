@@ -5,6 +5,7 @@
  * factura, para que el cliente elija cuál facturar. Miembro del consultorio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import { facturamaConfigurada } from '@/lib/facturama'
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, pagos, datosFiscales, disponible: facturamaConfigurada() })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 160) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

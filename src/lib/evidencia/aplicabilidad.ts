@@ -49,7 +49,12 @@
  */
 
 /** Las dimensiones que este motor sabe leer con certeza. Todo lo demás, no. */
-export type Dimension = 'edad' | 'embarazo' | 'funcion_renal' | 'alergia'
+export type Dimension =
+  | 'edad' | 'embarazo' | 'funcion_renal' | 'alergia'
+  /** WS-09 — el criterio nombra una enfermedad que el paciente tiene o no. */
+  | 'comorbilidad'
+  /** WS-09 — el criterio nombra un fármaco que el paciente toma o ha tomado. */
+  | 'terapia_previa'
 
 export type Veredicto =
   /** El paciente satisface el criterio. */
@@ -90,6 +95,23 @@ export interface EstadoDelPaciente {
   readonly tfg?: { readonly valor: number; readonly vigente: boolean }
   /** Alérgenos del expediente, ya normalizados por quien los tenga. */
   readonly alergenos?: readonly string[]
+  /**
+   * Los problemas VIGENTES del paciente, tal como se escribieron.
+   *
+   * Vienen de `problemasActivos`, que ya excluye lo descartado y lo resuelto: un
+   * criterio que excluya diabéticos no puede casar contra una diabetes que el
+   * médico descartó.
+   */
+  readonly problemas?: readonly string[]
+  /**
+   * Lo que el paciente TOMA o ha tomado, tal como se escribió.
+   *
+   * Cubre las dos caras del mismo criterio —«tratamiento previo con X» y
+   * «pacientes en tratamiento con X»—, que en un resumen se escriben igual y
+   * distinguirlas exigiría leer el tiempo verbal. No se intenta: la dimensión se
+   * llama `terapia_previa` y su frase dice exactamente qué se comprobó.
+   */
+  readonly medicamentos?: readonly string[]
 }
 
 export interface Aplicabilidad {
@@ -128,6 +150,22 @@ const EMBARAZO = /embaraz|gestant|gestacion|lactan|pregnan|lactat|breastfeed/
 const RENAL = /(?:tfg|egfr|gfr|depuracion|aclaramiento|filtrado\s+glomerular|creatinine\s+clearance)[^0-9]{0,28}(<|<=|≤|menor\s+(?:de|a)|below|less\s+than)\s*(\d{1,3})/
 const ALERGIA = /(?:alergia\s+(?:conocida\s+)?a|allergic\s+to|allergy\s+to)\s+(?:la\s+|el\s+|los\s+|las\s+)?([a-z][a-z\s]{2,30}?)(?:\s*[,.)]|$)/
 
+/**
+ * COMORBILIDAD y TERAPIA PREVIA — WS-09.
+ *
+ * Los dos capturan **el término que nombran**, no una enfermedad de catálogo: el
+ * motor no sabe qué es una comorbilidad, sabe que el criterio dice «pacientes
+ * con X» y va a mirar si X está en la lista de problemas del paciente. Un
+ * vocabulario propio aquí sería criterio clínico inventado, y lo que falte de él
+ * no se vigilaría sin que nadie lo supiera (regla 5).
+ *
+ * Por eso el patrón exige la PREPOSICIÓN («con», «with», «de novo» no cuela):
+ * sin ella, «pacientes reclutados en 12 centros» daría una comorbilidad llamada
+ * «reclutados».
+ */
+const COMORBILIDAD = /(?:pacientes?\s+con|diagn[oó]stico\s+de|historia\s+de|antecedente\s+de|patients?\s+with|history\s+of|known)\s+(?:la\s+|el\s+|los\s+|las\s+)?([a-z][a-z\s]{2,34}?)(?:\s*[,.);]|$)/
+const TERAPIA_PREVIA = /(?:tratamiento\s+(?:previo\s+)?con|tratados?\s+(?:previamente\s+)?con|en\s+tratamiento\s+con|uso\s+(?:previo\s+)?de|prior\s+(?:treatment|therapy)\s+with|previously\s+treated\s+with|receiving|on\s+treatment\s+with)\s+(?:la\s+|el\s+|los\s+|las\s+)?([a-z][a-z\s]{2,30}?)(?:\s*[,.);]|$)/
+
 /** Palabras que marcan una frase como criterio de EXCLUSIÓN, en los dos idiomas. */
 const DICE_EXCLUSION = /exclu|excluid|no\s+se\s+incluyeron|not\s+eligible/
 
@@ -144,7 +182,93 @@ export function dimensionDe(texto: string): Dimension | null {
   if (EDAD_MINIMA.test(t) || EDAD_MAXIMA.test(t) || EDAD_RANGO.test(t)) return 'edad'
   if (EMBARAZO.test(t)) return 'embarazo'
   if (ALERGIA.test(t)) return 'alergia'
+  /* Después de alergia a propósito: «alergia conocida a penicilina» también casa
+     con COMORBILIDAD por el «conocida», y la alergia es la lectura correcta. */
+  if (TERAPIA_PREVIA.test(t)) return 'terapia_previa'
+  if (COMORBILIDAD.test(t)) return 'comorbilidad'
   return null
+}
+
+/**
+ * Palabras que cierran el término: lo que viene después ya no es su nombre.
+ *
+ * Sin esto, «previously treated with rituximab were excluded» capturaba
+ * «rituximab were excluded» y no casaba con «Rituximab 375 mg/m²» — el paciente
+ * SÍ lo tomaba y el motor decía que no. Se vio al escribir el caso, no después.
+ */
+const CIERRA_EL_TERMINO = /\b(?:were|was|is|are|had|have|has|will|who|whom|which|that|and|or|for|from|in|at|prior|previously|fueron|fue|es|son|que|quienes|con|sin|para|de|del|la|el|los|las|y|o)\b/
+
+/** Corta el término en la primera palabra que no puede ser parte de su nombre. */
+function recortaTermino(t: string): string {
+  const m = CIERRA_EL_TERMINO.exec(t)
+  return (m && m.index > 0 ? t.slice(0, m.index) : t).trim()
+}
+
+/**
+ * ¿Nombra el criterio algo que está en esta lista del paciente?
+ *
+ * Dos pasadas, y las dos hacen falta:
+ *
+ *  1. **Contención**, igual que las alergias: «diabetes» contra «diabetes
+ *     mellitus tipo 2» tiene que casar, porque el expediente y el resumen nunca
+ *     escriben lo mismo igual.
+ *  2. **Por palabra**, para lo que la contención no alcanza: un término de
+ *     varias palabras no está contenido en la entrada del expediente ni al
+ *     revés, y sin esto un fármaco reconocido correctamente se declararía
+ *     ausente.
+ *
+ * El mínimo de cuatro letras en la segunda pasada no es cosmético: sin él,
+ * partículas como «con» o «de» casarían con cualquier cosa y el motor señalaría
+ * de más — que es lo que la regla 5 prohíbe.
+ */
+function nombraAlgoDe(termino: string, lista: readonly string[]): string | null {
+  const t = recortaTermino(plano(termino))
+  if (t.length < 3) return null
+  for (const x of lista) {
+    const p = plano(x).trim()
+    if (!p) continue
+    if (p.includes(t) || t.includes(p)) return x
+  }
+  const palabras = t.split(/\s+/).filter(w => w.length >= 4)
+  for (const x of lista) {
+    const p = plano(x).trim()
+    if (p && palabras.some(w => p.includes(w))) return x
+  }
+  return null
+}
+
+/** Criterio que habla de una enfermedad del paciente. */
+function evaluarComorbilidad(t: string, p: EstadoDelPaciente): { v: Veredicto; porQue: string } {
+  const m = COMORBILIDAD.exec(t)
+  if (!m) return { v: 'no_evaluable', porQue: 'No se pudo leer de qué condición habla.' }
+  const termino = m[1].trim()
+  if (!p.problemas) {
+    return { v: 'datos_insuficientes', porQue: `El criterio habla de «${termino}» y no consta la lista de problemas del paciente.` }
+  }
+  const hallado = nombraAlgoDe(termino, p.problemas)
+  return {
+    v: hallado ? 'cumple' : 'no_cumple',
+    porQue: hallado
+      ? `El expediente registra «${hallado}», que el criterio nombra como «${termino}».`
+      : `El criterio pide «${termino}» y no está entre los ${p.problemas.length} problemas vigentes del expediente.`,
+  }
+}
+
+/** Criterio que habla de un fármaco que el paciente toma o ha tomado. */
+function evaluarTerapiaPrevia(t: string, p: EstadoDelPaciente): { v: Veredicto; porQue: string } {
+  const m = TERAPIA_PREVIA.exec(t)
+  if (!m) return { v: 'no_evaluable', porQue: 'No se pudo leer de qué tratamiento habla.' }
+  const termino = m[1].trim()
+  if (!p.medicamentos) {
+    return { v: 'datos_insuficientes', porQue: `El criterio habla de tratamiento con «${termino}» y no consta la lista de medicamentos.` }
+  }
+  const hallado = nombraAlgoDe(termino, p.medicamentos)
+  return {
+    v: hallado ? 'cumple' : 'no_cumple',
+    porQue: hallado
+      ? `El expediente registra «${hallado}», que el criterio nombra como «${termino}».`
+      : `El criterio pide tratamiento con «${termino}» y no consta entre los ${p.medicamentos.length} medicamentos del expediente.`,
+  }
 }
 
 /** ¿Satisface el paciente lo que dice este criterio de edad? */
@@ -240,6 +364,8 @@ export function evaluarCriterio(texto: string, clase: Clase, p: EstadoDelPacient
     : dimension === 'funcion_renal' ? evaluarRenal(t, p)
     : dimension === 'embarazo' ? evaluarEmbarazo(p)
     : dimension === 'alergia' ? evaluarAlergia(t, p)
+    : dimension === 'comorbilidad' ? evaluarComorbilidad(t, p)
+    : dimension === 'terapia_previa' ? evaluarTerapiaPrevia(t, p)
     : { v: 'no_evaluable' as Veredicto, porQue: 'Este motor no sabe leer este criterio. No se interpreta.' }
   return { texto, clase, dimension, veredicto: r.v, porQue: r.porQue }
 }

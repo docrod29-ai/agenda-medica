@@ -1,9 +1,9 @@
 {
   "porQue": "Las reglas NO se despliegan con `vercel --prod`. Este archivo recuerda cuáles se confirmaron desplegadas, para que el repositorio pueda DERIVAR si las de hoy ya rigen en producción en vez de depender de que alguien se acuerde. Ver docs/ops/REGLAS-DE-FIRESTORE.md.",
-  "hashDesplegado": "1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7",
+  "hashDesplegado": "b7966ac9461bb2bd49a93aff0406e38d2a788911c4dffebc9e70046d562ddbd7",
   "confirmadoEl": "2026-09-06",
-  "confirmadoPor": "Workflow «Despliegue a producción (manual)» — ejecuciones #18, #21 y #23",
-  "shaDelArbol": "078664fee86b23f75e9fd45b3390e710ca459e91",
+  "confirmadoPor": "Workflow «Despliegue a producción (manual)» — ejecución #26",
+  "shaDelArbol": "7c2465ea2434749a4c50ea1ed533f23bcb07d6b0",
   "evidencia": {
     "queLoPublico": "El paso «Firestore · desplegar REGLAS» de .github/workflows/deploy-production.yml, que corre `firebase deploy --only firestore:rules` sobre el árbol de SHA_AUTORIZADO. Hasta la ejecución #14 ese paso publicaba reglas E ÍNDICES a la vez y contaba las dos con una sola variable; se partió en dos por REG-433, después de que un 403 en los índices hiciera que el acta imprimiera FIRESTORE_RULES=failure sobre unas reglas que habían salido perfectas.",
     "ejecuciones": [
@@ -12,11 +12,11 @@
       "https://github.com/docrod29-ai/agenda-medica/actions/runs/33470948206",
       "https://github.com/docrod29-ai/agenda-medica/actions/runs/33572744371",
       "https://github.com/docrod29-ai/agenda-medica/actions/runs/33927883098",
-      "https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694"
+      "https://github.com/docrod29-ai/agenda-medica/actions/runs/34024381002"
     ],
-    "queDevolvioElActa": "Ejecución #23 (6-sep-2026, paquete v1183): FIRESTORE_RULES = success · FIRESTORE_INDICES = success · FIRESTORE_RULES_SHA256 = 1d91d707… · SECURITY_E2E = success · SMOKE = success · SMOKE_PORTAL = success · PRODUCTION_RELEASE = SUCCESS. Las anteriores (#11 a #15) publicaron el hash 3032001e…; la #18 fue la que lo movió a 1d91d707… al entrar la regla de `preguntas_paciente`.",
-    "actaCompleta": "docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
-    "porQueElHashCuadra": "El hash NO se movió en este paquete y eso es correcto: v1183 son reparaciones de la receta, del diagnóstico impreso y de los diálogos — ninguna toca firestore.rules. La ejecución #23 republicó las MISMAS reglas, que es un no-op del lado de Firebase y la forma de dejar constancia de que lo que rige hoy es lo que el árbol dice. El sha256 del árbol local en 078664fe se comprobó contra el valor que emitió el workflow: coinciden.",
+    "queDevolvioElActa": "Ejecución #26 (6-sep-2026, v1186): FIRESTORE_RULES = success · FIRESTORE_INDICES = success · FIRESTORE_RULES_SHA256 = b7966ac9… · SECURITY_E2E = success (57 casos) · SMOKE = success (10 casos) · SMOKE_PORTAL = success (401 sin enlace) · PRODUCTION_RELEASE = SUCCESS. Antes de eso, ejecución #18: FIRESTORE_RULES = success · FIRESTORE_INDICES = success · FIRESTORE_RULES_SHA256 = 1d91d707… · SECURITY_E2E = success · SMOKE = success · SMOKE_PORTAL = success · PRODUCTION_RELEASE = SUCCESS. Las anteriores (#11, #12, #13 y #15) publicaron el hash 3032001e…; la #13 fue la primera en la que el paso del sello corrió de verdad, y la #15 la primera con reglas e índices contados por separado, tras concederle a la cuenta de servicio el rol roles/datastore.indexAdmin.",
+    "actaCompleta": "docs/maintenance/PAQUETE-PRODUCCION-2026-09-04-v1180.md",
+    "porQueElHashCuadra": "6-sep-2026: 1d91d707… → b7966ac9…. firestore.rules cambió al fusionarse #466, que añadió el `match` de `platform_authz_denegadas` (REG-578). Ese cambio NO abría nada —el `match /{document=**}` final ya deniega lo no declarado—, pero la regla explícita es lo que impide que un `match` futuro más laxo deje la colección al descubierto sin que nadie lo note. La ejecución #26 la publicó y el sello que emitió el workflow coincide con el sha256 del árbol local. Antes: 3032001e… → 1d91d707…. firestore.rules cambió al fusionarse #443, que añadió la regla de la colección `preguntas_paciente`. Ése era exactamente el hueco que este archivo servía para ver: main llevaba la regla escrita y producción seguía sirviendo el árbol anterior, porque `vercel --prod` no publica reglas. La ejecución #18 lo cerró. El sha256 del árbol local en 8885a588 se comprobó contra el valor que emitió el workflow: coinciden.",
     "loQueNoDemuestra": "Que los ÍNDICES estén construidos. `deploy --only firestore:indexes` contesta al enviar, no al terminar: la construcción es asíncrona y puede fallar después. Ese renglón se cierra mirando la consola del proyecto, no aquí. Ver docs/ops/INDICES-DE-FIRESTORE.md."
   },
   "comoSeActualiza": "SÓLO después de correr `npx firebase deploy --only firestore:rules --project nexomed-agenda` —o el paso del workflow que hace lo mismo— y ver que terminó bien: se pega el sha256 de firestore.rules, la fecha y quién lo corrió. El propio despliegue emite el valor a pegar en su acta (paso «Firestore · emitir el sello de las reglas»), para que no haya que calcularlo de memoria. Nunca se actualiza para poner una prueba en verde: eso convertiría el registro en una mentira sobre lo que rige en producción."

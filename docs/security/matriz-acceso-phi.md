@@ -94,6 +94,7 @@ se activen no entren por una puerta abierta.
 | `platform_cost_ledger/{eventoId}` | Financiero | `servidor` | `servidor` | Libro de costos de IA. No lleva PHI, pero enseña el gasto de todos los consultorios: se lee sólo por API del dueño. |
 | `platform_payments/{payId}` | Financiero | `servidor` | `servidor` | Facturación de la PLATAFORMA (nivel dueño). Solo el webhook de Stripe y /superadmin vía API. |
 | `platform_admin_log/{logId}` | Plataforma | `servidor` | `servidor` | Bitácora de acciones del dueño. Nunca desde el cliente. |
+| `platform_authz_denegadas/{denId}` | Plataforma | `servidor` | `servidor` | Denegaciones de autorización (WS-13). Las escribe el servidor al denegar y las lee el vigilante para ver el patrón. Cerrada al cliente por las dos puntas: quien sondea no debe poder leer el registro de su propio sondeo. Sin PHI — actor, consultorio, capacidad y ruta sin parámetros. |
 | `platform_packages/{pkgId}` | Plataforma | `servidor` | `servidor` | Paquetes de módulos y precio. Los define el dueño desde /superadmin. |
 | `platform_meta/{docId}` | Plataforma | `servidor` | `servidor` | Metadatos de la plataforma. Solo Admin SDK. |
 | `{document=**}` | Plataforma | `servidor` | `servidor` | DEFAULT-DENY. Todo lo que no esté declarado arriba queda cerrado al cliente. |

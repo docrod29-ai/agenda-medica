@@ -302,3 +302,36 @@ export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
   'demuestra nada — es lo que se creía antes de hacer el estudio, a veces justo lo ' +
   'que vino a refutar. Son dos defectos distintos, se cuentan aparte y se ' +
   'arreglan distinto; mezclarlos escondería el segundo dentro del primero.'
+
+/**
+ * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-577.
+ *
+ * No mira los artículos: compara la afirmación con **el pasaje que el propio
+ * modelo devolvió como respaldo**. Si ese pasaje niega el resultado, o lo dice
+ * con reservas que la frase quitó, se marca.
+ *
+ * Va sobre los pasajes tal cual llegaron, igual que `citasFueraDeLosHallazgos`:
+ * si una afirmación cita dos artículos y sólo uno de los pasajes la contradice,
+ * se marca ese.
+ */
+
+/**
+ * EL HUECO QUE ESTA CAPA **NO** CUBRE, Y QUE NO SE PIERDE (REG-560).
+ *
+ * `citasQueDicenLoContrario` caza la POLARIDAD invertida: la frase afirma un
+ * efecto y el pasaje lo niega. No caza el otro medio defecto, que la rama
+ * paralela sí había construido y que aquí se declara en vez de duplicarse:
+ *
+ *     el pasaje dice lo mismo, pero CON RESERVAS que la frase quitó
+ *     («podría reducir», «sugiere una tendencia» → «reduce»).
+ *
+ * No es lo contrario, y por eso el detector de polaridad lo deja pasar. Es una
+ * afirmación más fuerte que su fuente, que es como se cita mal de buena fe.
+ *
+ * Se declara aquí, con nombre, para que el día que se construya nadie tenga que
+ * volver a descubrirlo — y para que hoy nadie lea el silencio como cobertura.
+ */
+export const LO_QUE_LA_POLARIDAD_NO_CAZA =
+  'NO se detecta el pasaje que dice lo mismo CON RESERVAS que la frase quitó '
+  + '(«podría reducir» citado como «reduce»). No es polaridad invertida: es una '
+  + 'afirmación más fuerte que su fuente. Ausencia de marca NO es respaldo.'

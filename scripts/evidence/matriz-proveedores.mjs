@@ -54,8 +54,10 @@ export const FUERA_DEL_CONTRATO = ['pmc', 'fda_dailymed']
 function leerCatalogoConTsx() {
   const guion = `
     import { CATALOGO_DE_EVIDENCIA, CAMPOS_DE_LA_MATRIZ, REVISADO_EN, UNVERIFIABLE } from './src/lib/evidence-integrations/catalogo.ts'
+    import { HOSTS_DE_EVIDENCIA } from './src/lib/evidence-integrations/de-donde-se-baja.ts'
     const salida = {
       revisadoEn: REVISADO_EN,
+      hosts: HOSTS_DE_EVIDENCIA,
       campos: CAMPOS_DE_LA_MATRIZ,
       entradas: Object.values(CATALOGO_DE_EVIDENCIA).map(e => ({
         id: e.id, nombre: e.nombre, clase: e.clase, rol: e.rol, licencia: e.licencia,
@@ -95,7 +97,17 @@ function celda(v) {
   return `${valor} — ${v.nota}`
 }
 
-export function generarMatriz(cat) {
+/**
+ * @param cat    el catálogo de proveedores
+ * @param hosts  `HOSTS_DE_EVIDENCIA`. OBLIGATORIO a propósito: si fuera opcional,
+ *               un llamador que lo olvidara generaría el documento SIN la
+ *               sección y el guardián de sincronía lo daría por bueno — la
+ *               tabla desaparecería sin que nada se pusiera rojo.
+ */
+export function generarMatriz(cat, hosts) {
+  if (!Array.isArray(hosts) || hosts.length === 0) {
+    throw new Error('generarMatriz: faltan los hosts de evidencia; ver de-donde-se-baja.ts')
+  }
   const L = []
   L.push('# Matriz de calificación de proveedores de evidencia (#314)')
   L.push('')
@@ -199,14 +211,46 @@ export function generarMatriz(cat) {
     for (const c of cat.campos) L.push(`| ${ETIQUETA_CAMPO[c] ?? c} | ${celda(e.matriz[c])} |`)
     L.push('')
   }
+  /**
+   * ── DE DÓNDE SE BAJA, Y DE DÓNDE NO SE BAJA NADA (WS-06) ─────────────────
+   *
+   * Va en ESTE documento y no en otro porque es la otra mitad de la misma
+   * pregunta: la tabla de arriba dice qué permite la licencia de cada
+   * proveedor, y esto dice por qué vía se llega a él. Una sin la otra deja al
+   * dueño decidiendo un gasto sin saber cómo entra el material.
+   */
+  L.push('## De dónde se baja evidencia, y de dónde no se baja nada')
+  L.push('')
+  L.push('> Fuente de verdad: `src/lib/evidence-integrations/de-donde-se-baja.ts`.')
+  L.push('> Un host que aparezca en el árbol y no esté aquí rompe el CI.')
+  L.push('')
+  L.push('**Enlazar no es recuperar, y es casi lo contrario.** Un enlace manda al médico al')
+  L.push('sitio del editor, bajo los términos del editor. Bajar esa misma URL desde el')
+  L.push('servidor y quedarse con el HTML es tomar el material sin pasar por donde el editor')
+  L.push('pone sus condiciones. La URL es la misma y el acto es el contrario.')
+  L.push('')
+  L.push('| Host | Qué se hace | Qué | Por qué se puede |')
+  L.push('|---|---|---|---|')
+  for (const h of hosts) {
+    L.push(`| \`${h.host}\` | ${ETIQUETA_USO[h.comoSeUsa] ?? h.comoSeUsa} | ${h.que} | ${h.baseLegal} |`)
+  }
+  L.push('')
+
   return L.join('\n') + '\n'
+}
+
+/** Cómo se lee cada clase de uso en la tabla. */
+export const ETIQUETA_USO = {
+  se_baja: '**se baja**',
+  solo_se_enlaza: 'sólo se enlaza',
+  no_resuelve: 'no resuelve (pruebas)',
 }
 
 // Sólo al ejecutarlo directamente: importarlo desde la prueba no debe escribir
 // ni salir con código de error.
 if (process.argv[1] && process.argv[1].endsWith('matriz-proveedores.mjs')) {
   const cat = leerCatalogoConTsx()
-  const contenido = generarMatriz(cat)
+  const contenido = generarMatriz(cat, cat.hosts)
 
   if (process.argv.includes('--verificar')) {
     if (!existsSync(DESTINO)) {

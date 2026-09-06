@@ -25,7 +25,7 @@ import type { FusionCopilot } from '@/lib/uci/copilot'
 import { formatear, type FormatoNota } from '@/lib/uci/formato-nota'
 import { resumen as resumenLabs, type LabMedido } from '@/lib/uci/labs-nota'
 import { planDesdeCopilot } from '@/lib/uci/plan-desde-copilot'
-import { ANALITOS, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
+import { ANALITOS_EN_TEXTO, valorPlausible } from '@/lib/expediente/laboratorio/analitos'
 import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { MOTORES, COPILOT_UCI_POR_MOTOR, type ClaveMotor } from '@/lib/planes-ia'
 import { getInternamiento } from '@/lib/hospital/firestore'
@@ -646,7 +646,23 @@ export default function UciPanelPage() {
       por: '',
       fuente: 'panel-uci',
       medidas: lecturaActual as unknown as Record<string, unknown>,
-    })
+      /**
+       * REG-567 — la clave es el INSTANTE MEDIDO, no un intento.
+       *
+       * Aquí no hay reintento automático ni un modal que abrir: el fallo guarda
+       * en local y avisa. Así que la identidad no puede salir de «cuándo empecé a
+       * escribir» —no existe ese momento— sino de la toma misma.
+       *
+       * QUÉ PROTEGE: el caso caro, que es el commit hecho con la respuesta
+       * perdida —el aviso dice «no se pudo enviar» siendo mentira— y cualquier
+       * reenvío futuro de las lecturas locales, que sería idempotente por
+       * construcción.
+       *
+       * QUÉ NO: dos pulsaciones separadas por segundos son dos instantes
+       * distintos y por tanto dos tomas. Colapsarlas exigiría comparar valores, y
+       * dos tomas iguales seguidas SON posibles en una UCI.
+       */
+    }, iso)
       .then(() => setTomasEnServidor(n => (n ?? 0) + 1))
       .catch(() => {
         // No se interrumpe al médico: la lectura YA está guardada localmente.
@@ -806,7 +822,8 @@ export default function UciPanelPage() {
    */
   const labsDictados = useMemo(() => {
     const out: LabMedido[] = []
-    for (const a of ANALITOS) {
+    /** REG-601: el subconjunto de PROSA. El catálogo entero casaría solo aquí. */
+    for (const a of ANALITOS_EN_TEXTO) {
       const m = discusionTxt.match(new RegExp(`${a.patron.source}\\s*[:=]?\\s*(\\d+(?:[.,]\\d+)?)`, 'i'))
       if (!m) continue
       const n = Number(String(m[m.length - 1]).replace(',', '.'))

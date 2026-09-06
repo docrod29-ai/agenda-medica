@@ -1,0 +1,1863 @@
+{
+  "_generado": "DERIVADO. No editar a mano: sale de docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md",
+  "_comoSeRegenera": "node scripts/laboratorio/catalogo-d045.mjs",
+  "_porQue": "Los límites de plausibilidad son cifras clínicas del médico dueño (D-045). Leerlos por máquina hace falsable la afirmación de que son los suyos.",
+  "filas": [
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Eritrocitos",
+      "unidad": "10^6/µL",
+      "min": 0.1,
+      "max": 12
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Hemoglobina",
+      "unidad": "g/dL",
+      "min": 1,
+      "max": 30
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Hematocrito",
+      "unidad": "%",
+      "min": 3,
+      "max": 85
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "VCM",
+      "unidad": "fL",
+      "min": 30,
+      "max": 200
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "HCM",
+      "unidad": "pg",
+      "min": 8,
+      "max": 60
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "CHCM",
+      "unidad": "g/dL",
+      "min": 15,
+      "max": 50
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "RDW",
+      "unidad": "%",
+      "min": 5,
+      "max": 50
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "RDW-SD",
+      "unidad": "fL",
+      "min": 15,
+      "max": 150
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Leucocitos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Neutrófilos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Neutrófilos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Linfocitos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Linfocitos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Monocitos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Monocitos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Eosinófilos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Eosinófilos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Basófilos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Basófilos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Granulocitos inmaduros",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Bandas",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Blastos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Plaquetas",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "VPM",
+      "unidad": "fL",
+      "min": 2,
+      "max": 30
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "PDW",
+      "unidad": "fL",
+      "min": 2,
+      "max": 50
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Plaquetocrito",
+      "unidad": "%",
+      "min": 0,
+      "max": 5
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Reticulocitos",
+      "unidad": "%",
+      "min": 0,
+      "max": 50
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Reticulocitos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 2000
+    },
+    {
+      "seccion": 2,
+      "tituloSeccion": "Biometría hemática",
+      "nombre": "Eritroblastos / NRBC",
+      "unidad": "/100 WBC",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Sodio",
+      "unidad": "mmol/L",
+      "min": 70,
+      "max": 210
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Potasio",
+      "unidad": "mmol/L",
+      "min": 0.5,
+      "max": 15
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Cloro",
+      "unidad": "mmol/L",
+      "min": 40,
+      "max": 170
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Bicarbonato / CO2 total",
+      "unidad": "mmol/L",
+      "min": 1,
+      "max": 80
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Brecha aniónica",
+      "unidad": "mmol/L",
+      "min": -20,
+      "max": 80
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Calcio total",
+      "unidad": "mg/dL",
+      "min": 2,
+      "max": 25
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Calcio ionizado",
+      "unidad": "mmol/L",
+      "min": 0.2,
+      "max": 3
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Fósforo",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 30
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Magnesio",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 15
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Glucosa",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 3000
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Osmolalidad sérica",
+      "unidad": "mOsm/kg",
+      "min": 180,
+      "max": 500
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Ácido úrico",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 40
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Urea",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 1200
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "BUN",
+      "unidad": "mg/dL",
+      "min": 0.5,
+      "max": 500
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Creatinina",
+      "unidad": "mg/dL",
+      "min": 0.05,
+      "max": 50
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "Cistatina C",
+      "unidad": "mg/L",
+      "min": 0.1,
+      "max": 20
+    },
+    {
+      "seccion": 3,
+      "tituloSeccion": "Electrolitos, renal y química básica",
+      "nombre": "TFGe / eGFR",
+      "unidad": "mL/min/1.73 m²",
+      "min": 0,
+      "max": 250
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Proteínas totales",
+      "unidad": "g/dL",
+      "min": 0.5,
+      "max": 20
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Albúmina",
+      "unidad": "g/dL",
+      "min": 0.1,
+      "max": 8
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Globulinas",
+      "unidad": "g/dL",
+      "min": 0.1,
+      "max": 15
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Relación A/G",
+      "unidad": "ratio",
+      "min": 0,
+      "max": 10
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "AST / TGO",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "ALT / TGP",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Fosfatasa alcalina",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 30000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "GGT",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 20000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "LDH / DHL",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 200000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Bilirrubina total",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Bilirrubina directa",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Bilirrubina indirecta",
+      "unidad": "mg/dL",
+      "min": -1,
+      "max": 100
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Amonio",
+      "unidad": "µmol/L",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Amilasa",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 4,
+      "tituloSeccion": "Proteínas y perfil hepático",
+      "nombre": "Lipasa",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "PCR",
+      "unidad": "mg/L",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "PCR ultrasensible",
+      "unidad": "mg/L",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "VSG",
+      "unidad": "mm/h",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "Procalcitonina",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "Ferritina",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 1000000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "SAA",
+      "unidad": "mg/L",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 5,
+      "tituloSeccion": "Marcadores inflamatorios e infección",
+      "nombre": "IL-6",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Hierro sérico",
+      "unidad": "µg/dL",
+      "min": 1,
+      "max": 1000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "TIBC",
+      "unidad": "µg/dL",
+      "min": 10,
+      "max": 2000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "UIBC",
+      "unidad": "µg/dL",
+      "min": 0,
+      "max": 2000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Transferrina",
+      "unidad": "mg/dL",
+      "min": 10,
+      "max": 1000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Saturación de transferrina",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Vitamina B12",
+      "unidad": "pg/mL",
+      "min": 10,
+      "max": 100000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Ácido fólico",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 100
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Vitamina D 25-OH",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 500
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Zinc",
+      "unidad": "µg/dL",
+      "min": 1,
+      "max": 1000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Cobre",
+      "unidad": "µg/dL",
+      "min": 1,
+      "max": 1000
+    },
+    {
+      "seccion": 6,
+      "tituloSeccion": "Hierro, vitaminas y nutrición",
+      "nombre": "Ceruloplasmina",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 200
+    },
+    {
+      "seccion": 7,
+      "tituloSeccion": "Hemólisis",
+      "nombre": "Haptoglobina",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 7,
+      "tituloSeccion": "Hemólisis",
+      "nombre": "LDH",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 200000
+    },
+    {
+      "seccion": 7,
+      "tituloSeccion": "Hemólisis",
+      "nombre": "Bilirrubina indirecta",
+      "unidad": "mg/dL",
+      "min": -1,
+      "max": 100
+    },
+    {
+      "seccion": 7,
+      "tituloSeccion": "Hemólisis",
+      "nombre": "Reticulocitos",
+      "unidad": "%",
+      "min": 0,
+      "max": 50
+    },
+    {
+      "seccion": 7,
+      "tituloSeccion": "Hemólisis",
+      "nombre": "Hemoglobina libre plasmática",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "TP",
+      "unidad": "s",
+      "min": 5,
+      "max": 200
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "INR",
+      "unidad": "ratio",
+      "min": 0.4,
+      "max": 20
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "TTPa",
+      "unidad": "s",
+      "min": 10,
+      "max": 300
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Tiempo de trombina",
+      "unidad": "s",
+      "min": 5,
+      "max": 300
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Fibrinógeno",
+      "unidad": "mg/dL",
+      "min": 10,
+      "max": 2000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Dímero D",
+      "unidad": "ng/mL FEU",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Anti-Xa",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 5
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Factor VIII",
+      "unidad": "%",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Factor IX",
+      "unidad": "%",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Factor XI",
+      "unidad": "%",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "Factor XIII",
+      "unidad": "%",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "vWF antígeno",
+      "unidad": "%",
+      "min": 0,
+      "max": 2000
+    },
+    {
+      "seccion": 8,
+      "tituloSeccion": "Coagulación",
+      "nombre": "ADAMTS13 actividad",
+      "unidad": "%",
+      "min": 0,
+      "max": 250
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "pH arterial",
+      "unidad": "pH",
+      "min": 6.3,
+      "max": 8.1
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "pH venoso",
+      "unidad": "pH",
+      "min": 6.3,
+      "max": 8.1
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "PaCO2",
+      "unidad": "mmHg",
+      "min": 5,
+      "max": 250
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "PvCO2",
+      "unidad": "mmHg",
+      "min": 5,
+      "max": 250
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "PaO2",
+      "unidad": "mmHg",
+      "min": 1,
+      "max": 800
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "PvO2",
+      "unidad": "mmHg",
+      "min": 1,
+      "max": 200
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "HCO3",
+      "unidad": "mmol/L",
+      "min": 1,
+      "max": 80
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "Exceso de base",
+      "unidad": "mmol/L",
+      "min": -50,
+      "max": 50
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "Lactato",
+      "unidad": "mmol/L",
+      "min": 0.1,
+      "max": 40
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "SaO2",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "SvO2",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "Carboxihemoglobina",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 9,
+      "tituloSeccion": "Gasometría y metabolismo crítico",
+      "nombre": "Metahemoglobina",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "Colesterol total",
+      "unidad": "mg/dL",
+      "min": 20,
+      "max": 1500
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "Triglicéridos",
+      "unidad": "mg/dL",
+      "min": 5,
+      "max": 15000
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "HDL",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 250
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "LDL",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 1200
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "VLDL",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "ApoA1",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 500
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "ApoB",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 500
+    },
+    {
+      "seccion": 10,
+      "tituloSeccion": "Perfil lipídico",
+      "nombre": "Lp(a)",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 11,
+      "tituloSeccion": "Diabetes y metabolismo",
+      "nombre": "HbA1c",
+      "unidad": "%",
+      "min": 2,
+      "max": 25
+    },
+    {
+      "seccion": 11,
+      "tituloSeccion": "Diabetes y metabolismo",
+      "nombre": "Insulina",
+      "unidad": "µIU/mL",
+      "min": 0.1,
+      "max": 10000
+    },
+    {
+      "seccion": 11,
+      "tituloSeccion": "Diabetes y metabolismo",
+      "nombre": "Péptido C",
+      "unidad": "ng/mL",
+      "min": 0.01,
+      "max": 100
+    },
+    {
+      "seccion": 11,
+      "tituloSeccion": "Diabetes y metabolismo",
+      "nombre": "Beta-hidroxibutirato",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 20
+    },
+    {
+      "seccion": 11,
+      "tituloSeccion": "Diabetes y metabolismo",
+      "nombre": "Fructosamina",
+      "unidad": "µmol/L",
+      "min": 50,
+      "max": 2000
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "TSH",
+      "unidad": "mIU/L",
+      "min": 0.001,
+      "max": 1000
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "T4 libre",
+      "unidad": "ng/dL",
+      "min": 0.01,
+      "max": 20
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "T3 libre",
+      "unidad": "pg/mL",
+      "min": 0.1,
+      "max": 50
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "T4 total",
+      "unidad": "µg/dL",
+      "min": 0.1,
+      "max": 50
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "T3 total",
+      "unidad": "ng/dL",
+      "min": 5,
+      "max": 2000
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "Anti-TPO",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "Anti-tiroglobulina",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 12,
+      "tituloSeccion": "Tiroides",
+      "nombre": "Tiroglobulina",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Cortisol",
+      "unidad": "µg/dL",
+      "min": 0.1,
+      "max": 200
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "ACTH",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "PTH intacta",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Prolactina",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 100000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Testosterona total",
+      "unidad": "ng/dL",
+      "min": 1,
+      "max": 5000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Testosterona libre",
+      "unidad": "pg/mL",
+      "min": 0.1,
+      "max": 1000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Estradiol",
+      "unidad": "pg/mL",
+      "min": 1,
+      "max": 10000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Progesterona",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 1000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "FSH",
+      "unidad": "IU/L",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "LH",
+      "unidad": "IU/L",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 13,
+      "tituloSeccion": "Endocrinología",
+      "nombre": "Beta-hCG",
+      "unidad": "mIU/mL",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "Troponina I hs",
+      "unidad": "ng/L",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "Troponina T hs",
+      "unidad": "ng/L",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "BNP",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "NT-proBNP",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 500000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "CK total",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "CK-MB masa",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 14,
+      "tituloSeccion": "Cardiología",
+      "nombre": "Mioglobina",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "IgG",
+      "unidad": "mg/dL",
+      "min": 10,
+      "max": 10000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "IgA",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "IgM",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "IgE total",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "C3",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 500
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "C4",
+      "unidad": "mg/dL",
+      "min": 1,
+      "max": 250
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "CH50",
+      "unidad": "U/mL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "Factor reumatoide",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 15,
+      "tituloSeccion": "Inmunología",
+      "nombre": "Anti-CCP",
+      "unidad": "U/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "CD4 absoluto",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "CD4",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "CD8 absoluto",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 20000
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "CD8",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "CD4/CD8",
+      "unidad": "ratio",
+      "min": 0,
+      "max": 20
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "Carga viral VIH",
+      "unidad": "copias/mL",
+      "min": 0,
+      "max": 1000000000
+    },
+    {
+      "seccion": 16,
+      "tituloSeccion": "VIH e inmunología celular",
+      "nombre": "Carga viral VIH log10",
+      "unidad": "log10 copias/mL",
+      "min": 0,
+      "max": 10
+    },
+    {
+      "seccion": 17,
+      "tituloSeccion": "Virología cuantitativa",
+      "nombre": "HBV DNA",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 100000000000
+    },
+    {
+      "seccion": 17,
+      "tituloSeccion": "Virología cuantitativa",
+      "nombre": "HCV RNA",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 10000000000
+    },
+    {
+      "seccion": 17,
+      "tituloSeccion": "Virología cuantitativa",
+      "nombre": "CMV DNA",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 10000000000
+    },
+    {
+      "seccion": 17,
+      "tituloSeccion": "Virología cuantitativa",
+      "nombre": "EBV DNA",
+      "unidad": "IU/mL",
+      "min": 0,
+      "max": 10000000000
+    },
+    {
+      "seccion": 17,
+      "tituloSeccion": "Virología cuantitativa",
+      "nombre": "BK virus DNA",
+      "unidad": "copias/mL",
+      "min": 0,
+      "max": 100000000000
+    },
+    {
+      "seccion": 18,
+      "tituloSeccion": "Micología",
+      "nombre": "Galactomanano sérico",
+      "unidad": "índice ODI",
+      "min": 0,
+      "max": 50
+    },
+    {
+      "seccion": 18,
+      "tituloSeccion": "Micología",
+      "nombre": "Galactomanano BAL",
+      "unidad": "índice ODI",
+      "min": 0,
+      "max": 50
+    },
+    {
+      "seccion": 18,
+      "tituloSeccion": "Micología",
+      "nombre": "Beta-D-glucano",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "AFP",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "CEA",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "CA 19-9",
+      "unidad": "U/mL",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "CA-125",
+      "unidad": "U/mL",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "CA 15-3",
+      "unidad": "U/mL",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "PSA total",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 19,
+      "tituloSeccion": "Marcadores tumorales",
+      "nombre": "PSA libre",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Densidad urinaria",
+      "unidad": "ratio",
+      "min": 1,
+      "max": 1.06
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "pH urinario",
+      "unidad": "pH",
+      "min": 4,
+      "max": 9.5
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Proteína urinaria",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Glucosa urinaria",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Creatinina urinaria",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 1000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Sodio urinario",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 400
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Potasio urinario",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 300
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Cloro urinario",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 400
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Osmolalidad urinaria",
+      "unidad": "mOsm/kg",
+      "min": 20,
+      "max": 1500
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Albuminuria",
+      "unidad": "mg/L",
+      "min": 0,
+      "max": 50000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Relación albúmina/creatinina",
+      "unidad": "mg/g",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Relación proteína/creatinina",
+      "unidad": "mg/g",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 20,
+      "tituloSeccion": "Examen general de orina y cuantificación urinaria",
+      "nombre": "Proteinuria 24 h",
+      "unidad": "mg/24 h",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "LCR leucocitos",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "LCR eritrocitos",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "LCR proteínas",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 5000
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "LCR glucosa",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "LCR lactato",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 30
+    },
+    {
+      "seccion": 21,
+      "tituloSeccion": "Líquido cefalorraquídeo",
+      "nombre": "Presión de apertura",
+      "unidad": "cm H2O",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Leucocitos en líquido",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 1000000
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Eritrocitos en líquido",
+      "unidad": "células/µL",
+      "min": 0,
+      "max": 10000000
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Proteínas en líquido",
+      "unidad": "g/dL",
+      "min": 0,
+      "max": 20
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Glucosa en líquido",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 2000
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "LDH en líquido",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 200000
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Amilasa en líquido",
+      "unidad": "U/L",
+      "min": 0,
+      "max": 100000
+    },
+    {
+      "seccion": 22,
+      "tituloSeccion": "Otros líquidos corporales",
+      "nombre": "Triglicéridos en líquido",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "PTH",
+      "unidad": "pg/mL",
+      "min": 0,
+      "max": 10000
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "25-OH vitamina D",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 500
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "1,25-(OH)2 vitamina D",
+      "unidad": "pg/mL",
+      "min": 0.1,
+      "max": 1000
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "Calcio",
+      "unidad": "mg/dL",
+      "min": 2,
+      "max": 25
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "Fósforo",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 30
+    },
+    {
+      "seccion": 23,
+      "tituloSeccion": "Metabolismo mineral / nefrología",
+      "nombre": "Magnesio",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 15
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Vancomicina",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Amikacina",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Gentamicina",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Tobramicina",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Litio",
+      "unidad": "mmol/L",
+      "min": 0,
+      "max": 10
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Digoxina",
+      "unidad": "ng/mL",
+      "min": 0,
+      "max": 20
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Valproato",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Carbamazepina",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Fenitoína",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Paracetamol",
+      "unidad": "µg/mL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Salicilato",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 200
+    },
+    {
+      "seccion": 24,
+      "tituloSeccion": "Toxicología y niveles farmacológicos",
+      "nombre": "Etanol",
+      "unidad": "mg/dL",
+      "min": 0,
+      "max": 1000
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Ácido úrico",
+      "unidad": "mg/dL",
+      "min": 0.1,
+      "max": 40
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Ferritina",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 1000000
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Vitamina D 25-OH",
+      "unidad": "ng/mL",
+      "min": 0.1,
+      "max": 500
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "VCM",
+      "unidad": "fL",
+      "min": 30,
+      "max": 200
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Neutrófilos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Linfocitos absolutos",
+      "unidad": "10^3/µL",
+      "min": 0,
+      "max": 500
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Neutrófilos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    },
+    {
+      "seccion": 31,
+      "tituloSeccion": "Valores solicitados inicialmente",
+      "nombre": "Linfocitos",
+      "unidad": "%",
+      "min": 0,
+      "max": 100
+    }
+  ]
+}

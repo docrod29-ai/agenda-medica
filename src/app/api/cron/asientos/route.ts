@@ -28,12 +28,14 @@
  * habilitados sin cobrar hasta el cierre de mes.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString } from '@/lib/security/sanitize'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { stripe, priceMedicoDe, type PlanKey } from '@/lib/stripe'
 import { contarMedicos } from '@/lib/ai-keys'
 import { queHacer, itemsParaStripe, itemPrevio } from '@/lib/finanzas/asientos'
 import { registrarLatido } from '@/lib/ops/latido'
+import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 
 export const maxDuration = 300
 
@@ -42,6 +44,9 @@ const TOPE = 500
 const ES_PLAN_ASIENTOS = (p: string) => p === 'clinica' || p === 'premium'
 
 export async function GET(req: NextRequest) {
+  /* REG-566 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+     fondo no nace de un navegador, así que no acepta la que le manden. */
+  const correlacion = correlacionDeTrabajo()
   const t0 = Date.now()
   /**
    * Fail-closed: un endpoint que MUEVE DINERO no queda abierto. Si el secreto no
@@ -109,11 +114,12 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     safeLog.error('[cron/asientos]', e)
-    await registrarLatido('asientos', { ok: false, duracionMs: Date.now() - t0, error: String(e).slice(0, 160) })
+    await registrarLatido('asientos', { correlacion, ok: false, duracionMs: Date.now() - t0, error: redactarString(String(e)).slice(0, 160) })
     return NextResponse.json({ ok: false, error: 'no se pudo conciliar' }, { status: 500 })
   }
 
   await registrarLatido('asientos', {
+      correlacion,
     ok: true, duracionMs: Date.now() - t0,
     detalle: { ajustados, alDia, noAjustables, fallos, recortado },
   })

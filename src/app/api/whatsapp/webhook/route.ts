@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
@@ -45,6 +46,7 @@ import { mensajeAviso, aceptoElAviso, rechazoElAviso, consentimientoDelBot, sell
 import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
 import { urgenciaDelMensaje, mensajeDeUrgencia, avisoDeUrgenciaAlConsultorio } from '@/lib/paciente/urgencia'
+import { escalacionDelMensaje, mensajeDeEscalacion, avisoDeEscalacionAlConsultorio } from '@/lib/paciente/hay-que-escalar'
 import { citaYaAgendada, type IntentoDeCitaDelBot, type CitaEscrita } from '@/lib/whatsapp/cita-ya-agendada'
 
 /**
@@ -561,6 +563,34 @@ export async function handleMessage(from: string, body: string, clinicId: string
      * teléfono— se interpreta como la elección de un horario. Después de una
      * urgencia se empieza de cero.
      */
+    await clearSession(clinicId, from)
+    return
+  }
+
+  /**
+   * ── LO QUE NECESITA A UN MÉDICO, AUNQUE NO SEA UNA URGENCIA (§3) — REG-587 ──
+   *
+   * Va DESPUÉS de la urgencia y por la misma razón por la que la urgencia va
+   * primero: el §6 dice que gana a todo lo demás.
+   *
+   * Hasta aquí, «cámbiame la receta» o «¿puedo tomarme el doble?» caían en la
+   * máquina de estados de citas: menú, preguntas frecuentes, agendar. **Nadie
+   * escalaba.** Y el §3 no dice sólo lo que el bot no puede hacer, dice qué
+   * hacer en su lugar: «se escala. La escalación es el producto, no el fallo».
+   *
+   * Se usan las reglas NOMBRADAS del §3, no el suelo de `claseSegura`: el suelo
+   * escala todo lo no clasificado, y aquí eso mandaría al médico un «agéndame
+   * para mañana». Ver `POR_QUE_EL_BOT_NO_USA_EL_SUELO`.
+   */
+  const escalacion = escalacionDelMensaje(text)
+  if (escalacion) {
+    const telConsultorio = adminPhone || ''
+    await send(from, mensajeDeEscalacion(escalacion.motivo, telConsultorio))
+    if (telConsultorio && telConsultorio !== from) {
+      await send(telConsultorio, avisoDeEscalacionAlConsultorio(from, escalacion.motivo, text))
+    }
+    /* Igual que en la urgencia: dejar viva una sesión `agendar_hora` haría que
+       el siguiente mensaje se leyera como la elección de un horario. */
     await clearSession(clinicId, from)
     return
   }
@@ -1630,6 +1660,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     safeLog.error('[Bot] Webhook error:', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

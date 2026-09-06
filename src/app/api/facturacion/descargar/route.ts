@@ -5,6 +5,7 @@
  * Devuelve el archivo (miembro del consultorio).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { descargarCFDI } from '@/lib/facturama'
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 200) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

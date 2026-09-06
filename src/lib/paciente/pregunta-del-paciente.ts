@@ -451,7 +451,16 @@ export const TEXTO_ESCALACION =
   'Esta pregunta la tiene que contestar tu médico, no yo. Ya quedó registrada y ' +
   'el consultorio la va a ver. Si es algo que no puede esperar, llámales.'
 
-/** Lo que se le avisa al consultorio. Sin diagnóstico y sin opinión: qué preguntó y por qué llegó. */
+/**
+ * Lo que se le avisa al consultorio. Sin diagnóstico y sin opinión: qué preguntó y por qué llegó.
+ *
+ * D-034 (dueño, 5-sep-2026): la pregunta viaja COMPLETA (hasta el tope) por el
+ * WhatsApp del consultorio, con el nombre del paciente. Se planteó mandar sólo
+ * motivo + enlace al portal; el dueño decidió que el consultorio lea la
+ * pregunta tal cual, porque un aviso que obliga a abrir otra pantalla para
+ * saber qué pasa es un aviso que se atiende tarde. WA-9 del registro de riesgos
+ * de WhatsApp queda resuelto con esta decisión, no con un cambio de código.
+ */
 export const TOPE_TEXTO_PREGUNTA = 300
 
 export function avisoDePreguntaAlConsultorio(

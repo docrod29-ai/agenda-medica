@@ -1,4 +1,5 @@
-import { analitoDe, valorPlausible, type Analito } from './analitos'
+import { analitoDe, type Analito } from './analitos'
+import { dictaminar, type EstadoDeValidacion, type DecimalCorrido } from './unidades'
 import { evaluarCriticoLab, censuraDe, type Censura } from '@/lib/hospital/lab-criticos'
 import { sujetosLeidos, type SujetoLeido } from './sujeto'
 
@@ -25,6 +26,14 @@ export interface FilaCruda {
   valor?: string | number
   unidad?: string
   referencia?: string
+  /**
+   * DE QUÉ MUESTRA ES, tal como está IMPRESO en la hoja — REG-604, §27.3.
+   *
+   * Sale de la cabecera («Examen general de orina») o del rótulo del renglón. La
+   * lectura de la hoja NO lo deduce del analito ni del valor: si no está impreso,
+   * viene vacío y manda el nombre del renglón, como antes.
+   */
+  muestra?: string
 }
 
 /** Un resultado ya validado y listo para graficar. */
@@ -53,6 +62,33 @@ export interface ResultadoValidado {
   motivoNoEvaluable?: string
   /** Se puso en una serie temporal (analito reconocido y valor plausible). */
   graficable: boolean
+  /**
+   * ── LO QUE D-045 §27.1 EXIGE CONSERVAR (REG-599) ──────────────────────────
+   *
+   * «Nunca eliminar la unidad original después de normalizar.» Si sólo se
+   * guardara el valor canónico, nadie podría discutir una conversión ni auditar
+   * de dónde salió el número que está en el expediente.
+   */
+  estado?: EstadoDeValidacion
+  /** El valor tal como lo imprimió el laboratorio. */
+  valorOriginal?: number
+  /**
+   * La unidad tal como la imprimió el laboratorio. AUSENTE cuando la hoja no la
+   * dijo (REG-602): antes se rellenaba con la canónica, y entonces el campo que
+   * conserva lo que dijo el laboratorio decía lo que asumimos nosotros.
+   */
+  unidadOriginal?: string
+  /** La unidad con la que se juzgó cuando la hoja no traía ninguna. */
+  unidadAsumida?: string
+  /** Con qué factor se convirtió y de dónde sale ese factor. */
+  convertidoCon?: string
+  /** Por qué este resultado está en el estado en que está. */
+  porQueDelEstado?: string
+  /**
+   * §29 — lo que el valor PODRÍA ser si se corrió un decimal. Es una sugerencia
+   * para el médico, no una corrección: `valor` sigue siendo lo que dice la hoja.
+   */
+  decimalCorrido?: DecimalCorrido
 }
 
 /** El panel completo tras validar. */
@@ -110,17 +146,34 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
     const num = aNumero(fila.valor)
     if (!estudio) continue
 
-    const a: Analito | null = analitoDe(estudio)
-    if (!a || num === null || !valorPlausible(a.clave, num)) {
+    const a: Analito | null = analitoDe(estudio, fila.unidad?.trim(), fila.muestra)
+    /**
+     * ── EL ORDEN DEL §28, Y POR QUÉ IMPORTA (REG-599) ────────────────────────
+     *
+     * Antes esta condición metía TRES cosas en el mismo saco: analito no
+     * reconocido, número ilegible y valor no plausible. Las dos primeras siguen
+     * cayendo a `noReconocidas`, que es donde les toca.
+     *
+     * La tercera **ya no**. Un valor «no plausible» en la unidad convencional a
+     * menudo es un valor CORRECTO en otra unidad —glucosa 7,2 mmol/L— y tirarlo
+     * dejaba al paciente sin serie y sin aviso. El §1 del catálogo del dueño lo
+     * ordena al revés: aceptar provisionalmente y marcar para verificar.
+     *
+     * Y el §28 fija el orden: primero se normaliza la unidad, DESPUÉS se
+     * comprueba la plausibilidad. Al revés, un valor correcto en otra unidad
+     * parece imposible.
+     */
+    if (!a || num === null) {
       // Reconocible como texto pero no graficable: se conserva sin inventar serie.
       noReconocidas.push({ estudio, valor: String(fila.valor ?? ''), unidad: fila.unidad?.trim() || undefined })
       continue
     }
+    const dictamen = dictaminar(a, num, fila.unidad)
     // Un mismo analito repetido en la hoja: se queda el primero (evita duplicar el punto).
     if (vistos.has(a.clave)) continue
     vistos.add(a.clave)
 
-    const unidad = fila.unidad?.trim() || a.unidad
+    const unidad = dictamen.unidad
     // Se evalúa con la unidad TAL COMO la reportó el laboratorio (no la del analito):
     // si difiere del umbral, evaluable=false y se marca «verificar» en vez de normal.
     // Y con el comparador, que `aNumero` acaba de pelar: sin él, «>400» se
@@ -135,12 +188,20 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
      */
     const noEvaluable = !ev.evaluable && (!!fila.unidad?.trim() || !!censurada)
     resultados.push({
-      clave: a.clave, etiqueta: a.etiqueta, valor: num, censurada, unidad,
+      clave: a.clave, etiqueta: a.etiqueta, valor: dictamen.valor, censurada, unidad,
       referencia: fila.referencia?.trim() || undefined,
       critico: ev.critico,
       noEvaluable: noEvaluable || undefined,
       motivoNoEvaluable: noEvaluable ? ev.motivo : undefined,
-      graficable: true,
+      /** Sólo entra a la serie temporal lo que se puede creer tal como está. */
+      graficable: dictamen.graficable,
+      estado: dictamen.estado,
+      valorOriginal: dictamen.valorOriginal,
+      unidadOriginal: dictamen.unidadOriginal,
+      unidadAsumida: dictamen.unidadAsumida,
+      convertidoCon: dictamen.conversion?.fuente,
+      porQueDelEstado: dictamen.porQue,
+      decimalCorrido: dictamen.decimalCorrido,
     })
   }
 
@@ -173,7 +234,7 @@ export function seriesDesdeHistorial(
       if (!r.graficable) continue
       let s = porClave.get(r.clave)
       if (!s) {
-        const meta = analitoDe(r.etiqueta)
+        const meta = analitoDe(r.etiqueta, r.unidad)
         s = { clave: r.clave, etiqueta: r.etiqueta, unidad: r.unidad, grupo: meta?.grupo ?? 'otro', refMin: meta?.refMin, refMax: meta?.refMax, puntos: [] }
         porClave.set(r.clave, s)
       }

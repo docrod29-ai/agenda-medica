@@ -157,6 +157,24 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
   } catch { /* nunca trabar el cierre de sesión por la bitácora */ }
 
   /**
+   * EL CAJÓN DE PENDIENTES QUE NO SE ABRIERON — REG-576.
+   *
+   * Va aquí por lo mismo que la bitácora: es lo último que se puede mandar con
+   * el token todavía vivo. Y hacía falta por algo peor que el orden — la clave
+   * `nexusmed.pendientes-no-abiertos` NO casa con los prefijos de PHI que borra
+   * `limpiarBorradoresLocales`, así que hasta cincuenta pendientes con nombre de
+   * paciente dentro se quedaban en el disco de un equipo compartido, mientras el
+   * módulo aseguraba en su cabecera que se borraban.
+   *
+   * Lo que entra en Firestore desaparece del disco; lo que no, se queda — igual
+   * que el borrador, y por la misma razón.
+   */
+  try {
+    const { drenarPendientesPerdidos } = await import('@/lib/tareas-clinicas/abrir')
+    await drenarPendientesPerdidos()
+  } catch { /* nunca trabar el cierre de sesión por el cajón */ }
+
+  /**
    * LA PURGA ES CONDICIONAL, Y ÉSTE ES EL CAMBIO QUE IMPORTA.
    *
    * Purgar es el control de PHI en dispositivo compartido y se mantiene cuando

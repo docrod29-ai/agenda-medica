@@ -67,6 +67,20 @@ const EXPLICADOS: Record<string, RegExp> = {
    * día tras ir a mirar. Queda escrito porque el error iba en la dirección cara:
    * asustar sobre una compuerta que sí funciona.
    */
+  /**
+   * ── EL QUE APARECIÓ AL FUSIONAR LAS DOS RAMAS (6-sep-2026) ────────────────
+   *
+   * `claseSegura` viene de la rama de laboratorio y es un hueco REAL, no un
+   * falso positivo del instrumento: la clase 4 de las cinco del §2 de la regla
+   * de IA de cara al paciente —`ESCALATE_TO_CLINICIAN`— está escrita, probada y
+   * sin un solo llamador. El webhook de WhatsApp usa las reglas nombradas del §3
+   * y NO baja a este suelo, cosa que dice en su propio comentario.
+   *
+   * No se cableó de paso a propósito: decidir qué le pasa a una pregunta de
+   * paciente que el sistema no entiende es política clínica del dueño, y la
+   * regla 6 de seguridad clínica dice que ante la duda se pregunta.
+   */
+  'src/lib/paciente/hay-que-escalar.ts::claseSegura': /HUECO REAL Y ABIERTO/,
   'src/lib/seguridad/clasificacion.ts::masGrave': /comentario afirmaba un uso que no existe/,
   'src/lib/expediente/extraction-schema.ts::camposQueRequierenRevision': /comentario prometía un consumidor que no llegó/,
   'src/lib/hospital/estados-cama.ts::coherenteConElTipo': /golden/i,

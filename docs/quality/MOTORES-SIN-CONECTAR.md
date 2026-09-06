@@ -85,7 +85,7 @@ Decir «42 motores sin conectar» era inflar. Medido:
 - `src/lib/expediente/extraction-schema.ts::camposQueRequierenRevision`
 - `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
 - `src/lib/uci/benchmark.ts::correrBenchmark`
-- `src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta`
+- `src/lib/paciente/hay-que-escalar.ts::claseSegura`
 
 **Aviso sobre estas dos últimas (4-sep-2026)**: al declararlas se escribieron
 primero como «huecos reales abiertos», y era **falso en las dos**. Se corrigió el
@@ -114,13 +114,14 @@ los seis es un defecto**. Verificado uno a uno, leyendo el código:
 | Símbolo | Por qué no tiene llamador |
 |---|---|
 | `masGrave` | **Su comentario afirmaba un uso que no existe.** Decía «se usa para decidir qué conducta aplica a una receta entera: manda la peor de sus alertas» — y no tiene llamador. **Comprobado antes de asustarse**: `nom004.ts` recorre las alertas UNA A UNA y llama a `detiene()` en cada una, así que basta una que bloquee para que salga como error. La peor ya manda; esta función no hacía falta. **No es un hueco de seguridad**: el defecto era el comentario, y se corrigió |
+| `claseSegura` | **HUECO REAL Y ABIERTO, y esta vez sí lo es.** Convierte «no lo sé» en `ESCALATE_TO_CLINICIAN`, que es la clase 4 de las cinco del §2 de la regla de IA de cara al paciente. Está escrita, probada y **ningún camino la llama**: el webhook de WhatsApp usa las reglas NOMBRADAS del §3 y a propósito no baja al suelo de `claseSegura` —lo dice en su propio comentario—, así que hoy la escalación por defecto no ocurre. **Comprobado antes de declararlo**: se buscó llamador en `app/`, `components/`, `hooks/`, `lib/` y `scripts/`; no hay ninguno. No se arregla de paso: cablearla decide qué le pasa a una pregunta de paciente que el sistema no entiende, y eso es política clínica del dueño |
 | `camposQueRequierenRevision` | **Igual: el comentario prometía un consumidor que no llegó.** Deriva qué campos piden revisión y dice sustituir a una lista «que se le pedía al modelo y no leía nadie». Nunca se adoptó. **Comprobado**: `components/RevisionPanel.tsx` lee `needs_review` campo por campo y separa lo que hay que revisar de lo que no, así que **el dato sí llega** por otra ruta. Queda como huérfana honesta, con su comentario corregido |
 | `validarCorreccion` | **Decidida y sin cablear.** La política la decidió el dueño el 4-sep (D-026); falta el caso `corregir` en `api/hospital/mutar` y la pantalla. Hospital/UCI, en ALPHA |
 | `coherenteConElTipo` | Su comentario dice que se exporta «para que un caso del **golden** la ejecute», y el golden la ejecuta |
 | `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
 | `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
 | `obtenerVersion` | **Redundante**: `listarVersiones` ya devuelve las versiones enteras, así que restaurar no necesita una segunda lectura |
-| `leerConsulta` | **Evaluación, no camino del médico.** Compara una transcripción contra su GOLD, y en una consulta de verdad no hay gold — si lo hubiera, no haría falta transcribir. Su consumidor es `scripts/medir-wer-limpio.ts`, que necesita el corpus de 6 000 audios del dueño y por eso no vive en el CI. Misma categoría que `correrBenchmark` |
+| `leerElMotor` | **Evaluación, no camino del médico.** Agrega las lecturas de muchas consultas contra su GOLD y las compara con el umbral de D-043; en una consulta de verdad no hay gold — si lo hubiera, no haría falta transcribir. Sus consumidores son el CI (`el-motor-de-voz-tiene-techo`, sobre los 12 diálogos sintéticos) y `scripts/medir-wer-limpio.ts`, que necesita el corpus de 6 000 audios del dueño. REG-596 lo puso en el sitio de `leerConsulta`, que ya no es huérfana: la llama esta función |
 
 **Un residuo explicado no es deuda: es una decisión.** Conectar `obtenerVersion`
 añadiría una lectura de Firestore para traer lo que ya está en memoria; conectar

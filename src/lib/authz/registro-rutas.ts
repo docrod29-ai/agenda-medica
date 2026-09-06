@@ -179,6 +179,8 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * decidir qué se le enseña al paciente como aprobado por su médico (POSTVISIT-001).
    */
   'expediente/paquete-de-visita': { tipo: 'capacidad', capacidad: 'firmar' },
+  // REG-523: marca atendida la pregunta del paciente al cerrar su tarea. Un campo, tres ids, ni un dato del cuerpo al documento.
+  'expediente/pregunta-atendida': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/atribuir-roles': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
@@ -294,7 +296,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
       'OR REAL, no un guard normal: (a) token HMAC del paciente DE ESA cita, o (b) ' +
       'miembro autenticado. El token se evalúa PRIMERO y el fallo devuelve 404, no ' +
       '403, para no confirmar que el citaId existe (fuga cerrada en la auditoría ' +
-      'maestra 2026-07).',
+      'maestra 2026-07). Y desde REG-519 comprueba la REVOCACIÓN del enlace ' +
+      '(portalTokenVersion) como sus dos hermanas: antes un enlace revocado ' +
+      'seguía abriendo la sala hasta caducar.',
     // RESUELTO 2026-08-01: el dueño confirmó que el mostrador NO entra a la sala.
     // Entrar a la teleconsulta es asistir al paciente, no agendarlo. La rama del
     // equipo ya exige `clinico.leer`; `secretaria` queda fuera a propósito.
@@ -309,6 +313,10 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
     tipo: 'capacidad', capacidad: 'mensajeria.enviar',
     activacionPendiente: PENDIENTE_AGENDA,
   },
+  /* Sin `activacionPendiente`: el guardián YA corre en los dos métodos. Marcarla
+     pendiente habría dicho que la puerta está declarada y no puesta, que es lo
+     contrario de lo que hace la ruta. */
+  'whatsapp/no-entregados': { tipo: 'capacidad', capacidad: 'mensajeria.enviar' },
   'whatsapp/manual-connect': { tipo: 'capacidad', capacidad: 'administrar' },
   'whatsapp/meta-connect': { tipo: 'capacidad', capacidad: 'administrar' },
   'whatsapp/plantillas-config': { tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' } },

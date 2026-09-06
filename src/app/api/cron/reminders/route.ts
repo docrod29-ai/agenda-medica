@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { randomUUID } from 'node:crypto'
 import { adminDb } from '@/lib/firebase-admin'
@@ -13,6 +14,7 @@ import { instanteMX, hoyISO, sumarDiasISO, ahoraMinutosDelDia, TZ_DEFAULT } from
 import { dondeEsLaCita, esTeleconsulta } from '@/lib/telesalud/donde-es'
 import { crearTokenPaciente } from '@/lib/patient-token'
 import { registrarLatido } from '@/lib/ops/latido'
+import { correlacionDeTrabajo } from '@/lib/observabilidad/correlacion'
 
 const CRON_SECRET = process.env.CRON_SECRET
 
@@ -83,6 +85,9 @@ async function sendWhatsApp(phone: string, message: string, _config: ClinicConfi
 }
 
 export async function GET(req: NextRequest) {
+  /* REG-566 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+     fondo no nace de un navegador, así que no acepta la que le manden. */
+  const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')
   // Fail-CLOSED: en producción SIN CRON_SECRET configurado el endpoint NO corre
   // (antes era fail-open: sin secreto, cualquiera podía disparar el cron). El Dr.
@@ -465,6 +470,7 @@ export async function GET(req: NextRequest) {
      * vigilante lo mira desde fuera.
      */
     await registrarLatido('reminders', {
+      correlacion,
       ok: true, duracionMs: Date.now() - arranqueCron,
       detalle: {
         enviados: totals.sent, fallidos: totals.failed, consultorios: totals.clinics,
@@ -476,9 +482,10 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     safeLog.error('Reminders cron error:', err)
     await registrarLatido('reminders', {
+      correlacion,
       ok: false, duracionMs: Date.now() - arranqueCron,
       error: err instanceof Error ? err.message : 'error',
     })
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

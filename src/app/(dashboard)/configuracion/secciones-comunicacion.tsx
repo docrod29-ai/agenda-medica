@@ -109,6 +109,180 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
           )}
         </>
       )}
+      <NoEntregados clinicId={clinicId} />
+    </div>
+  )
+}
+
+/**
+ * ── LOS QUE SE RINDIERON — REG-580 ──────────────────────────────────────────
+ *
+ * El vigilante avisaba de cuántos mensajes se habían rendido, y con un número no
+ * se puede hacer nada: no se ve de qué paciente era, ni qué decía, ni por qué
+ * murió, ni se puede volver a intentar. Un recordatorio de cita que murió es un
+ * paciente que no sabe que tiene cita.
+ *
+ * Va junto a la entregabilidad y no en una pantalla nueva: es la misma pregunta
+ * —¿llegó lo que mandé?— y separarlas obligaría a mirar en dos sitios para
+ * responderla.
+ *
+ * ── EL BOTÓN DICE LO QUE PUEDE PASAR ────────────────────────────────────────
+ *
+ * Una entrada muerta pudo no haber llegado nunca, o pudo llegar y perderse el
+ * acuse. Desde aquí no se distinguen, así que reintentar puede DUPLICAR el
+ * mensaje al paciente — y el médico tiene que saberlo antes de pulsar, no
+ * después. Por eso el aviso está en la pantalla y no sólo en el código.
+ */
+function NoEntregados({ clinicId }: { clinicId: string | null }) {
+  const [muertas, setMuertas] = useState<{
+    id: string; para: string; plantilla: string; texto: string
+    intentos: number; pausas: number; ultimoError: string; desde: string
+  }[] | null>(null)
+  /**
+   * REG-586 · los fallos del BOT, que hasta hoy nadie podía ver.
+   *
+   * Son lista aparte y **sin botón**: nunca estuvieron en una cola y no se
+   * pueden reintentar —eso exige una plantilla aprobada en Meta, trámite del
+   * dueño—. La única salida es llamar al paciente, y decirlo es el trabajo de
+   * esta lista.
+   */
+  const [delBot, setDelBot] = useState<{
+    id: string; origen: string; telefono: string
+    extracto: string; motivo: string; cuando: string
+  }[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [reviviendo, setReviviendo] = useState<string | null>(null)
+  const [recarga, setRecarga] = useState(0)
+
+  useEffect(() => {
+    if (!clinicId) return
+    let vivo = true
+    /* El error se limpia en la rama de éxito y no aquí: un `setState` síncrono
+       dentro del efecto es lo que el compilador de React marca, y además
+       parpadearía el cartel entre la limpieza y la respuesta. */
+    fetchAutenticado(`/api/whatsapp/no-entregados?clinicId=${clinicId}`)
+      .then(async r => {
+        const j = await r.json()
+        if (!r.ok) throw new Error(j?.error || 'Error')
+        if (vivo) { setMuertas(j.muertas ?? []); setDelBot(j.delBot ?? []); setError(null) }
+      })
+      /* Un fallo de lectura NO se pinta como «no hay ninguno»: son cosas
+         opuestas y el médico decide distinto ante cada una. */
+      .catch(e => { if (vivo) { setError(String(e.message || e)); setMuertas(null); setDelBot(null) } })
+    return () => { vivo = false }
+  }, [clinicId, recarga])
+
+  const revivir = async (id: string) => {
+    if (!clinicId) return
+    setReviviendo(id)
+    try {
+      const r = await fetchAutenticado('/api/whatsapp/no-entregados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, id }),
+      })
+      const j = await r.json()
+      if (!r.ok) throw new Error(j?.error || 'No se pudo')
+      setRecarga(n => n + 1)
+    } catch (e) {
+      setError(String((e as Error).message || e))
+    } finally {
+      setReviviendo(null)
+    }
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)' }}>
+        <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>No entregados</div>
+        <div className="t-body nx-critico">{error}</div>
+      </div>
+    )
+  }
+  if (muertas === null) return null
+  /**
+   * REG-586 · «ninguno» sólo si las DOS están vacías.
+   *
+   * Antes esta rama miraba sólo la cola: con el bot fallando y la cola limpia,
+   * la pantalla decía «ningún mensaje se ha rendido» — una afirmación falsa
+   * sobre lo que el médico venía a comprobar.
+   */
+  if (muertas.length === 0 && (delBot?.length ?? 0) === 0) {
+    return (
+      <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)' }}>
+        <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>No entregados</div>
+        <div className="t-body" style={{ color: 'var(--text2)' }}>
+          Ningún mensaje se ha rendido. Los que fallan se reintentan solos; aquí sólo aparecen los que agotaron los reintentos.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--s1)' }}>
+      {(delBot?.length ?? 0) > 0 && (
+        <section style={{ marginBottom: muertas.length ? 18 : 0 }}>
+          <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>
+            Respuestas del bot que no salieron — {delBot?.length}
+          </div>
+          <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 10px' }}>
+            Fallaron dentro de la conversación con el paciente y <b>no se pueden reintentar</b>:
+            volver a escribir fuera de las 24 horas exige una plantilla aprobada.
+            Si alguno era una confirmación de cita, ese paciente no se enteró — hay que llamarle.
+          </p>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(delBot ?? []).map(b => (
+              <li key={b.id} style={{ borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                <div className="t-body" style={{ color: 'var(--text)' }}>{b.telefono} · {b.origen}</div>
+                <div className="t-caption" style={{ color: 'var(--text2)', wordBreak: 'break-word' }}>{b.extracto}</div>
+                <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 2 }}>
+                  {b.cuando.slice(0, 16).replace('T', ' ')}{b.motivo ? ` · ${b.motivo}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {muertas.length > 0 && (
+      <div className="t-caption" style={{ color: 'var(--text3)', marginBottom: 4 }}>
+        No entregados — {muertas.length}
+      </div>
+      )}
+      {muertas.length > 0 && (
+      <p className="t-body" style={{ color: 'var(--text2)', margin: '0 0 10px' }}>
+        Agotaron los reintentos y ya no se vuelven a mandar solos. Volver a intentarlo
+        <b> puede duplicar el mensaje</b>: puede que llegara y sólo se perdiera el acuse.
+      </p>
+      )}
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {muertas.map(m => (
+          <li key={m.id} style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start', justifyContent: 'space-between',
+            borderTop: '1px solid var(--border)', paddingTop: 10,
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="t-body" style={{ color: 'var(--text)' }}>{m.para} · {m.plantilla}</div>
+              <div className="t-caption" style={{ color: 'var(--text2)', wordBreak: 'break-word' }}>{m.texto}</div>
+              <div className="t-caption" style={{ color: 'var(--text3)', marginTop: 2 }}>
+                {m.intentos} intento(s){m.pausas > 0 ? ` · ${m.pausas} pausa(s) del proveedor` : ''}
+                {m.ultimoError ? ` · ${m.ultimoError}` : ''}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => revivir(m.id)}
+              disabled={reviviendo === m.id}
+              style={{
+                flexShrink: 0, padding: '6px 12px', borderRadius: 10, cursor: 'pointer',
+                border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
+                minHeight: 44,
+              }}
+            >
+              {reviviendo === m.id ? 'Reintentando…' : 'Volver a intentar'}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

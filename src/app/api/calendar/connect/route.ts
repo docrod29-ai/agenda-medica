@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { randomUUID } from 'node:crypto'
 import { getOAuth2Client } from '@/lib/google-calendar'
 import { verificarUsuario } from '@/lib/auth-server'
@@ -38,6 +39,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ url })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

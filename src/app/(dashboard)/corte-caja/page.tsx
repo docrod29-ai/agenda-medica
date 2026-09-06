@@ -6,12 +6,12 @@ import { listarCobros, fmtMXN } from '@/lib/cobros'
 import { cortesiasDelDia, quienAnulo } from '@/lib/corte-caja'
 import { useDoctors } from '@/hooks/useDoctors'
 import { getAppointments, getConfig } from '@/lib/firestore'
-import { where } from 'firebase/firestore'
 import type { Cobro } from '@/lib/cobros'
 import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * DÍA LOCAL DEL CONSULTORIO.
@@ -77,10 +77,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
          * ignora): se listan aparte, con quién anuló y por qué.
          */
         listarCobros(clinicId, dia, dia, true, tz),
-        getAppointments(clinicId, [
-          where('fechaHora', '>=', dia + ' 00:00'),
-          where('fechaHora', '<=', dia + ' 23:59'),
-        ]),
+        getAppointments(clinicId, { desde: dia + ' 00:00', hasta: dia + ' 23:59' }),
       ])
       setCobros(cb); setCitas(ct)
     } finally {
@@ -199,7 +196,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
                     */}
                     Motivo: {c.motivoCancelacion || '— sin motivo —'}
                     {` · anuló ${quienAnulo(c, nombrePorUid)}`}
-                    {c.canceladoEn ? ` · el ${c.canceladoEn.slice(0, 10)}` : ''}
+                    {c.canceladoEn ? ` · el ${fechaCorta(c.canceladoEn)}` : ''}
                   </div>
                 </div>
               ))}

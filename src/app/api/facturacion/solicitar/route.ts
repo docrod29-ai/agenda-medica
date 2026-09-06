@@ -8,6 +8,7 @@
  * Body: { clinicId, pagoId, receptor: { rfc, nombre, regimenFiscal, usoCfdi, cp } }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { emitirCFDI, facturamaConfigurada, type DatosReceptor } from '@/lib/facturama'
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, uuid: cfdi.uuid, cfdiId: cfdi.id })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 240) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 5-sep-2026.
-**Fuente**: los REG de `docs/audit/regression-ledger.md` (312 clasificados hoy).
+**Abierto**: 6-ago-2026. **Actualizado**: 6-sep-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (343 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,8 +43,110 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 85 de 312, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 119 de 388, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+El miembro más reciente es **REG-604** (5-sep-2026), y es la subespecie en la que
+el dato **venía impreso en el papel** y la lectura no lo pedía. Un examen general
+de orina llama a sus renglones igual que una química sanguínea —glucosa,
+proteínas, leucocitos— y lo que los distingue está en la cabecera: una
+glucosuria de 250 se archivaba como glucemia, con una cifra perfectamente
+plausible en suero que ningún rango puede cazar. El hueco no era desconocido —
+REG-601 lo había dejado escrito con todas las letras al cerrar la mitad que sí
+podía cerrar. Escribir un hueco no lo tapa.
+
+Antes que él, **REG-590** (31-ago-2026), y con él son **cinco ese
+mes** de la misma subespecie. `lo-que-cabe-en-un-episodio.ts` terminaba diciendo,
+con estas palabras, que los tres arrays sin tope quedan «como riesgo NOMBRADO…
+un riesgo declarado **se puede vigilar**». Nadie lo vigilaba: no había un solo
+medidor, dos párrafos por debajo de la promesa.
+
+Con REG-572, REG-576, REG-586 y REG-589, la regla ya no admite matices:
+**cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
+comprobar si el código la cumple.** Una prosa convincente es, en este
+repositorio, una señal de dónde mirar.
+
+Antes que él, **REG-589** (31-ago-2026), y cierra la serie del mes
+con la versión más literal del patrón: una sección del tablero titulada
+**«Compuertas medidas en este SHA — no citadas de memoria»** citaba de memoria un
+trinquete de 96 con el techo en 95.
+
+Con REG-572, REG-576 y REG-586 son cuatro este mes. La regla, ya sin rodeos:
+**cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
+comprobar si el código la cumple.** Un título que promete algo no lo impide; un
+guardián sí.
+
+Antes que él, **REG-588** (31-ago-2026), y la familia apareció
+**dentro de su propio golden**: los primeros casos probaban la distribución nueva
+llamándola directamente, y al desconectarla del generador —dejándolo plano otra
+vez— no caía ninguno. Probaban el módulo, no que el módulo corriera. Hicieron
+falta cinco casos más que miran la salida.
+
+Antes que él, **REG-587** (31-ago-2026), y su parte más cara no fue
+lo que estaba sin conectar sino lo que apareció al conectarlo: para vigilar el
+orden entre urgencia y escalación hizo falta un caso que cruzara las dos, y ese
+caso destapó que **«me empezó a doler el pecho» no se detectaba como urgencia**.
+La lista decía `dolor|duele|dolia`. Tres formas normales de decirlo en español
+salían como no urgentes.
+
+Antes que él, **REG-586** (31-ago-2026), y es la forma más pura que
+ha tomado esta familia: una colección con **un escritor y cero lectores**.
+`whatsapp_no_entregados` estaba declarada en los tres sitios que exige la regla
+de inquilinos, respaldada, cerrada al cliente por las dos puntas — y no había
+manera de mirarla. Tres guardianes en verde sobre algo invisible.
+
+Con la agravante de que la cabecera del propio módulo prometía, con esas
+palabras, que «un fallo registrado se puede **VER**, contar y arreglar a mano».
+Es la tercera vez este mes —con REG-572 y REG-576— que la garantía mejor
+explicada es la que nadie fue a comprobar.
+
+Antes que él, **REG-585** (31-ago-2026): `agendada` era un estado
+vivo, probado y bien argumentado que **no estaba conectado a la agenda**. Ninguna
+tarea sabía a qué cita se refería, así que cuando esa cita se cancelaba o el
+paciente no venía, el pendiente seguía leyéndose como «esperando al paciente»
+para siempre.
+
+Y trae la lección más incómoda de la semana: **el trinquete de conexión cazó una
+función que yo mismo acababa de escribir sin llamador**. La familia no se cierra
+leyendo sobre ella.
+
+Antes que él, **REG-584** (31-ago-2026): el router de la nota podía
+servir Haiku para una nota que el dueño decidió que **no escatima**, y el modelo
+llegaba al cliente como procedencia sin que nadie lo comparara con lo que se
+había pedido. Un identificador que el médico no puede evaluar no es un aviso.
+
+Antes que él, **REG-583** (31-ago-2026), y es la variante más
+incómoda: **una defensa que corre, y que su propio éxito desactiva**. El
+interruptor de circuito de PubMed y openFDA anotaba «contestó» al ver el código
+de estado, y «contestó» borra los fallos anteriores. Un proveedor degradado que
+devuelve `200` con la página de su balanceador reseteaba su interruptor en cada
+intento: 40 peticiones de 40, ningún circuito. Con un `503` honesto, tres. La
+defensa estaba escrita, probada, conectada — y derrotada por el orden de dos
+líneas.
+
+Antes que él, **REG-582** (31-ago-2026): tres defensas contra la
+caída de PubMed, escritas, probadas y **mirando todas al transporte**. NCBI
+contesta `200` con una página de error, el transporte es impecable, y el testigo
+que separa «no se pudo preguntar» de «no hay literatura» se quedaba en `false`.
+Las dos frases que el médico tenía que leer estaban escritas desde hacía meses.
+Sólo salía la equivocada.
+
+Antes que él, **REG-581** (31-ago-2026), que trae la variante que hace
+más difícil de ver a esta familia: **el dato sí llegaba, y el destinatario lo
+tiraba**. El DOI, la abreviatura ISO, el PMCID, el acceso abierto y la salvedad
+del diseño se calculaban, se serializaban, cruzaban la red y llegaban al
+navegador — y los `type` de las dos pantallas declaraban cinco campos cada uno.
+Un campo que el tipo no declara no existe para el render, y TypeScript no avisa
+de un campo de más en lo que recibe.
+
+El más caro de los cinco era la salvedad de REG-401 —«PubMed no lo declaró
+aleatorizado»—, que **tenía una prueba**: comprobaba que la ruta la mandara.
+Nadie comprobó que llegara a unos ojos. Es la regla «el dato tiene que LLEGAR»
+cazando un caso de sí misma.
+
+Antes que él, **REG-335** (27-ago-2026), que es la familia
+
+Y de la otra rama, la misma familia en el teléfono:
 
 Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto
 en un teléfono**, y los tres son la familia en formas distintas: el gancho
@@ -142,9 +244,63 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 46 de 312.**
+**«El sistema se contradice a sí mismo» — 50 de 343.**
 
-Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
+Sumó REG-576 (30-ago-2026), que es REG-572 otra vez cuatro unidades después: **una
+garantía escrita en la prosa y no en el código**. La cabecera del cajón de
+pendientes decía que lo guardado «se borra al cerrar sesión como el resto de PHI
+local», y la purga borra por prefijo —`nx.consulta.bkp.`, `nx.uci.`— mientras el
+cajón se llama `nexusmed.pendientes-no-abiertos`.
+
+Hasta cincuenta pendientes con nombre de paciente dentro se quedaban en el disco
+de un equipo compartido, indefinidamente, mientras el módulo aseguraba lo
+contrario.
+
+Que la misma forma aparezca dos veces en cuatro unidades dice algo sobre cómo se
+lee este árbol: **cuanto mejor explicada está una garantía, menos probable es que
+alguien vaya a comprobar si el código la cumple.** Las dos veces la encontró
+alguien que fue a verificar una afirmación del censo antes de construir encima.
+
+Antes REG-572 (30-ago-2026), y es esta familia en su forma más barata de crear y
+más cara de encontrar: **un tope declarado en prosa y no en código**.
+`registro-durable.ts` llevaba desde E0-09 diciendo que los arrays del episodio
+—`administraciones` entre ellos— «están topados por el límite de 1 MB por
+documento». Tres lo estaban. Ése no.
+
+Y como toda mutación del episodio es un solo update sobre el mismo documento, al
+pasar de 1 MB no falla lo último que se añadió: **falla todo** — no se puede
+registrar una dosis, ni suspender una orden, ni egresar al paciente. El «límite
+de 1 MB» que la cabecera citaba como techo era en realidad el punto donde el
+episodio deja de funcionar.
+
+Su lección es sobre cómo se lee este árbol: una cabecera bien escrita da por
+revisado lo que no lo está. Cuanto mejor explicada esté una garantía, menos
+probable es que alguien vaya a comprobar si el código la cumple.
+
+Antes REG-569 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
+hasta dónde hay que seguir un criterio antes de darlo por aplicado. `estaVigente`
+—«¿sigue siendo un problema del paciente?»— lleva escrito, exportado y probado
+desde REG-364. La receta y la orden de estudios resolvían la misma pregunta con
+una línea propia, copiada de una a otra:
+
+```ts
+const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+```
+
+Ese respaldo no mira `tipo`. Un «embarazo descartado» —que es como se documenta
+una prueba negativa, y que el propio sistema escribe al oír la negación— salía
+**impreso como el motivo de la receta**, con cédula profesional debajo.
+
+Dos cosas la vuelven representativa. La primera: el comentario decía «primero
+activo de tipo definitivo» y el código no miraba `estado` en ningún sitio —
+describía un filtro que nunca existió, y leerlo daba por revisado lo que no lo
+estaba. La segunda: al arreglarla hubo que separar dos gestos que se confundían.
+Donde se enseña la **lista entera** un descarte no se filtra —es información
+medicolegal— pero va diciendo lo que es; donde se elige **uno** para representar
+la visita, lo que no es un problema del paciente no puede representarla, y si
+nada califica no se rellena nada. El respaldo *era* el defecto.
+
+Antes REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
 `transcripcionMotor` —lo que oyó el reconocedor— **le correspondía ir sellado**,
 por qué todavía no lo estaba y hasta cuándo entraría: «cuando se suba a
@@ -223,7 +379,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 52 de 312**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 64 de 343**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
