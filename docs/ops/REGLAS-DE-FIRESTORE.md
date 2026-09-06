@@ -57,16 +57,23 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy NO está vacía** (6-sep-2026, al fusionar la rama de laboratorio):
+**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
+archivo (`b7966ac9…`) coincide con `hashDesplegado` en
+`firestore.rules.estado.json`.
 
-| Regla escrita y sin desplegar | De dónde viene | Qué NO protege mientras tanto |
-|---|---|---|
-| `match /platform_authz_denegadas/{denId}` — `allow read, write: if false` | REG-578, el registro de denegaciones de autorización que lee el vigilante | **Nada, y hay que decirlo con precisión.** Esta regla no ABRE ni CIERRA nada por sí sola: el `match /{document=**}` del final ya deniega todo lo no declarado, así que la colección está cerrada al cliente esté o no desplegada esta regla. Lo que falta es que la regla sea EXPLÍCITA, que es lo que impide que un `match` futuro más laxo la deje al descubierto sin que nadie lo note |
+La fila que hubo aquí unas horas, el 6-sep-2026, era el `match` de
+`platform_authz_denegadas` (REG-578, el registro de denegaciones de autorización
+que lee el vigilante). Se escribió al fusionarse #466 y **se cerró el mismo día**
+con la ejecución **#26** del botón de producción, sobre el árbol `7c2465ea`
+(v1186).
 
-Se despliega con el resto, y **eso es acto del dueño**:
-`npx firebase deploy --only firestore:rules --project nexomed-agenda`.
+Conviene conservar por qué esa fila decía «no protege nada mientras tanto», que
+es la parte que se lee mal con prisa: esa regla no ABRE ni CIERRA nada por sí
+sola, porque el `match /{document=**}` del final ya deniega todo lo no declarado.
+Lo que faltaba era que fuese **explícita** — lo que impide que un `match` futuro
+más laxo deje la colección al descubierto sin que nadie lo note.
 
-La última fila que hubo aquí era el `match` de
+La fila anterior a ésa era el `match` de
 `clinics/{id}/patients/{pid}/preguntas_paciente/{doc}` (V9 `PATIENT-AI-001`),
 escrito al fusionarse #443 y sin regir hasta la ejecución **#18** del botón de
 producción, el 4-sep-2026. Se cerró ahí.
