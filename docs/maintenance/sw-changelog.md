@@ -3,6 +3,24 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1183 — la rama de laboratorio se reencuentra con `main`
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1183.md`](PAQUETE-PRODUCCION-2026-09-06-v1183.md).
+
+**64 commits desde v1181**, porque v1182 tampoco se ha publicado: quien pulse el
+botón con este árbol publica las dos. Código de producto, sí, y mucho.
+
+Trae las 45 unidades de la rama de laboratorio (REG-515…559) —el catálogo
+maestro del dueño, la normalización de unidad antes de la plausibilidad, los
+factores calculados de pesos atómicos IUPAC, el espécimen leído de la cabecera—
+y la reconciliación con `main`, que había avanzado 328 commits.
+
+**Dos cosas van APARTE del botón y las autoriza el dueño**: el índice compuesto
+de `errores` (sin él, Firestore rechaza la consulta del vigilante en cada
+ejecución) y la regla de `platform_authz_denegadas`, que no abre nada porque el
+comodín final ya deniega, pero conviene que sea explícita.
+
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
 **PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
