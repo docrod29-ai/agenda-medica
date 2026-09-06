@@ -1,6 +1,7 @@
 # AUSCULTA — último punto seguro
 
-<<<<<<< HEAD
+## Checkpoint · 6-sep-2026 — **v1184 EN PRODUCCIÓN** (PR #459 → `8fe45415`, pin #463 → `c49c3a25`, botón #24 SUCCESS 02:04 UTC; actas v1180…v1184 cerradas)
+
 ## Checkpoint · 6-sep-2026 — **fusionado con `main`: 155 commits de distancia, 12 archivos en conflicto, resueltos**
 
 ```
@@ -78,16 +79,14 @@ medirla.**
 
 ---
 
-## Checkpoint anterior · Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
-=======
 ## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado, #442 absorbido el test-the-test y la seguridad reportada cerrados (REG-519…535) · tres decisiones del dueño escritas (D-033…034)**
 
 ```
 CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
 CURRENT_HEAD=(este commit)
-CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
+CURRENT_PR=#459 FUSIONADO (8fe45415) y #463 FUSIONADO (c49c3a25); producción sirve nexusmed-v1184 (ejecución #24, SUCCESS). Este commit: contabilidad posterior al despliegue, va en un PR sólo de documentación
 CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
-LAST_COMPLETED_UNIT=REG-535 — verificación en navegador con el arnés (sonda nueva, pac-006 sembrado): los avisos de REG-524/520/521 se ven a 390 y 1440 sin errores de consola; y destapó que la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta. Antes: REG-534 — el error crudo ya no sale al cliente: helper sin acceso al error, 40 rutas migradas, barrido de todas las rutas como guardián. Antes: REG-532 y 528 — sanitize redacta lo que su cabecera prometía (nombres por llave, Stripe por patrón); reclamarCanal en transacción con la carrera provocada. D-E escrita (360dialog: la llave como id de documento exige migración). Antes: REG-529, 525 y 526 — test-the-test: csp-manifest corre tras el build; el prompt se vigila por frases sobre lo emitido; la membresía del servidor tiene por fin una prueba ejecutada contra un doble con id. Antes: REG-513 y REG-514 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-528 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-527 (la receta ve el expediente completo), REG-526 (bloqueo ARCO revoca el portal, D-035); D-033 y D-034 escritas en el código que gobiernan
+LAST_COMPLETED_UNIT=Cierre del ciclo v1184: actas v1180…v1184 con SUPERADO + URL de ejecución, MASTER_STATE.ultimaVersionEnProduccion=nexusmed-v1184, changelog del SW con «Publicado», B-13 asentado. Antes: REG-535 — verificación en navegador con el arnés (sonda nueva, pac-006 sembrado): los avisos de REG-524/520/521 se ven a 390 y 1440 sin errores de consola; y destapó que la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta. Antes: REG-534 — el error crudo ya no sale al cliente: helper sin acceso al error, 40 rutas migradas, barrido de todas las rutas como guardián. Antes: REG-532 y 528 — sanitize redacta lo que su cabecera prometía (nombres por llave, Stripe por patrón); reclamarCanal en transacción con la carrera provocada. D-E escrita (360dialog: la llave como id de documento exige migración). Antes: REG-529, 525 y 526 — test-the-test: csp-manifest corre tras el build; el prompt se vigila por frases sobre lo emitido; la membresía del servidor tiene por fin una prueba ejecutada contra un doble con id. Antes: REG-513 y REG-514 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-528 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-527 (la receta ve el expediente completo), REG-526 (bloqueo ARCO revoca el portal, D-035); D-033 y D-034 escritas en el código que gobiernan
 CURRENT_PARTIAL_UNIT=(ninguna)
 EXACT_NEXT_ACTION=Mirar la consulta con `pac-006` (`/consulta/pac-006`: barra de avisos con yaToma, tema claro, teclado) con una sonda como `mirar-la-receta-con-expediente.mjs`, y anotar en readiness §8. Emuladores aquí: `npx firebase emulators:start --only auth,firestore --project demo-nexusmed-v10` (el script `arnes:emuladores` asume brew); luego `node scripts/design/sembrar-emulador.mjs` y `npm run arnes:dev`. Después: guardianes de texto sellados del test-the-test, uno por uno. Decisiones del dueño pendientes: D-D (validadores sin llamador) y D-E (360dialog). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
 FILES_IN_SCOPE=scripts/ausculta-transformacion/*.mjs · scripts/design/sembrar-emulador.mjs · docs/product/AUSCULTA-ULTRA-READINESS.md §8
@@ -155,7 +154,6 @@ DO_NOT_REGRESS=REG-519 (revocación en telesalud/sala) · REG-520 (una lista de 
 ---
 
 ## Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
->>>>>>> origin/main
 
 ```
 CURRENT_BRANCH=claude/ausculta-master-completion-4clx9v
