@@ -626,7 +626,7 @@
         { "paso": "plan liberado en el portal — lo que ve mi pareja", "entendi": 4, "confie": 2, "pude_solo": 3, "seguro": 2, "cita": "Con el enlace de agenda ve mis citas y puede cancelarlas; con el clínico ve mi plan, mis recetas, mis alergias, mis preguntas y hace preguntas como si fuera yo. Vale 7 días.", "recorrido": "no (código: alcance 754-1018; patient-token 26)" },
         { "paso": "preguntar a la IA", "entendi": 4, "confie": 3, "pude_solo": 4, "seguro": 2, "cita": "Mis preguntas de la madrugada las lee él.", "recorrido": "no (código 'preguntas' 967)" },
         { "paso": "pagar", "entendi": 3, "confie": 3, "pude_solo": 3, "seguro": 3, "cita": "No lo probé.", "recorrido": "no" },
-        { "paso": "reseña", "entidi_nota": "", "entendi": 4, "confie": 4, "pude_solo": 4, "seguro": 4, "cita": "Enlace aparte, un solo uso.", "recorrido": "no (código)" },
+        { "paso": "reseña", "entendi": 4, "confie": 4, "pude_solo": 4, "seguro": 4, "cita": "Enlace aparte, un solo uso.", "recorrido": "no (código)" },
         { "paso": "ARCO / revocación", "entendi": 3, "confie": 3, "pude_solo": 1, "seguro": 2, "cita": "Para cortarle el acceso tengo que llamar al consultorio en horario; la doctora sí tiene «Invalidar enlaces del portal» y funciona, pero no queda constancia. Después, a mí me sale «Este enlace ya no es válido» sin teléfono.", "recorrido": "sí (expediente/pac-001 y /mi/enlace-invalido)" },
         { "paso": "seguimiento", "entendi": 4, "confie": 3, "pude_solo": 3, "seguro": 3, "cita": "Los recordatorios siguen llegando a mi número; el enlace nuevo también.", "recorrido": "no" }
       ],
