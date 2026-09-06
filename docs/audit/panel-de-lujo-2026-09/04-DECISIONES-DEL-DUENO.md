@@ -24,7 +24,9 @@ rojo; no generan fila: MG-016, PC-016, PP-004.
 Ids: `MI-` internista · `MP-` pediatra · `MG-` ginecóloga · `MC-` cirujano ·
 `MO-` ortopedista · `P?-` pacientes · `AS?-` asistentes · `A-`/`B-`/`C-`
 ingeniería · `S-` ciberseguridad · `D-` diseño · `N-` negocio · `R-nn` fila de
-`09-RIESGOS-NUEVOS.md` · `REP-nnn` reproducción en `reproducciones/`.
+`09-RIESGOS-NUEVOS.md` · `REP-nnn` reproducción en `reproducciones/` · `D-027`…`D-035`
+son decisiones del dueño ya tomadas (registro de decisiones), no hallazgos; el
+hallazgo de diseño es `D-001`.
 
 ---
 
@@ -68,7 +70,8 @@ después.
 | PL-L4 | **La casilla «consentimiento informado para la atención médica» al reservar en línea**, sin procedimiento ni riesgos, con el aviso de privacidad que no se puede abrir (PG-006, PO-007, PC-013) | Renombrar la casilla y el campo `informado` a lo que es (aceptación de atención) y enlazar el aviso. **No requiere decisión.** Lo que sí decide usted es el consentimiento quirúrgico electrónico → PL-L1 | Nada | Todo |
 | PL-L5 | **Supresión ARCO: qué se borra, qué se anonimiza y qué se conserva, por colección.** Hoy borra también las citas pasadas y deja los cobros con el nombre; LFPDPPP contra conservación fiscal y NOM-004 (ASE-015) | Con su asesor fiscal-legal. Por omisión: conservar cobros anonimizados, borrar citas futuras, conservar las pasadas sin nombre. `NEEDS_LEGAL_REVIEW` | La política por colección | El texto de `cancelacion.ts:63` puede decir ya qué **no** borra |
 | PL-L6 | **ARCO, el plazo**: (a) ¿«días hábiles» del art. 32 LFPDPPP excluye los de descanso obligatorio del art. 74 LFT? (ASE-024); (b) **¿hay solicitudes reales recibidas por el portal?** Hoy no se pueden ejecutar y el plazo corre (ASE-010 **P1**, R-41) | (a) `NEEDS_LEGAL_REVIEW`; el sesgo actual es conservador. (b) Usted es quien sabe si las hay: si sí, es una obligación con fecha, no una reparación | (a) el contador | (b) ligar la solicitud a un expediente y entregar no espera: es la pantalla que falta |
-| PL-L7 | **Documentos con carga legal que el consultorio firma varias veces al día y hoy se hacen fuera de la app**: incapacidad, constancia de asistencia, certificado médico, informe para aseguradora (MO-010, MC-016, PC-020, PO-009) | Construirlos con folio y firma protegida (el mecanismo de REG-014/025 ya existe) y formato revisado por abogado: falsedad en certificados es el documento con más carga legal del consultorio. `NEEDS_LEGAL_REVIEW` del formato | La familia entera | Que el portal deje de escalar «¿me dan incapacidad?» sin que el médico tenga con qué responder es consecuencia, no requisito |
+| PL-L7 | **Qué exige NOM-004 a la nota ambulatoria y a la postoperatoria, y quién lo confirma.** Las notas de consultorio no tienen pronóstico y la validación no lo pide, mientras las hospitalarias sí (MI-011); la postoperatoria no tiene operación planeada vs realizada, cuenta de gasas, equipo, envío a patología ni pronóstico (MC-009) | `NEEDS_CLINICAL_REVIEW` con el artículo aplicable citado: sin el texto de la norma es una pregunta legal abierta, no un defecto. Por omisión, añadir los apartados como opcionales sin bloquear la firma | Qué apartados bloquean la firma | Añadirlos como opcionales |
+| PL-L8 | **Documentos con carga legal que el consultorio firma varias veces al día y hoy se hacen fuera de la app**: incapacidad, constancia de asistencia, certificado médico, informe para aseguradora (MO-010, MC-016, PC-020, PO-009) | Construirlos con folio y firma protegida (el mecanismo de REG-014/025 ya existe) y formato revisado por abogado: falsedad en certificados es el documento con más carga legal del consultorio. `NEEDS_LEGAL_REVIEW` del formato | La familia entera | Que el portal deje de escalar «¿me dan incapacidad?» sin que el médico tenga con qué responder es consecuencia, no requisito |
 
 ## PRODUCTO Y ALCANCE
 
@@ -86,7 +89,8 @@ después.
 | PL-P10 | **Retirar, esconder o fusionar** — lo que `13-QUITAR-LO-INNECESARIO.md` recoge y sólo usted decide: el CRM que se llama «Revenue Dashboard» y no enseña un peso (N-015), la farmacia dentro del paquete Consultorio (N-026), «Perfil» del portal sin un solo control (PP-020), «Hora de resumen diario» que nadie lee (C-002) | Fusionar el CRM en Finanzas; esconder farmacia detrás de un ajuste; esconder Perfil hasta que haya algo que gestionar; quitar el campo del resumen o construir el resumen | Cada retiro | Nada de esto rompe la consulta |
 | PL-P11 | **¿NexusMED tiene directorio público de médicos para pacientes?** La portada habla sólo al médico; un paciente sin el enlace no encuentra a su doctora (PG-019, PI-024, PO-019 — *desacuerdo suave* con la decisión de facto) | No por ahora: el enlace lo reparte el consultorio. Dejarlo escrito para que deje de reaparecer como hallazgo | El directorio | El sello del service worker impreso al visitante (PO-019) se quita sin decisión |
 | PL-P12 | **Fichas de dosificación de UCI en inglés**: ¿se traducen (y quién responde por la traducción) o se dejan con aviso de idioma y fuente? (A-016; módulo en pausa D-030) | Dejar en inglés **con** aviso. Traducir 54 fichas sin médico responsable es peor que no traducirlas | La traducción | El aviso |
-| PL-P13 | **Zona horaria por omisión de `DEFAULT_CONFIG`**: `America/Chihuahua` en un sitio y `America/Mexico_City` en otro (A-008; hoy son la misma hora, es deuda) | Una sola constante; la que usted diga | La constante | Unificar `??`/`||` |
+| PL-P13 | **CURP en la importación: conectar el validador que existe y nadie llama, o retirar el campo.** Hoy la migración escribe el CURP de cada paciente sin validarlo y «INVALIDO123» entra tal cual (A-013, ASE-005) | Conectar: el campo ya se está guardando y entra a granel | Nada | Conectar |
+| PL-P14 | **Zona horaria por omisión de `DEFAULT_CONFIG`**: `America/Chihuahua` en un sitio y `America/Mexico_City` en otro (A-008; hoy son la misma hora, es deuda) | Una sola constante; la que usted diga | La constante | Unificar `??`/`||` |
 
 ## DINERO
 
