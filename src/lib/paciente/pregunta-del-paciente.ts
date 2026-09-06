@@ -652,33 +652,64 @@ export const TEXTO_ESCALACION =
   'el consultorio la va a ver, aunque puede que no sea hoy mismo.'
 
 /**
- * Lo que se le avisa al consultorio. Sin diagnóstico y sin opinión: qué preguntó y por qué llegó.
- *
- * D-034 (dueño, 5-sep-2026): la pregunta viaja COMPLETA (hasta el tope) por el
- * WhatsApp del consultorio, con el nombre del paciente. Se planteó mandar sólo
- * motivo + enlace al portal; el dueño decidió que el consultorio lea la
- * pregunta tal cual, porque un aviso que obliga a abrir otra pantalla para
- * saber qué pasa es un aviso que se atiende tarde. WA-9 del registro de riesgos
- * de WhatsApp queda resuelto con esta decisión, no con un cambio de código.
+ * Tope de lo que se GUARDA de la pregunta. Sigue existiendo aunque el aviso de
+ * WhatsApp ya no lleve el texto: la ruta recorta lo que entra al expediente.
  */
 export const TOPE_TEXTO_PREGUNTA = 300
 
+/**
+ * LO QUE SE LE AVISA AL CONSULTORIO POR WHATSAPP — Y LO QUE YA NO VIAJA AHÍ.
+ *
+ * ── QUÉ PASABA (PG-005, P1) ─────────────────────────────────────────────────
+ *
+ * El aviso llevaba el NOMBRE de la paciente y su pregunta ÍNTEGRA: «tengo
+ * sangrado desde ayer y me duele, ¿es normal con la pastilla?». Salía por el
+ * WhatsApp del consultorio, o sea por Meta y por 360dialog.
+ *
+ * Al mismo tiempo, el aviso de privacidad que este producto publica en
+ * `/privacidad/{clinicId}` declaraba, de Meta/WhatsApp: «No trata datos de
+ * salud». Las dos cosas no podían ser verdad. Un aviso de privacidad que
+ * describe un tratamiento que no es el real es lo primero que lee un regulador
+ * (LFPDPPP art. 15-16), y lo leyó antes una paciente del panel.
+ *
+ * ── QUÉ SE HACE, Y POR QUÉ ES LO SEGURO ─────────────────────────────────────
+ *
+ * El aviso se vuelve GENÉRICO: dice que hay una pregunta en el portal y quién
+ * la hizo, y **no puede** llevar el texto — no porque se recorte, sino porque
+ * esta función ya no lo recibe. La prohibición vive en la firma, no en la
+ * disciplina de quien la llama.
+ *
+ * Lo que sí viaja, además del nombre, es UNA señal: si el portal la marcó como
+ * posible urgencia. Sin eso, el aviso de las 2 a.m. es indistinguible del de
+ * «¿a qué hora abren?», y un aviso que no se puede priorizar es un aviso que se
+ * lee mañana. Es una bandera de triage, no contenido clínico.
+ *
+ * La pregunta completa sigue estando donde tiene que estar: en el expediente,
+ * en `preguntas_paciente`, y en la tarea de `/pendientes` que la escalación
+ * abre — dentro del consultorio, protegida por las reglas, con bitácora.
+ *
+ * ── QUÉ CAMBIA RESPECTO DE D-034, Y QUIÉN PUEDE REVERTIRLO ──────────────────
+ *
+ * D-034 (5-sep-2026) decidió lo contrario: «la pregunta viaja COMPLETA por el
+ * WhatsApp del consultorio, porque un aviso que obliga a abrir otra pantalla se
+ * atiende tarde». La reparación del Panel de Lujo (PG-005, autorizada por el
+ * dueño el 6-sep-2026) aplica el valor seguro. El coste queda dicho: el
+ * consultorio tiene que abrir el portal o `/pendientes` para saber qué se
+ * preguntó. Revertirlo es volver a pasar el texto por aquí — y entonces
+ * `tocaDatosDeSalud` de Meta y 360dialog tiene que seguir en `true` igual.
+ */
 export function avisoDePreguntaAlConsultorio(
   nombrePaciente: string,
-  motivo: MotivoUrgencia | MotivoEscalacion | null,
-  textoDelPaciente: string,
+  posibleUrgencia: boolean,
 ): string {
-  const recorte = String(textoDelPaciente ?? '').trim().slice(0, TOPE_TEXTO_PREGUNTA)
-  const etiqueta = motivo && motivo in MOTIVO_ESCALACION_LABEL
-    ? MOTIVO_ESCALACION_LABEL[motivo as MotivoEscalacion]
-    : 'pregunta sin clasificar'
   return [
-    '💬 *Un paciente preguntó por el portal*',
+    posibleUrgencia
+      ? '🚨 *Posible urgencia: un paciente escribió por el portal*'
+      : '💬 *Un paciente preguntó por el portal*',
     '',
     `👤 ${String(nombrePaciente ?? '').trim() || 'Paciente'}`,
-    `🔎 ${etiqueta}`,
-    `💬 «${recorte}»`,
     '',
+    'La pregunta NO viaja por aquí: son datos de salud. Ábrela en Pendientes o en su expediente.',
     'Nadie le ha contestado. El portal sólo le dijo que usted la va a ver.',
   ].join('\n')
 }

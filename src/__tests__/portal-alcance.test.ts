@@ -112,7 +112,14 @@ beforeEach(() => {
       estado: 'firmada',
       fechaConsulta: '2026-01-15',
       firma: { nombreMedico: 'Dra. Ficticia' },
-      diagnosticos: [{ descripcion: 'Diagnóstico de prueba' }],
+      /*
+        PC-001: `tipo` y `tipoOrigen` no estaban aquí porque la ruta no los
+        miraba. Ahora sí: al paciente sólo le baja lo que su médico confirmó, y
+        una nota sin `tipo` —las anteriores a REG-372— falla CERRADO. Este
+        fixture declara un diagnóstico confirmado por una persona, que es el
+        único que tiene que bajar.
+      */
+      diagnosticos: [{ descripcion: 'Diagnóstico de prueba', tipo: 'definitivo', tipoOrigen: 'medico' }],
       medicamentos: [{ nombre: 'Medicamento ficticio' }],
     },
   ]))
@@ -185,6 +192,35 @@ describe('E0-06 · /api/portal — `documentos` exige alcance clínico', () => {
     const body = await res.json()
     expect(body.documentos).toHaveLength(1)
     expect(body.documentos[0].diagnostico).toBe('Diagnóstico de prueba')
+  })
+
+  /**
+   * PC-001 · PO-001 — LO QUE EL MÉDICO NO CONFIRMÓ NO BAJA, COMPROBADO EN LA RUTA.
+   *
+   * El golden del motor (`al-paciente-solo-bajan-los-diagnosticos-que-su-medico
+   * -confirmo`) prueba la puerta; esto prueba que la RUTA la cruza, que es
+   * donde estaba el defecto: la acción `documentos` hacía su propio `map` sobre
+   * `n.diagnosticos` y bajaba lo descartado al `.doc` titulado RECETA MÉDICA.
+   */
+  it('y NO baja lo descartado, lo diferencial ni lo que propuso el modelo', async () => {
+    getNotas.mockResolvedValue(snap([
+      {
+        estado: 'firmada',
+        fechaConsulta: '2026-01-15',
+        firma: { nombreMedico: 'Dra. Ficticia' },
+        diagnosticos: [
+          { descripcion: 'Confirmado sintético', tipo: 'definitivo', tipoOrigen: 'medico' },
+          { descripcion: 'Descartado sintético', tipo: 'descartado', tipoOrigen: 'medico' },
+          { descripcion: 'Diferencial sintético', tipo: 'diferencial', tipoOrigen: 'medico' },
+          { descripcion: 'Propuesto por el modelo', tipo: 'definitivo', tipoOrigen: 'extraccion' },
+        ],
+        medicamentos: [{ nombre: 'Medicamento ficticio' }],
+      },
+    ]))
+    const token = crearTokenPaciente(CLINICA, PACIENTE, 1, 'clinico')
+    const res = await POST(req({ action: 'documentos', token }))
+    const body = await res.json()
+    expect(body.documentos[0].diagnostico).toBe('Confirmado sintético')
   })
 
   it('REGRESIÓN: el token de agenda SIGUE sirviendo para las citas', async () => {

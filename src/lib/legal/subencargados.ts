@@ -136,18 +136,38 @@ export const SUBENCARGADOS: readonly Subencargado[] = [
     uso: 'Proveedor autorizado por el que pasan los mensajes de WhatsApp',
     region: 'Alemania / Unión Europea',
     pol: 'https://www.360dialog.com/privacy-policy',
-    tocaDatosDeSalud: false,
+    /* Por aquí pasan los mismos mensajes que por Meta. Ver la nota de abajo. */
+    tocaDatosDeSalud: true,
     huella: 'DIALOG360_PARTNER_TOKEN',
   },
   {
     nombre: 'Meta / WhatsApp',
     categoria: 'mensajeria',
-    uso: 'Mensajes y recordatorios al paciente',
+    uso: 'Mensajes y recordatorios al paciente, y el canal por el que el paciente escribe al consultorio',
     region: 'Estados Unidos',
     pol: 'https://www.whatsapp.com/legal/business-data-transfer-addendum',
-    // Los mensajes llevan fecha, hora y nombre; el contenido clínico no viaja
-    // por aquí — es una decisión de diseño que las pruebas del portal fijan.
-    tocaDatosDeSalud: false,
+    /**
+     * ── PG-005 · ESTO DECÍA `false`, Y EL AVISO PUBLICADO LO IMPRIMÍA ───────
+     *
+     * El comentario que había aquí decía que «el contenido clínico no viaja por
+     * aquí — es una decisión de diseño que las pruebas del portal fijan». Dejó
+     * de ser verdad y nadie lo actualizó: el portal mandaba la pregunta íntegra
+     * de la paciente («tengo sangrado…») al WhatsApp del consultorio, y
+     * `/privacidad/{clinicId}` seguía publicando «No trata datos de salud».
+     *
+     * La reparación quitó el texto de ese aviso (ver
+     * `avisoDePreguntaAlConsultorio`), pero la bandera se queda en `true`, y no
+     * es una redundancia: **el paciente escribe por WhatsApp**. El bot de
+     * `/api/whatsapp/webhook` recibe «me duele el pecho» por este canal y le
+     * contesta por el mismo. Lo que decide esta bandera es qué RECIBE el
+     * subencargado, no sólo qué le mandamos nosotros — y por ahí entra salud
+     * aunque nunca salga.
+     *
+     * NEEDS_LEGAL_REVIEW: la redacción final del aviso es de un abogado
+     * (PL-L2). Lo que esta bandera garantiza es que el documento publicado no
+     * afirme lo contrario de lo que el código hace.
+     */
+    tocaDatosDeSalud: true,
     huella: 'WHATSAPP_API_TOKEN',
   },
   {

@@ -75,6 +75,8 @@ const recienCompuesto = (): PaqueteDeVisita => ({
   orders: ['Biometría hemática'],
   followUp: '',
   warningSigns: [],
+  /* PC-020/MO-016: las indicaciones del médico también bajan al paciente. */
+  indicaciones: [],
   educationalMaterial: [],
   documents: [],
   unansweredQuestions: [],

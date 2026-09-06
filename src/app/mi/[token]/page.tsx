@@ -166,14 +166,34 @@ function fmtFecha(fh: string, tz = 'America/Mexico_City'): { dia: string; fecha:
   return { dia: conMayusculaInicial(dia), fecha, hora }
 }
 
+/**
+ * EL EVENTO QUE EL PACIENTE SE GUARDA EN SU CALENDARIO.
+ *
+ * ── PO-010 · MG-012 · PC-008 — EL MOTIVO CLÍNICO IBA EN LA URL ─────────────
+ *
+ * `details=${encodeURIComponent(c.motivo || …)}` mandaba a Google, en un
+ * PARÁMETRO DE URL, lo que el consultorio escribió como motivo de la cita:
+ * «control prenatal», «interrupción», «valoración de VIH», «ajuste de
+ * metformina». `security-tenant.md` no deja lugar a interpretación: PHI nunca
+ * en logs, nunca en parámetros de URL, nunca en un mensaje de error.
+ *
+ * El servidor ya no manda el motivo con alcance `agenda` (ver `route.ts`), pero
+ * eso no bastaría: con alcance clínico seguiría saliendo, y la regla no
+ * distingue alcances. Aquí el `details` es el TIPO de cita, que es dato
+ * administrativo —«Seguimiento», «Primera vez»— y es lo que el paciente
+ * necesita para reconocer el evento en su calendario.
+ *
+ * Lo que se pierde y por qué no importa: el paciente ya sabe a qué va. Quien no
+ * lo sabe es Google.
+ */
 function gcalLink(c: Cita, tz: string): string {
-  // El evento que el paciente se guarda en su calendario: con el offset fijo,
-  // un consultorio fuera del centro se lo agendaba a la hora equivocada.
+  // Con el offset fijo, un consultorio fuera del centro se lo agendaba a la
+  // hora equivocada.
   const start = instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tz)
   const end = new Date(start.getTime() + (c.duracion || 30) * 60000)
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
   const txt = encodeURIComponent(`Cita médica — ${c.medicoNombre}`)
-  const det = encodeURIComponent(c.motivo || TIPO_LABEL[c.tipo] || 'Consulta')
+  const det = encodeURIComponent(TIPO_LABEL[c.tipo] || 'Consulta')
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${txt}&dates=${f(start)}/${f(end)}&details=${det}`
 }
 
@@ -588,8 +608,15 @@ export default function MiPortalPage() {
                     <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
                       <XCircle size={14} aria-hidden="true" /> Cancelar
                     </button>
+                    {/*
+                      PC-019: se llamaba «Agendar», junto a Confirmar ·
+                      Reagendar · Cancelar. Un adulto mayor lo lee como «agendar
+                      otra cita» y toca el único botón que no hace nada con su
+                      cita: lo que hace es copiarla a su calendario del teléfono.
+                      Se dice lo que hace.
+                    */}
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
-                      <CalendarPlus size={14} /> Agendar
+                      <CalendarPlus size={14} aria-hidden="true" /> Añadir a mi calendario
                     </a>
                   </div>
                   {/*
@@ -628,7 +655,7 @@ export default function MiPortalPage() {
                       </div>
                     </div>
                   )}
-                  {reagendando === c.id && <PanelReagenda cita={c} token={token} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
+                  {reagendando === c.id && <PanelReagenda cita={c} token={token} tz={tzClinica} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
               )}
             </div>
@@ -1135,8 +1162,14 @@ export default function MiPortalPage() {
   )
 }
 
-function PanelReagenda({ cita, token, onReagendado, ocupado }: { cita: Cita; token: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
-  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+function PanelReagenda({ cita, token, tz, onReagendado, ocupado }: { cita: Cita; token: string; tz: string; onReagendado: (fh: string) => void; ocupado: boolean }) {
+  /*
+    C-016: «hoy» se calculaba con `America/Mexico_City` fijo. En un consultorio
+    de Tijuana, a las 23:30 hora local, este panel ya estaba en el día siguiente
+    y el paciente no podía elegir la fecha de HOY — con el `min` del campo
+    cerrándosela. El resto de la pantalla ya usa la zona del consultorio.
+  */
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: tz })
   const [fecha, setFecha] = useState(hoy)
   const [slots, setSlots] = useState<string[] | null>(null)
   const [cargandoSlots, setCargandoSlots] = useState(false)

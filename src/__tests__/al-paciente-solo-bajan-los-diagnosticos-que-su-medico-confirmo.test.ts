@@ -1,7 +1,10 @@
 /**
- * REP-072 · PC-001 (P-cirugía) — el paciente lee como suyos diagnósticos
- * descartados, diferenciales y propuestos por la IA sin confirmar: el paquete de
- * la visita y la acción `documentos` vuelcan TODOS los diagnósticos de la nota.
+ * GOLDEN — el paciente leía como suyos diagnósticos descartados, diferenciales
+ * y propuestos por la IA sin confirmar: el paquete de la visita y la acción
+ * `documentos` volcaban TODOS los diagnósticos de la nota.
+ *
+ * Nace como reproducción REP-072 del Panel de Lujo (sep-2026), hallazgos PC-001,
+ * PO-001 y PO-002 (P1). Se movió aquí con su arreglo.
  *
  * ── QUÉ FALLA ────────────────────────────────────────────────────────────────
  *   · src/lib/paciente/paquete-de-visita.ts:338 —
@@ -41,8 +44,17 @@
  * declarado sobre route.ts:1090, porque la ruta no se monta sin Firestore.
  *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
+ * ── EL ARREGLO ───────────────────────────────────────────────────────────────
+ * `esDiagnosticoDelPaciente` y `resumenDeDiagnosticosParaElPaciente` en
+ * `paquete-de-visita.ts`: una sola puerta, con nombre, que cruzan las DOS
+ * superficies que bajan al paciente — el paquete y el `.doc` de la receta. Es
+ * la forma que ya tenía `medicamentosDeLaReceta` para los medicamentos
+ * (REG-329), aplicada al campo de al lado.
+ *
+ * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  * NO decide si los `presuntivo` puestos por el MÉDICO salen al portal: es
- * política del dueño (cola de decisiones del auditor) y aquí no se asume. No
+ * política del dueño (PL-P2) y aquí no se asume — hoy no salen. Un `definitivo`
+ * con `tipoOrigen: 'por_defecto'` SÍ sale, y por qué está razonado en el módulo. No
  * cubre el nombre del diagnóstico en jerga (material educativo, nivel 9). No
  * cubre la pantalla `EntregarAlPaciente` (que sí enseña `encounterSummary` al
  * médico antes de liberar, rotulado «Motivo»). No hace la petición HTTP real
@@ -54,8 +66,6 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { componerPaquete } from '@/lib/paciente/paquete-de-visita'
 import type { Diagnostico, Medicamento } from '@/types/expediente'
-
-const raiz = path.resolve(__dirname, '../../../..')
 
 /* ── Entrada sintética: paciente operado, nota firmada, cuatro diagnósticos ─── */
 const CONFIRMADO: Diagnostico = {
@@ -97,37 +107,37 @@ function resumenDelPaquete(diagnosticos: readonly Diagnostico[]): string {
   return c.ok ? c.paquete.encounterSummary : ''
 }
 
-describe('REP-072 · PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó', () => {
-  it('control (PASA HOY): con sólo el diagnóstico confirmado, el paquete lo lleva tal cual', () => {
+describe('PC-001 — el paquete del paciente no lleva diagnósticos que el médico no le atribuyó', () => {
+  it('control: con sólo el diagnóstico confirmado, el paquete lo lleva tal cual', () => {
     // Para que el arreglo no señale de más: el confirmado tiene que seguir bajando.
     expect(resumenDelPaquete([CONFIRMADO])).toContain('Colecistitis crónica litiásica sintética')
   })
 
-  it('FALLA HOY · un diagnóstico DESCARTADO no baja al paciente', () => {
+  it('un diagnóstico DESCARTADO no baja al paciente', () => {
     const resumen = resumenDelPaquete([CONFIRMADO, DESCARTADO])
     expect(resumen).toContain('Colecistitis crónica litiásica sintética')
     expect(resumen, 'el paciente leería como suyo un dx que su cirujano descartó').not.toContain('DESCARTADA')
   })
 
-  it('FALLA HOY · un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente', () => {
+  it('un diagnóstico DIFERENCIAL (lista de posibilidades, no un dx) no baja al paciente', () => {
     const resumen = resumenDelPaquete([CONFIRMADO, DIFERENCIAL])
     expect(resumen).not.toContain('Pancreatitis sintética')
   })
 
-  it('FALLA HOY · un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente', () => {
+  it('un dx propuesto por el modelo (`tipoOrigen: extraccion`) y no confirmado no baja al paciente', () => {
     // patient-facing-ai §1: el nivel 9 nunca origina un dato del paciente.
     const resumen = resumenDelPaquete([CONFIRMADO, PROPUESTO_POR_IA])
     expect(resumen).not.toContain('propuesta por el modelo')
   })
 
-  it('FALLA HOY · con los cuatro juntos, al paciente le llega SÓLO el confirmado', () => {
+  it('con los cuatro juntos, al paciente le llega SÓLO el confirmado', () => {
     expect(resumenDelPaquete([CONFIRMADO, DESCARTADO, DIFERENCIAL, PROPUESTO_POR_IA]))
       .toBe('Colecistitis crónica litiásica sintética')
   })
 })
 
-describe('REP-072 · PC-001 — la acción `documentos` del portal no vuelca los diagnósticos en crudo (contrato textual, declarado)', () => {
-  const ruta = readFileSync(path.join(raiz, 'src', 'app', 'api', 'portal', 'route.ts'), 'utf8')
+describe('PC-001 — la acción `documentos` del portal no vuelca los diagnósticos en crudo (contrato textual, declarado)', () => {
+  const ruta = readFileSync(path.join(process.cwd(), 'src', 'app', 'api', 'portal', 'route.ts'), 'utf8')
   const bloqueDocumentos = ruta.match(/case 'documentos': \{[\s\S]*?\n {6}(?:case '|default:)/)?.[0] ?? ''
 
   it('control: la acción existe y ya cruza la puerta de los MEDICAMENTOS (REG-329)', () => {
@@ -135,8 +145,15 @@ describe('REP-072 · PC-001 — la acción `documentos` del portal no vuelca los
     expect(bloqueDocumentos).toContain('medicamentosDeLaReceta(')
   })
 
-  it('FALLA HOY · `diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo', () => {
+  it('`diagnostico:` no se arma mapeando `n.diagnosticos` entero sin filtrar por tipo', () => {
     const enCrudo = /diagnostico:\s*\(n\.diagnosticos\s*\?\?\s*\[\]\)\s*\.map\(\s*\w+\s*=>\s*\w+\.descripcion\s*\)/.test(bloqueDocumentos)
-    expect(enCrudo, 'route.ts:1090 vuelca todos los diagnósticos de la nota al .doc del paciente').toBe(false)
+    expect(enCrudo, 'la ruta volvió a volcar todos los diagnósticos de la nota al .doc del paciente').toBe(false)
+  })
+
+  it('y cruza LA MISMA puerta que el paquete, no una copia suya', () => {
+    // Dos filtros equivalentes escritos aparte divergen el día que uno de los
+    // dos se ajusta, y el que nadie tocó seguiría bajando lo descartado.
+    expect(bloqueDocumentos).toContain('resumenDeDiagnosticosParaElPaciente(')
+    expect(ruta).toContain("from '@/lib/paciente/paquete-de-visita'")
   })
 })

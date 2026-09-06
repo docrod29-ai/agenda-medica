@@ -6,7 +6,7 @@ import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincron
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
-import { verificarTokenPaciente } from '@/lib/patient-token'
+import { verificarTokenPaciente, type AlcanceToken } from '@/lib/patient-token'
 import { limitarOResponder, limitarEstricto } from '@/lib/rate-limit'
 import {
   decidirVigencia,
@@ -20,13 +20,18 @@ import { validarFechaHoraDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda
 import type { Appointment, ClinicConfig } from '@/types'
 import type { TimeBlock } from '@/lib/time-blocks-core'
 import type { NotaMedica } from '@/types/expediente'
-import { visibleParaElPaciente, type PaqueteDeVisita } from '@/lib/paciente/paquete-de-visita'
+import {
+  visibleParaElPaciente,
+  resumenDeDiagnosticosParaElPaciente,
+  type PaqueteDeVisita,
+} from '@/lib/paciente/paquete-de-visita'
 import {
   clasificarPregunta,
   avisoDePreguntaAlConsultorio,
   TOPE_TEXTO_PREGUNTA,
   type PlanLiberado,
 } from '@/lib/paciente/pregunta-del-paciente'
+import { urgenciaDelMensaje } from '@/lib/paciente/urgencia'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { tareaDeUnaPregunta, idDeTareaDePregunta } from '@/lib/tareas-clinicas/de-una-pregunta'
@@ -86,7 +91,11 @@ function horasHasta(fechaHora: string, tz: string): number {
 
 
 
-async function leerCitasPaciente(clinicId: string, patientId: string): Promise<Appointment[]> {
+async function leerCitasPaciente(
+  clinicId: string,
+  patientId: string,
+  alcance: AlcanceToken = 'agenda',
+): Promise<Appointment[]> {
   const snap = await adminDb
     .collection('clinics').doc(clinicId)
     .collection('appointments')
@@ -107,7 +116,24 @@ async function leerCitasPaciente(clinicId: string, patientId: string): Promise<A
    *
    * Se enumera lo que el paciente SÍ puede ver. Con `spread`, cualquier campo
    * nuevo que se añada a la cita mañana se filtraría solo.
+   *
+   * ── PO-010 · Y EL `motivo` SE PENSÓ CONTRA `notasInternas`, NO CONTRA SÍ MISMO ──
+   *
+   * Esta lista blanca se escribió mirando al campo del dueño y dejó pasar el
+   * `motivo` como si fuera dato de agenda. No lo es: «Valoración de VIH»,
+   * «control prenatal», «interrupción», «ajuste de metformina» son texto
+   * clínico, y salían con el enlace de AGENDA — el que emite cualquier miembro
+   * del mostrador y que la madre reenvía a la guardería.
+   *
+   * El propio archivo de la pantalla ya lo tenía escrito para las preguntas:
+   * «NO trae `motivo` — el servidor no se lo manda al paciente». Doce líneas
+   * más abajo, la cita sí lo mandaba.
+   *
+   * Ahora el motivo viaja SÓLO con alcance `clinico`, que es el que emite un
+   * médico. Es la decisión PL-P1 del dueño: «el motivo, sólo con alcance
+   * clínico y nunca en una URL».
    */
+  const puedeVerElMotivo = alcance === 'clinico'
   return snap.docs.map(d => {
     const a = d.data() as Appointment
     return {
@@ -115,7 +141,7 @@ async function leerCitasPaciente(clinicId: string, patientId: string): Promise<A
       fechaHora: a.fechaHora,
       duracion: a.duracion,
       tipo: a.tipo,
-      motivo: a.motivo,
+      ...(puedeVerElMotivo ? { motivo: a.motivo } : {}),
       estado: a.estado,
       medicoId: a.medicoId,
       medicoNombre: a.medicoNombre,
@@ -317,26 +343,55 @@ export async function POST(req: NextRequest) {
    * una incidencia, un token puede seguir MIRANDO lo suyo, pero no gana la
    * capacidad de mover la agenda ni de vaciar el expediente sin freno.
    */
-  const limiteGeneral = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
-    'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
-  if (limiteGeneral) return limiteGeneral
+  /**
+   * ── PI-004 · LA URGENCIA SE MIRA ANTES QUE EL FRENO ─────────────────────
+   *
+   * A las 2 a.m., tras recargar el portal cinco veces —cada apertura gastaba
+   * varias de las quince llamadas clínicas—, el paciente escribió «me duele el
+   * pecho y me falta el aire» y el servidor le contestó «Demasiadas consultas a
+   * tus documentos». La urgencia no se clasificó, no se registró y no avisó a
+   * nadie.
+   *
+   * `urgencia.ts` lleva escrito desde el primer día que el fallo de este canal
+   * «no era de detección: era de ORDEN». Aquí volvió a serlo, un piso más
+   * abajo: un freno de tasa preguntado antes que la urgencia decide antes de
+   * que nadie mire si el paciente se está muriendo.
+   *
+   * Así que el mensaje se clasifica AQUÍ, con el módulo puro y sin tocar la
+   * base, y si es una de las urgencias del §6 los frenos POR PACIENTE se saltan.
+   * Cuestan lo que cuesta atender una pregunta más; el falso negativo cuesta la
+   * vida (la misma asimetría que justifica escalar de más).
+   *
+   * Lo que **no** se salta es el freno por IP de arriba: ése no protege al
+   * consultorio de un paciente angustiado, protege a la ruta de una ráfaga
+   * automatizada, y saltárselo abriría un camino sin cupo a base de escribir
+   * «me duele el pecho» en cada petición.
+   */
+  const urgenciaDeEstaPeticion =
+    body.action === 'preguntar' ? urgenciaDelMensaje(String(body.texto ?? '')) : null
 
-  if (ACCIONES_QUE_MUEVEN.has(String(body.action))) {
-    const limiteMutacion = await limitarEstricto(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
-      'Demasiados cambios a tu cita en poco tiempo. Espera un momento e inténtalo de nuevo.')
-    if (limiteMutacion) return limiteMutacion
-  }
+  if (!urgenciaDeEstaPeticion) {
+    const limiteGeneral = await limitarOResponder(`portal:${clinicId}:${patientId}`, 40, 600,
+      'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.')
+    if (limiteGeneral) return limiteGeneral
 
-  if (ACCIONES_CLINICAS.has(String(body.action))) {
-    const limiteClinico = await limitarEstricto(`portal:clinico:${clinicId}:${patientId}`, 15, 600,
-      'Demasiadas consultas a tus documentos en poco tiempo. Espera un momento e inténtalo de nuevo.')
-    if (limiteClinico) return limiteClinico
-  }
+    if (ACCIONES_QUE_MUEVEN.has(String(body.action))) {
+      const limiteMutacion = await limitarEstricto(`portal:mutacion:${clinicId}:${patientId}`, 10, 600,
+        'Demasiados cambios a tu cita en poco tiempo. Espera un momento e inténtalo de nuevo.')
+      if (limiteMutacion) return limiteMutacion
+    }
 
-  if (body.action === 'preguntar') {
-    const limitePregunta = await limitarEstricto(`portal:pregunta:${clinicId}:${patientId}`, PREGUNTAS_POR_VENTANA, 600,
-      'Has enviado varias preguntas seguidas. Espera unos minutos; tu consultorio ya tiene las anteriores.')
-    if (limitePregunta) return limitePregunta
+    if (ACCIONES_CLINICAS.has(String(body.action))) {
+      const limiteClinico = await limitarEstricto(`portal:clinico:${clinicId}:${patientId}`, 15, 600,
+        'Demasiadas consultas a tus documentos en poco tiempo. Espera un momento e inténtalo de nuevo.')
+      if (limiteClinico) return limiteClinico
+    }
+
+    if (body.action === 'preguntar') {
+      const limitePregunta = await limitarEstricto(`portal:pregunta:${clinicId}:${patientId}`, PREGUNTAS_POR_VENTANA, 600,
+        'Has enviado varias preguntas seguidas. Espera unos minutos; tu consultorio ya tiene las anteriores.')
+      if (limitePregunta) return limitePregunta
+    }
   }
 
   // Helper: asegura que la cita pertenezca a este paciente
@@ -352,7 +407,7 @@ export async function POST(req: NextRequest) {
   try {
     switch (body.action) {
       case 'session': {
-        const [citas, config] = await Promise.all([leerCitasPaciente(clinicId, patientId), leerConfig(clinicId)])
+        const [citas, config] = await Promise.all([leerCitasPaciente(clinicId, patientId, alcance), leerConfig(clinicId)])
         const paciente = citas[0]?.pacienteNombre ?? ''
         return NextResponse.json({
           paciente,
@@ -722,7 +777,7 @@ export async function POST(req: NextRequest) {
           [
             `📝 *Un paciente llenó su información previa*`,
             ``,
-            `👤 ${(await leerCitasPaciente(clinicId, patientId))[0]?.pacienteNombre ?? 'Paciente del portal'}`,
+            `👤 ${paciente?.nombre || (await leerCitasPaciente(clinicId, patientId))[0]?.pacienteNombre || 'Paciente del portal'}`,
             ``,
             `Lo escribió antes de su consulta. Ábrelo en su expediente: NO viaja por aquí porque son datos de salud.`,
           ].join('\n'),
@@ -796,7 +851,16 @@ export async function POST(req: NextRequest) {
        * barata de garantizarlo es no tenerlo.
        */
       case 'preguntar': {
-        if (alcance !== 'clinico') {
+        /**
+         * PI-004 — Y TAMPOCO SE CIERRA POR ALCANCE CUANDO ES UNA URGENCIA.
+         *
+         * El alcance `clinico` existe para que un enlace del mostrador no abra
+         * el expediente. Una urgencia no abre nada: no devuelve un solo dato
+         * clínico del paciente, sólo registra lo que escribió y enseña la vía.
+         * Rechazarla con «pide a tu médico el acceso» sería contestarle a quien
+         * dice que le falta el aire que le falta un permiso.
+         */
+        if (alcance !== 'clinico' && !urgenciaDeEstaPeticion) {
           return NextResponse.json(
             { error: 'Pide a tu médico el acceso para poder preguntar por aquí.' },
             { status: 403 },
@@ -812,11 +876,13 @@ export async function POST(req: NextRequest) {
          * que NO es lo mismo que un plan vacío: con `null` el motor escala con
          * motivo `sin_plan_liberado` en vez de contestar sobre la nada.
          */
-        const snapPlanes = await adminDb
-          .collection('clinics').doc(clinicId)
-          .collection('patients').doc(patientId)
-          .collection('paquetes_visita')
-          .get()
+        const snapPlanes = alcance === 'clinico'
+          ? await adminDb
+              .collection('clinics').doc(clinicId)
+              .collection('patients').doc(patientId)
+              .collection('paquetes_visita')
+              .get()
+          : { docs: [] as { data: () => unknown }[] }
         const liberados = snapPlanes.docs
           .map(d => d.data() as unknown as PaqueteDeVisita)
           .filter(visibleParaElPaciente)
@@ -902,7 +968,17 @@ export async function POST(req: NextRequest) {
          * Si esta escritura lanza, cae al `catch` de la ruta igual que la de
          * la pregunta: el paciente ve un error honesto, no una promesa falsa.
          */
-        if (r.avisarAlConsultorio) {
+        /**
+         * PI-004 — LA URGENCIA SIEMPRE ABRE TAREA.
+         *
+         * `avisarAlConsultorio` ya es `true` en toda urgencia, y aun así esto
+         * se escribe mirando la CLASE además del campo: si mañana alguien toca
+         * el motor y una urgencia sale con `avisar:false`, lo que se pierde es
+         * el único rastro de que alguien escribió «me falta el aire». Dos
+         * condiciones para el mismo hecho no es duplicación: es que ninguna de
+         * las dos puede fallar sola.
+         */
+        if (r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED') {
           const tarea = tareaDeUnaPregunta({
             clinicId,
             patientId,
@@ -928,11 +1004,17 @@ export async function POST(req: NextRequest) {
          * dicho). Sin teléfono no se intenta nada, y desde REG-521 eso ya no
          * significa que nadie se entere.
          */
-        if (r.avisarAlConsultorio && telConsultorio) {
+        if ((r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED') && telConsultorio) {
           await avisarAlConsultorio(
             clinicId,
             telConsultorio,
-            avisoDePreguntaAlConsultorio(paciente?.nombre ?? '', r.motivo, texto),
+            /*
+             * PG-005: el texto de la pregunta YA NO VIAJA por WhatsApp — la
+             * función ni siquiera lo acepta. Lo que va es quién preguntó y si
+             * el portal lo marcó como posible urgencia; el contenido se lee en
+             * Pendientes o en el expediente, que es donde está protegido.
+             */
+            avisoDePreguntaAlConsultorio(paciente?.nombre ?? '', r.clase === 'URGENT_REVIEW_REQUIRED'),
             'portal:pregunta',
           )
         }
@@ -1087,7 +1169,22 @@ export async function POST(req: NextRequest) {
             medico: n.firma?.nombreMedico ?? '',
             cedulaProfesional: n.firma?.cedulaProfesional ?? '',
             especialidad: n.firma?.especialidad ?? '',
-            diagnostico: (n.diagnosticos ?? []).map(dx => dx.descripcion).filter(Boolean).join(', '),
+            /**
+             * PC-001 · PO-001 — ESTO BAJABA TODOS LOS DIAGNÓSTICOS DE LA NOTA.
+             *
+             * Descartados, diferenciales y propuestas del modelo sin confirmar,
+             * impresos como «Diagnóstico» en una RECETA MÉDICA con cédula
+             * profesional, en el papel que el paciente reenvía a su jefe.
+             *
+             * Es la forma exacta de REG-329 un campo más a la derecha: aquella
+             * regresión puso una sola puerta para los MEDICAMENTOS que bajan al
+             * paciente (`medicamentosDeLaReceta`, dos líneas más abajo) y dejó
+             * los DIAGNÓSTICOS bajando en crudo por la misma ruta.
+             *
+             * Ahora cruzan la misma puerta que el paquete de la visita, que es
+             * una función con nombre y no un `map` copiado en cada superficie.
+             */
+            diagnostico: resumenDeDiagnosticosParaElPaciente(n.diagnosticos),
             medicamentos: recetados,
           }))
           .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))

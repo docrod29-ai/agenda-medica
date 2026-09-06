@@ -1,6 +1,10 @@
 /**
- * REP-071 · PO-010 (P-ortopedia) — el enlace de AGENDA devuelve al navegador el
- * `motivo` clínico de cada cita y lo incrusta en la URL de Google Calendar.
+ * GOLDEN — el enlace de AGENDA devolvía al navegador el `motivo` clínico de
+ * cada cita y lo incrustaba en la URL de Google Calendar.
+ *
+ * Nace como reproducción REP-071 del Panel de Lujo (sep-2026), hallazgo PO-010
+ * del auditor P-ortopedia (P2, subido a P1 por el equipo rojo). Se movió aquí
+ * con su arreglo.
  *
  * ── QUÉ FALLA ────────────────────────────────────────────────────────────────
  *   · src/app/api/portal/route.ts:118 — `motivo: a.motivo` en la lista blanca
@@ -50,6 +54,13 @@
  * en la pantalla (la tarjeta hoy no pinta el motivo). No opina sobre si con
  * alcance `clinico` el motivo puede ir en la URL de Google: la regla dice que
  * PHI en URL no, en ningún alcance, y el tramo 1 lo exige así.
+ *
+ * ── EL ARREGLO ───────────────────────────────────────────────────────────────
+ * Dos capas, porque una sola no bastaba:
+ *  1. `gcalLink` manda el TIPO de cita («Seguimiento»), que es administrativo.
+ *     Con sólo esto, el motivo seguiría llegando al navegador del paciente.
+ *  2. `leerCitasPaciente(clinicId, patientId, alcance)` devuelve `motivo` SÓLO
+ *     con alcance `clinico`. Es la decisión PL-P1 del dueño.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
@@ -57,8 +68,7 @@ import path from 'path'
 import ts from 'typescript'
 import { instanteMX } from '@/lib/timezone'
 
-const raiz = path.resolve(__dirname, '../../../..')
-const leer = (...p: string[]) => readFileSync(path.join(raiz, ...p), 'utf8')
+const leer = (...p: string[]) => readFileSync(path.join(process.cwd(), ...p), 'utf8')
 const pagina = leer('src', 'app', 'mi', '[token]', 'page.tsx')
 const ruta = leer('src', 'app', 'api', 'portal', 'route.ts')
 
@@ -83,7 +93,7 @@ const CITA: CitaSintetica = {
   motivo: MOTIVO_CLINICO, estado: 'confirmada', medicoNombre: 'Dra. Ficticia Prueba', confirmadoPaciente: false,
 }
 
-describe('REP-071 · PO-010 — la URL de Google Calendar no lleva el motivo clínico', () => {
+describe('PO-010 — la URL de Google Calendar no lleva el motivo clínico', () => {
   const gcalLink = gcalLinkDeLaPagina()
 
   it('control: la función extraída sigue armando un enlace de Google Calendar con fecha y médico', () => {
@@ -93,34 +103,34 @@ describe('REP-071 · PO-010 — la URL de Google Calendar no lleva el motivo cl�
     expect(decodeURIComponent(url)).toContain('Dra. Ficticia Prueba')
   })
 
-  it('FALLA HOY · ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo', () => {
+  it('ninguna parte de la URL (ni `details`, ni `text`) contiene el motivo', () => {
     const url = decodeURIComponent(gcalLink(CITA, 'America/Mexico_City'))
     expect(url, 'PHI en parámetro de URL hacia un tercero').not.toContain('VIH')
     expect(url).not.toContain('metformina')
   })
 
-  it('PASA HOY (control): sin motivo, `details` cae al tipo de cita, que es dato administrativo', () => {
+  it('control: sin motivo, `details` cae al tipo de cita, que es dato administrativo', () => {
     const url = decodeURIComponent(gcalLink({ ...CITA, motivo: undefined }, 'America/Mexico_City'))
     expect(url).toMatch(/details=Seguimiento/)
   })
 })
 
-describe('REP-071 · PO-010 — la respuesta `session` con alcance `agenda` no devuelve `motivo` (contrato textual, declarado)', () => {
+describe('PO-010 — la respuesta `session` con alcance `agenda` no devuelve `motivo` (contrato textual, declarado)', () => {
   const listaBlanca = ruta.match(/async function leerCitasPaciente[\s\S]*?\n\}/)?.[0] ?? ''
   const bloqueSession = ruta.match(/case 'session': \{[\s\S]*?\n {6}case '/)?.[0] ?? ''
 
-  it('control: la lista blanca y la acción `session` existen y la primera aún expone `motivo`', () => {
+  it('control: la lista blanca y la acción `session` existen', () => {
     expect(listaBlanca).not.toBe('')
     expect(bloqueSession).not.toBe('')
     expect(bloqueSession).toContain('leerCitasPaciente(')
   })
 
-  it('FALLA HOY · o la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance`', () => {
+  it('la lista blanca de la cita o la acción `session` deciden `motivo` según `alcance`', () => {
     const decidePorAlcance = /alcance/.test(listaBlanca) || /alcance/.test(bloqueSession)
     const exponeMotivoSinCondicion = /^\s*motivo:\s*a\.motivo,\s*$/m.test(listaBlanca)
     expect(
       decidePorAlcance && !exponeMotivoSinCondicion,
-      'route.ts:118 devuelve `motivo: a.motivo` a cualquier alcance, y `session` no lo filtra',
+      'la lista blanca volvió a devolver `motivo: a.motivo` a cualquier alcance',
     ).toBe(true)
   })
 })

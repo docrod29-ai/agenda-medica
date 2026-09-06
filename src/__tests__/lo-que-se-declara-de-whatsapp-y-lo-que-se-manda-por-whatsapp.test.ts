@@ -1,7 +1,10 @@
 /**
- * REP-059 · PG-005 (P-gineco) — el aviso de privacidad publicado dice que
- * Meta/WhatsApp «no trata datos de salud» mientras el portal manda por WhatsApp
- * del consultorio el nombre de la paciente y su pregunta íntegra.
+ * GOLDEN — el aviso de privacidad publicado decía que Meta/WhatsApp «no trata
+ * datos de salud» mientras el portal mandaba por el WhatsApp del consultorio el
+ * nombre de la paciente y su pregunta íntegra.
+ *
+ * Nace como reproducción REP-059 del Panel de Lujo (sep-2026), hallazgo PG-005
+ * de la auditora P-gineco, P1. Se movió aquí con su arreglo.
  *
  * NEEDS_LEGAL_REVIEW — la redacción final del aviso y la calificación jurídica
  * de cada subencargado las decide un abogado; esta prueba sólo exige que la
@@ -40,10 +43,27 @@
  * incluye el texto libre) contra el CONTRATO de la lista de subencargados y del
  * texto que genera `generarAvisoPrivacidad`. Es la prueba que el hallazgo pide.
  *
+ * ── EL ARREGLO, QUE TIENE DOS MITADES ───────────────────────────────────────
+ *
+ *  1. **El emisor deja de poder mandarlo.** `avisoDePreguntaAlConsultorio` ya
+ *     no recibe el texto de la pregunta: manda quién preguntó y si el portal lo
+ *     marcó como posible urgencia. La prohibición vive en la firma, no en la
+ *     disciplina de quien llama.
+ *  2. **La declaración dice la verdad igual.** Meta/WhatsApp y 360dialog quedan
+ *     en `tocaDatosDeSalud: true`, y NO es redundante con (1): el paciente
+ *     ESCRIBE por WhatsApp («me duele el pecho» entra por
+ *     `/api/whatsapp/webhook`), así que por ese canal entra salud aunque no
+ *     salga. La bandera declara qué recibe el subencargado, no sólo qué le
+ *     mandamos.
+ *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  * No cubre Twilio (SMS de respaldo), que hereda la misma pregunta y el hallazgo
- * deja fuera. No cubre `avisoDeUrgenciaAlConsultorio` (urgencia.ts) —misma
- * cadena, mismo arreglo—. No discute D-034: sólo que el aviso la diga.
+ * deja fuera. No cubre `avisoDeUrgenciaAlConsultorio` (urgencia.ts): ése sí
+ * sigue citando lo que el paciente escribió, y a propósito — ahí el paciente
+ * escribió POR WhatsApp, así que el texto ya está en ese canal y devolvérselo
+ * al consultorio no lo mete donde no estaba. NEEDS_LEGAL_REVIEW: la redacción
+ * final del aviso es de un abogado (PL-L2); esto sólo exige que el documento no
+ * afirme lo contrario de lo que el código hace.
  */
 import { describe, it, expect } from 'vitest'
 import { avisoDePreguntaAlConsultorio } from '@/lib/paciente/pregunta-del-paciente'
@@ -54,18 +74,29 @@ const TEXTO_PACIENTE = 'tengo sangrado desde ayer y me duele, ¿es normal con la
 const meta = SUBENCARGADOS.find(s => /meta|whatsapp/i.test(s.nombre))!
 const dialog = SUBENCARGADOS.find(s => /360dialog/i.test(s.nombre))!
 
-describe('REP-059 · lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp', () => {
-  it('premisa (pasa hoy): el aviso al consultorio lleva el nombre y el texto libre de la paciente', () => {
-    const msg = avisoDePreguntaAlConsultorio('Paciente Sintética', 'no_esta_en_el_plan_liberado', TEXTO_PACIENTE)
+describe('lo que se declara de WhatsApp coincide con lo que se manda por WhatsApp', () => {
+  it('el aviso al consultorio lleva el nombre y NO la pregunta de la paciente', () => {
+    const msg = avisoDePreguntaAlConsultorio('Paciente Sintética', false)
     expect(msg).toContain('Paciente Sintética')
-    expect(msg).toContain('tengo sangrado')
+    expect(msg, 'la pregunta viajaba íntegra por un tercero').not.toContain('sangrado')
+    expect(msg).toContain('NO viaja por aquí')
   })
 
-  it('Meta / WhatsApp declara tocaDatosDeSalud: true (hoy: false, con un comentario que ya no es verdad)', () => {
+  it('y el emisor no PUEDE mandarla: la función ya no recibe el texto', () => {
+    /*
+     * Probado al revés: si mañana alguien vuelve a pasar el texto, esto no
+     * compila. Un guardián que dependa de que nadie lo llame mal no es un
+     * guardián — por eso la comprobación es sobre la aridad, que es estructura.
+     */
+    expect(avisoDePreguntaAlConsultorio.length, 'la firma volvió a aceptar el texto del paciente').toBe(2)
+    expect(avisoDePreguntaAlConsultorio('X', false)).not.toContain(TEXTO_PACIENTE)
+  })
+
+  it('Meta / WhatsApp declara tocaDatosDeSalud: true', () => {
     expect(meta.tocaDatosDeSalud, `${meta.nombre}: ${meta.uso}`).toBe(true)
   })
 
-  it('360dialog, por el que pasan esos mismos mensajes, también (hoy: false)', () => {
+  it('360dialog, por el que pasan esos mismos mensajes, también', () => {
     expect(dialog.tocaDatosDeSalud).toBe(true)
   })
 
