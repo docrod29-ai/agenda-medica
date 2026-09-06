@@ -54,8 +54,8 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
               {SUGERENCIAS.map(s => (
-                <button key={s} onClick={() => preguntar(s)}
-                  style={{ fontSize: 12, color: 'var(--teal)', background: 'var(--s1)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 'var(--r-pill)', padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
+                <button key={s} onClick={() => preguntar(s)} className="nx-chip-sugerencia"
+                  style={{ fontSize: 12, color: 'var(--teal)', border: '1px solid color-mix(in srgb, var(--nexus) 30%, transparent)', borderRadius: 'var(--r-pill)', padding: '5px 11px', cursor: 'pointer' }}>{s}</button>
               ))}
             </div>
           </div>
@@ -72,9 +72,9 @@ export function AsistenteChat({ alto = 300 }: { alto?: number }) {
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') preguntar(q) }}
           placeholder="Escribe tu pregunta…" disabled={cargando}
-          style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)', outline: 'none' }} />
-        <button onClick={() => preguntar(q)} disabled={cargando || !q.trim()} aria-label="Enviar"
-          style={{ flexShrink: 0, width: 42, borderRadius: 10, border: 'none', cursor: cargando || !q.trim() ? 'default' : 'pointer', background: cargando || !q.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }} />
+        <button onClick={() => preguntar(q)} disabled={cargando || !q.trim()} aria-label="Enviar" className="nx-acc-fuerte"
+          style={{ flexShrink: 0, width: 42, borderRadius: 10, border: 'none', cursor: cargando || !q.trim() ? 'default' : 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {cargando ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
         </button>
       </div>

@@ -81,10 +81,19 @@ describe('la frase, una sola vez', () => {
     }
   })
 
-  it('las cinco pasan por la definición única', () => {
+  it('todas pasan por la definición única', () => {
+    /**
+     * PREMISA CAMBIADA AL FUSIONAR (6-sep-2026). Eran cinco usos; ahora son
+     * cuatro. El que falta NO se perdió: el panel de riesgos que lo usaba se
+     * retiró en favor del motor de `main` —`banderas-de-riesgo.ts`, el que ya
+     * está en producción—, que dice lo mismo con `avisoDeBanderasIncompletas`.
+     *
+     * Lo que este caso protege sigue igual y por eso el guardián se queda: el
+     * aviso de historial recortado tiene UNA definición y nadie la reescribe.
+     */
     const veces = (s: string) => (s.match(/avisoDeHistorialRecortado\(/g) ?? []).length
     expect(veces(CONSULTA)).toBeGreaterThanOrEqual(3)
-    expect(veces(EXPEDIENTE)).toBeGreaterThanOrEqual(4)
+    expect(veces(EXPEDIENTE)).toBeGreaterThanOrEqual(3)
   })
 })
 

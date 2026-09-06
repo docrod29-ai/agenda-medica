@@ -84,6 +84,19 @@ export const MOTIVO_LABEL: Record<MotivoUrgencia, string> = {
   ingesta_accidental_o_sobredosis: 'ingesta accidental o sobredosis',
 }
 
+/**
+ * EL NÚMERO DE EMERGENCIAS, EN UN SOLO SITIO.
+ *
+ * Estaba escrito a mano en `mensajeDeUrgencia()` y otra vez, en prosa, dentro
+ * del portal del paciente. Dos copias de una vía de contacto divergen el día
+ * que una de las dos se ajusta —y la que nadie tocó seguiría mandando a un
+ * número que ya no atiende, a alguien que no puede detectar el error.
+ *
+ * Es MX. Cuando exista el paquete de otro país, esto se lee de ahí; hasta
+ * entonces vive aquí, con nombre, para que se pueda encontrar.
+ */
+export const TELEFONO_EMERGENCIAS = '911'
+
 export interface Urgencia {
   motivo: MotivoUrgencia
   /** Siempre la misma: la urgencia gana a cualquier otra clasificación. */
@@ -200,7 +213,7 @@ export function mensajeDeUrgencia(telefonoConsultorio: string): string {
     '',
     'No espere respuesta por este medio: este canal es para citas y no hay nadie leyéndolo ahora mismo.',
     '',
-    '📞 Llame al *911* o acuda al servicio de urgencias más cercano.',
+    `📞 Llame al *${TELEFONO_EMERGENCIAS}* o acuda al servicio de urgencias más cercano.`,
     ...(tel ? [`📞 Consultorio: ${tel}`] : []),
     '',
     'Avisamos al consultorio de que usted escribió.',
@@ -231,7 +244,7 @@ export function avisoDeUrgenciaAlConsultorio(
     `🔎 Motivo detectado: ${MOTIVO_LABEL[motivo]}`,
     `💬 «${recorte}»`,
     '',
-    'Se le respondió que llame al 911 o acuda a urgencias. Nadie lo ha atendido.',
+    `Se le respondió que llame al ${TELEFONO_EMERGENCIAS} o acuda a urgencias. Nadie lo ha atendido.`,
   ].join('\n')
 }
 

@@ -128,7 +128,15 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
       {/* Selector de día */}
       <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <Calendar size={16} style={{ color: 'var(--text3)' }} />
-        <Input type="date" value={dia} onChange={e => { diaAuto.current = false; setDia(e.target.value) }} style={{ width: 180 }} />
+        <Input
+          type="date"
+          value={dia}
+          onChange={e => { diaAuto.current = false; setDia(e.target.value) }}
+          style={{ width: 180 }}
+          // El icono de calendario que va al lado no lo nombra: es decorativo.
+          // Y en esta pantalla el dato que falta es justo cuál día se cuadra.
+          aria-label="Día del corte de caja"
+        />
         <button className="btn btn-ghost btn-sm" onClick={() => { diaAuto.current = true; setDia(hoyISO(tz)) }}>Hoy</button>
       </div>
 

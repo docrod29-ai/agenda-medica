@@ -1,4 +1,5 @@
 'use client'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useEffect } from 'react'
 import { WaitlistEntry, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { hoyISO, ahoraMinutosDelDia } from '@/lib/timezone'
@@ -22,13 +23,22 @@ export default function ListaEsperaPage() {
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  /**
+   * >0 = la lectura se quedó en el tope y HAY entradas activas fuera.
+   *
+   * Se pinta porque una lista de espera recortada que se presenta como completa
+   * es un paciente esperando que nadie ve — el mismo defecto que REG-351 cerró
+   * en nueve pantallas.
+   */
+  const [truncada, setTruncada] = useState(0)
   const [notificando, setNotificando] = useState<{ entry: WaitlistEntry; fecha: string; hora: string } | null>(null)
 
   const load = async () => {
     if (!clinicId) return
     try {
       const data = await getWaitlist(clinicId)
-      setEntries(data)
+      setEntries(data.entradas)
+      setTruncada(data.truncada ? data.tope : 0)
     } catch (e) {
       // Un fallo de lectura NO puede verse igual que una lista vacía: para un
       // médico con cientos de registros, eso se lee como pérdida total de datos.
@@ -105,6 +115,20 @@ export default function ListaEsperaPage() {
         actions={<Button icon={<Plus size={16} />} onClick={() => setModalOpen(true)}>Agregar</Button>}
       />
 
+      {!loading && truncada > 0 && (
+        <div role="status" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: 12, marginBottom: 14,
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+          border: '1px solid var(--amber)', borderRadius: 10, color: 'var(--text2)', fontSize: 14,
+        }}>
+          <span>
+            Se están mostrando <strong>{truncada}</strong> personas y <strong>hay más</strong> esperando.
+            Esta lista <strong>no está completa</strong>: las que faltan son las que se apuntaron
+            más recientemente.
+          </span>
+        </div>
+      )}
+
       <div className="card" style={{ padding: 0 }}>
         {loading ? (
           <Spinner center label="Cargando lista de espera…" />
@@ -134,8 +158,8 @@ export default function ListaEsperaPage() {
                 {/* Priority badge */}
                 <div style={{
                   width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                  background: entry.prioridad <= 1 ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'rgba(59,130,246,0.15)',
-                  color: entry.prioridad <= 1 ? '#f87171' : '#60a5fa',
+                  background: entry.prioridad <= 1 ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'color-mix(in srgb, var(--blue) 15%, transparent)',
+                  color: entry.prioridad <= 1 ? 'var(--red)' : 'var(--blue)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700,
                 }}>
@@ -159,8 +183,8 @@ export default function ListaEsperaPage() {
                 {/* Estado */}
                 <span style={{
                   fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-pill)', fontWeight: 500,
-                  background: entry.estado === 'activo' ? 'rgba(59,130,246,0.15)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
-                  color: entry.estado === 'activo' ? '#60a5fa' : entry.estado === 'contactado' ? '#fbbf24' : '#4ade80',
+                  background: entry.estado === 'activo' ? 'color-mix(in srgb, var(--blue) 15%, transparent)' : entry.estado === 'contactado' ? 'color-mix(in srgb, var(--amber) 15%, transparent)' : 'color-mix(in srgb, var(--green) 15%, transparent)',
+                  color: entry.estado === 'activo' ? 'var(--blue)' : entry.estado === 'contactado' ? 'var(--amber)' : 'var(--green)',
                 }}>
                   {entry.estado}
                 </span>
@@ -200,7 +224,7 @@ export default function ListaEsperaPage() {
           que pongas aquí, y va a confirmar sobre eso. Verifica que el hueco de verdad esté libre.
         </p>
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input type="date" label="Fecha" value={notificando?.fecha ?? ''}
+          <Input type="date" label="Fecha" max={FECHA_MAXIMA_AGENDA} value={notificando?.fecha ?? ''}
             onChange={e => setNotificando(n => n && { ...n, fecha: e.target.value })} />
           <Input type="time" label="Hora" value={notificando?.hora ?? ''}
             onChange={e => setNotificando(n => n && { ...n, hora: e.target.value })} />
@@ -273,7 +297,7 @@ function AddWaitlistModal({ onClose, onSaved, userEmail }: { onClose: () => void
           ))}
         </Select>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Input label="Fecha disponible a partir de" type="date" value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
+          <Input label="Fecha disponible a partir de" type="date" max={FECHA_MAXIMA_AGENDA} value={fechaDeseada} onChange={e => setFechaDeseada(e.target.value)} />
           <Input label="Rango horario preferido" value={rangoHorario} onChange={e => setRangoHorario(e.target.value)} placeholder="Ej. Mañana, 9-12" />
         </div>
         <Input label="Prioridad (1 = mayor prioridad)" type="number" min={1} max={10} value={prioridad} onChange={e => setPrioridad(Number(e.target.value))} />

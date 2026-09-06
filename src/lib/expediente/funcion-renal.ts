@@ -126,6 +126,21 @@ export function ckdEpi2021(
  * Es la misma regla que `ckdEpi2021` ya seguía por decisión del Dr. (L6): el
  * motor no redondea porque el redondeo cambia clasificaciones y comparaciones;
  * redondea quien PINTA. Cockcroft se había quedado fuera de esa decisión.
+ *
+ * ── Y NO SE AÑADE UN AVISO DE «ESTÁS EN LA FRONTERA» (D-028, 4-sep-2026) ────
+ *
+ * Preguntado el dueño si un CrCl a menos de 1 mL/min de un umbral merece aviso
+ * propio, decidió que **no**. Dos razones, y la segunda es la que importa:
+ *
+ *  · El umbral es «por debajo de», no «cerca de». Un aviso de cercanía en los
+ *    18 umbrales a la vez es fatiga de alerta, y una alerta que se aprende a
+ *    ignorar deja de proteger también cuando acierta.
+ *  · **Aquí no falta nada.** REG-214 ya devolvió las alertas del borde que el
+ *    redondeo se comía. Un aviso de frontera sería una capa NUEVA sobre un
+ *    umbral que funciona, no la reparación de un hueco.
+ *
+ * Si algún día se quiere, es trabajo de producto sobre algo sano — no una
+ * corrección pendiente.
  */
 export function cockcroftGault(
   creatinina: CreatininaSerica, edad: number, sexo: Sexo, peso: ClinicalQuantity<'masa'>,

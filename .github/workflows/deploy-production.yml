@@ -6,7 +6,8 @@
 #   1) verifica que el árbol clínico autorizado y la versión son los esperados,
 #   2) verifica que Vercel apunta al proyecto principal agenda-medica,
 #   3) verifica que el sitio vivo ya sirve VERSION_ESPERADA,
-#   4) publica firestore.rules (REG-323) usando una credencial Firebase ya existente,
+#   4) publica firestore.rules Y firestore.indexes usando una credencial Firebase
+#      ya existente,
 #   5) corre seguridad y smoke contra producción.
 #
 # No hay inputs para evitar errores de pegado. El SHA y la URL están fijados aquí.
@@ -25,8 +26,21 @@ permissions:
   statuses: read
 
 env:
-  SHA_AUTORIZADO: 815011509c39ff161c793880881bec5f9cde2282
-  VERSION_ESPERADA: nexusmed-v1173
+  # LA ÚNICA COSA QUE SE ESCRIBE A MANO AQUÍ. La versión ya NO se escribe: se
+  # DERIVA de este árbol (ver «La versión sale del árbol autorizado»).
+  #
+  # Por qué. La versión estaba escrita dos veces —aquí en el pin, y otra vez en
+  # VERSION_ESPERADA— y las dos copias se separaron: al fusionarse #420 la
+  # versión subió a v1178 y el pin se quedó en el árbol de v1177. La Compuerta 1
+  # exige que coincidan, así que el botón quedó SIN PODER DESPLEGAR, y sólo se
+  # descubría pulsándolo. Es el mismo defecto que #413 cerró para el SHA, en la
+  # otra mitad del par. Ver REG-504.
+  SHA_AUTORIZADO: e9cf6d38c274d19d31441d92a6147645abae279c
+  # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
+  # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
+  # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
+  # que envejeció sin que nadie se enterara. Ver Compuerta 0.
+  ROLLBACK_AUTORIZADO: ''
   FIREBASE_PROJECT: nexomed-agenda
   URL_PROD: https://agenda-medica-one.vercel.app
 
@@ -41,8 +55,91 @@ jobs:
       - name: Traer el árbol autorizado
         uses: actions/checkout@v4
         with:
-          ref: 815011509c39ff161c793880881bec5f9cde2282
+          # UNA SOLA FUENTE. El SHA se escribía aquí Y en SHA_AUTORIZADO, y las dos
+          # copias divergieron: la compuerta comparaba un checkout viejo contra una
+          # variable nueva y se detenía sin decir por qué eran distintos. Ahora sale
+          # de la variable, y actualizar el despliegue es cambiar UN número.
+          ref: ${{ env.SHA_AUTORIZADO }}
           fetch-depth: 0
+
+      # ─────────────────────────────────────────────────────────────────────
+      # COMPUERTA 0 · lo que se publique tiene que ser lo de HOY.
+      #
+      # Las compuertas 1-3 no pueden cazar un pin envejecido: la 1 compara el sha
+      # consigo mismo, y la 3 comprueba que producción sirva VERSION_ESPERADA —
+      # que NO cambia cuando cambia el árbol. Mientras `version.txt` no se mueva,
+      # la misma cadena describe árboles distintos, así que la 3 pasa igual con el
+      # pin al día que con uno 87 commits atrás. Pasó el 31-ago.
+      #
+      # LA COMPUERTA SE LEE DE `main`, NO DEL CHECKOUT. Si viajara con el árbol
+      # que vigila, un árbol viejo traería su propia compuerta vieja.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'Compuerta 0 · el árbol autorizado publica lo mismo que la cabeza de main'
+        run: |
+          set -euo pipefail
+          CABEZA="$(git ls-remote origin refs/heads/main | cut -f1)"
+
+          # Traer main para poder contar la distancia y saber si el pin está en su
+          # historia. Si esto falla no se adivina: se sigue con los datos que haya
+          # y la decisión se toma abajo.
+          git fetch --quiet origin main || true
+
+          ES_ANCESTRO=si
+          COMMITS_DETRAS=""
+          if [ -n "$CABEZA" ]; then
+            git merge-base --is-ancestor "$SHA_AUTORIZADO" FETCH_HEAD 2>/dev/null || ES_ANCESTRO=no
+            COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
+          fi
+
+          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos cuatro coinciden entre
+          # el pin y la cabeza, publicar desde el pin equivale a publicar desde la
+          # cabeza — y un pin atrasado deja de ser un problema. Si difieren, se
+          # para y se dice CUÁLES.
+          #
+          # Si no se pudo comparar (falta FETCH_HEAD), la variable se queda SIN
+          # DEFINIR a propósito y la decisión lo trata como «no se sabe», que para.
+          PUBLICABLES="firestore.rules firestore.indexes.json public/version.txt public/sw.js"
+          if git rev-parse --verify -q FETCH_HEAD >/dev/null; then
+            DIFIEREN=""
+            for F in $PUBLICABLES; do
+              if ! git diff --quiet "$SHA_AUTORIZADO" FETCH_HEAD -- "$F" 2>/dev/null; then
+                DIFIEREN="${DIFIEREN:+$DIFIEREN,}$F"
+              fi
+            done
+            export PUBLICABLES_DIFIEREN="$DIFIEREN"
+          fi
+
+          git show FETCH_HEAD:scripts/ops/arbol-autorizado.mjs > "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+          SHA_AUTORIZADO="$SHA_AUTORIZADO" \
+          CABEZA_DE_MAIN="$CABEZA" \
+          ROLLBACK_AUTORIZADO="${ROLLBACK_AUTORIZADO:-}" \
+          ES_ANCESTRO="$ES_ANCESTRO" \
+          COMMITS_DETRAS="$COMMITS_DETRAS" \
+          node "$RUNNER_TEMP/arbol-autorizado.mjs"
+
+      # ─────────────────────────────────────────────────────────────────────
+      # LA VERSIÓN SALE DEL ÁRBOL AUTORIZADO, NO DE UNA SEGUNDA COPIA A MANO.
+      #
+      # Se escribía en `env:` y tenía que coincidir con el `version.txt` del pin.
+      # Dos sitios para el mismo dato es un sitio de más: se separaron y el botón
+      # quedó sin poder desplegar. Ahora hay UNA fuente — el árbol que se
+      # autoriza— y repuntar el despliegue vuelve a ser cambiar UN número.
+      #
+      # Esto NO afloja nada: la comprobación que importa es la Compuerta 3, que
+      # exige que PRODUCCIÓN sirva esta versión, y sigue siendo una comparación
+      # entre el repositorio y el sitio vivo.
+      # ─────────────────────────────────────────────────────────────────────
+      - name: 'La versión sale del árbol autorizado'
+        run: |
+          set -euo pipefail
+          V="$(tr -d '[:space:]' < public/version.txt)"
+          case "$V" in
+            nexusmed-v[0-9]*) ;;
+            *) echo "::error::version.txt no tiene forma de versión: '$V'"; exit 1 ;;
+          esac
+          echo "VERSION_ESPERADA=$V" >> "$GITHUB_ENV"
+          echo "Versión derivada del árbol autorizado: $V"
 
       - name: 'Compuerta 1 · SHA, versión y REG-323'
         run: |
@@ -51,10 +148,9 @@ jobs:
             echo "::error::El checkout no coincide con el SHA autorizado."
             exit 1
           }
-          [ "$(tr -d '[:space:]' < public/version.txt)" = "$VERSION_ESPERADA" ] || {
-            echo "::error::version.txt no es $VERSION_ESPERADA."
-            exit 1
-          }
+          # `version.txt` lo GENERA `scripts/version-sw.mjs` a partir de `sw.js`.
+          # Que coincidan no es tautología: son dos archivos, y si divergen el
+          # navegador purga en bucle o no purga nunca.
           grep -q "const CACHE = '$VERSION_ESPERADA'" public/sw.js || {
             echo "::error::sw.js no declara $VERSION_ESPERADA."
             exit 1
@@ -143,55 +239,182 @@ jobs:
           fi
           echo "Credencial Firebase encontrada sin mostrar su valor."
 
-      - name: 'Firestore · desplegar REG-323'
-        id: rules
+      # ── REGLAS E ÍNDICES SON DOS ACTOS, Y SE CUENTAN APARTE (REG-433) ────────
+      #
+      # Iban en UN paso con `--only firestore:rules,firestore:indexes` y una sola
+      # variable, `R_RULES`. La ejecución #14 falló al crear los índices por un
+      # 403 de permisos, y el acta imprimió `FIRESTORE_RULES=failure` — cuando el
+      # log de esa misma ejecución dice, tres líneas antes:
+      #
+      #     ✔ rules file firestore.rules compiled successfully
+      #     i latest version of firestore.rules already up to date, skipping upload
+      #
+      # Las reglas estaban perfectas. El acta acusó al único acto que había
+      # salido bien, y con eso mandó a buscar el fallo al sitio equivocado.
+      #
+      # Y arrastró una segunda consecuencia peor: el sello de las reglas cuelga
+      # de `steps.rules.outcome == 'success'`, así que tampoco se emitió. Las
+      # reglas quedaron publicadas y el repositorio sin manera de saberlo — que
+      # es, palabra por palabra, REG-416.
+      #
+      # La credencial se escribe UNA vez y los dos despliegues la reutilizan.
+      - name: 'Firebase · escribir la credencial'
+        id: cred
         env:
           MODO: ${{ steps.firebase_auth.outputs.modo }}
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA }}
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          set -euo pipefail
+          if [ "$MODO" = "token" ]; then
+            echo "Modo token: no hay archivo de credencial que escribir."
+            exit 0
+          fi
+          case "$MODO" in
+            sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
+            sa-nexomed) JSON="$FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" ;;
+            google) JSON="$GOOGLE_CREDENTIALS" ;;
+            gcp) JSON="$GCP_SA_KEY" ;;
+            *) echo "::error::Modo Firebase desconocido."; exit 1 ;;
+          esac
+          RUTA="$RUNNER_TEMP/firebase-sa.json"
+          printf '%s' "$JSON" > "$RUTA"
+          chmod 600 "$RUTA"
+          echo "Credencial escrita sin mostrar su valor."
+
+      - name: 'Firestore · desplegar REGLAS'
+        id: rules
+        # `!cancelled() &&` no es adorno: un `if:` SIN función de estado lo
+        # envuelve Actions en `success()`, y entonces este paso volvería a
+        # depender de que todo lo anterior fuera bien — que es la mitad del
+        # defecto que esta unidad arregla.
+        if: ${{ !cancelled() && steps.cred.outcome == 'success' }}
+        env:
+          MODO: ${{ steps.firebase_auth.outputs.modo }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
           if [ "$MODO" = "token" ]; then
             npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
           else
-            case "$MODO" in
-              sa) JSON="$FIREBASE_SERVICE_ACCOUNT" ;;
-              sa-nexomed) JSON="$FIREBASE_SERVICE_ACCOUNT_NEXOMED_AGENDA" ;;
-              google) JSON="$GOOGLE_CREDENTIALS" ;;
-              gcp) JSON="$GCP_SA_KEY" ;;
-              *) echo "::error::Modo Firebase desconocido."; exit 1 ;;
-            esac
-            RUTA="$RUNNER_TEMP/firebase-sa.json"
-            printf '%s' "$JSON" > "$RUTA"
-            chmod 600 "$RUTA"
-            export GOOGLE_APPLICATION_CREDENTIALS="$RUTA"
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
             npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive
           fi
+
+      # Se intenta AUNQUE las reglas hayan fallado: son dos permisos distintos y
+      # dos resultados distintos, y saber los dos de una vez ahorra una vuelta.
+      - name: 'Firestore · desplegar ÍNDICES'
+        id: indices
+        if: ${{ !cancelled() && steps.cred.outcome == 'success' }}
+        env:
+          MODO: ${{ steps.firebase_auth.outputs.modo }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Crear un índice compuesto exige `datastore.indexes.create`, que NO
+          # viene con el permiso de publicar reglas. Si aquí sale un 403, lo que
+          # falta es un rol en IAM, no nada de este repositorio: se dice, para
+          # que el acta no mande a buscarlo en el código.
+          if [ "$MODO" = "token" ]; then
+            npx --no-install firebase deploy --only firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN" 2>&1 | tee "$RUNNER_TEMP/indices.log"
+          else
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+            npx --no-install firebase deploy --only firestore:indexes --project "$FIREBASE_PROJECT" --non-interactive 2>&1 | tee "$RUNNER_TEMP/indices.log"
+          fi
+
+      - name: 'Índices · si fue permiso, decir cuál falta'
+        if: always() && steps.indices.outcome == 'failure'
+        run: |
+          set -uo pipefail
+          if grep -q 'HTTP Error: 403' "$RUNNER_TEMP/indices.log" 2>/dev/null; then
+            {
+              echo "## Los índices no se publicaron: falta un permiso"
+              echo
+              echo "Firestore contestó **403 · The caller does not have permission**."
+              echo "Publicar reglas y crear índices son dos permisos distintos, y la"
+              echo "credencial de este despliegue tiene el primero y no el segundo."
+              echo
+              echo "Se arregla en la consola de Google Cloud, **no en este repositorio**:"
+              echo
+              echo "1. IAM del proyecto \`$FIREBASE_PROJECT\`"
+              echo "2. la cuenta de servicio que usa este botón"
+              echo "3. rol **Cloud Datastore Index Admin** (\`roles/datastore.indexAdmin\`)"
+              echo
+              echo "Las reglas NO son el problema: mira \`FIRESTORE_RULES\` en el acta."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # El último sitio donde esto dependía de que alguien se acordara era
+      # CALCULAR el hash a mano después de publicar. Lo calcula el despliegue,
+      # sobre el árbol que acaba de publicar, y lo deja escrito en el acta.
+      - name: 'Firestore · emitir el sello de las reglas'
+        id: sello
+        # El sello cuelga de las REGLAS y de nada más. Con el `success()`
+        # implícito, un 403 en los índices —que corren antes— dejaba las reglas
+        # publicadas y sin sellar: exactamente REG-416.
+        if: ${{ !cancelled() && steps.rules.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          HASH="$(sha256sum firestore.rules | cut -d' ' -f1)"
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Sello de firestore.rules"
+            echo
+            echo "Las reglas del árbol \`$SHA_AUTORIZADO\` quedan publicadas."
+            echo "Para que el repositorio lo sepa, pega esto en \`firestore.rules.estado.json\`:"
+            echo
+            echo '```json'
+            echo "  \"hashDesplegado\": \"$HASH\","
+            echo "  \"confirmadoEl\": \"$(date -u +%Y-%m-%d)\","
+            echo "  \"shaDelArbol\": \"$SHA_AUTORIZADO\","
+            echo '```'
+            echo
+            echo "Esto NO dice nada de los índices: \`--only firestore:indexes\` contesta"
+            echo "al enviar, no al terminar. Eso se mira en la consola del proyecto."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "FIRESTORE_RULES_SHA256=$HASH"
 
       - name: Limpiar credencial temporal
         if: always()
         run: rm -f "$RUNNER_TEMP/firebase-sa.json" "$RUNNER_TEMP/status.json"
 
+      # ── LAS COMPROBACIONES DEL SITIO VIVO SE CORREN IGUAL (REG-433) ──────────
+      #
+      # No llevaban `if:`, o sea `success()` por defecto. En la ejecución #14 un
+      # 403 al crear índices dejó las TRES en `skipped` — y esas tres son las
+      # únicas que miran si producción, que acababa de recibir una versión nueva,
+      # está sana. Nadie comprobó nada.
+      #
+      # Miden el sitio publicado y no dependen de Firestore, así que se corren
+      # aunque el paso anterior haya fallado. Esto NO ablanda la compuerta: el
+      # acta sigue exigiendo `success` en las cinco para dar SUCCESS. Lo único
+      # que cambia es que ahora se SABE, en vez de quedarse sin medir.
+      #
+      # `!cancelled()` y no `always()`: si alguien cancela la ejecución a mano,
+      # no tiene sentido seguir midiendo.
       - name: Instalar Chromium
+        if: ${{ !cancelled() }}
         run: npx playwright install --with-deps chromium
 
       - name: 'Seguridad · producción'
         id: security
+        if: ${{ !cancelled() }}
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
         run: npm run e2e:seguridad:prod
 
       - name: 'Smoke · público'
         id: smoke
+        if: ${{ !cancelled() }}
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.URL_PROD }}
         run: npx playwright test --project=chromium e2e/smoke-publico.spec.ts
 
       - name: 'Smoke · portal fail-closed'
         id: portal
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           CODIGO="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' -d '{}' "$URL_PROD/api/portal")"
@@ -206,12 +429,14 @@ jobs:
         env:
           R_VERSION: ${{ steps.version.outcome }}
           R_RULES: ${{ steps.rules.outcome }}
+          R_INDICES: ${{ steps.indices.outcome }}
+          SELLO_REGLAS: ${{ steps.sello.outputs.hash }}
           R_SECURITY: ${{ steps.security.outcome }}
           R_SMOKE: ${{ steps.smoke.outcome }}
           R_PORTAL: ${{ steps.portal.outcome }}
         run: |
           set -euo pipefail
-          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
+          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_INDICES" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
             RESULTADO=SUCCESS
           else
             RESULTADO=FAILED
@@ -225,6 +450,8 @@ jobs:
             echo "VERSION=$VERSION_ESPERADA"
             echo "VERCEL_PROJECT=agenda-medica"
             echo "FIRESTORE_RULES=$R_RULES"
+            echo "FIRESTORE_INDICES=$R_INDICES"
+            echo "FIRESTORE_RULES_SHA256=${SELLO_REGLAS:-no-emitido}"
             echo "SECURITY_E2E=$R_SECURITY"
             echo "SMOKE=$R_SMOKE"
             echo "SMOKE_PORTAL=$R_PORTAL"

@@ -87,15 +87,24 @@ const CONSULTA = readFileSync('src/app/(dashboard)/consulta/[patientId]/page.tsx
 
 describe('el dato que no llegaba', () => {
   it('la pantalla manda el embarazo y la función renal con su vigencia', () => {
-    /* El arreglo entero. Sin estas dos líneas el motor sigue contestando
-       `datos_insuficientes` para siempre, con el dato a un campo de distancia. */
-    expect(CONSULTA).toContain('embarazo: embarazoParaAplicabilidad(loQueElExpedienteDiceDelEmbarazo(dxDelCuadro))')
-    expect(CONSULTA).toContain('tfg: { valor: tfgParaEvidencia, vigente: vigenciaRenal.vigente }')
+    /**
+     * PREMISA CAMBIADA EN REG-560. Antes la PANTALLA resolvía el embarazo y
+     * mandaba el booleano; ahora manda los diagnósticos ESTRUCTURADOS y lo
+     * resuelve el servidor, junto a la TFG. Es mejor por la misma razón que la
+     * TFG no se calcula en el componente: una sola fuente de verdad, y el
+     * navegador no decide una dimensión clínica.
+     */
+    expect(CONSULTA).toContain('diagnosticos: dxDelCuadro.map(d => ({ descripcion: d.descripcion, tipo: d.tipo }))')
+    expect(CONSULTA).toContain('creatinina: labsDeLaConsulta.labs.creatinina')
+    expect(CONSULTA).toContain('funcionRenalVigente: vigenciaRenal.vigente')
   })
 
   it('y la ruta los acepta en vez de tirarlos', () => {
-    expect(RUTA).toContain("typeof ctx.embarazo === 'boolean' ? { embarazo: ctx.embarazo }")
-    expect(RUTA).toContain('vigente: !!ctx.tfg.vigente')
+    // REG-560: la ruta ya no arma el estado a mano — lo arma `estadoParaAplicabilidad`.
+    expect(RUTA).toContain('estadoParaAplicabilidad(ctx)')
+    // REG-560: la vigencia viaja como `funcionRenalVigente` y la TFG la calcula
+    // el servidor con la calculadora canónica. `sePuedeEstimarLaTfg` es la guarda.
+    expect(RUTA).toContain('estadoParaAplicabilidad')
   })
 
   it('una TFG fuera de ventana NO decide un criterio renal', () => {

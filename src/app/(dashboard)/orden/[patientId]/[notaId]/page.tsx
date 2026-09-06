@@ -478,7 +478,7 @@ export default function GeneradorOrdenPage() {
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
   const descargarWord = () => {
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'orden',
         folio,
@@ -515,6 +515,7 @@ export default function GeneradorOrdenPage() {
         filename: `Orden_${nombre}_${fechaCorta}`,
         anchoMm: host.widthMm,
         altoMm: host.heightMm,
+        onAvisoPapeleria: (m) => toast(m, 'error'),
       })
     } catch (e) {
       console.error('PDF error:', e)
@@ -790,7 +791,6 @@ export default function GeneradorOrdenPage() {
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
                   numPages={numPages}
-                  maxWidth={380}
                   maxHeight={600}
                 >
                   <RecetaDocumento
@@ -819,7 +819,20 @@ export default function GeneradorOrdenPage() {
         }
         @media (max-width: 1000px) {
           .orden-gen-grid {
-            grid-template-columns: 1fr !important;
+            /* minmax(0, 1fr) Y NO 1fr a secas — el MISMO defecto que /receta, en
+               la hermana documental, copiado con el diseño. Un track 1fr lleva
+               min-width:auto implícito y no baja del ancho mínimo de su
+               contenido: a 390 px el track se quedaba en 380 dentro de un
+               contenedor de 358 y RECORTABA 6 px por la derecha a 56 bloques de
+               la columna del editor — más del doble que en la receta, porque
+               aquí la columna es más larga. Sin barra que arrastrar: el
+               documento no desborda, lo que sobra se corta.
+               La regla de ESCRITORIO ya se protege con minmax(0, 1fr) 420px;
+               este override la perdió al reescribir la rejilla en una sola
+               columna. Ver REG-441.
+               (Sin acentos graves: esto vive dentro de una plantilla de cadena
+               y cerrarian el literal.) */
+            grid-template-columns: minmax(0, 1fr) !important;
           }
         }
         @media (max-width: 480px) {
@@ -840,8 +853,13 @@ export default function GeneradorOrdenPage() {
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 4,
 }
+/**
+ * `minHeight: 44` — igual que en `/receta` (REG-441): estos campos salían a 42
+ * a 390 px, dos por debajo del mínimo táctil. Sube el alto, no el `fontSize`:
+ * la escala tipográfica está medida y la vigila el trinquete de diseño.
+ */
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', borderRadius: 6,
+  width: '100%', minHeight: 44, padding: '8px 10px', borderRadius: 6,
   border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
   fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box',
 }

@@ -226,10 +226,19 @@ describe('LO QUE FALTA POR UN ÍNDICE DEJA DE VIVIR EN COMENTARIOS SUELTOS', () 
     expect(doc).toContain('FAILED_PRECONDITION')
   })
 
-  it('y el hook de citas explica por qué NO acota, en vez de parecer un olvido', () => {
+  it('y el hook de citas YA acota, con el orden que el índice sirve (REG-421)', () => {
+    /**
+     * Este caso decía lo contrario hasta REG-421: comprobaba que el hook
+     * EXPLICARA por qué no acotaba. Ahora el índice está desplegado y lo que hay
+     * que vigilar es que la consulta pida las dos cosas —orden y cota— y en el
+     * sentido correcto: `desc`, porque el llamador busca la cita de HOY y `asc`
+     * traería las más viejas y la perdería siempre.
+     */
     const src = readFileSync('src/hooks/useAppointments.ts', 'utf8')
-    expect(src).toContain('firestore.indexes.json')
-    // Acotar sin orden sería PEOR: perdería la cita de hoy.
-    expect(src).toContain('la cita de HOY')
+    const codigo = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '')
+    expect(codigo).toContain("orderBy('fechaHora', 'desc')")
+    expect(codigo).toContain('limit(TOPE_CITAS_PACIENTE)')
+    // Y el recorte se declara: un tope que nadie ve se lee como «ésas eran todas».
+    expect(codigo).toContain('truncada')
   })
 })

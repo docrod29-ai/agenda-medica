@@ -40,9 +40,9 @@ import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
 import {
   estadoDeProblemas, nombreConCerteza, resumenProblemas, avisoDeHistorialRecortado,
 } from '@/lib/expediente/problemas-activos'
-import { banderasDeclaradas, LO_QUE_NO_SE_VIGILA, resumenDeBanderas } from '@/lib/expediente/banderas-declaradas'
-import { alergiasDe } from '@/lib/seguridad/alergias'
+import { estadoDeBanderas, avisoDeBanderasIncompletas } from '@/lib/expediente/banderas-de-riesgo'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
+import { fechaLegible } from '@/lib/fecha-local'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
 } from '@/lib/expediente/alergias-longitudinales'
@@ -179,8 +179,6 @@ export default function ExpedientePage() {
     problemas" en el riel y "4" en el resumen según el momento del render.
     Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
   */
-  /* REG-534 — `proyeccionRecortada` se calculaba, se devolvía, y la
-     desestructuración la tiraba. El defecto entero cabía en esta línea. */
   const { problemas, vigentes, proyeccionRecortada } = useMemo(() => {
     const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
       fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
@@ -227,17 +225,20 @@ export default function ExpedientePage() {
   const avisoAlergias = avisoDeAlergiasQueNoSeVen(estadoAlergias)
 
   /**
-   * LO QUE ALGUIEN YA DECLARÓ COMO RIESGO, JUNTO Y CON SU FECHA (WS-10).
+   * EL EJE DE RIESGOS (WS-10) — reúne, no decide.
    *
-   * Se arma con las DOS proyecciones que esta pantalla ya calculó —no hay un
-   * tercer recorrido del expediente— y con la misma lista de alergias de hoy que
-   * recibió `estadoDeAlergias`, para que una anafilaxia apuntada en esta consulta
-   * cuente antes de que se firme la nota.
+   * Sale de las dos proyecciones que esta pantalla YA tiene y de las etiquetas
+   * del paciente: cero lecturas nuevas. Qué condición cuenta como bandera es
+   * política clínica del dueño y NO se decide aquí; lo que se enseña es lo que
+   * el médico o el consultorio ya declararon, con quién lo dijo y cuándo.
    */
-  const banderas = useMemo(
-    () => banderasDeclaradas(estadoAlergias, problemas, alergiasDe(patient ?? {})),
-    [estadoAlergias, problemas, patient],
+  const banderas = estadoDeBanderas(
+    estadoAlergias,
+    { problemas, historialRecortado: proyeccionRecortada },
+    patient?.tags,
+    asOfNotas,
   )
+  const avisoBanderas = avisoDeBanderasIncompletas(banderas)
 
   /*
     CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — sólo enseña las
@@ -273,7 +274,7 @@ export default function ExpedientePage() {
   return (
     <div className="nx-canvas">
       {/* Back */}
-      <button onClick={volver} style={backBtn}>
+      <button onClick={volver} className="nx-acc-texto nx-acc-texto--tenue" style={backBtn}>
         <ArrowLeft size={15} /> Atrás
       </button>
 
@@ -322,7 +323,7 @@ export default function ExpedientePage() {
            porqué medido en `PatientAnchor` — 720px sin usar a la izquierda de
            un botón que tenía su propia fila. */
         accion={
-          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} style={primaryBtn}>
+          <button onClick={() => navegarConContinuidad(() => router.push(`/consulta/${patientId}`))} className="nx-acc-fuerte" style={primaryBtn}>
             <Mic size={16} /> Nueva consulta
           </button>
         }
@@ -410,37 +411,26 @@ export default function ExpedientePage() {
         alergia sellada que la compuerta de hoy no está mirando— tiene su recuadro
         rojo justo debajo, y dos rojos seguidos no dejan ver cuál urge.
       */}
-      <details style={{
-        marginBottom: 16, borderRadius: 10, padding: '10px 13px',
-        background: 'var(--s2)', border: '1px solid var(--border)',
-      }}>
-        <summary style={{ fontSize: 12, color: 'var(--text2)', cursor: 'pointer', lineHeight: 1.6 }}>
-          <strong style={{ color: 'var(--text)' }}>Declarado como riesgo:</strong>{' '}
-          {resumenDeBanderas(banderas)}
-        </summary>
-        {banderas.banderas.length > 0 && (
-          <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
-            {banderas.banderas.map(b => (
-              <li key={`${b.clase}:${b.que}`}>
-                <strong style={{ color: 'var(--text)' }}>{b.que}</strong>
+      {banderas.banderas.length > 0 && (
+        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
+          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
+            Riesgos declarados
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {banderas.banderas.map((b, i) => (
+              <li key={`${b.origen}-${b.texto}-${i}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
                 {b.detalle && <> · {b.detalle}</>}
-                {' · '}<span style={{ color: 'var(--text3)' }}>{b.deDonde}</span>
+                {b.desde && <> · desde el {b.desde.slice(0, 10)}</>}
+                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
               </li>
             ))}
           </ul>
-        )}
-        {banderas.historialIncompleto && (
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>
-            {avisoDeHistorialRecortado(true)}
-          </div>
-        )}
-        <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.6 }}>
-          Esto no vigila:
-          <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-            {LO_QUE_NO_SE_VIGILA.map(x => <li key={x}>{x}</li>)}
-          </ul>
-        </div>
-      </details>
+          {avisoBanderas && (
+            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
+          )}
+        </section>
+      )}
 
       {avisoAlergias && (
         <div style={{
@@ -474,6 +464,37 @@ export default function ExpedientePage() {
             )}
           </div>
         </div>
+      )}
+
+      {/*
+        LO QUE YA ESTÁ DECLARADO COMO RIESGO, JUNTO (WS-10).
+
+        No es una alarma y por eso no se pinta como tal: el aviso de alergias de
+        arriba SÍ señala algo que la compuerta de hoy no está mirando, y esto
+        sólo reúne lo que ya consta. Dos rojos seguidos harían que ninguno se
+        leyera.
+
+        Cada línea dice de dónde salió. Ninguna se reescribe.
+      */}
+      {banderas.banderas.length > 0 && (
+        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
+          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
+            Riesgos declarados
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {banderas.banderas.map((b, i) => (
+              <li key={`${b.origen}-${b.texto}-${i}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
+                {b.detalle && <> · {b.detalle}</>}
+                {b.desde && <> · desde el {b.desde.slice(0, 10)}</>}
+                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
+              </li>
+            ))}
+          </ul>
+          {avisoBanderas && (
+            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
+          )}
+        </section>
       )}
 
       {(problemas.length > 0 || vigentes.length > 0) && (
@@ -555,7 +576,7 @@ export default function ExpedientePage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {([['todas', 'Todas'], ['consulta', 'Consulta'], ['hospital', 'Hospital']] as const).map(([k, l]) => (
-          <button key={k} onClick={() => setFiltro(k)} style={chip(filtro === k)}>{l}</button>
+          <button key={k} onClick={() => setFiltro(k)} className="nx-chip nx-chip--relleno" aria-pressed={filtro === k} style={chip(filtro === k)}>{l}</button>
         ))}
       </div>
 
@@ -759,7 +780,7 @@ export default function ExpedientePage() {
           texto — sin diagnósticos ni recetas estructuradas.
         </p>
         <div className="actions-row">
-          <button onClick={() => router.push(`/referencia/${patientId}`)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => router.push(`/referencia/${patientId}`)} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             <Send size={15} /> Carta de referencia
           </button>
           {/*
@@ -794,7 +815,7 @@ export default function ExpedientePage() {
             } catch {
               toast('No se pudo conectar para armar el expediente', 'error')
             } finally { setDescargandoTodo(false) }
-          }} disabled={descargandoTodo} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
+          }} disabled={descargandoTodo} className="nx-acc-caja" style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 600, cursor: descargandoTodo ? 'default' : 'pointer' }}>
             <Upload size={15} /> {descargandoTodo ? 'Armando…' : 'Expediente completo'}
           </button>
           <button onClick={async () => {
@@ -859,7 +880,8 @@ export default function ExpedientePage() {
             acaba una frase.
           */
           aria-label="Enviar a otro sistema — archivo FHIR R4"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+          className="nx-acc-caja"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 10, padding: '9px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
             <Upload size={15} />
             {/*
               RTC-21 (§25) — EL BOTÓN DICE EL TRABAJO; LA SIGLA SE QUEDA DEBAJO.
@@ -970,9 +992,13 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
   */
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', marginBottom: 16, overflow: 'hidden' }}>
-      <button onClick={() => setAbierto(a => !a)} style={{
+      <button onClick={() => setAbierto(a => !a)}
+        aria-expanded={abierto}
+        className="nx-acc-plana"
+        data-abierto={abierto || undefined}
+        style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
-        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
+        border: 'none', cursor: 'pointer', color: 'var(--text)', textAlign: 'left',
       }}>
         {abierto ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         <span style={{ fontSize: 14, fontWeight: 700 }}>Datos del paciente</span>
@@ -1039,9 +1065,24 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
         flex: 1, marginBottom: 14, background: 'var(--s1)',
         border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden',
       }}>
-        <button onClick={onToggle} style={{
+        {/*
+          La cabecera de cada nota del expediente longitudinal ABRE la nota, y no
+          acusaba el puntero: `background: 'none'` en el `style={{ }}` se come
+          cualquier `:hover` de la hoja. Es la lista por la que el médico recorre
+          la historia del paciente — una fila que no responde se lee como una
+          ficha impresa, y no se pulsa.
+
+          No salía en las mediciones porque el consultorio de prueba no tenía
+          ninguna nota firmada que pintar: el control existía y no había datos
+          que lo hicieran aparecer. Un cero de esa lista no decía «está bien»,
+          decía «aquí no hay nada».
+
+          `aria-expanded` porque despliega la nota debajo; el chevrón lo dice
+          para quien lo ve y para nadie más.
+        */}
+        <button onClick={onToggle} className="nx-acc-plana" aria-expanded={abierta} style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12,
+          padding: '14px 16px', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 12,
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -1052,7 +1093,10 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
               {nota.resumenEjecutivo || nota.diagnosticos.map(d => d.descripcion).join(', ') || 'Sin resumen'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Clock size={11} /> {new Date(nota.fechaConsulta).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+              {/* `new Date('2026-09-01')` es medianoche UTC: en México pintaba
+                  «31 ago 2026, 6:00 p.m.» — un día antes, y con una hora que
+                  nadie registró. Ver `fechaLegible` en @/lib/fecha-local. */}
+              <Clock size={11} /> {fechaLegible(nota.fechaConsulta)}
             </div>
           </div>
           {abierta ? <ChevronUp size={16} color="var(--text3)" /> : <ChevronDown size={16} color="var(--text3)" />}
@@ -1097,9 +1141,9 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
               {!firmada && (
-                <button onClick={onEditar} style={ghostBtn}>Continuar edición</button>
+                <button onClick={onEditar} className="nx-acc-caja" style={ghostBtn}>Continuar edición</button>
               )}
-              <button onClick={onImprimir} style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
+              <button onClick={onImprimir} className="nx-acc-caja" style={ghostBtn}><Printer size={13} /> Imprimir / PDF</button>
               {/* Receta y Orden — solo cuando la nota está firmada (datos confiables) */}
               {firmada && (
                 <>
@@ -1143,8 +1187,8 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
   )
 }
 
-const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
+const backBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, border: 'none', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }
 const alergiaBanner: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--red) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', color: 'var(--red)', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }
-const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
-const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
-const chip = (active: boolean): React.CSSProperties => ({ background: active ? 'var(--nexus-solido)' : 'var(--s2)', color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })
+const primaryBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }
+const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, cursor: 'pointer' }
+const chip = (active: boolean): React.CSSProperties => ({ color: active ? '#fff' : 'var(--text2)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' })

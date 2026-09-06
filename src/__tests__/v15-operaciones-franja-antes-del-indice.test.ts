@@ -112,7 +112,15 @@ describe('§29 · el estado operativo llega a /operaciones y llega arriba', () =
     expect(FRANJA).toContain('Comprobando el estado del consultorio')
   })
 
-  it('7 · los destinos administrativos siguen TODOS accesibles', () => {
+  it('7 · los destinos administrativos siguen TODOS declarados', () => {
+    /**
+     * 4-sep-2026: «declarados», no «pintados». `/hospitalizacion` y `/uci`
+     * quedaron EN PAUSA en la navegación (decisión del dueño: la prioridad es
+     * la consulta y su agenda) y el índice los filtra con `enPausa`. Este
+     * freeze defiende lo que siempre defendió —que nadie pierda un destino por
+     * descuido, y pausar no es borrar—; que hoy no se pinten lo defiende
+     * `hospital-y-uci-en-pausa.test.ts`.
+     */
     for (const ruta of ['/asistente', '/citas', '/calendario', '/lista-espera',
       '/hospitalizacion', '/uci', '/crm', '/resenas', '/reactivacion', '/farmacia',
       '/finanzas', '/membresias', '/cumplimiento', '/legal', '/migracion']) {

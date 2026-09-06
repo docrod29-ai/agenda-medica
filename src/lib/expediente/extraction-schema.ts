@@ -213,6 +213,16 @@ export type SafetyBlock = z.infer<typeof SafetyBlock>
  * Aquella lista sí podía: era el mismo hecho contado dos veces.
  *
  * Función PURA.
+ *
+ * ── SIN LLAMADOR, Y ESO NO SIGNIFICA QUE EL DATO NO LLEGUE (4-sep-2026) ─────
+ *
+ * «Sustituye» quedó en intención: nadie la adoptó. Comprobado antes de darlo por
+ * defecto: `components/RevisionPanel.tsx` lee el `needs_review` campo por campo
+ * y separa lo que hay que revisar de lo que no. **El dato llega**, por una ruta
+ * más directa que ésta.
+ *
+ * Queda como huérfana honesta. Se dice aquí para que nadie la conecte creyendo
+ * que arregla un silencio que no existe.
  */
 export function camposQueRequierenRevision(
   extraction: unknown,

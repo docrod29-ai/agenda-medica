@@ -1,4 +1,6 @@
 'use client'
+import { conMayusculaInicial } from '@/lib/texto-es'
+import { FECHA_MAXIMA_AGENDA } from '@/lib/agenda/horizonte'
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useCerrarConEscape } from '@/lib/ui/activable'
 import { cambiarEstadoCita } from '@/lib/agenda/transicion-cita'
@@ -37,6 +39,7 @@ import { Button, EmptyState, Spinner } from '@/components/ui'
 import { AgendaVacia } from '@/components/brand/EmptyArt'
 import { describirAgendaVacia } from '@/lib/agenda/vacio-de-la-agenda'
 import { useMode } from '@/context/ModeContext'
+import { useAhoraMinutos, comoHHMM } from '@/hooks/useAhoraMinutos'
 
 const STATUS_FILTERS: { label: string; value: AppointmentStatus | 'todas' }[] = [
   { label: 'Todas', value: 'todas' },
@@ -259,6 +262,9 @@ export default function CitasPage() {
     return { total: day.length, conf, pend, porCobrar }
   }, [appointments, selectedDate, medicoFiltro])
 
+  /** ¿Se puede afirmar un número? Sólo con los datos ya en la mano. */
+  const hayConteo = !loading && !errorCitas
+
   // Si el filtro está en "por-cobrar" y ya no queda ninguno (se cobró el último), el
   // chip desaparece pero el filtro se quedaba atascado mostrando "sin citas". Se
   // regresa a "todas" para no dejar la lista vacía con citas que sí existen ese día.
@@ -283,7 +289,9 @@ export default function CitasPage() {
   // («De Agosto», Visual DNA §6 nº18).
   const fechaLarga = useMemo(() => {
     const f = format(new Date(selectedDate + 'T12:00'), "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
-    return f.charAt(0).toUpperCase() + f.slice(1)
+    // El helper compartido: esta línea era la ÚNICA pantalla arreglada, y su
+    // propio comentario ya fichaba el defecto «en calendario». Ver `@/lib/texto-es`.
+    return conMayusculaInicial(f)
   }, [selectedDate])
 
   // ¿Trabaja aquí más de un médico? Si no, el nombre del médico en cada
@@ -295,21 +303,15 @@ export default function CitasPage() {
   )
 
   /**
-   * EL MOMENTO ACTUAL — la hora del consultorio para el marcador de AHORA.
-   * Nace tras montar (null en el primer render) para no fabricar un mismatch
-   * de hidratación por hora servidor≠cliente (la familia de
-   * V10-HARNESS-OBS-001), y se refresca cada minuto.
+   * EL MOMENTO ACTUAL — ahora del hook compartido `useAhoraMinutos`.
+   *
+   * Este reloj estaba escrito aquí a mano y el calendario no tenía ninguno, así
+   * que la rejilla semanal no dibujaba la hora actual. Al dárselo al calendario
+   * había dos caminos: copiarlo, o sacarlo. Copiado, las dos vistas de la misma
+   * agenda acabarían refrescando a ritmos distintos.
    */
-  const [ahoraHHMM, setAhoraHHMM] = useState<string | null>(null)
-  useEffect(() => {
-    const tick = () => {
-      const min = ahoraMinutosDelDia()
-      setAhoraHHMM(`${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`)
-    }
-    tick()
-    const id = setInterval(tick, 60_000)
-    return () => clearInterval(id)
-  }, [])
+  const ahoraMin = useAhoraMinutos()
+  const ahoraHHMM = comoHHMM(ahoraMin)
   const esHoy = selectedDate === todayStr()
 
   // Dónde se inserta el marcador de AHORA: antes de la primera cita cuya hora
@@ -561,7 +563,7 @@ export default function CitasPage() {
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día anterior" onClick={() => setSelectedDate(prevDay(selectedDate))}>
               <ChevronLeft size={16} />
             </button>
-            <h1 className="nx-display" style={{ margin: 0 }}>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</h1>
+            <h1 className="nx-display" style={{ margin: 0 }}>{conMayusculaInicial(dateLabel)}</h1>
             <button className="btn btn-ghost btn-icon btn-sm" aria-label="Día siguiente" onClick={() => setSelectedDate(nextDay(selectedDate))}>
               <ChevronRight size={16} />
             </button>
@@ -578,11 +580,25 @@ export default function CitasPage() {
               <CalendarDays size={16} />
             </button>
             {/* El input nativo enseñaría «08/09/2026» (formato US). Vive oculto
-                pero enfocable; el botón de arriba lo abre. */}
+                pero enfocable POR PROGRAMA; el botón de arriba lo abre.
+
+                `tabIndex={-1}` — «enfocable» y «parada del tabulador» no son lo
+                mismo, y aquí sólo hacía falta lo primero. Medido con el teclado a
+                390 px: este control de **1×1** se llevaba **TRES paradas
+                seguidas**, porque un `input[type=date]` nativo tiene un tramo
+                tabulable por día, mes y año. Tres pulsaciones de Tab dentro de
+                una caja de un píxel, con el anillo de foco de 2px dibujado sobre
+                ella — o sea, el foco existía y no se podía ver (WCAG 2.4.7).
+
+                No se pierde nada: el camino de teclado es el botón visible de
+                44×44 que hay justo antes («Elegir una fecha en el calendario»),
+                que abre el mismo selector nativo y ése sí se maneja con el
+                teclado. Ver REG-439. */}
             <input
               ref={fechaInputRef}
               className="riel-fecha-input"
-              type="date" value={selectedDate}
+              tabIndex={-1}
+              type="date" value={selectedDate} max={FECHA_MAXIMA_AGENDA}
               aria-label="Ir a una fecha"
               onChange={e => setSelectedDate(paramFecha(e.target.value))}
             />
@@ -610,15 +626,43 @@ export default function CitasPage() {
       */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="riel-filtros" role="group" aria-label="Filtrar las citas del día">
-          <button className="riel-filtro" aria-pressed={statusFilter === 'todas'} onClick={() => setStatusFilter('todas')}>
-            <span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}
+          {/**
+            * UN CONTADOR NO PUEDE DECIR «0» MIENTRAS NO SABE.
+            *
+            * La LISTA de abajo sí estaba resuelta: mientras carga enseña
+            * «Cargando citas…», y si falla lo dice —hay hasta un comentario en
+            * este archivo explicando que un fallo de carga no puede verse como
+            * «hoy no hay nada»—. Pero este contador, que va ENCIMA, seguía
+            * pintando `daySummary.total`, que es 0 hasta que llegan los datos.
+            *
+            * Resultado, medido con 2 s de latencia: la pantalla decía
+            * «0 citas» y, dos centímetros más abajo, «Cargando citas…». El
+            * producto contradiciéndose a sí mismo en un solo golpe de vista — y
+            * en el peor sentido, porque el médico que mira de reojo se queda con
+            * el número, no con el spinner.
+            *
+            * Alguien arregló la lista y no el contador. Ausencia de dato no es
+            * dato de ausencia (`clinical-safety`, regla 4): mientras no se sabe,
+            * se dice que no se sabe.
+            */}
+          <button
+            className="riel-filtro"
+            aria-pressed={statusFilter === 'todas'}
+            onClick={() => setStatusFilter('todas')}
+            disabled={!hayConteo}
+          >
+            {hayConteo ? (
+              <><span className="riel-filtro-n">{daySummary.total}</span> {daySummary.total === 1 ? 'cita' : 'citas'}</>
+            ) : (
+              <><span className="riel-filtro-n" aria-hidden="true">—</span> citas<span className="nx-solo-lector">: aún cargando</span></>
+            )}
           </button>
-          {daySummary.pend > 0 && (
+          {hayConteo && daySummary.pend > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'pendientes'} onClick={() => setStatusFilter(statusFilter === 'pendientes' ? 'todas' : 'pendientes')}>
               <span className="riel-filtro-n">{daySummary.pend}</span> por confirmar
             </button>
           )}
-          {daySummary.porCobrar > 0 && (
+          {hayConteo && daySummary.porCobrar > 0 && (
             <button className="riel-filtro" aria-pressed={statusFilter === 'por-cobrar'} onClick={() => setStatusFilter(statusFilter === 'por-cobrar' ? 'todas' : 'por-cobrar')}>
               <span className="riel-filtro-n">{daySummary.porCobrar}</span> por cobrar
             </button>
@@ -1025,6 +1069,10 @@ function RielEntrada({
             propio médico (sólo aparece el médico cuando hay más de uno). */}
         <div className="riel-nombre">
           {appt.pacienteNombre}
+          {/* `colorMedico` sin el segundo argumento a propósito: el guardia ya
+              está en la condición de arriba —`multiMedico &&`— así que si esto
+              se pinta es porque hay más de un médico, y el color sí distingue a
+              alguien. Ver la nota de colorMedico en DoctorFilter.tsx. */}
           {multiMedico && appt.medicoId && appt.medicoNombre && (
             <span className="riel-medico" style={{ color: colorMedico(appt.medicoId) }}>
               {appt.medicoNombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ')[0]}
@@ -1047,6 +1095,10 @@ function RielEntrada({
               title={appt.exentoMotivo ? `Cortesía: ${appt.exentoMotivo}` : 'Cortesía (no se cobra)'}
             >
               cortesía
+              {/* El MOTIVO viajaba sólo en `title`. Aquí sí llega a todos. */}
+              <span className="nx-solo-lector">
+                {appt.exentoMotivo ? `: ${appt.exentoMotivo}` : ' — no se cobra'}
+              </span>
             </span>
           )}
           {/*
@@ -1064,12 +1116,21 @@ function RielEntrada({
             >
               <AlertTriangle size={10} className="ds-icon" />
               {reparando ? 'Reparando…' : 'Calendario descuadrado'}
+              {/* Qué pasó y qué hace este botón: estaba sólo en `title`, así que
+                  el nombre accesible era «Calendario descuadrado» a secas. */}
+              <span className="nx-solo-lector">. {avisoDesincronizada(appt.estado)}</span>
             </button>
           )}
           {/* Riesgo de no-show alto: señal operativa real — conserva su aviso */}
           {riesgo && (riesgo.nivel === 'alto' || riesgo.nivel === 'muy_alto') && (
             <span className="riel-aviso" title={`Riesgo: ${riesgo.score}/100. ${riesgo.recomendacion}`}>
               <AlertTriangle size={10} className="ds-icon" /> {NIVEL_LABEL[riesgo.nivel]}
+              {/* La insignia sólo decía el NIVEL. La cifra y —sobre todo— la
+                  recomendación vivían en `title`, y son justo lo que le dice a
+                  la asistente si toca llamar al paciente. */}
+              <span className="nx-solo-lector">
+                . Riesgo {riesgo.score} de 100. {riesgo.recomendacion}
+              </span>
             </span>
           )}
         </div>

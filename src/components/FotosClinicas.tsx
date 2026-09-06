@@ -216,7 +216,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
   )
 }
 
-const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, color: 'var(--text)', outline: 'none' }
+const input: React.CSSProperties = { background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12.5, color: 'var(--text)' }
 const rotulo: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: 0.3 }
 const cta: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'var(--nexus-solido)', color: '#fff', borderRadius: 10, padding: '10px 16px', fontSize: 13, fontWeight: 600 }
 const caja: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, lineHeight: 1.5 }

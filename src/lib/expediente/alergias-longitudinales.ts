@@ -76,7 +76,7 @@
  */
 import type { Alergia } from '@/types/expediente'
 import type { AlergiaEstructurada } from '@/types'
-import { alergiasDe, negacionesEnTexto } from '@/lib/seguridad/alergias'
+import { alergiasDe, esAlergiaNegada, negacionesEnTexto } from '@/lib/seguridad/alergias'
 
 /** Sube cuando cambia lo que esta proyección SIGNIFICA, no cuando se refactoriza. */
 export const VERSION_PROYECCION_ALERGIAS = 1
@@ -157,6 +157,43 @@ function claveAlergeno(nombre: string): string {
 }
 
 /**
+ * UNA NEGACIÓN SELLADA NO ES UN ALÉRGENO — Y AQUÍ SE FILTRA AL LEER.
+ *
+ * ── QUÉ PASÓ (30-ago-2026, en el consultorio) ───────────────────────────────
+ *
+ * El aviso rojo salió diciendo **«El expediente registra alergia a Negadas»**,
+ * con su severidad, su fecha de nota firmada y su botón. Al pulsar «Añadir a la
+ * lista», el campo del paciente pasó a decir `Negadas, Negadas, Negadas…`: cada
+ * pulsación añadía otra, porque `alergiasDe` —que sí sabe leer negaciones—
+ * seguía dejando la lista de hoy vacía, así que el alérgeno fantasma nunca
+ * llegaba a estar «en la lista» y el aviso volvía a ofrecerlo. Un bucle.
+ *
+ * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ *
+ * Esta proyección leía `nota.alergias` **crudo**. El sello de hoy lo escribe
+ * `alergiasDe(patient)`, que filtra negaciones — pero el sello es histórico e
+ * inmutable, y las notas anteriores a las correcciones de negación (la de
+ * «alergias negadas», 4-ago-2026, y las de `SEPARADORES`) llevan dentro
+ * `{ alergeno: 'Negadas' }`. Arreglar la escritura no arregla lo ya escrito:
+ * **una copia inmutable guarda también los defectos del día que se selló.**
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * Lo que se filtra al escribir se filtra **también al leer**. `esAlergiaNegada`
+ * es la única definición de qué es una negación en este repositorio (§ regla de
+ * un solo splitter): se reutiliza, no se replica un criterio nuevo aquí.
+ *
+ * Y esto NO resta nada: un fragmento negado nunca fue una alergia afirmada, así
+ * que descartarlo no toca la asimetría de arriba —afirmar suma, el silencio no
+ * resta—. Lo que se quita es ruido que se estaba pintando en rojo al lado de
+ * las alergias de verdad, que es exactamente lo que hace que un aviso rojo deje
+ * de leerse.
+ */
+function selloEsNegacion(alergeno: string): boolean {
+  return esAlergiaNegada(String(alergeno ?? '').trim())
+}
+
+/**
  * ¿Alguno de los fragmentos NEGADOS de hoy habla de este alérgeno?
  *
  * Se compara por PALABRAS COMPLETAS, nunca por subcadena: «sal» dentro de
@@ -202,6 +239,9 @@ export function estadoDeAlergias(
     for (const al of nota.alergias ?? []) {
       const k = claveAlergeno(al.alergeno)
       if (!k) continue
+      /* «Negadas», «NKDA», «Ninguna»: lo que una nota vieja selló como alérgeno
+         siendo la negación entera. Ver `selloEsNegacion`. */
+      if (selloEsNegacion(al.alergeno)) continue
       const previo = acumulado.get(k)
       if (previo) {
         previo.notasQueLaAfirman += 1
@@ -328,6 +368,40 @@ export function avisoDeAlergiasQueNoSeVen(estado: EstadoDeAlergias): string {
   if (!partes.length) return ''
   return `El expediente registra alergia a ${partes.join(' · ')}, y la lista de hoy no la tiene. ` +
     'La alerta al prescribir NO la está mirando.'
+}
+
+/**
+ * EL CAMPO DE HOY, CON ESTE ALÉRGENO DENTRO Y SIN REPETIRLO.
+ *
+ * ── POR QUÉ NO ES UNA CONCATENACIÓN EN EL `onClick` ─────────────────────────
+ *
+ * Lo era, y por eso se pudo escribir `Negadas, Negadas, Negadas` en el
+ * expediente de un paciente: el botón concatenaba, y quien decide si el botón
+ * vuelve a ofrecerse es `alergiasDe`, que lee el campo con otro criterio. Dos
+ * criterios sobre el mismo campo — el defecto que ADR-001 describe— y entre
+ * ellos cabía un bucle.
+ *
+ * La causa raíz de aquel caso se arregla arriba (`selloEsNegacion`). Esto es la
+ * segunda cerradura, y es la que hace que el campo del paciente **no pueda**
+ * acabar con el mismo término dos veces, venga el término de donde venga.
+ *
+ * Se compara por término normalizado, no por subcadena: «sulfas» no está dentro
+ * de «sulfasalazina» a estos efectos, y dar por añadida una alergia que no lo
+ * está es la dirección cara del error.
+ *
+ * Devuelve el texto **igual** cuando no hay nada que añadir. El llamador
+ * compara y no escribe: una escritura que no cambia nada ensucia la bitácora y
+ * hace creer que pasó algo.
+ */
+export function listaConAlergeno(antes: string | undefined, alergeno: string): string {
+  const base = String(antes ?? '').trim()
+  const nuevo = String(alergeno ?? '').trim()
+  if (!nuevo) return base
+  const k = claveAlergeno(nuevo)
+  if (!k) return base
+  const yaEsta = base.split(/[,;\n]+/).some(f => claveAlergeno(f) === k)
+  if (yaEsta) return base
+  return base ? `${base}, ${nuevo}` : nuevo
 }
 
 export const POR_QUE_EL_SELLO_NO_RETRACTA =

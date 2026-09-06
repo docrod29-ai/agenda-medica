@@ -127,4 +127,9 @@ Stripe.
   velocidad sin avisar.
 - Auditar y reparar con **panel de especialistas en paralelo**; los agentes
   auditan, el orquestador verifica y escribe.
-- Hospital y UCI en ALPHA: se usan, **no se venden**.
+- Hospital y UCI en ALPHA: se usan, **no se venden**. Desde el 4-sep-2026 están
+  además **en pausa en la navegación** (D-030): no aparecen ni en el índice de
+  Operaciones ni en el `Sidebar`, porque la prioridad es la consulta y su
+  agenda. Pausar no es borrar — rutas, pantallas, motores y precios siguen
+  intactos; se reactiva vaciando `MODULOS_EN_PAUSA` en
+  `src/lib/navegacion/modulos-en-pausa.ts`.

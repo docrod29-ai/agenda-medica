@@ -131,10 +131,24 @@ export function CalculadorasClinicas({ contexto, onAgregarANota, embebido }: Pro
   )
 }
 
+/*
+  LA PAREJA TINTE + TEXTO HABLA EL MISMO IDIOMA, y no lo hacía.
+
+  El FONDO ya salía del token (`color-mix(… var(--red) …)`) y el TEXTO era un
+  literal de Tailwind (`#f87171`). Media pareja seguía al tema y la otra media
+  no: en oscuro cuadraban por casualidad —el literal está pensado para fondo
+  oscuro—, y en claro el tinte se oscurece mientras el texto sigue siendo el
+  claro. Medido por axe sobre la página servida en tema claro: 2,04 : 1, contra
+  4,5 — en avisos que dicen «choca con una alergia registrada».
+
+  Es la misma familia que el acento sin token, vista desde el otro lado: aquí
+  el token EXISTÍA y sólo lo usaba una mitad. Ninguna revisión de una sola
+  pieza lo encuentra, porque cada mitad está bien.
+*/
 const COLORES = {
-  bajo: { fg: '#10b981', bg: 'rgba(16,185,129,.12)', bd: 'rgba(16,185,129,.35)' },
-  medio: { fg: '#f59e0b', bg: 'color-mix(in srgb, var(--amber) 12%, transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
-  alto: { fg: '#f87171', bg: 'color-mix(in srgb, var(--red) 12%, transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
+  bajo: { fg: 'var(--green-texto)', bg: 'color-mix(in srgb, var(--green) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--green) 35%, transparent)' },
+  medio: { fg: 'var(--amber-texto)', bg: 'color-mix(in srgb, var(--amber) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--amber) 35%, transparent)' },
+  alto: { fg: 'var(--red-texto)', bg: 'color-mix(in srgb, var(--red) var(--tinte), transparent)', bd: 'color-mix(in srgb, var(--red) 40%, transparent)' },
 } as const
 
 const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({
@@ -144,14 +158,26 @@ const badge = (nivel: keyof typeof COLORES): React.CSSProperties => ({
 const caja = (nivel: keyof typeof COLORES): React.CSSProperties => ({
   border: `1px solid ${COLORES[nivel].bd}`, background: COLORES[nivel].bg, color: COLORES[nivel].fg,
 })
+/*
+  SELECCIONADO SE PINTA CON EL ACENTO, NO CON EL ÁMBAR.
+
+  El toggle encendido iba en `#f59e0b` sólido con texto negro: dos cosas mal.
+  El literal no seguía al tema, y sobre todo el ÁMBAR YA SIGNIFICA AVISO en
+  este producto — la regla del sistema es «cobalto = acción / selección /
+  ahora», y en una pantalla de calculadoras clínicas un control seleccionado
+  que se ve como una advertencia enseña a leer mal las advertencias de verdad.
+
+  `--nexus-solido` es el relleno del sistema, medido para llevar blanco encima
+  a 5,16 : 1 en oscuro y 7,00 : 1 en claro.
+*/
 const toggle = (on: boolean): React.CSSProperties => ({
   minWidth: 46, height: 28, borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-  border: '1px solid ' + (on ? '#f59e0b' : 'var(--border)'),
-  background: on ? '#f59e0b' : 'var(--s2)', color: on ? '#000' : 'var(--text3)',
+  border: '1px solid ' + (on ? 'var(--nexus-solido)' : 'var(--border)'),
+  background: on ? 'var(--nexus-solido)' : 'var(--s2)', color: on ? '#fff' : 'var(--text3)',
 })
 const select: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '5px 8px', fontSize: 12, color: 'var(--text)', outline: 'none', maxWidth: 240,
+  padding: '5px 8px', fontSize: 12, color: 'var(--text)', maxWidth: 240,
 }
 
 export type { Calculadora }

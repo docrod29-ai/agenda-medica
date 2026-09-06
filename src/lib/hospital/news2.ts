@@ -16,7 +16,23 @@ export interface SignosNews2 {
   // ACVPU completo o legado alerta/alterada. NEWS2: Alert (A/'alerta') = 0;
   // cualquier alteración (C/V/P/U/'alterada') = 3 (RCP). Ver esAlerta().
   conciencia?: 'A' | 'C' | 'V' | 'P' | 'U' | 'alerta' | 'alterada'
-  oxigeno?: boolean    // recibe O2 suplementario → +2
+  /**
+   * ¿Recibe O₂ suplementario? → +2 en NEWS2.
+   *
+   * ── NO SE DEDUCE DE UN FLUJO REGISTRADO (D-027, 4-sep-2026) ──────────────
+   *
+   * La pregunta estuvo abierta: si el expediente trae un flujo de O₂ anotado,
+   * ¿basta para poner esto en `true`? **El dueño decidió que no.**
+   *
+   * Un flujo registrado puede ser una indicación, una toma de hace horas o un
+   * dato heredado de otro turno; convertirlo en `+2` cambiaría el puntaje de una
+   * escala sobre un supuesto, y NEWS2 decide con qué urgencia se ve a alguien.
+   *
+   * Mientras nadie lo declare explícitamente, el campo queda `undefined` y el
+   * panel marca la duda con ⚠ en vez de asumirla. **Ausencia de dato no es dato
+   * de ausencia** — y tampoco es dato de presencia.
+   */
+  oxigeno?: boolean
   /**
    * Escala de SpO₂ (validado por el Dr, auditoría 2026-07):
    *  1 = por defecto.

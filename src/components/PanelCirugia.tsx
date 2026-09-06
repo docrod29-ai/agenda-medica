@@ -56,13 +56,13 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
   const capPuntos = sumarCaprini([...cap])
 
   return (
-    <div style={embebido ? {} : { border: '1px solid rgba(59,130,246,.3)', borderRadius: 12, background: 'rgba(59,130,246,.05)', padding: 14, marginBottom: 12 }}>
+    <div style={embebido ? {} : { border: '1px solid color-mix(in srgb, var(--blue) 30%, transparent)', borderRadius: 12, background: 'color-mix(in srgb, var(--blue) 5%, transparent)', padding: 14, marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10, flexWrap: 'wrap' }}>
         {!embebido && <>
           <Scissors size={15} color="var(--blue)" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Valoración perioperatoria</span>
         </>}
-        <span style={pill('#60a5fa', 'rgba(59,130,246,.15)')}>{asaTexto(clase, urgencia)}</span>
+        <span style={pill('var(--blue)', 'color-mix(in srgb, var(--blue) 15%, transparent)')}>{asaTexto(clase, urgencia)}</span>
         {rc.size > 0 && <span style={pill(col(rRcri.nivel), bg(rRcri.nivel))}>RCRI {rRcri.puntaje}</span>}
         {capPuntos > 0 && <span style={pill(col(rCap.nivel), bg(rCap.nivel))}>Caprini {capPuntos}</span>}
       </div>
@@ -139,11 +139,11 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
               </label>
             </div>
 
-            <div style={{ border: '1px solid rgba(59,130,246,.35)', background: 'rgba(59,130,246,.08)', borderRadius: 9, padding: '10px 12px' }}>
+            <div style={{ border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', background: 'color-mix(in srgb, var(--blue) 8%, transparent)', borderRadius: 9, padding: '10px 12px' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</div>
               <ul style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
                 <li>{plan.inicio}</li>
-                <li><b style={{ color: plan.momentosRedosis.length ? '#f59e0b' : 'inherit' }}>{plan.redosis}</b></li>
+                <li><b style={{ color: plan.momentosRedosis.length ? 'var(--amber)' : 'inherit' }}>{plan.redosis}</b></li>
                 <li>{plan.duracion}</li>
                 {plan.nota && <li style={{ color: 'var(--text3)' }}>{plan.nota}</li>}
               </ul>
@@ -165,7 +165,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
             const listos = f.puntos.filter(p => hechos.has(p)).length
             return (
               <Bloque key={f.fase} titulo={`${f.fase} · ${f.momento}`} extra={
-                <span style={pill(listos === total ? '#10b981' : 'var(--text3)', listos === total ? 'rgba(16,185,129,.15)' : 'var(--s2)')}>
+                <span style={pill(listos === total ? 'var(--green)' : 'var(--text3)', listos === total ? 'color-mix(in srgb, var(--green) 15%, transparent)' : 'var(--s2)')}>
                   {listos}/{total}
                 </span>
               }>
@@ -229,7 +229,7 @@ function Pesos({ sel, on }: { sel: Set<string>; on: (v: string) => void }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
       {grupos.map(([p, etq]) => (
         <div key={p}>
-          <div style={{ fontSize: 10.5, fontWeight: 800, color: p >= 3 ? '#f87171' : p === 2 ? '#f59e0b' : 'var(--text3)', marginBottom: 3 }}>{etq}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 800, color: p >= 3 ? 'var(--red)' : p === 2 ? 'var(--amber)' : 'var(--text3)', marginBottom: 3 }}>{etq}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {CAPRINI_FACTORES.filter(f => f.puntos === p).map(f => (
               <label key={f.texto} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, cursor: 'pointer' }}>
@@ -262,15 +262,15 @@ function Tb({ a, on, i, t }: { a: boolean; on: () => void; i: React.ReactNode; t
     <button type="button" onClick={on} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7,
       fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-      border: '1px solid ' + (a ? '#3b82f6' : 'var(--border)'),
-      background: a ? '#3b82f6' : 'var(--s2)', color: a ? '#fff' : 'var(--text3)',
+      border: '1px solid ' + (a ? 'var(--blue)' : 'var(--border)'),
+      background: a ? 'var(--blue)' : 'var(--s2)', color: a ? 'var(--sobre-aviso)' : 'var(--text3)',
     }}>{i}{t}</button>
   )
 }
 
-const col = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? '#10b981' : n === 'medio' ? '#f59e0b' : '#f87171'
-const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.1)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'color-mix(in srgb, var(--red) 10%, transparent)'
-const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'rgba(16,185,129,.35)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'color-mix(in srgb, var(--red) 40%, transparent)'
+const col = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'var(--green)' : n === 'medio' ? 'var(--amber)' : 'var(--red)'
+const bg = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'color-mix(in srgb, var(--green) 10%, transparent)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 10%, transparent)' : 'color-mix(in srgb, var(--red) 10%, transparent)'
+const bd = (n: 'bajo' | 'medio' | 'alto') => n === 'bajo' ? 'color-mix(in srgb, var(--green) 35%, transparent)' : n === 'medio' ? 'color-mix(in srgb, var(--amber) 35%, transparent)' : 'color-mix(in srgb, var(--red) 40%, transparent)'
 
 const pill = (fg: string, fondo: string): React.CSSProperties => ({
   fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: fondo, color: fg,
@@ -278,10 +278,10 @@ const pill = (fg: string, fondo: string): React.CSSProperties => ({
 const rotulo: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: 0.3 }
 const campo: React.CSSProperties = {
   background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 7,
-  padding: '6px 9px', fontSize: 12, color: 'var(--text)', outline: 'none',
+  padding: '6px 9px', fontSize: 12, color: 'var(--text)',
 }
 const btnMini: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(59,130,246,.15)',
-  color: 'var(--blue)', border: '1px solid rgba(59,130,246,.35)', borderRadius: 6,
+  display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--blue) 15%, transparent)',
+  color: 'var(--blue)', border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', borderRadius: 6,
   padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
 }

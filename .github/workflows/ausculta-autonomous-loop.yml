@@ -19,8 +19,8 @@ jobs:
       pull-requests: read
       issues: read
     env:
-      TARGET_BRANCH: product/ausculta-master-completion
-      PR_NUMBER: '389'
+      TARGET_BRANCH: product/ausculta-loop-2026-08-30
+      PR_NUMBER: '401'
       WRITER_MAX_TURNS: '200'
       HAS_ANTHROPIC: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
@@ -128,6 +128,8 @@ jobs:
           Select the highest-priority executable INTERNAL P0; if none, the highest-priority executable INTERNAL P1. Skip BLOCKED_EXTERNAL items and continue to the next executable internal item. Do not ask the owner which reversible technical task to do next.
           Complete one coherent bounded unit with root cause and regression. Preserve Clinical Truth, physician authority, provenance, tenant isolation, no-inventar, signed-note integrity, recovery, existing valid regressions, and current safety gates. Do not create parallel truth stores. Hospital/UCI and Documents Zero-Friction remain deferred. No PHI, no production actions, no billing, no licenses, no secret changes, no destructive migrations. Do not merge main or deploy. Do not edit GitHub workflows, deployment config, secrets/env files, dependency manifests/lockfiles, firestore.rules or storage.rules. You may update the Master Board and checkpoint.
           If all non-deferred internal work is truly exhausted, create docs/product/AUSCULTA-CONSULTORIO-FINAL-READINESS.md and agent-state/AUSCULTA_AUTONOMOUS_COMPLETE only when internal P0=0 and internal P1=0 and everything remaining is PROVEN, BLOCKED_EXTERNAL, or owner-deferred.
+          NEVER HAND-EDIT A GENERATED DOCUMENT. Several documents carry figures derived from counting the tree, and a guard fails when the figures do not match what their script would produce. You have NO Bash, so you CANNOT regenerate them: therefore do not touch them at all. Leave them to the human or to the tool. The known ones: docs/data-room/INDICE.md (node scripts/data-room/actualizar-cifras.mjs), docs/design/SCREEN_INVENTORY.md (node scripts/design/inventario-de-pantallas.mjs), the CENSO block of docs/product/AUSCULTA-MASTER-BOARD.md between the CENSO:INICIO and CENSO:FIN markers (npx tsx scripts/product/censo-al-tablero.mjs), and docs/calidad (node scripts/calidad/lo-que-espera-al-dueno.mjs). A document that says GENERADO or "no se edita a mano" in its header is one of these even if it is not listed. This is REG-241 in the repository: what can be derived IS derived. If your unit needs a figure in one of them to change, do the code work and say in the checkpoint which document has to be regenerated afterwards — do not write the number yourself.
+          If a mandatory gate would fail because of a document you cannot regenerate, that is a reason to CHOOSE A DIFFERENT UNIT, not a reason to edit the document.
           DO NOT COMMIT OR PUSH. The workflow will verify, test, commit and push.
           PROMPT
 

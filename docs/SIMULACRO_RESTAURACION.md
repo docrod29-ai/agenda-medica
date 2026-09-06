@@ -169,3 +169,40 @@ limpio, para que pueda vigilarlo algo automático y no sólo una persona leyendo
 *(Pendiente: necesita `gcloud` y el proyecto de Firebase. Es lo único de esta
 página que no se puede automatizar desde el repositorio, y es lo que falta para
 cerrar el P0-6 del todo.)*
+
+---
+
+## Y ahora también: el simulacro de RECUPERACIÓN (#312)
+
+`npm run simulacro:respaldo` responde una pregunta: **¿el archivo vuelve a
+leerse entero?** Es la que estaba, y sigue estando.
+
+`npm run simulacro:recuperacion` responde la siguiente, que es otra: **¿lo que
+vuelve está bien?**
+
+```bash
+npm run simulacro:recuperacion                       # ~1 000 documentos
+npm run simulacro:recuperacion -- --pacientes=750    # >10 000 documentos
+```
+
+Genera **dos** consultorios sintéticos, respalda uno, le inyecta dieciséis
+averías —desde el archivo cortado hasta la nota firmada alterada, pasando por la
+adenda huérfana y el documento de otro consultorio—, restaura en simulación,
+concilia contra la línea base, y comprueba que **cada avería se detecta**. Deja
+acta en JSON y Markdown, sin pisar ninguna anterior.
+
+Lo que añade sobre el de arriba:
+
+- conteos por colección y huella del conjunto en el pie del respaldo, para poder
+  comparar lo que llegó con lo que debía llegar;
+- integridad referencial: adenda sin nota, nota bajo el paciente equivocado,
+  linaje cruzado;
+- aislamiento entre consultorios **por dentro del documento**, no sólo en la
+  ruta;
+- verdad firmada: restaurar no puede alterar una nota firmada;
+- un veredicto en vez de un `ok: true`: `COMPLETA`, `PARCIAL`,
+  `REVISION_HUMANA` o `FALLIDA`.
+
+**Sigue sin medir el RTO**, exactamente por lo mismo que el otro. Ver
+[`docs/recovery/README.md`](recovery/README.md) y
+[`docs/recovery/PLAN-SIMULACRO.md`](recovery/PLAN-SIMULACRO.md).

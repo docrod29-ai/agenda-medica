@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { PageHeader, Spinner, Select } from '@/components/ui'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
+import { tasa, porcentaje } from '@/lib/metricas/tasa'
 
 type Periodo = 'hoy' | 'semana' | 'mes' | '3meses'
 
@@ -83,10 +84,25 @@ export default function CRMPage() {
   const canceladas = enPeriodo.filter(a => a.estado === 'cancelada').length
   const reagendadas = enPeriodo.filter(a => a.estado === 'reagendada').length
   const atendidas = enPeriodo.filter(a => ['atendida', 'finalizada', 'pagada'].includes(a.estado)).length
-  const tasaConfirm = total > 0 ? (confirmadas / total) * 100 : 0
-  const tasaNoShow = total > 0 ? (noShows / total) * 100 : 0
-  const tasaCancel = total > 0 ? (canceladas / total) * 100 : 0
-  const tasaAtencion = total > 0 ? (atendidas / total) * 100 : 0
+  /**
+   * UNA TASA SIN DENOMINADOR NO ES CERO: NO EXISTE.
+   *
+   * Antes, sin citas en el periodo, las cuatro tasas se DEFINÍAN como 0 y la
+   * pantalla enseñaba «Tasa de atención 0%», «Tasa de confirmación 0%». Un
+   * médico que acaba de abrir su consultorio —o que mira una semana sin
+   * agenda— leía un boletín de notas pésimo donde no había nada que calificar.
+   * Medido sobre un consultorio recién dado de alta: `/crm` era la única de las
+   * catorce pantallas que no decía que estaba vacía; decía ceros.
+   *
+   * Es lo mismo que hacen los motores clínicos de este repositorio cuando les
+   * falta un dato: no estiman, dicen que no se puede calcular. `null` significa
+   * «no hay con qué», y quien pinta lo dice con una raya.
+   */
+  const tasaConfirm = tasa(confirmadas, total)
+  const tasaNoShow = tasa(noShows, total)
+  const tasaCancel = tasa(canceladas, total)
+  const tasaAtencion = tasa(atendidas, total)
+  const sinCitas = total === 0
 
   // Retención
   const corte90 = isoDaysAgo(90)
@@ -116,7 +132,14 @@ export default function CRMPage() {
         title="CRM & Revenue"
         subtitle="Pipeline, conversión, retención y oportunidades."
         actions={(
-          <Select value={periodo} onChange={e => setPeriodo(e.target.value as Periodo)} style={{ width: 'auto' }}>
+          <Select
+            value={periodo}
+            onChange={e => setPeriodo(e.target.value as Periodo)}
+            style={{ width: 'auto' }}
+            // Sin nombre, un lector de pantalla anuncia «cuadro combinado» y ya:
+            // no dice que lo que cambia es el periodo de TODO lo que hay debajo.
+            aria-label="Periodo del análisis"
+          >
             <option value="hoy">Hoy</option>
             <option value="semana">Últimos 7 días</option>
             <option value="mes">Últimos 30 días</option>
@@ -149,10 +172,10 @@ export default function CRMPage() {
         <>
           {/* KPIs principales */}
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 14, marginBottom: 24 }}>
-            <KPI icon={<CalendarCheck2 size={18} />} label="Tasa de confirmación" valor={`${tasaConfirm.toFixed(0)}%`} sub={`${confirmadas} de ${total} citas`} color="var(--green)" />
-            <KPI icon={<UserX size={18} />} label="Tasa de no-show" valor={`${tasaNoShow.toFixed(0)}%`} sub={`${noShows} ausencias`} color={tasaNoShow > 10 ? '#ef4444' : '#94a3b8'} trend={tasaNoShow > 15 ? 'down' : 'neutral'} />
-            <KPI icon={<TrendingDown size={18} />} label="Cancelaciones" valor={`${tasaCancel.toFixed(0)}%`} sub={`${canceladas} canceladas · ${reagendadas} reagendadas`} color="#f97316" />
-            <KPI icon={<TrendingUp size={18} />} label="Tasa de atención" valor={`${tasaAtencion.toFixed(0)}%`} sub={`${atendidas} consultas completadas`} color="var(--teal)" />
+            <KPI icon={<CalendarCheck2 size={18} />} label="Tasa de confirmación" valor={porcentaje(tasaConfirm)} sub={sinCitas ? 'sin citas en el periodo' : `${confirmadas} de ${total} citas`} color="var(--green)" />
+            <KPI icon={<UserX size={18} />} label="Tasa de no-show" valor={porcentaje(tasaNoShow)} sub={sinCitas ? 'sin citas en el periodo' : `${noShows} ausencias`} color={(tasaNoShow ?? 0) > 10 ? '#ef4444' : '#94a3b8'} trend={(tasaNoShow ?? 0) > 15 ? 'down' : 'neutral'} />
+            <KPI icon={<TrendingDown size={18} />} label="Cancelaciones" valor={porcentaje(tasaCancel)} sub={sinCitas ? 'sin citas en el periodo' : `${canceladas} canceladas · ${reagendadas} reagendadas`} color="#f97316" />
+            <KPI icon={<TrendingUp size={18} />} label="Tasa de atención" valor={porcentaje(tasaAtencion)} sub={sinCitas ? 'sin citas en el periodo' : `${atendidas} consultas completadas`} color="var(--teal)" />
           </div>
 
           {/* Pipeline */}
@@ -246,7 +269,7 @@ function Retencion({ label, count, color, icon }: { label: string; count: number
 }
 function Sugerencia({ text, link, linkLabel }: { text: string; link: string; linkLabel: string }) {
   return (
-    <Link href={link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
+    <Link href={link} className="nx-acc-caja" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 14px', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none' }}>
       <span style={{ fontSize: 13, color: 'var(--text2)' }}>{text}</span>
       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{linkLabel} →</span>
     </Link>

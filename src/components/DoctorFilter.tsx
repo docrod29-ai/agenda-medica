@@ -78,12 +78,13 @@ export function DoctorFilter({
 
   const seleccionado = activeDoctors.find(d => d.id === medicoId)
 
-  // Colores cíclicos para los avatares (consistentes por id)
-  const colorFor = (id: string): string => {
-    const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
-    const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
-    return colores[hash % colores.length]
-  }
+  /**
+   * Color del avatar. Es `colorMedico`, no una segunda copia: aquí había una
+   * implementación idéntica al helper exportado de abajo, y el sentido de
+   * este color es que sea EL MISMO para un médico en toda la aplicación. Dos
+   * copias de la tabla es la forma de que un día deje de serlo.
+   */
+  const colorFor = colorMedico
 
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -100,7 +101,7 @@ export function DoctorFilter({
           <>
             <span style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: colorFor(seleccionado.id), color: '#000',
+              background: colorFor(seleccionado.id), color: 'var(--sobre-aviso)',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: 11,
             }}>
@@ -163,7 +164,7 @@ export function DoctorFilter({
                 >
                   <span style={{
                     width: 24, height: 24, borderRadius: '50%',
-                    background: colorFor(d.id), color: '#000', flexShrink: 0,
+                    background: colorFor(d.id), color: 'var(--sobre-aviso)', flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 700, fontSize: 11,
                   }}>
@@ -186,9 +187,52 @@ export function DoctorFilter({
   )
 }
 
-/** Helper: obtiene color del médico (consistente por id) */
-export function colorMedico(id: string): string {
-  const colores = ['#14b8a6', '#a78bfa', '#f59e0b', '#3b82f6', '#ec4899']
+/**
+ * Color del médico, consistente por id y ÚNICO en toda la aplicación.
+ *
+ * Los cinco tonos salen de los tokens: escritos a mano eran pasteles de tema
+ * oscuro (`#14b8a6`, `#a78bfa`, `#f59e0b`, `#3b82f6`, `#ec4899`) y en tema
+ * claro tres de los cinco quedaban por debajo de 4,5:1. La inicial que va
+ * encima usa `--sobre-aviso`, que es tinta en oscuro y blanco en claro.
+ */
+/**
+ * EL COLOR POR MÉDICO SÓLO SIRVE SI HAY MÁS DE UN MÉDICO.
+ *
+ * ── QUÉ SE VEÍA ───────────────────────────────────────────────────────────
+ *
+ * En el consultorio de UN solo médico —que es el caso comercial principal— la
+ * agenda entera salía ROSA. No por un error de tono: `colorMedico` reparte
+ * cinco colores por hash del id, y con un solo médico toca el que toque, para
+ * siempre. Medido en el arnés con la consulta sembrada: `rgb(244,114,182)`,
+ * el rosa que este sistema reserva al acento de ginecología, en las ocho citas
+ * del día y en las dos de la semana siguiente.
+ *
+ * ── POR QUÉ ESTABA ASÍ, Y POR QUÉ ES «ESCRITO Y SIN CONECTAR» ─────────────
+ *
+ * La intención correcta ya estaba ESCRITA, en el comentario de quien llama:
+ *
+ *     // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
+ *     const color = a.medicoId ? colorMedico(a.medicoId) : 'var(--nexus)'
+ *
+ * Pero la condición no implementa lo que dice el comentario. Pregunta si la
+ * cita TIENE médico, no si el consultorio tiene VARIOS — y una cita de un
+ * consultorio de un solo médico también tiene `medicoId`. Así que la rama del
+ * cobalto no se ejecutaba nunca en el caso para el que se escribió.
+ *
+ * ── LA REGLA ──────────────────────────────────────────────────────────────
+ *
+ * El criterio es el mismo que ya decide si el SELECTOR se dibuja
+ * (`activeDoctors.length <= 1`, arriba en este archivo): un color por médico
+ * distingue médicos, y donde no hay a quién distinguir no distingue nada —
+ * sólo gasta el único acento que el producto tiene para decir «esto es
+ * Ausculta».
+ *
+ * Vive aquí, junto al selector, para que las dos decisiones no puedan
+ * separarse: el día que una cambie de criterio, la otra está a tres líneas.
+ */
+export function colorMedico(id: string, cuantosMedicos = 2): string {
+  if (cuantosMedicos <= 1) return 'var(--nexus)'
+  const colores = ['var(--nexus)', 'var(--purple)', 'var(--amber)', 'var(--blue)', 'var(--rosa)']
   const hash = Array.from(id).reduce((s, c) => s + c.charCodeAt(0), 0)
   return colores[hash % colores.length]
 }

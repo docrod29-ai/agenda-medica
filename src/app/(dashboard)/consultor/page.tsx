@@ -172,10 +172,11 @@ export default function ConsultorPage() {
 
       {/* Chip de paciente en contexto */}
       {pacienteNombre && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'rgba(61,90,254,0.10)', border: '1px solid rgba(61,90,254,0.3)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'var(--nexus-soft)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
           <UserRound size={13} /> Sobre: {pacienteNombre}
           <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
-            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
+            className="nx-acc-texto"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, marginLeft: 2 }}>
             <X size={13} />
           </button>
         </div>
@@ -186,8 +187,8 @@ export default function ConsultorPage() {
           <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 10 }}>Ejemplos para empezar:</div>
           <div style={{ display: 'grid', gap: 8 }}>
             {EJEMPLOS.map((e, i) => (
-              <button key={i} onClick={() => preguntar(e)}
-                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
+              <button key={i} onClick={() => preguntar(e)} className="nx-acc-caja"
+                style={{ textAlign: 'left', padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', color: 'var(--text2)', fontSize: 13.5, cursor: 'pointer' }}>
                 {e}
               </button>
             ))}
@@ -301,7 +302,7 @@ export default function ConsultorPage() {
                     )}
                     {t.cenetecUrl && (
                       <a href={t.cenetecUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus)', textDecoration: 'none', background: 'rgba(61,90,254,0.08)', border: '1px solid rgba(61,90,254,0.28)', borderRadius: 8, padding: '5px 10px' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus)', textDecoration: 'none', background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', borderRadius: 8, padding: '5px 10px' }}>
                         <BookOpen size={12} /> Buscar la guía mexicana (GPC · CENETEC)
                       </a>
                     )}
@@ -361,7 +362,16 @@ export default function ConsultorPage() {
       </div>
 
       {/* Barra de pregunta fija abajo */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
+      {/*
+        LA BARRA NO EMPIEZA EN EL BORDE DE LA VENTANA: EMPIEZA DONDE ACABA EL RIEL.
+        Con `left: 0` esta barra fija tapaba los 89px de abajo del riel de
+        navegación —«Ayuda», «Cerrar sesión» y el correo—, que en escritorio
+        ocupa los primeros 224px. No era «se ve raro»: el botón de cerrar sesión
+        quedaba debajo y no se podía pulsar. Se vio midiendo qué elemento
+        contesta en el centro del botón (`elementFromPoint`), no leyendo el CSS.
+        En móvil el riel no existe, así que la barra vuelve a ocupar todo.
+      */}
+      <div className="nx-consultor-barra" style={{ position: 'fixed', bottom: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={pregunta}
@@ -372,6 +382,8 @@ export default function ConsultorPage() {
             style={{ flex: 1, resize: 'none', maxHeight: 120, padding: '11px 14px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)', fontSize: 14, lineHeight: 1.4, fontFamily: 'inherit' }}
           />
           <button onClick={() => preguntar(pregunta)} disabled={cargando || !pregunta.trim()}
+            // Es la acción primaria de la pantalla y era un icono sin nombre.
+            aria-label={cargando ? 'Consultando la evidencia…' : 'Enviar la pregunta'}
             style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 12, border: 'none', cursor: cargando || !pregunta.trim() ? 'default' : 'pointer', background: cargando || !pregunta.trim() ? 'var(--s3)' : 'var(--nexus-solido)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {cargando ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} />}
           </button>

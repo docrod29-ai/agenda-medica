@@ -1,0 +1,26 @@
+[
+  {
+    "ruta": "/consulta/pac-001",
+    "ancho": 390,
+    "elementosVisibles": 300,
+    "conMovimiento": 30,
+    "tarjetas": 15,
+    "tamanosTipograficos": 12,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 844,
+    "consola": []
+  },
+  {
+    "ruta": "/consulta/pac-001",
+    "ancho": 1440,
+    "elementosVisibles": 318,
+    "conMovimiento": 29,
+    "tarjetas": 15,
+    "tamanosTipograficos": 11,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  }
+]

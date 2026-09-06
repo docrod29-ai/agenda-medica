@@ -1,16 +1,18 @@
 'use client'
 /**
- * Firmador GLOBAL de las imágenes del diseño de receta (NEXUS-QUALITY-010).
+ * Acuñador GLOBAL de las capacidades de las imágenes del diseño de receta
+ * (R-06 / #350).
  *
- * Con RECETA_DISENO_FIRMA=obligatoria, las <img> del membrete/firma que la app
- * renderiza con la URL guardada (sin firma) darían 403 en la VISTA PREVIA (la
- * impresión y el PDF ya firman por su cuenta). Este componente, montado una vez
- * en el layout del dashboard, firma cualquier imagen del proxy al aparecer:
- * al montar y ante cambios del DOM (rutas nuevas, previews que se abren).
+ * El proxy /api/receta/diseno ya no acepta un `?path=` pelado, así que las <img>
+ * del membrete/firma que la app renderiza con la URL guardada darían 403 en la
+ * VISTA PREVIA (la impresión y el PDF acuñan por su cuenta). Este componente,
+ * montado una vez en el layout del dashboard, acuña la capacidad de cualquier
+ * imagen del proxy al aparecer: al montar y ante cambios del DOM (rutas nuevas,
+ * previews que se abren).
  *
- * A prueba de fallos como todo el circuito: si el acuñador falla, las imágenes
- * quedan con su URL original (que sigue sirviendo mientras el candado esté
- * apagado). Renderiza null; cero impacto visual.
+ * A prueba de fallos como todo el circuito: si el acuñador falla, la imagen se
+ * queda con su URL original y saldrá rota, pero nada más del documento se cae.
+ * Renderiza null; cero impacto visual.
  */
 import { useEffect } from 'react'
 

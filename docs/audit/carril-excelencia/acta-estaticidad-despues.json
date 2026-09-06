@@ -1,0 +1,359 @@
+[
+  {
+    "ruta": "/citas",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/calendario",
+    "ancho": 390,
+    "axe": [
+      {
+        "id": "color-contrast",
+        "impacto": "serious",
+        "n": 1
+      },
+      {
+        "id": "nested-interactive",
+        "impacto": "serious",
+        "n": 5
+      },
+      {
+        "id": "target-size",
+        "impacto": "serious",
+        "n": 1
+      }
+    ],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/lista-espera",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Paciente",
+      "Paciente"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pendientes",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Seguimiento",
+      "Seguimiento"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/finanzas",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/dashboard",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/operaciones",
+    "ancho": 390,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/citas",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/calendario",
+    "ancho": 768,
+    "axe": [
+      {
+        "id": "color-contrast",
+        "impacto": "serious",
+        "n": 1
+      },
+      {
+        "id": "nested-interactive",
+        "impacto": "serious",
+        "n": 5
+      },
+      {
+        "id": "target-size",
+        "impacto": "serious",
+        "n": 1
+      }
+    ],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/lista-espera",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Paciente",
+      "Paciente"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pendientes",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Seguimiento",
+      "Seguimiento"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/finanzas",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/dashboard",
+    "ancho": 768,
+    "axe": [
+      {
+        "id": "color-contrast",
+        "impacto": "serious",
+        "n": 3
+      }
+    ],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/operaciones",
+    "ancho": 768,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/citas",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/calendario",
+    "ancho": 1440,
+    "axe": [
+      {
+        "id": "color-contrast",
+        "impacto": "serious",
+        "n": 1
+      },
+      {
+        "id": "nested-interactive",
+        "impacto": "serious",
+        "n": 5
+      },
+      {
+        "id": "target-size",
+        "impacto": "serious",
+        "n": 1
+      }
+    ],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/asistente",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/lista-espera",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pacientes",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Paciente",
+      "Paciente"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/pendientes",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Seguimiento",
+      "Seguimiento"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/finanzas",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/dashboard",
+    "ancho": 1440,
+    "axe": [
+      {
+        "id": "color-contrast",
+        "impacto": "serious",
+        "n": 3
+      }
+    ],
+    "ariaCurrent": [
+      "Hoy",
+      "Hoy"
+    ],
+    "desborde": false,
+    "errores": []
+  },
+  {
+    "ruta": "/operaciones",
+    "ancho": 1440,
+    "axe": [],
+    "ariaCurrent": [
+      "Operaciones",
+      "Operaciones"
+    ],
+    "desborde": false,
+    "errores": []
+  }
+]

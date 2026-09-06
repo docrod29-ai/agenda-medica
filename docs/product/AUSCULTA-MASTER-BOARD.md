@@ -26,13 +26,13 @@
 
 | Estado | Cuántos |
 |---|---|
-| `PROVEN` | 32 |
-| `PARTIAL` | 32 |
+| `PROVEN` | 33 |
+| `PARTIAL` | 31 |
 | `BLOCKED_EXTERNAL` | 14 |
 | `NEEDS_CLINICAL_REVIEW` | 1 |
 | `DEFERRED_BY_OWNER` | 1 |
 
-### Internamente accionables — 32
+### Internamente accionables — 31
 
 Lo que se puede cerrar sin pedirle nada a nadie. Si esta lista está vacía, el
 trabajo interno se acabó.
@@ -64,7 +64,6 @@ trabajo interno se acabó.
 | `WS-12.router` | `PARTIAL` |
 | `WS-12.p99` | `PARTIAL` |
 | `WS-13.alertas` | `PARTIAL` |
-| `WS-13.mfa-servidor` | `PARTIAL` |
 | `TR-VOZ.pipeline` | `PARTIAL` |
 | `TR-WHATSAPP.entrega` | `PARTIAL` |
 | `TR-RAZONAMIENTO.procedencia` | `PARTIAL` |
@@ -102,7 +101,7 @@ trabajo interno se acabó.
 | | |
 |---|---|
 | **P0 internos abiertos** | **0** |
-| **P1 internos abiertos** | **0** (más 2 `BLOCKED_EXTERNAL`: P1-6, P1-14) |
+| **P1 internos abiertos** | **0** — **P1-14 CERRADO** con REG-423 (ver abajo). Queda 1 `BLOCKED_EXTERNAL`: P1-6. Del propio P1-14 sólo queda una comprobación de consola, que no es trabajo de este repositorio |
 
 **Movimientos del 29-ago-2026:**
 
@@ -137,9 +136,9 @@ trabajo interno se acabó.
 
 | Compuerta | Techo o cota derivada | Cómo se repite |
 |---|---|---|
-| Trinquete de lint | **95** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
-| Casos declarados en el árbol | **11055** en 876 archivos | `node scripts/agent-state/actualizar.mjs` |
-| Sellado clínico | **463 archivos · 6730 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
+| Trinquete de lint | **94** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
+| Casos declarados en el árbol | **11946** en 976 archivos | `node scripts/agent-state/actualizar.mjs` |
+| Sellado clínico | **499 archivos · 7139 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
 | Última reparación en el ledger | **REG-559** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |
@@ -200,7 +199,7 @@ hoy en `PROVEN` por medición de runtime salvo donde se dice explícitamente.
 | ~~P1-8~~ | ~~La matriz prometía fuentes inexistentes.~~ **CERRADO** — REG-345, `44b52c9`. La columna cruza catálogo y runtime, con tres estados. |
 | ~~P1-9~~ | ~~La ruta de evidencia de la consulta no declara proveedores no consultados.~~ **CERRADO** — REG-356. Declara con la **misma lista** que el consultor (no una copia), incluye lo **operativo que no se usó**, lo dice en **los dos caminos de salida** y **la pantalla lo pinta arriba**, junto al análisis. Queda escrito que la acusación anterior sobre `.catch(() => [])` era **falsa**: hay un `testigo` que la desmiente. |
 | ~~P1-19~~ | ~~La verificación de citas existe, está probada y no se llama.~~ **CERRADO** — REG-359. Los artículos se convierten en `Source` con procedencia, el prompt pide el **pasaje literal** y cada afirmación se ancla **carácter a carácter**. Lo no respaldado **no se borra** —puede ser buen razonamiento clínico— pero **pierde el `[n]`** y se marca. **Declarado**: anclar no es entender; esto cierra la invención del respaldo, no la interpretación (por eso el aviso dice «no se pudo comprobar», no «es falso»). El entailment sigue siendo requisito de WS-12. |
-| **P1-14** | `tareasVivas` sigue devolviendo **200 arbitrarias** de N. Sigue `BLOCKED_EXTERNAL` —el índice se crea fuera del repositorio— pero desde REG-352 **con el artefacto listo**: `firestore.indexes.json` lo declara y `docs/ops/INDICES-DE-FIRESTORE.md` reúne los cuatro módulos que hoy están peor por no tenerlos (worklist, lista de espera, citas del paciente, resumen de notas). Antes vivían en comentarios sueltos y nadie podía saber cuántos faltaban. **Falta la acción del dueño**: `npx firebase deploy --only firestore:indexes`. |
+| ~~P1-14~~ | ~~El worklist devolvía 200 tareas que no eran las más urgentes.~~ **CERRADO — REG-423.** El recorte se hace por urgencia: `pesoUrgencia`, la proyección numérica de `prioridad`, derivada en la única puerta de escritura y ordenada en el servidor con el índice `tareas_clinicas(estado, pesoUrgencia, creadaEn)`. Hizo falta un número porque `prioridad` guarda TEXTO y en alfabético `alta` va antes que `critica` — `orderBy('prioridad')` habría ordenado al revés de lo que dice la palabra, y en silencio. **Medido el defecto antes del arreglo**: con cinco críticas nuevas y cinco normales viejas, el recorte por antigüedad de REG-421 se llevaba las cinco normales y ni una crítica. **La red que no es opcional**: un `orderBy` de Firestore EXCLUYE los documentos sin el campo, así que la consulta de urgencia sola habría hecho desaparecer del worklist todos los pendientes históricos; se leen dos consultas y se unen, y cuándo sobra la segunda se MIDE (`migracionPendiente`), no se recuerda. Backfill: `scripts/migraciones/peso-de-urgencia.mjs`. **Y ya no puede romper la pantalla si el índice no está construido** (REG-424): se cae al orden por antigüedad y lo dice, pintado en `/pendientes`. **Lo que queda no es trabajo de este repositorio**: ver el índice `Enabled` en la consola, y correr el backfill contra datos vivos. **Lo que NO trae, declarado**: hay TRES escalones y no cuatro — ningún camino del producto crea una prioridad «baja», y qué acto clínico significa «esto puede esperar» es una decisión del dueño. El hueco de la escalera (0, 10, 20) está puesto para que quepa sin migrar nada. |
 | ~~P1-15~~ | ~~No hay circuit breaker ni presupuesto de reintentos.~~ **CERRADO** — REG-353 para el gateway de IA, que es por donde pasan las 16 rutas. Interruptor con enfriamiento creciente y una sola prueba, más presupuesto de la operación entera (no sólo por intento). **Lo que hay que saber para no sobreestimarlo**: (1) el estado es **por instancia**, no global — cada instancia caliente paga su primer timeout; hacerlo global costaría una lectura compartida en el camino de una nota; (2) **WhatsApp y Evidence siguen sin interruptor**: tienen timeout y el outbox tiene backoff, pero no pasan por esta puerta. Lo segundo queda abierto en WS-04. |
 | ~~P1-16~~ | ~~El **importador** no sabe reescribir las colecciones de nivel raíz.~~ **CERRADO** — REG-348, `f2aa2fa`. Vuelven las tres que pertenecen al consultorio por un campo, re-enraizadas **por campo** y contra la lista blanca del mismo manifiesto que usa el exportador. **Abrió P1-18**, cerrado el mismo día. **Sigue sin haberse restaurado nunca contra Firestore de verdad** (WS-13). |
 | ~~P1-18~~ | ~~Restaurar podía **quitarle la cuenta a otro consultorio**.~~ **CERRADO** — REG-349. Hallazgo de revisión independiente sobre REG-348, **reproducido ejecutando la ruta** contra una tienda con concurrencia optimista antes de tocar nada: la comprobación de propiedad existía, pero leía con un `getAll` suelto y escribía en un lote posterior, así que un alta normal del consultorio vecino ocurrida en el hueco se perdía. Ahora el grupo de nivel raíz va dentro de una transacción. |
@@ -418,9 +417,10 @@ comprobación de rango a secas.
 
 | | |
 |---|---|
-| **Estado** | `NOT_STARTED` — **ausente, no parcial** |
-| **Evidencia** | `grep aplicabilidad\|applicab\|matchedCriteria` sobre `src/`: sin motor, sin implementación parcial, sin esqueleto |
-| **Qué hay hoy** | Adaptación **sólo por prompt**: se le pide al modelo que «personalice por edad, comorbilidades y alergias». No hay compuerta determinista, ni cruce organismo/susceptibilidad, ni comprobación de población, ni forma de decir «este paciente no cumple la población del estudio» |
+| **Estado** | `PARTIAL` — **el tablero decía `NOT_STARTED` y estaba atrasado.** Corregido al leer el código, como manda la regla de este tablero |
+| **Evidencia** | `src/lib/evidencia/aplicabilidad.ts` (REG-387): motor determinista, cuatro dimensiones, en español e inglés. Su veredicto máximo es `nada_lo_excluye`, nunca «aplica» |
+| **Qué hay hoy** | El motor existe **y ya recibe la función renal**, con su vigencia (REG-375) y la TFG por la calculadora canónica. Hasta hoy el llamador armaba el estado con edad y alergias: el evaluador renal no podía dar otro veredicto que `datos_insuficientes` — «conectado, pero el dato no llega» |
+| **Qué falta** | El **embarazo** sigue sin llegar, a propósito: no hay fuente estructurada y deducirlo del texto es lo que REG-364/365 midieron fallando. Y las dimensiones nuevas: organismo, susceptibilidad, sitio, dispositivo, comorbilidad, interacción, severidad, entorno, terapia previa y jurisdicción |
 | **Dónde vive el plan** | `docs/roadmap/nexus-os/backlog.json:60` (E2-08). Las unidades E2 cerradas llegan hasta E2-02 |
 
 ## WS-10 — Patient State longitudinal
@@ -702,8 +702,8 @@ HMAC y `timingSafeEqual`, y rutas públicas con rate-limit.
 | Correlation ID de navegador → API → job → proveedor | **NO EXISTE**. `requestId` se fabrica en cada ruta, no llega del cliente, no viaja al proveedor, y el gateway lo **muta**: es clave del libro de costos, no traza |
 | Alertas | Un canal real (`ops/alerta.ts`), **un solo llamador**. Dispara por cron caído y saldo bajo. **Nada más**: ni 5xx, ni latencia, ni fallo de guardado, ni anomalía de autorización |
 | Respaldo | Manifiesto en árbol, con guardián que **deriva el censo del código** (REG-340) y con el camino de vuelta completo (REG-348/349) |
-| Reglas desplegadas | **NO.** Lo escrito no es lo que rige, y desde REG-354 el repositorio lo **deriva** en vez de recordarlo: `firestore.rules.estado.json` + `docs/ops/REGLAS-DE-FIRESTORE.md` con la lista de qué no rige y qué se rompe. `BLOCKED_EXTERNAL` con lista |
-| Índices desplegados | **NO.** Declarados en `firestore.indexes.json` desde REG-352, con los cuatro módulos que hoy están peor por no tenerlos. `BLOCKED_EXTERNAL` con lista |
+| Reglas desplegadas | **SÍ, desde el 31-ago-2026** (ejecuciones #11 y #12). El sello de `firestore.rules.estado.json` coincide con las reglas de hoy y la lista de pendientes quedó vacía. REG-416 hace además que el sello lo **emita el propio despliegue**. **Lo que sigue sin comprobarse**: nadie ha abierto la consola de Firebase — el sello dice qué se envió, no qué rige |
+| Índices desplegados | **ENVIADOS el 31-ago-2026**, en las mismas ejecuciones. **No se marca SÍ**: la construcción es asíncrona y `success` sólo dice que se aceptó el envío. Falta ver `Enabled` en la consola. `BLOCKED_EXTERNAL`, ahora por **verificación**, no por acción |
 | PITR | `UNKNOWN` — no es configurable desde el repositorio. Hay verificador (`respaldos-verificar.mjs`) y **ninguna salida capturada** |
 | Simulacro de restauración | **NUNCA EJECUTADO contra Firestore.** El ida-y-vuelta del 2026-08-04 (200 001 docs, 161 ms) mide **su mitad**: que el NDJSON se relee. Desde REG-348/349 el camino de vuelta **existe entero** —incluidas las colecciones de nivel raíz— y REG-349 ejecuta la ruta real contra una tienda con concurrencia optimista, así que ya no es sólo lectura de fuente. Sigue faltando lo que ninguna tienda en memoria puede dar: **reglas, índices, latencia y el tope de 500 escrituras por transacción** |
 | App Check | Implementado; que esté activo es `BLOCKED_EXTERNAL` |
@@ -738,3 +738,106 @@ HMAC y `timingSafeEqual`, y rutas públicas con rate-limit.
 4. Confirmar en el proyecto vivo `OPS_ALERTA_WEBHOOK`,
    `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` y PITR — los tres son
    `BLOCKED_EXTERNAL` desde aquí.
+
+---
+
+## Rescates — trabajo que existe en una rama y NO está en `main`
+
+Añadido el 30-ago-2026, al limpiar el tablero de PRs (de 62 abiertos quedaron
+19). Estos ocho PRs **no se cerraron** porque llevan piezas que `main` no tiene;
+se midió archivo por archivo cuáles faltan.
+
+**Ninguno se fusiona tal cual.** Van entre 130 y 145 commits por detrás, de la
+semana del 23-ago: traerlos por merge es reaplicar un árbol viejo sobre otro que
+cambió debajo. Se **portan** —como REG-341 portó el PR #356 en vez de fusionarlo—
+o se cierran a sabiendas. El inventario completo, con qué archivo falta en cada
+uno, vive en
+[`docs/maintenance/PRS-SIN-ABSORBER-2026-08-30.md`](../maintenance/PRS-SIN-ABSORBER-2026-08-30.md).
+
+| Id | PR | Qué aporta que `main` no tenga | Estado |
+|---|---|---|---|
+| `RESCATE-355` | #355 | Los **dos guardianes** de la capacidad de diseño de receta. La ruta y el token YA están en `main`: falta sólo la prueba | `NOT_STARTED` — el más barato de la lista |
+| `RESCATE-342` | #342 | Banco de carga y evidencia de «sin pantalla en blanco» (30 archivos). Es lo que **mediría el P1-15 abierto** | `NOT_STARTED` |
+| `RESCATE-349` | #349 | Simulacro de recuperación y registro de riesgos (29). Solapa con REG-343 y el **P1-16** abierto: comprobar antes de portar | `NOT_STARTED` |
+| `RESCATE-348` | #348 | Runbooks y simulacro de incidencias (35). Solapa con REG-396, ya en `main`: portar **sólo lo que no cubra** | `NOT_STARTED` |
+| `RESCATE-MIGRACION` | #351 · #353 | Contrato de migración, aislamiento, reversión e idempotencia (27 y 29). **Son dos versiones del mismo trabajo: sobra una** | `NOT_STARTED` — decidir cuál |
+| `RESCATE-345` | #345 | Router de coste/calidad de IA y su modo sombra (16) | **`BLOCKED_BY_OWNER`** |
+| — | #357 | Sólo falta su documento de rebanada; el guardián está en `main` | cerrable |
+| — | #332 | Configura el autopiloto n8n que Codex dejó de gobernar el 29-ago | cerrable |
+
+**Por qué `RESCATE-345` está bloqueado en el dueño y no es `NOT_STARTED`.** Un
+router de coste/calidad decide **con qué modelo se redacta**, y hay una decisión
+del dueño que dice lo contrario: «la nota usa el razonamiento premium —no
+escatimar—; no bajar de modelo por velocidad sin avisar». Portarlo sin que él
+diga qué puede decidir ese router y qué no sería construir contra una política
+vigente. La pregunta exacta está en `OWNER_DECISIONS_REQUIRED.md`.
+
+<!-- CENSO:INICIO — generado por scripts/product/censo-al-tablero.mjs · no editar a mano -->
+
+## Las metas del §1, escalón por escalón
+
+> **Derivado.** Sale de `src/lib/programa/requisitos.ts`; se regenera con
+> `npx tsx scripts/product/censo-al-tablero.mjs` y `el-tablero-ensena-las-metas.test.ts`
+> falla si el tablero se queda atrás.
+>
+> **Por qué está aquí.** El §1 del pliego manda conservar estos objetivos. Los
+> conservaba el censo, que es TypeScript; este tablero —el que se lee— nombraba
+> dos de los once. Un objetivo que sólo existe en un archivo de código no está
+> custodiado: está guardado.
+
+### Usuarios registrados
+
+> Usuarios registrados **no** es concurrencia activa. Van por separado a
+> propósito: mezclarlos es cómo un «aguanta 100 k» acaba significando algo que
+> nadie midió.
+
+| Escalón | Estado | Fila del censo |
+|---|---|---|
+| 2 000 | `PARTIAL` | `WS-02.registrados-2000` |
+| 10 000 | `PARTIAL` | `WS-02.registrados-10000` |
+| 15 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-15000` |
+| 20 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-20000` |
+| 30 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-30000` |
+| 50 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-50000` |
+| 100 000 | `BLOCKED_EXTERNAL` | `WS-02.registrados-100000` |
+
+### Pacientes por médico
+
+| Escalón | Estado | Fila del censo |
+|---|---|---|
+| 10 000 | `PROVEN` | `WS-03.pacientes-10000` |
+| 20 000 | `PROVEN` | `WS-03.pacientes-20000` |
+| 30 000 | `PROVEN` | `WS-03.pacientes-30000` |
+| 50 000 | `PROVEN` | `WS-03.pacientes-50000` |
+
+### Los 21 dominios que el §1 obliga a custodiar
+
+Ninguno puede quedarse sin una sola fila del censo. Seis se habían perdido
+antes de que existiera el censo —voz, aprendizaje, autoridad de la
+automatización, WhatsApp, razonamiento y accesibilidad— y por eso se vigilan.
+
+- Clinical Truth
+- Voice
+- Reasoning
+- Evidence
+- Consultorio
+- Automation
+- Learning
+- Patient Experience
+- WhatsApp
+- Mobile UX
+- Scale
+- Reliability
+- Observability
+- Security
+- Disaster Recovery
+- Evaluation
+- Patient State
+- Closed Loop
+- Evidence Applicability
+- Specialty Packages
+- Production Readiness
+
+**Filas en el censo hoy: 80.**
+
+<!-- CENSO:FIN -->

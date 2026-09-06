@@ -26,6 +26,7 @@ import { buscarEvidenciaMulti, type ArticuloPubMed } from '@/lib/evidencia/pubme
 import { traducirBasico } from '@/lib/evidencia/traducir-medico'
 import { declararFuentesNoConsultadas } from '@/lib/evidencia/lo-que-no-se-consulto'
 import { aplicabilidadDesdeResumen, comoSeDiceLaAplicabilidad } from '@/lib/evidencia/aplicabilidad'
+import { estadoParaAplicabilidad } from '@/lib/evidencia/estado-del-paciente'
 import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
@@ -262,30 +263,14 @@ export async function POST(req: NextRequest) {
    * vista un artículo porque un patrón no casó sería peor que no tener esto.
    */
   /**
-   * ── EL MOTOR LEÍA CUATRO DIMENSIONES Y AQUÍ LLEGABAN DOS (REG-530) ────────
-   *
-   * `embarazo` y `tfg` existían en el motor —el segundo con la vigencia de
-   * REG-375, «un número viejo no es un número»— y **nadie los rellenaba nunca**.
-   * No era inseguro: sin el dato, el motor responde `datos_insuficientes`, que
-   * es lo correcto. Pero significaba que un estudio que excluye embarazadas
-   * jamás llegaba a decir nada sobre una paciente embarazada del expediente,
-   * teniendo el dato a un campo de distancia. «El dato tiene que LLEGAR.»
-   *
-   * Lo que se manda es lo que el expediente DICE, no lo que se deduzca aquí: el
-   * embarazo lo lee `lo-que-el-expediente-dice-del-embarazo` y una sospecha
-   * llega como ausencia, para que el motor diga `datos_insuficientes` en vez de
-   * afirmar sobre una duda.
+   * EL DATO TIENE QUE LLEGAR. Aquí se armaba a mano, con edad y alergias, y la
+   * FUNCIÓN RENAL —una de las cuatro dimensiones que el motor sabe evaluar— no
+   * se pasaba nunca: su evaluador no podía dar otro veredicto que
+   * `datos_insuficientes`, hiciera lo que hiciera el paciente. Ahora lo arma
+   * `estadoParaAplicabilidad`, que además calcula la TFG con la calculadora
+   * canónica y se niega a hacerlo en menores de 18, sin sexo o sin vigencia.
    */
-  const estadoDelPaciente = {
-    ...(typeof ctx.edad === 'number' ? { edadEnAnios: ctx.edad } : {}),
-    ...(Array.isArray(ctx.alergias) ? { alergenos: ctx.alergias as string[] } : {}),
-    ...(typeof ctx.embarazo === 'boolean' ? { embarazo: ctx.embarazo } : {}),
-    ...(ctx.tfg && typeof ctx.tfg.valor === 'number'
-      ? { tfg: { valor: ctx.tfg.valor, vigente: !!ctx.tfg.vigente } }
-      : {}),
-    ...(Array.isArray(ctx.problemas) ? { problemas: ctx.problemas as string[] } : {}),
-    ...(Array.isArray(ctx.medicamentosActuales) ? { medicamentos: ctx.medicamentosActuales as string[] } : {}),
-  }
+  const estadoDelPaciente = estadoParaAplicabilidad(ctx)
   const aplicabilidadPorArticulo = articulos.map(a => {
     const r = aplicabilidadDesdeResumen(a.resumen ?? '', estadoDelPaciente)
     return { pmid: a.pmid, veredicto: r.veredicto, frase: comoSeDiceLaAplicabilidad(r), porQue: r.porQue }
@@ -477,22 +462,18 @@ export async function POST(req: NextRequest) {
         `${verificacion.fueraDeLosHallazgos.length} cita(s) apuntan a una parte del artículo que no son sus hallazgos (antecedentes, objetivo o métodos): el texto está ahí, pero ese estudio no lo demuestra. Compruébalas antes de apoyarte en ellas.`,
       )
     }
-
     /**
-     * ── EL PASAJE ESTÁ Y DICE OTRA COSA (REG-532) ────────────────────────────
+     * El TERCER defecto de cita, y el peor, con su aviso propio.
      *
-     * Tercer aviso, y distinto de los otros dos a propósito: aquí el anclaje
-     * funcionó —el texto existe y es literal— pero el pasaje NIEGA el resultado
-     * o lo dice con reservas que la frase quitó. Se dice aparte porque se
-     * comprueba distinto: no hay que buscar el respaldo, hay que releer el que
-     * ya está.
+     * Éstas pasaron las dos compuertas anteriores: el pasaje existe, es literal
+     * y sale de los hallazgos. Lo que pasa es que dice lo CONTRARIO — «reduce la
+     * mortalidad» anclado en «did not reduce mortality». Es el único de los tres
+     * que se ve más respaldado cuanto más se comprueba, así que va primero y con
+     * sus palabras: meterlo en cualquiera de los otros dos lo escondería.
      */
-    if (verificacion.desajustes.length > 0) {
-      const invertidas = verificacion.desajustes.filter(d => d.desajuste.clase === 'polaridad_invertida').length
+    if (verificacion.contradichasPorSuPasaje.length > 0) {
       avisos.push(
-        invertidas > 0
-          ? `${invertidas} cita(s) apuntan a un pasaje que dice LO CONTRARIO de lo afirmado, y ${verificacion.desajustes.length - invertidas} lo dicen con reservas que la frase quitó. El texto está ahí: reléelo antes de apoyarte en él.`
-          : `${verificacion.desajustes.length} cita(s) apuntan a un pasaje que lo dice con reservas («podría», «sugiere») que la frase quitó. El texto está ahí: reléelo antes de apoyarte en él.`,
+        `${verificacion.contradichasPorSuPasaje.length} afirmación(es) están ancladas en un pasaje que dice LO CONTRARIO (${verificacion.contradichasPorSuPasaje[0].frase}). La cita es literal y aun así no sostiene lo que se afirma: revísalas antes de usarlas.`,
       )
     }
     if (!hayEvidencia) {

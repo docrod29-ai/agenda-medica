@@ -88,6 +88,18 @@ test('los controles que se tocan miden al menos 44×44', async ({ page }) => {
    * Se excluyen los enlaces dentro de un párrafo: un enlace en línea hereda la
    * altura de su texto y exigirle 44 px sería exigir que el texto corrido tenga
    * interlineado de botón. La regla es para los CONTROLES.
+   *
+   * Y se excluye lo que NO SE PUEDE TOCAR. `display: none` no basta desde que
+   * existe el menú móvil de la portada: su panel está cerrado con
+   * `visibility: hidden` + `inert` + `scale(0.97)` —hace falta que siga en el
+   * árbol para poder animarlo— y `getBoundingClientRect` devuelve la caja YA
+   * ESCALADA. Resultado: dos botones de 44 px medían 43 estando cerrados, y el
+   * caso fallaba por un control que ningún dedo puede alcanzar.
+   *
+   * Ampliar la exclusión no ablanda la regla: un control invisible o `inert` no
+   * es un blanco táctil, por definición. Lo que sí se hizo además fue darle
+   * holgura al botón (46 px), para que la medida no viva pegada al límite —
+   * ver `.nx-nav-panel-cuenta .btn` en globals.css.
    */
   await page.goto('/', { waitUntil: 'networkidle' })
   const pequenos = await page.evaluate((minimo) => {
@@ -96,7 +108,10 @@ test('los controles que se tocan miden al menos 44×44', async ({ page }) => {
     for (const el of controles) {
       const r = el.getBoundingClientRect()
       if (r.width === 0 && r.height === 0) continue            // oculto
-      if (getComputedStyle(el).display === 'none') continue
+      const cs = getComputedStyle(el)
+      if (cs.display === 'none' || cs.visibility === 'hidden') continue
+      // `inert` marca un subárbol que no recibe puntero ni foco.
+      if (el.closest('[inert]')) continue
       if (r.width < minimo || r.height < minimo) {
         malos.push(`${el.tagName.toLowerCase()}«${(el.textContent ?? '').trim().slice(0, 24)}» ${Math.round(r.width)}×${Math.round(r.height)}`)
       }
@@ -125,26 +140,90 @@ test('la landing no ensucia la consola con nada SUYO', async ({ page, baseURL })
    * producto; lo de fuera, no— y lo de fuera se **enumera** en el mensaje en vez
    * de desaparecer, para que un tercero caído se vea aunque no tumbe el caso.
    */
+  /**
+   * ── LA TERCERA CLASE: CANCELADA (el flake que tuvo main en rojo) ──────────
+   *
+   * Este caso salió rojo tres veces con catorce
+   * `/_next/static/chunks/*.js — net::ERR_ABORTED`, y en corridas sobre el MISMO
+   * commit que otras veces salía verde. Reproducido aquí con `--repeat-each`.
+   *
+   * Son PREFETCH que el propio navegador retira: el router de Next pide los
+   * trozos que quizá haga falta, la navegación termina y cancela los que ya no
+   * necesita. Que sobrevivan o no depende de cuándo `networkidle` da por quieta
+   * la red, y eso cambia con la carga de la máquina — de ahí la intermitencia.
+   *
+   * **No se filtra el texto**, que es justo lo que el comentario de arriba
+   * advierte que sería un error. Se clasifica por NATURALEZA, que es el mismo
+   * criterio que ya separaba propios de ajenos:
+   *
+   *   · una petición FALLIDA recibió un veredicto malo del servidor, o no pudo
+   *     llegar a él —404, 500, conexión rechazada—. Es un defecto.
+   *   · una petición CANCELADA no llegó a tener veredicto: el cliente la retiró.
+   *     No dice nada del producto, y por eso no puede tumbar el caso.
+   *
+   * Las canceladas **se enumeran en el mensaje**, igual que los terceros caídos:
+   * la regla de esta prueba es que nada desaparezca, no que nada falle.
+   *
+   * Lo que esto NO cubre: un componente que aborte sus propias peticiones por un
+   * defecto suyo saldría aquí como cancelada y no rompería el caso. Si la página
+   * se rompiera de verdad lo dirían los otros diez casos de este archivo —que la
+   * landing pinta, que el foco se ve, que los objetivos táctiles miden—, y
+   * ninguno de ésos es intermitente.
+   */
   const propios: string[] = []
   const ajenos: string[] = []
+  const canceladas: string[] = []
   const origen = new URL(baseURL ?? 'http://localhost:3000').origin
 
   page.on('pageerror', e => propios.push(`excepción sin capturar: ${e}`))
   page.on('requestfailed', r => {
-    const linea = `${r.url()} — ${r.failure()?.errorText ?? 'falló'}`
+    const motivo = r.failure()?.errorText ?? 'falló'
+    const linea = `${r.url()} — ${motivo}`
+    if (motivo === 'net::ERR_ABORTED') { canceladas.push(linea); return }
     ;(r.url().startsWith(origen) ? propios : ajenos).push(linea)
   })
   page.on('response', r => {
     if (r.status() >= 400 && r.url().startsWith(origen)) propios.push(`${r.url()} — HTTP ${r.status()}`)
   })
+  /**
+   * ── LA CUARTA CLASE: REPORTADA, NO BLOQUEADA ─────────────────────────────
+   *
+   * Al quitar el ruido de las canceladas apareció DEBAJO otro intermitente que
+   * aquéllas tapaban: una violación de CSP **report-only** al enmarcar el propio
+   * sitio. Chrome la escribe con nivel `error`, y su texto termina diciendo qué
+   * pasó de verdad:
+   *
+   *     «The violation has been logged, but no further action has been taken.»
+   *
+   * Una política report-only existe para OBSERVAR antes de aplicar: un informe
+   * suyo es su producto, no un fallo. Se enumera y no tumba el caso.
+   *
+   * **Una violación APLICADA sí sigue siendo un defecto** y sigue rompiendo esto:
+   * Chrome la escribe como «Refused to …», sin la palabra `report-only`, y ese
+   * texto no encaja aquí. La distinción es la del propio navegador, no una
+   * lista de frases nuestra.
+   *
+   * QUEDA UNA PREGUNTA ABIERTA, y se anota en vez de esconderse: algo está
+   * enmarcando la raíz del sitio, y `frame-src 'self'` no lo cubre porque la URL
+   * llega con el esquema elevado a https. Bajo una política APLICADA eso sería
+   * un `Refused to frame`. Averiguar quién enmarca y si hay que ampliar la
+   * directiva es trabajo de la unidad de CSP, no de esta prueba de teléfono.
+   */
+  const reportadas: string[] = []
   page.on('console', m => {
-    /* Un mensaje de consola no trae URL: sólo cuenta si no lo explica ya un
-       recurso ajeno que falló. */
-    if (m.type() === 'error' && ajenos.length === 0) propios.push(`consola: ${m.text()}`)
+    if (m.type() !== 'error' || ajenos.length > 0) return
+    const t = m.text()
+    if (/report-only Content Security Policy/i.test(t)) { reportadas.push(t); return }
+    propios.push(`consola: ${t}`)
   })
 
   await page.goto('/', { waitUntil: 'networkidle' })
-  expect(propios, `errores del propio producto (terceros caídos: ${ajenos.join(' · ') || 'ninguno'})`).toEqual([])
+  expect(
+    propios,
+    `errores del propio producto (terceros caídos: ${ajenos.join(' · ') || 'ninguno'}` +
+    ` · canceladas por el navegador: ${canceladas.length}` +
+    ` · violaciones report-only: ${reportadas.length})`,
+  ).toEqual([])
 })
 
 test('el foco se ve al recorrer con el teclado', async ({ page }) => {

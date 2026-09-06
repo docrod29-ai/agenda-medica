@@ -115,7 +115,15 @@ describe('RTC-29 — el índice dice para qué sirve cada cosa', () => {
     const cadencias = [...bloque.matchAll(/cadencia:\s*'([^']+)'/g)].length
     expect(titulos).toBeGreaterThan(3)
     expect(cadencias, 'hay grupos sin cadencia').toBe(titulos)
-    expect(OPS_LIMPIO).toContain('{g.cadencia}')
+    /**
+     * LA CONDICIÓN SIGUE AL CÓDIGO (4-sep-2026). Esto buscaba `{g.cadencia}`
+     * porque el grupo se pintaba dentro del `map` de la página, con `g` como
+     * nombre de la variable. Al aparecer el cajón de lo secundario el grupo se
+     * extrajo a `GrupoDeDestinos` para no tener dos JSX de la misma lista, y la
+     * variable pasó a llamarse `grupo`. Lo que se defiende es lo mismo: que la
+     * cadencia llegue a la pantalla, no que se quede declarada en el catálogo.
+     */
+    expect(OPS_LIMPIO).toMatch(/<CabeceraDeGrupo titulo=\{grupo\.titulo\} cadencia=\{grupo\.cadencia\} \/>/)
   })
 
   it('5 · sigue siendo un índice: ni primarios ni contadores inventados', () => {

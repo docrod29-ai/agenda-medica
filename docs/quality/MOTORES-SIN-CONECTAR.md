@@ -81,15 +81,29 @@ Decir «42 motores sin conectar» era inflar. Medido:
 - `src/lib/expediente/versioning.ts::obtenerVersion`
 - `src/lib/hospital/estados-cama.ts::coherenteConElTipo`
 - `src/lib/hospital/eventos.ts::validarCorreccion`
+- `src/lib/seguridad/clasificacion.ts::masGrave`
+- `src/lib/expediente/extraction-schema.ts::camposQueRequierenRevision`
 - `src/lib/hospital/firestore.ts::getInternamientosDePaciente`
 - `src/lib/uci/benchmark.ts::correrBenchmark`
-- `src/lib/asr/lo-que-pesa-de-un-error.ts::leerElMotor`
+- `src/lib/paciente/hay-que-escalar.ts::claseSegura`
 
-De esos nueve, **`validarCorreccion` está bloqueado en el dueño, no en el
-código**: exige una política como parámetro obligatorio y `POLITICA_CORRECCION`
-nace en `null` a propósito. Quién puede corregir, en qué ventana y si el motivo
-es obligatorio son decisiones de política de registro clínico con peso NOM-004.
-Está en `agent-state/OWNER_DECISIONS_REQUIRED.md`.
+**Aviso sobre estas dos últimas (4-sep-2026)**: al declararlas se escribieron
+primero como «huecos reales abiertos», y era **falso en las dos**. Se corrigió el
+mismo día, después de ir a mirar quién hace su trabajo hoy. Queda dicho porque el
+error iba en la dirección cara: una nota diciendo que las alertas de una receta
+podrían no aplicar la peor habría mandado a alguien a perseguir un defecto que no
+existe — o, peor, a desconfiar de una compuerta que sí funciona.
+
+De esos nueve, `validarCorreccion` **ya no está bloqueado en el dueño**: el
+4-sep-2026 decidió la política (D-026) y `POLITICA_CORRECCION` dejó de ser
+`null`. Lo que le falta ahora es otra cosa y se dice con su nombre: **no tiene
+llamador**. Falta el caso `corregir` en `api/hospital/mutar/route.ts` y la
+pantalla que lo dispare.
+
+Se rellenó la constante igualmente porque **la decisión es un dato real** y
+perderla costaría volver a molestar al dueño; lo que no se hizo es fingir que
+con eso ya se puede corregir. Es trabajo de **Hospital/UCI**, que está en ALPHA
+y no se vende, así que no compite con el consultorio.
 
 ## El barrido, cerrado: los cinco que quedan (REG-263)
 
@@ -99,7 +113,10 @@ los seis es un defecto**. Verificado uno a uno, leyendo el código:
 
 | Símbolo | Por qué no tiene llamador |
 |---|---|
-| `validarCorreccion` | **Bloqueado en el dueño.** Exige una política como parámetro obligatorio y `POLITICA_CORRECCION` nace en `null` a propósito |
+| `masGrave` | **Su comentario afirmaba un uso que no existe.** Decía «se usa para decidir qué conducta aplica a una receta entera: manda la peor de sus alertas» — y no tiene llamador. **Comprobado antes de asustarse**: `nom004.ts` recorre las alertas UNA A UNA y llama a `detiene()` en cada una, así que basta una que bloquee para que salga como error. La peor ya manda; esta función no hacía falta. **No es un hueco de seguridad**: el defecto era el comentario, y se corrigió |
+| `claseSegura` | **HUECO REAL Y ABIERTO, y esta vez sí lo es.** Convierte «no lo sé» en `ESCALATE_TO_CLINICIAN`, que es la clase 4 de las cinco del §2 de la regla de IA de cara al paciente. Está escrita, probada y **ningún camino la llama**: el webhook de WhatsApp usa las reglas NOMBRADAS del §3 y a propósito no baja al suelo de `claseSegura` —lo dice en su propio comentario—, así que hoy la escalación por defecto no ocurre. **Comprobado antes de declararlo**: se buscó llamador en `app/`, `components/`, `hooks/`, `lib/` y `scripts/`; no hay ninguno. No se arregla de paso: cablearla decide qué le pasa a una pregunta de paciente que el sistema no entiende, y eso es política clínica del dueño |
+| `camposQueRequierenRevision` | **Igual: el comentario prometía un consumidor que no llegó.** Deriva qué campos piden revisión y dice sustituir a una lista «que se le pedía al modelo y no leía nadie». Nunca se adoptó. **Comprobado**: `components/RevisionPanel.tsx` lee `needs_review` campo por campo y separa lo que hay que revisar de lo que no, así que **el dato sí llega** por otra ruta. Queda como huérfana honesta, con su comentario corregido |
+| `validarCorreccion` | **Decidida y sin cablear.** La política la decidió el dueño el 4-sep (D-026); falta el caso `corregir` en `api/hospital/mutar` y la pantalla. Hospital/UCI, en ALPHA |
 | `coherenteConElTipo` | Su comentario dice que se exporta «para que un caso del **golden** la ejecute», y el golden la ejecuta |
 | `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
 | `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
@@ -147,6 +164,8 @@ crezca.
 - `src/lib/hospital/eventos.ts::contarAdministracionesVigentes`
 - `src/lib/hospital/eventos.ts::serieSignosVigente`
 - `src/lib/hospital/eventos.ts::validarCorreccion`
+- `src/lib/seguridad/clasificacion.ts::masGrave`
+- `src/lib/expediente/extraction-schema.ts::camposQueRequierenRevision`
 - `src/lib/hospital/firestore.ts::getBandejaLab`
 - `src/lib/hospital/firestore.ts::suscribirUnidades`
 - `src/lib/seguridad/alergias.ts::negacionesEnTexto`

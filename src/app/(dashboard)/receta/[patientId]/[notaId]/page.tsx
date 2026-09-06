@@ -417,7 +417,7 @@ export default function GeneradorRecetaPage() {
   // Descarga un Word (.doc) editable — para el médico que prefiere ajustar
   // a su propio formato/membrete en lugar de la plantilla generada.
   const descargarWord = () => {
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'receta',
         folio,
@@ -457,6 +457,7 @@ export default function GeneradorRecetaPage() {
         filename: `Receta_${nombre}_${fechaCorta}`,
         anchoMm: host.widthMm,
         altoMm: host.heightMm,
+        onAvisoPapeleria: (m) => toast(m, 'error'),
       })
     } catch (e) {
       console.error('PDF error:', e)
@@ -900,7 +901,6 @@ export default function GeneradorRecetaPage() {
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
                   numPages={numPages}
-                  maxWidth={380}
                   maxHeight={600}
                 >
                   <RecetaDocumento
@@ -931,8 +931,24 @@ export default function GeneradorRecetaPage() {
         }
         @media (max-width: 1000px) {
           .receta-gen-grid {
-            grid-template-columns: 1fr !important;
+            /* minmax(0, 1fr) Y NO 1fr a secas, que es lo que decía antes.
+               Un track 1fr lleva min-width:auto implícito: no baja del ancho
+               MÍNIMO de su contenido. La columna del editor pide 380 px de
+               mínimo —la fila de un medicamento, con sus campos de dosis— así
+               que a 390 px el track se quedaba en 380 dentro de un contenedor de
+               358 y RECORTABA 6 px por la derecha a los 24 bloques de la
+               columna: los dos avisos de COFEPRIS, el de «saldrá sin firma», el
+               de la dosis que falta, y todos los campos. Sin barra de
+               desplazamiento, porque el documento no desborda: lo que sobra se
+               corta y ya.
+               La regla de ESCRITORIO ya se protege con minmax(0, 1fr) 420px;
+               este override la perdió al reescribir la rejilla en una sola
+               columna. Ver REG-441.
+               (Sin acentos graves en este comentario: vive dentro de una
+               plantilla de cadena y cerrarían el literal.) */
+            grid-template-columns: minmax(0, 1fr) !important;
           }
+        }
         }
         @media (max-width: 480px) {
           .receta-toolbar { flex-wrap: wrap; gap: 10px; }
@@ -976,9 +992,15 @@ function MedRow({
           aria-label="Dosis"
           style={inputStyle}
         />
+        {/* 30×44 medido a 390 px, y es el ÚNICO control DESTRUCTIVO de la fila:
+            quita un medicamento de una receta. Catorce píxeles de ancho de menos
+            en un botón que borra, pegado a los campos de dosis que se teclean con
+            el dedo. Sube a 44×44 — es el mínimo, no una preferencia. */}
         <button onClick={onEliminar} title="Quitar" aria-label="Quitar medicamento" style={{
           background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
           color: 'var(--red)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer',
+          minWidth: 44, minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
           <Trash2 size={12} />
         </button>
@@ -1024,8 +1046,18 @@ function MedRow({
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 4,
 }
+/**
+ * `minHeight: 44` — medido a 390 px: estos campos salían a **42**, dos por
+ * debajo del mínimo táctil que `design-system.md` pone entre los que tumban la
+ * compuerta. Entre ellos los DOS DE LA DOSIS.
+ *
+ * Dos píxeles no se ven y sí se notan: esto se teclea de pie, con el paciente
+ * delante, en la pantalla donde una cifra equivocada sale impresa con cédula
+ * profesional. Sube el alto, no el `fontSize`: la escala tipográfica está
+ * medida y la vigila el trinquete de diseño. Ver REG-441.
+ */
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', borderRadius: 6,
+  width: '100%', minHeight: 44, padding: '8px 10px', borderRadius: 6,
   border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text)',
   fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box',
 }

@@ -46,7 +46,7 @@
       "id": "TOR-E",
       "titulo": "el doble clic en Guardar no duplica la nota",
       "resultado": "OK",
-      "evidencia": "notas antes 16 → después 16"
+      "evidencia": "notas antes 4 → después 4"
     },
     {
       "id": "TOR-G",
@@ -70,7 +70,7 @@
       "id": "TOR-H3",
       "titulo": "en la BASE, lo del paciente 2 no está en el expediente del 1",
       "resultado": "OK",
-      "evidencia": "expediente 1: 16 notas · expediente 2: 1 notas"
+      "evidencia": "expediente 1: 4 notas · expediente 2: 1 notas"
     },
     {
       "id": "TOR-J",

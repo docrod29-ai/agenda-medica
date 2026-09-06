@@ -1,0 +1,68 @@
+[
+  {
+    "ruta": "/",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 9998,
+    "consola": []
+  },
+  {
+    "ruta": "/",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 6496,
+    "consola": []
+  },
+  {
+    "ruta": "/demo",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 5965,
+    "consola": []
+  },
+  {
+    "ruta": "/demo",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 3651,
+    "consola": []
+  },
+  {
+    "ruta": "/login",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 856,
+    "consola": []
+  },
+  {
+    "ruta": "/login",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/precios",
+    "ancho": 390,
+    "estado": "200",
+    "desborde": false,
+    "alto": 4525,
+    "consola": [
+      "%c%s%c (node:2183) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN\n(Use `node --trace-warnings ...` to sho"
+    ]
+  },
+  {
+    "ruta": "/precios",
+    "ancho": 1440,
+    "estado": "200",
+    "desborde": false,
+    "alto": 2343,
+    "consola": []
+  }
+]

@@ -254,7 +254,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
       open
       onClose={onClose}
       title={modoCortesia
-        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="#a855f7" /> No cobrar (cortesía)</span>
+        ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><HeartHandshake size={18} color="var(--purple)" /> No cobrar (cortesía)</span>
         : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><DollarSign size={18} color="var(--teal)" /> Registrar cobro</span>}
       footer={modoCortesia ? (
         <>
@@ -356,7 +356,7 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             {!monto.trim() && (
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
                 ¿Quieres que este monto se llene solo? Fija tus tarifas en{' '}
-                <a href="/configuracion?tab=portal" style={{ color: 'var(--teal)', fontWeight: 600, textDecoration: 'none' }}>
+                <a href="/configuracion?tab=portal" className="nx-enlace-en-texto" style={{ color: 'var(--teal)', fontWeight: 600 }}>
                   Configuración → Portal de auto-agenda
                 </a>.
               </div>
@@ -444,12 +444,13 @@ export function CobrarModal({ clinicId, creadoPor, prefill, onClose, onCobrado }
             <button
               type="button"
               onClick={() => setModoCortesia(true)}
+              className="nx-acc-tenido"
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: 'rgba(168,85,247,0.10)', border: '1px solid rgba(168,85,247,0.35)',
-                color: '#a855f7', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
+                borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', marginTop: 2,
-              }}
+                ['--nx-tinte' as unknown as string]: 'var(--purple)',
+              } as React.CSSProperties}
             >
               <HeartHandshake size={15} /> No cobrar a este paciente (cortesía)
             </button>

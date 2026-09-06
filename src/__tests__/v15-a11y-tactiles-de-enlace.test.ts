@@ -71,12 +71,28 @@ function bloqueCoarse(hoja: string): string {
   throw new Error('bloque coarse sin cerrar')
 }
 
-describe('V15-A11Y-001 · 6ª rebanada — táctiles de enlace (a.nx-ident y .nx-cta-aviso)', () => {
+describe('V15-A11Y-001 · 6ª rebanada — táctiles de enlace (a.nx-ident, .nx-cta-aviso y .nx-enlace-tactil)', () => {
   const coarse = bloqueCoarse(css)
 
-  it('1. el bloque de puntero grueso estira el golpe de los dos enlaces con un pseudo', () => {
-    expect(coarse).toMatch(/a\.nx-ident,\s*\.nx-cta-aviso\s*\{\s*position:\s*relative;\s*z-index:\s*1;?\s*\}/)
-    expect(coarse).toMatch(/a\.nx-ident::before,\s*\.nx-cta-aviso::before/)
+  it('1. el bloque de puntero grueso estira el golpe de estos enlaces con un pseudo', () => {
+    /**
+     * La lista de familias CRECIÓ, y eso es lo que esta prueba quería que
+     * pasara. Su propio «qué no cubre» decía: «un enlace nuevo con otra clase
+     * no está vigilado por esto». El carril de excelencia midió doce enlaces
+     * de acción por debajo de 44 px —entre ellos «Inicia sesión aquí →» de la
+     * portada y «Crea una gratis →» del login, a 18 px de alto— y los añadió
+     * al MISMO mecanismo como `.nx-enlace-tactil`.
+     *
+     * Se comprueba por familia y no con la lista literal: congelar el texto
+     * exacto del selector hacía fallar la prueba por añadir una familia, que
+     * es justo lo que hay que poder hacer sin romper nada.
+     */
+    for (const familia of ['a\\.nx-ident', '\\.nx-cta-aviso', '\\.nx-enlace-tactil']) {
+      expect(coarse, `${familia} sin position: relative`).toMatch(
+        new RegExp(`${familia}[^{]*\\{[^}]*position:\\s*relative`),
+      )
+      expect(coarse, `${familia} sin pseudo de golpe`).toMatch(new RegExp(`${familia}::before`))
+    }
   })
 
   it('2. el pseudo mide al menos 44px en los dos ejes, sesgado 2px hacia el pulgar', () => {

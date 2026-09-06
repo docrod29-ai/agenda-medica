@@ -84,18 +84,20 @@ export function Herramientas({ items, ocultas = [] }: {
               placeholder="Buscar herramienta…"
               style={{
                 background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8,
-                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190, outline: 'none',
+                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190,
               }}
             />
           ) : (
             <button type="button" onClick={() => setBuscando(true)} title="Buscar entre todas las herramientas"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
+              className="nx-acc-texto nx-acc-texto--tenue"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
               <Search size={13} /> Buscar
             </button>
           )}
           {q.trim() && (
             <button type="button" onClick={() => { setQ(''); setBuscando(false) }}
-              style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 11.5 }}>
+              className="nx-acc-texto nx-acc-texto--tenue"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5 }}>
               limpiar
             </button>
           )}
@@ -120,9 +122,11 @@ export function Herramientas({ items, ocultas = [] }: {
               type="button"
               onClick={() => { tocadoPorElUsuario.current = true; setAbierta(a => (a === h.id ? null : h.id)) }}
               aria-expanded={abierto}
+              className="nx-acc-plana"
+              data-abierto={abierto || undefined}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-                padding: '10px 13px', background: abierto ? 'var(--s2)' : 'none',
+                padding: '10px 13px',
                 border: 'none', cursor: 'pointer', textAlign: 'left',
               }}
             >
@@ -136,7 +140,7 @@ export function Herramientas({ items, ocultas = [] }: {
                 <span style={{
                   flexShrink: 0, fontSize: 10.5, fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--r-pill)',
                   background: h.aviso.urgente ? 'color-mix(in srgb, var(--red) 15%, transparent)' : 'var(--s2)',
-                  color: h.aviso.urgente ? '#f87171' : 'var(--text3)',
+                  color: h.aviso.urgente ? 'var(--red)' : 'var(--text3)',
                   border: h.aviso.urgente ? '1px solid color-mix(in srgb, var(--red) 30%, transparent)' : '1px solid var(--border)',
                 }}>{h.aviso.texto}</span>
               )}

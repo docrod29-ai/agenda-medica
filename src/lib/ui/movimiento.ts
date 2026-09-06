@@ -42,3 +42,19 @@ export function comportamientoScroll(): ScrollBehavior {
   if (typeof window === 'undefined' || !window.matchMedia) return 'auto'
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
+
+/**
+ * ¿El usuario ha pedido menos movimiento?
+ *
+ * Vive aquí, junto a `comportamientoScroll`, por la misma razón que existe ese:
+ * «acuérdate de consultar matchMedia» es la regla que se cumple en el primer
+ * sitio y se olvida en el sexto.
+ *
+ * Devuelve `true` sin ventana (SSR) sólo para el lado seguro de quien la use
+ * para DECIDIR SI ANIMAR: en el servidor no se anima nada, y lo que se pinte
+ * tiene que ser el estado final — nunca el estado oculto de una entrada.
+ */
+export function prefiereMenosMovimiento(): boolean {
+  if (typeof window === 'undefined' || !window.matchMedia) return true
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}

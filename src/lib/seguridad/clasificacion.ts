@@ -125,8 +125,19 @@ export function detiene(c: Clasificacion): boolean {
 /**
  * La más grave de un conjunto. `null` si no hay ninguna.
  *
- * Se usa para decidir qué conducta aplica a una receta entera: manda la peor de
- * sus alertas, no la última que se calculó.
+ * ── SIN LLAMADOR, Y EL COMENTARIO ANTERIOR MENTÍA (4-sep-2026) ──────────────
+ *
+ * Decía «se usa para decidir qué conducta aplica a una receta entera: manda la
+ * peor de sus alertas, no la última que se calculó». **No la usa nadie.**
+ *
+ * Y lo que prometía ya está resuelto por otro camino: `expediente/nom004.ts`
+ * recorre las alertas UNA A UNA y llama a `detiene()` en cada una, así que basta
+ * una que bloquee para que salga como error. La peor manda sin necesidad de
+ * calcularla aparte.
+ *
+ * Se deja escrita —es correcta y barata— pero **el comentario dice la verdad**:
+ * un comentario que afirma un uso inexistente es peor que la función huérfana,
+ * porque hace creer que la lógica vive aquí cuando vive en otro sitio.
  */
 export function masGrave(cs: readonly Clasificacion[]): Clasificacion | null {
   let peor: Clasificacion | null = null

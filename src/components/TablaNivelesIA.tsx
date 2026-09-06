@@ -17,8 +17,26 @@ import { Check } from 'lucide-react'
 const ORDEN: ClaveMotor[] = ['rapida', 'estandar', 'maxima']
 
 export function TablaNivelesIA({ compacto = false }: { compacto?: boolean }) {
+  // LA CAJA CON SCROLL SE ALCANZA CON EL TECLADO.
+  //
+  // `minWidth: 560` en la tabla hace que este contenedor tenga scroll propio
+  // por debajo de 560 px, y dentro no hay ningún control: con ratón o con dedo
+  // se lee la tabla entera y con teclado sólo la primera columna. axe lo midió
+  // sobre /precios servido —`scrollable-region-focusable`, grave, a 390 y a
+  // 768— y es WCAG 2.1.1.
+  //
+  // Es el mismo defecto que ya se arregló una vez en la portada, en otro
+  // elemento, y la razón por la que el guardián de fuente no lo cazó está
+  // escrita en su cabecera: aquí el scroll lo declara el COMPONENTE, no la
+  // página. Lo encontró axe sobre la página servida, que es a lo que esa nota
+  // se remitía.
   return (
-    <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+    <div
+      tabIndex={0}
+      role="region"
+      aria-label="Qué incluye cada nivel de inteligencia clínica"
+      style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}
+    >
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: compacto ? 12.5 : 13.5, minWidth: 560 }}>
         <thead>
           <tr>

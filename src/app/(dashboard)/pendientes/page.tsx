@@ -341,6 +341,15 @@ export default function PendientesPage() {
    * de lectura ya se distingue de una lista vacía dos líneas más abajo.
    */
   const [truncado, setTruncado] = useState(0)
+  /**
+   * `false` = el recorte de arriba NO se hizo por urgencia (P1-14).
+   *
+   * Se pinta porque un recorte hecho por el criterio equivocado, presentado como
+   * el bueno, es peor que un error: el médico deja de mirar creyendo que lo que
+   * falta es lo menos urgente, y es lo más nuevo. Sólo puede pasar mientras el
+   * índice de urgencia no esté construido en el proyecto vivo.
+   */
+  const [ordenadaPorUrgencia, setOrdenadaPorUrgencia] = useState(true)
   const [cancelando, setCancelando] = useState<TareaClinica | null>(null)
   /**
    * ── EL FORMULARIO DE CIERRE (REG-361) ───────────────────────────────────
@@ -455,7 +464,8 @@ export default function PendientesPage() {
     tareasVivas(clinicId)
       .then(w => {
         if (!vivo) return
-        setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0); setErrorCarga(''); setAhora(Date.now())
+        setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0)
+        setOrdenadaPorUrgencia(w.ordenadaPorUrgencia); setErrorCarga(''); setAhora(Date.now())
         /**
          * REG-540 · qué dice el calendario de los que se declararon agendados.
          *
@@ -651,6 +661,12 @@ export default function PendientesPage() {
           <span>
             Se están mostrando <strong>{truncado}</strong> pendientes y <strong>hay más</strong>.
             Esta lista <strong>no está completa</strong>: cierra los que puedas para volver a verla entera.
+            {ordenadaPorUrgencia ? (
+              <> Los que se ven son los <strong>más urgentes</strong>; lo que falta es menos urgente que esto.</>
+            ) : (
+              <> <strong>Y no se pudo ordenar por urgencia</strong>: lo que se ve son los pendientes
+                más <strong>antiguos</strong>, así que puede quedar fuera algo urgente de hoy.</>
+            )}
           </span>
         </div>
       )}

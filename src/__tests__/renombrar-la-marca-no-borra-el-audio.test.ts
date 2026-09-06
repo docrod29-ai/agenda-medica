@@ -44,7 +44,8 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { MARCA, NO_SE_RENOMBRAN } from '@/lib/marca'
+import { MARCA, NO_SE_RENOMBRAN, PREFIJO_VERSION } from '@/lib/marca'
+import { FORMATO_V1, FORMATO_V2, FORMATOS_LEGIBLES } from '@/lib/durability/manifiesto'
 
 const RAIZ = process.cwd()
 const leer = (p: string) => readFileSync(join(RAIZ, p), 'utf8')
@@ -100,19 +101,71 @@ describe('y NO cambió donde la máquina la busca', () => {
 
   it('los formatos de archivo ya emitidos siguen llamándose igual', () => {
     expect(leer('src/lib/expediente/exportacion.ts')).toContain('nexusmed-expediente-1')
-    expect(leer('src/app/api/clinic/exportar/route.ts')).toContain('nexusmed-respaldo-1')
+    /**
+     * ── EL FORMATO SUBIÓ A v2 Y EL PREFIJO NO SE TOCA (#312) ──────────────
+     *
+     * La ruta ya no lleva el literal: la cabecera y el pie los arma
+     * `durability/manifiesto.ts`, porque el pie pasó a llevar el recuento por
+     * colección y la huella del conjunto. Lo que este guardián congela sigue
+     * siendo lo mismo: que el nombre del formato NO se renombre con la marca.
+     * Y v1 tiene que seguir siendo LEGIBLE — los archivos que los médicos ya
+     * descargaron no se invalidan porque cambiemos de nombre comercial.
+     */
+    expect(FORMATO_V1).toBe('nexusmed-respaldo-1')
+    expect(FORMATO_V2).toBe('nexusmed-respaldo-2')
+    expect(FORMATOS_LEGIBLES).toContain(FORMATO_V1)
+    expect(leer('src/app/api/clinic/exportar/route.ts')).toContain('cabeceraV2(')
   })
 
   it('la preferencia de tema no se pierde', () => {
-    // La llave vive en el hook compartido desde RTC-05 (antes en ThemeToggle);
-    // lo vigilado es el NOMBRE de la llave, no su casa.
-    expect(leer('src/hooks/useTema.ts')).toContain("'nexusmed.theme'")
-    expect(leer('src/app/layout.tsx')).toContain("'nexusmed.theme'")
+    /**
+     * Lo vigilado es el NOMBRE de la llave, no su casa. La casa ha cambiado
+     * dos veces: de `ThemeToggle` al hook (RTC-05) y del hook a `@/lib/tema`
+     * —cuando se descubrió que el guion del `<head>` era un tercer lector con
+     * su propia tabla—. El nombre no ha cambiado nunca, y no puede.
+     */
+    expect(leer('src/lib/tema.ts')).toContain("'nexusmed.theme'")
+    // Y los dos lectores lo toman de ahí, en vez de teclearlo.
+    expect(leer('src/hooks/useTema.ts')).toContain('LLAVE_TEMA')
+    expect(leer('src/app/layout.tsx')).toContain('GUION_TEMA')
   })
 
   it('el sello de versión desplegada conserva su prefijo', () => {
     expect(leer('public/version.txt')).toMatch(/^nexusmed-v\d+/)
     expect(leer('public/sw.js')).toMatch(/const CACHE = 'nexusmed-v\d+'/)
+  })
+
+  /**
+   * EL LADO QUE FALTABA — «el dato tiene que LLEGAR».
+   *
+   * Los tres casos de arriba comprueban que quien ESCRIBE el sello conserva el
+   * prefijo. Ninguno miraba a quien lo LEE. Y el renombrado de marca cruzó la
+   * frontera justo por ahí: `ServiceWorkerRegister` pasó a buscar
+   * `/ausculta-v(\d+)/` sobre un texto que dice `nexusmed-v1174`.
+   *
+   * `match()` devolvía `null` en los dos lados de la comparación, la guarda
+   * `if (!servidor || !local ...)` devolvía, y la purga de caché desfasada
+   * —la que existe para el «no me abre nada y va lentísimo» tras un
+   * despliegue— no corría nunca. Sin error, sin aviso y con la suite entera en
+   * verde: los guardianes miraban el emisor.
+   */
+  it('y quien LEE el sello busca ese mismo prefijo', () => {
+    const lector = leer('src/components/ServiceWorkerRegister.tsx')
+    expect(
+      lector,
+      'el lector del sello se desfasó del escritor: la purga de versión vieja no corre',
+    ).not.toMatch(/ausculta-v/i)
+    // Y no lo repite a mano: lo toma de la única fuente.
+    expect(lector).toContain('PREFIJO_VERSION')
+    expect(PREFIJO_VERSION).toBe('nexusmed-v')
+  })
+
+  it('el prefijo que se lee CASA con el que hay escrito hoy', () => {
+    // Probado al revés: no basta con que las dos cadenas sean iguales, tiene
+    // que casar contra el archivo real que sirve el sitio.
+    const sello = new RegExp(`${PREFIJO_VERSION}(\\d+)`)
+    expect(leer('public/version.txt').match(sello)?.[1]).toMatch(/^\d+$/)
+    expect(leer('public/sw.js').match(sello)?.[1]).toMatch(/^\d+$/)
   })
 
   it('la frontera está declarada en el código, no sólo en un comentario', () => {

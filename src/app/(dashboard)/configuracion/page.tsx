@@ -329,10 +329,22 @@ export default function ConfiguracionPage() {
   const TABS = TAB_GROUPS.flatMap(g => g.tabs.filter(t => !t.modoMin || mode === t.modoMin))
 
   if (loading) {
+    /*
+      LA PANTALLA NO PIERDE SU NOMBRE MIENTRAS CARGA.
+
+      Antes, `<main>` entero era un renglón en la esquina: 23 caracteres, sin
+      título y sin estructura — medido con la red lenta. El médico pulsaba
+      «Configuración» y se quedaba mirando un lienzo vacío sin saber si había
+      llegado. La cabecera es lo único que ya se sabe sin datos, así que se
+      queda; el contenido espera debajo.
+    */
     return (
-      <div role="status" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
-        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="nx-canvas">
+        <h1 className="t-h1" style={{ margin: '0 0 20px' }}>Configuración</h1>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text3)' }}>
+          <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} aria-hidden="true" /> Cargando configuración…
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
       </div>
     )
   }
@@ -1474,9 +1486,25 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
             Copiar
           </button>
         </p>
+        {/*
+          * REG-508 — aquí se imprimía un token literal como si fuera EL valor a
+          * teclear en Meta. No lo era: el servidor sólo acepta lo que valga
+          * `WHATSAPP_WEBHOOK_TOKEN` (o su alias) en Vercel, y sin respaldo.
+          *
+          * Con la variable puesta a otra cosa —lo normal— seguir esta
+          * instrucción hacía que Meta NO verificara el webhook, sin decir por
+          * qué; y con la variable puesta a ese literal, el secreto compartido
+          * quedaba publicado en la propia pantalla. Ninguna de las dos salidas
+          * era buena.
+          *
+          * Ahora se nombra la variable y no se enseña ningún valor: un token de
+          * verificación es un secreto, y una pantalla no es donde se reparte.
+          */}
         <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
-          Token de verificación: <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>agenda-medica-bot</code>
-          &nbsp;(variable WHATSAPP_WEBHOOK_TOKEN en Vercel)
+          Token de verificación: el mismo valor que tengas en{' '}
+          <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>WHATSAPP_WEBHOOK_TOKEN</code>{' '}
+          en Vercel. Tiene que coincidir <strong>exactamente</strong> con el que teclees en Meta;
+          si no, la verificación del webhook se rechaza.
         </p>
       </div>
 
@@ -1500,7 +1528,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
             style={{
               width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
               borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text)',
-              outline: 'none', resize: 'vertical', lineHeight: 1.6,
+              resize: 'vertical', lineHeight: 1.6,
             }}
           />
         </div>
@@ -1598,7 +1626,7 @@ function MedicosTab() {
                   placeholder={f.placeholder}
                   style={{
                     width: '100%', background: 'var(--s2)', border: '1px solid var(--border)',
-                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none',
+                    borderRadius: 8, padding: '9px 12px', fontSize: 13, color: 'var(--text)',
                   }}
                 />
               </div>

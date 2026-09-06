@@ -50,14 +50,49 @@ const CLAVE = 'demo1234'
 const CLINICA = 'consultorio-demo-v10'
 
 // ── Fechas: hoy, a las horas del consultorio ────────────────────────────────
+/**
+ * «HOY» ES EL DEL CONSULTORIO, NO EL DEL CONTENEDOR.
+ *
+ * Esto usaba `new Date().getDate()`, que es la fecha LOCAL DEL PROCESO. En esta
+ * caja el proceso corre en UTC y el consultorio está en `America/Mexico_City`
+ * (UTC-6): entre las 18:00 y la medianoche de México, el contenedor ya está en
+ * el día siguiente.
+ *
+ * Consecuencia real, vista en una auditoría visual: la siembra ponía las cinco
+ * citas en el día 30 mientras la aplicación —que sí usa la zona del
+ * consultorio— decía que hoy era el 29. La agenda del día salía VACÍA y el
+ * marcador de «hoy» señalaba una columna sin nada. Nada de eso era un defecto
+ * del producto; era el arnés sembrando en el día equivocado.
+ *
+ * Es el mismo error que `lib/timezone.ts` lleva años impidiendo dentro del
+ * producto, cometido en la herramienta que lo audita.
+ */
+const TZ_CONSULTORIO = 'America/Mexico_City'
+const enZona = (d) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ_CONSULTORIO, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d)
+
 const hoy = new Date()
 const iso = (d) => d.toISOString()
-const dia = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
+const dia = enZona(hoy)
 const enDias = (n) => {
   const d = new Date(hoy)
-  d.setDate(d.getDate() + n)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  d.setUTCDate(d.getUTCDate() + n)
+  return enZona(d)
 }
+/**
+ * Marca de tiempo COMPLETA a n días de hoy — no una fecha suelta.
+ *
+ * `enDias` devuelve «2026-09-02», que es lo que quiere una cita (vive en un día
+ * del calendario del consultorio). Una tarea clínica no: `venceEn` y `creadaEn`
+ * los escribe el producto con `toISOString()`, y `estaVencida` los compara
+ * contra `Date.now()`. Sembrar la fecha suelta las fijaría en medianoche UTC, o
+ * sea SIEMPRE en el pasado — una tarea que vence hoy se pintaría «venció» en
+ * rojo y se colaría en el grupo de escalar. El arnés enseñaría más urgencia de
+ * la que hay.
+ */
+const isoEnDias = (n) => new Date(hoy.getTime() + n * 86_400_000).toISOString()
 
 /**
  * Los pacientes. Cada uno existe para forzar un caso, no para rellenar.
@@ -117,6 +152,15 @@ const PACIENTES = [
     alergias: '',
     seguroMedico: '',
     notas: 'Pediátrico. Peso 18.4 kg.',
+    /**
+     * HISTORIAL DE INASISTENCIA — para que el aviso de riesgo de no-show se
+     * pueda VER. Sin esto, `calcularRiesgoNoShow` nunca pasa de «bajo» y la
+     * insignia de riesgo no se pinta nunca: el código estaba escrito y la
+     * pantalla que lo enseña no se podía auditar. Misma familia que los cobros
+     * de la unidad 31 — el arnés tiene que poder producir el caso.
+     */
+    noShowCount: 3,
+    cancelacionCount: 2,
   },
 ]
 
@@ -125,14 +169,79 @@ const PACIENTES = [
  * justo lo que V10 §15 pide moderar: si todas las citas están confirmadas, la
  * pantalla se ve tranquila por accidente y no por diseño.
  */
+/**
+ * LOS ESTADOS SON DEL TIPO, NO INVENTADOS.
+ *
+ * Aquí se sembraba `programada`, que NO es miembro de `AppointmentStatus`. El
+ * producto no la conoce, así que `APPOINTMENT_STATUS_CONFIG['programada']` es
+ * `undefined`: la insignia no se pintaba y la rejilla la caía por el `else`
+ * («el resto → sólido»), es decir, la pintaba como si estuviera CONFIRMADA.
+ *
+ * El daño no era del producto sino de esta siembra: hacía que una auditoría
+ * visual concluyera «confirmada y pendiente se ven igual» cuando lo que pasaba
+ * es que el arnés estaba inventando un estado. Misma familia que el `urgencia`
+ * por `urgente` de la unidad 16 — un dato de prueba fuera del vocabulario hace
+ * mentir a la pantalla que se está auditando.
+ *
+ * `pendiente-confirmar` es el estado real de una cita que aún no confirma el
+ * paciente, y es el que de verdad llena la agenda de un consultorio.
+ */
 const CITAS = [
   { id: 'cita-001', pac: 'pac-001', hora: '09:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control de glucosa y revisión de función renal' },
-  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
+  { id: 'cita-002', pac: 'pac-004', hora: '09:45', dur: 45, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Disnea de medianos esfuerzos desde hace tres semanas' },
   { id: 'cita-003', pac: 'pac-002', hora: '11:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Resultados de laboratorio' },
-  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'programada', conf: false, motivo: 'Fiebre de tres días' },
+  { id: 'cita-004', pac: 'pac-005', hora: '12:00', dur: 30, tipo: 'Primera vez', estado: 'pendiente-confirmar', conf: false, motivo: 'Fiebre de tres días' },
+  /**
+   * Dos casos que EXISTEN en el código y no se podían ver en pantalla:
+   * la cita de cortesía (con su motivo) y la descuadrada con Google Calendar.
+   * Sin sembrarlas, sus avisos no se pintan nunca y no hay forma de auditarlos.
+   */
+  { id: 'cita-008', pac: 'pac-002', hora: '16:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Revisión de control', exento: 'Familiar del personal' },
+  { id: 'cita-009', pac: 'pac-003', hora: '17:00', dur: 30, tipo: 'Seguimiento', estado: 'confirmada', conf: true, motivo: 'Control posoperatorio', syncRoto: true },
+  /**
+   * ATENDIDA Y SIN COBRAR — el único estado en el que aparece el botón de
+   * «Cobrar». Sin ella, el camino del dinero no se puede recorrer en el arnés:
+   * el botón no existe, así que no hay nada que auditar. Cuarta vez en esta
+   * vuelta que la siembra era lo que impedía ver una pantalla.
+   */
+  { id: 'cita-010', pac: 'pac-001', hora: '08:00', dur: 30, tipo: 'Seguimiento', estado: 'atendida', conf: true, motivo: 'Control de presión' },
   { id: 'cita-005', pac: 'pac-003', hora: '13:00', dur: 30, tipo: 'Seguimiento', estado: 'cancelada', conf: false, motivo: 'Control prenatal' },
-  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
-  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'programada', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+  { id: 'cita-006', pac: 'pac-001', hora: '10:30', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Ajuste de metformina', dia: enDias(1) },
+  { id: 'cita-007', pac: 'pac-002', hora: '17:15', dur: 30, tipo: 'Seguimiento', estado: 'pendiente-confirmar', conf: false, motivo: 'Revisión de presión arterial', dia: enDias(3) },
+]
+
+/**
+ * COBROS — para que `/finanzas` se pueda AUDITAR.
+ *
+ * Sin esto la pantalla salía entera a `$0.00`: seis tarjetas de estadística en
+ * cero, una gráfica vacía y una tabla sin filas. Auditar eso y concluir «se ve
+ * plana» no dice nada — es la misma trampa que el día sin citas de la unidad
+ * 23: **una pantalla vacía puntúa distinto sin ser distinta**, y encima esconde
+ * justo los defectos que sólo aparecen con datos (alineación de cifras,
+ * truncado de nombres largos, la gráfica con una barra que se sale).
+ *
+ * Se siembra un mes con forma REAL, no un relleno bonito:
+ *  · varios métodos de pago, para que la partición signifique algo;
+ *  · un reembolso (monto negativo), que es el caso que rompe los promedios;
+ *  · un cobro de cuatro cifras junto a otros de dos, para ver si las columnas
+ *    numéricas se alinean;
+ *  · el paciente del nombre más largo, que es quien desborda la tabla;
+ *  · días con varios cobros y días sin ninguno, para que la gráfica tenga
+ *    relieve en vez de una meseta.
+ */
+const COBROS = [
+  { d: 0,  monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: 0,  monto: 900,  metodo: 'transferencia',   concepto: 'consulta',      pac: 'pac-002', desc: 'Consulta de seguimiento' },
+  { d: -1, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',      pac: 'pac-004', desc: 'Primera vez' },
+  { d: -1, monto: 350,  metodo: 'efectivo',        concepto: 'estudio',       pac: 'pac-004', desc: 'Electrocardiograma' },
+  { d: -3, monto: 12500, metodo: 'transferencia',  concepto: 'procedimiento', pac: 'pac-003', desc: 'Procedimiento programado' },
+  { d: -4, monto: 900,  metodo: 'tarjeta_debito',  concepto: 'teleconsulta',  pac: 'pac-005', desc: 'Teleconsulta' },
+  { d: -6, monto: 1200, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-001', desc: 'Consulta de seguimiento' },
+  { d: -7, monto: -900, metodo: 'transferencia',   concepto: 'reembolso',     pac: 'pac-002', desc: 'Reembolso por cita cancelada' },
+  { d: -9, monto: 450,  metodo: 'efectivo',        concepto: 'medicamento',   pac: 'pac-001', desc: 'Metformina 850 mg' },
+  { d: -12, monto: 1800, metodo: 'tarjeta_credito', concepto: 'consulta',     pac: 'pac-003', desc: 'Primera vez' },
+  { d: -15, monto: 900, metodo: 'efectivo',        concepto: 'consulta',      pac: 'pac-005', desc: 'Consulta de seguimiento' },
+  { d: -18, monto: 2400, metodo: 'transferencia',  concepto: 'paquete',       pac: 'pac-004', desc: 'Paquete de control anual' },
 ]
 
 // ── Traductor a la representación tipada de Firestore ───────────────────────
@@ -304,6 +413,35 @@ async function main() {
     horaFin: '19:00',
   })
 
+  /**
+   * `ultimaCita` SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
+   *
+   * La siembra escribía `noShowCount` y `cancelacionCount` —lo que dejaría una
+   * transición a «no asistió»— y NO escribía `ultimaCita`, que es lo que deja
+   * una transición a «atendida». Incoherente consigo misma, y con una
+   * consecuencia que engaña: `/pacientes` abre en «Recientes», «Recientes»
+   * filtra por `ultimaCita`, y el arnés enseñaba la pantalla VACÍA —«Ninguno
+   * tiene citas recientes. Hay 5 expedientes en total»— con ocho citas hoy y
+   * una de ellas atendida.
+   *
+   * Eso es peor que una siembra pobre: hace que una pantalla sana parezca rota.
+   * El guion ya avisa arriba de que «una siembra bonita produce una auditoría
+   * visual mentirosa»; ésta mentía en la otra dirección, y se tarda lo mismo en
+   * perseguir un defecto que no existe.
+   *
+   * Se deriva con la MISMA regla del producto —`esAtencionEfectiva` en
+   * `src/lib/agenda/contadores-paciente.ts`— y no con una fecha inventada, para
+   * que la siembra no pueda separarse de la regla sin que un guardián lo vea.
+   */
+  const ESTADOS_QUE_CUENTAN_COMO_ATENCION = ['atendida', 'finalizada', 'pagada']
+  const ultimaCitaDe = new Map()
+  for (const c of CITAS) {
+    if (!ESTADOS_QUE_CUENTAN_COMO_ATENCION.includes(c.estado)) continue
+    const fecha = c.dia || dia
+    const previa = ultimaCitaDe.get(c.pac)
+    if (!previa || fecha > previa) ultimaCitaDe.set(c.pac, fecha)
+  }
+
   // ── Pacientes ─────────────────────────────────────────────────────────────
   for (const p of PACIENTES) {
     await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
@@ -314,10 +452,179 @@ async function main() {
       alergias: p.alergias,
       seguroMedico: p.seguroMedico,
       notas: p.notas,
+      noShowCount: p.noShowCount ?? 0,
+      cancelacionCount: p.cancelacionCount ?? 0,
+      // Ausente cuando el paciente no tiene ninguna cita atendida: ausencia de
+      // dato no es dato de ausencia, tampoco en la siembra.
+      ...(ultimaCitaDe.has(p.id) ? { ultimaCita: ultimaCitaDe.get(p.id) } : {}),
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
   }
+
+  /**
+   * UN PAQUETE DE VISITA LIBERADO — para que la cara CLÍNICA del portal exista.
+   *
+   * El portal del paciente tiene dos caras: con el enlace de mostrador
+   * (`agenda`) enseña un muro donde con el clínico enseña el plan y las recetas.
+   * Sin un paquete liberado, esa segunda cara se pinta VACÍA y el arnés la mide
+   * en cero — un cero real que no vigila nada, porque no hay nada que vigilar.
+   *
+   * Se sembró a mano la primera vez y quedó declarado como riesgo: una caja
+   * recién sembrada habría vuelto a medir la cara clínica vacía SIN AVISAR. Por
+   * eso vive aquí, donde no se puede olvidar.
+   *
+   * Las TRES condiciones de `visibleParaElPaciente` —RELEASED, approvedBy y
+   * approvedAt— van puestas a propósito: un paquete DRAFT no es visible para el
+   * paciente, y sembrar uno así mediría otra vez la pantalla vacía. Es la regla
+   * «DRAFT hasta que el médico apruebe» de `.claude/rules/patient-facing-ai.md`.
+   *
+   * Todo sintético, como el resto del sembrado. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/paquetes_visita/paq-demo-001`, {
+    estado: 'RELEASED',
+    approvedBy: 'medico-demo-sintetico',
+    approvedAt: Date.now(),
+    version: 1,
+    fechaConsulta: iso(hoy).slice(0, 10),
+    encounterSummary: 'Control de presión arterial. Cifras dentro de lo esperado para el plan actual.',
+    medicationInstructions: [
+      { nombre: 'Medicamento sintético A', instruccion: 'Una toma por la mañana, con alimento.' },
+    ],
+    medicationChanges: [
+      { nombre: 'Medicamento sintético A', tipo: 'sin-cambio' },
+    ],
+    orders: ['Estudio de laboratorio de control'],
+    followUp: 'Cita de seguimiento en cuatro semanas.',
+    warningSigns: ['Dolor de cabeza intenso que no cede', 'Visión borrosa'],
+    alergias: 'Penicilina (anafilaxia), sulfas, AINEs',
+    prescriptor: {
+      nombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: '00000000',
+      especialidad: 'Medicina Interna',
+    },
+    clinicianContactRules: 'Si algo de esto empeora, comunícate con el consultorio antes de la cita.',
+  })
+
+  /**
+   * UNA NOTA FIRMADA CON RECETA — para que «Documentos» del portal no esté vacío.
+   *
+   * `action:'documentos'` no devuelve `medicamentos` en crudo: los cruza por
+   * `medicamentosDeLaReceta`, que separa cinco cosas que no son lo mismo —lo que
+   * el paciente REFIRIÓ que toma, lo que la IA extrajo sin confirmar, lo
+   * suspendido, lo vencido, y lo que el médico INDICÓ—. Sólo lo último baja al
+   * papel.
+   *
+   * Por eso este medicamento lleva `procedenciaClinica: 'se_prescribe_hoy'` y
+   * `estado: 'activa'`: son las DOS condiciones que ese filtro exige. Sembrar
+   * uno con `ya_lo_toma` o en `borrador` dejaría «Documentos» vacío igual, y el
+   * arnés volvería a medir un cero que no vigila nada.
+   *
+   * La nota va `firmada` porque la ruta filtra por `estado == 'firmada'`: una
+   * nota sin firmar no es una receta y no debe llegarle al paciente.
+   *
+   * Medicamento sintético, sin dosis real: lo que se vigila aquí es que la
+   * pantalla se comporte, no lo que dice. Cero pacientes reales.
+   */
+  await escribir(`clinics/${CLINICA}/patients/pac-001/notas/nota-demo-001`, {
+    id: 'nota-demo-001',
+    clinicId: CLINICA,
+    pacienteId: 'pac-001',
+    pacienteNombre: PACIENTES.find(x => x.id === 'pac-001').nombre,
+    tipo: 'seguimiento',
+    estado: 'firmada',
+    fechaConsulta: iso(hoy).slice(0, 10),
+    firmadaEn: iso(hoy),
+    medicoNombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+    /*
+     * LA PRIMERA VERSIÓN DE ESTE SEMBRADO NO TRAÍA `metadata` NI `secciones`.
+     *
+     * Y pasó desapercibido porque el ÚNICO lector que se miró fue la ruta del
+     * portal, que sólo lee `estado` y `medicamentos`. El visor medicolegal
+     * —`/nota/[patientId]/[notaId]`, el sitio donde el médico LEE el documento—
+     * hace `nota.metadata.establecimiento` sin guarda y `nota.secciones.filter`,
+     * así que reventaba entero: «Algo salió mal», con un «Reintentar» que no
+     * puede arreglar un fallo determinista de render.
+     *
+     * Es «el dato tiene que LLEGAR» en su forma más literal: el que escribe lo
+     * aceptó, Firestore lo aceptó, un lector lo aceptó — y el lector que
+     * importaba no podía pintarlo. Un sembrador en `.mjs` no pasa por `tsc`, así
+     * que `NotaMedica` decía «obligatorio» y nadie lo comprobaba.
+     *
+     * Ahora se siembra contra el TIPO, no contra el lector que se tenía a mano.
+     */
+    metadata: {
+      id: 'nota-demo-001',
+      tipoNota: 'seguimiento',
+      clinicId: CLINICA,
+      pacienteId: 'pac-001',
+      medicoId: uid,
+      // Sintéticas y marcadas como tales: ni cédula ni establecimiento reales.
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      establecimiento: 'Consultorio sintético de medición',
+      fechaCreacion: iso(hoy),
+      fechaModificacion: iso(hoy),
+      /*
+       * SELLO VACÍO A PROPÓSITO. El visor distingue cuatro estados de integridad
+       * y `''` cae en `sin-sello`, que es la verdad: esta nota no se firmó por el
+       * producto, se escribió a mano en el emulador. Inventar un SHA-256 la
+       * pintaría de ROJO —«pudo haber sido alterada»— y el arnés estaría midiendo
+       * una alarma falsa que yo mismo fabriqué.
+       */
+      hashIntegridad: '',
+      version: 1,
+      estado: 'firmada',
+      fuenteGeneracion: 'manual',
+    },
+    /*
+     * Y LA FIRMA, que es lo que hace que sea un documento y no un borrador.
+     *
+     * `estado: 'firmada'` a solas no basta: el pie del documento pregunta por
+     * `nota.estado === 'firmada' && nota.firma`, así que sin este bloque la nota
+     * salía sellada arriba y estampada BORRADOR abajo — un documento que se
+     * contradice a sí mismo, y encima el estado que hace falta para la ADENDA,
+     * que es corrección de nota FIRMADA.
+     *
+     * `hashFirma` va vacío por lo mismo que `hashIntegridad`: no se inventa un
+     * sello. Sin él la pantalla dice `sin-sello`, que es la verdad.
+     */
+    firma: {
+      nombreMedico: 'Dra. Ximena Alcántara Robledo (sintética)',
+      cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)',
+      timestamp: iso(hoy),
+      hashFirma: '',
+    },
+    /*
+     * Texto sintético y SIN UNA SOLA CIFRA CLÍNICA: aquí se vigila que la
+     * pantalla se comporte, no lo que dice. `clinical-safety.md` §1 — una dosis
+     * o un umbral inventados en un fixture acaban citándose como si fueran algo.
+     */
+    secciones: [
+      { key: 'subjetivo', label: 'Subjetivo', value: 'Contenido sintético de medición. No corresponde a ninguna persona.' },
+      { key: 'objetivo', label: 'Objetivo', value: 'Contenido sintético de medición.' },
+      { key: 'analisis', label: 'Análisis', value: 'Contenido sintético de medición.' },
+      { key: 'plan', label: 'Plan', value: 'Contenido sintético de medición.' },
+    ],
+    medicamentos: [
+      {
+        nombre: 'Medicamento sintético A',
+        procedenciaClinica: 'se_prescribe_hoy',
+        estado: 'activa',
+        indicacion: 'Una toma por la mañana, con alimento.',
+      },
+      {
+        // Referido por el paciente: NO debe bajar a la receta. Está aquí a
+        // propósito, para que el sembrado ejercite la frontera y no sólo el
+        // camino feliz.
+        nombre: 'Medicamento sintético B',
+        procedenciaClinica: 'ya_lo_toma',
+        estado: 'activa',
+        indicacion: 'Lo tomaba desde antes de esta consulta.',
+      },
+    ],
+  })
 
   // ── Agenda ────────────────────────────────────────────────────────────────
   for (const c of CITAS) {
@@ -338,6 +645,29 @@ async function main() {
       recordatorio24hEnviado: false,
       recordatorioMismoDiaEnviado: false,
       consentimientoMensajes: true,
+      ...(c.exento ? { cobroExento: true, exentoMotivo: c.exento } : {}),
+      ...(c.syncRoto ? { googleCalendarEventId: 'evt-sintetico-001', googleCalendarSyncStatus: 'error' } : {}),
+      createdAt: iso(hoy),
+      updatedAt: iso(hoy),
+    })
+  }
+
+  // ── Cobros ────────────────────────────────────────────────────────────────
+  for (const [i, c] of COBROS.entries()) {
+    const p = PACIENTES.find(x => x.id === c.pac)
+    const diaCobro = enDias(c.d)
+    await escribir(`clinics/${CLINICA}/cobros/cobro-${String(i + 1).padStart(3, '0')}`, {
+      fecha: `${diaCobro}T12:00:00.000Z`,
+      dia: diaCobro,
+      mes: diaCobro.slice(0, 7),
+      monto: c.monto,
+      metodo: c.metodo,
+      concepto: c.concepto,
+      descripcion: c.desc,
+      patientId: c.pac,
+      patientNombre: p.nombre,
+      medicoId: uid,
+      medicoNombre: 'Dra. Ximena Alcántara Robledo',
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })
@@ -353,6 +683,129 @@ async function main() {
    * queda escrita con esa palabra dentro, que es exactamente el fallo mudo que
    * hizo que las siete primeras capturas fueran siete fotos del mismo modal.
    */
+  /**
+   * ── PENDIENTES CLÍNICOS ─────────────────────────────────────────────────
+   *
+   * `/pendientes` es la pantalla de trabajo del médico y **no se podía juzgar**:
+   * la siembra no escribía ni una tarea, así que salía siempre en su estado
+   * vacío. Un arnés que sólo sabe pintar el caso feliz no sirve para auditar la
+   * pantalla que existe para los cabos sueltos.
+   *
+   * `pesoUrgencia` SE DERIVA, no se escribe a mano. El modelo dice que «lo
+   * escribe `crearTareas` —la única puerta— y nadie se lo pasa desde fuera», y
+   * sembrar directo a Firestore se salta esa puerta: sin el peso, el worklist no
+   * puede ordenarse por urgencia y lo crítico deja de ir primero. Es la misma
+   * lección que REG-440, donde la siembra escribía los contadores de un no-show
+   * y no la `ultimaCita` que deja una cita atendida.
+   *
+   * La escalera se copia del producto y un guardián comprueba que las dos
+   * coincidan: `ESCALERA_DE_URGENCIA` en `lib/tareas-clinicas/modelo.ts`.
+   */
+  const ESCALERA_DE_URGENCIA = { critica: 0, alta: 10, normal: 20 }
+  const pesoDeUrgencia = (prioridad) => ESCALERA_DE_URGENCIA[prioridad] ?? 99
+
+  /**
+   * Los casos DUROS, que son los que rompen la pantalla — no tres pendientes
+   * cómodos. V10 §39: si el caso difícil no está sembrado, la auditoría visual
+   * miente por omisión.
+   */
+  /**
+   * Los casos DUROS, y uno por CADA grupo de la pantalla.
+   *
+   * `/pendientes` agrupa por estado de acción (`estado-de-accion.ts`): vencidos,
+   * necesita revisión, esperando resultado, necesita agendar, esperando al
+   * paciente, otros — más «cerrados recientemente», que es una lectura aparte.
+   * Sembrar tres pendientes cómodos dejaría cuatro de esos grupos sin pintar, y
+   * un grupo que no se pinta no se puede juzgar: la auditoría visual mentiría
+   * por omisión y diría que la pantalla está bien porque lo poco que enseñó
+   * estaba bien.
+   *
+   * `naceHace` y `vence` van en días respecto de ahora. Las edades son
+   * distintas a propósito: dentro de un mismo grupo el worklist pone lo más
+   * viejo arriba (`ordenWorklist`), y con todas nacidas el mismo día ese orden
+   * no se vería.
+   */
+  const TAREAS = [
+    {
+      id: 'tarea-001', pac: 'pac-001', tipo: 'resultado_por_revisar',
+      titulo: 'Potasio 6.2 mEq/L — resultado crítico sin revisar',
+      detalle: 'Química sanguínea de hoy. Valor fuera del rango de referencia del laboratorio.',
+      prioridad: 'critica', estado: 'solicitada',
+      /* SIN DUEÑO a propósito: es la consulta de primera clase del modelo
+         —«son las que se pierden»—, y escala por prioridad SIN estar vencida,
+         que es el motivo de escalación que el otro caso no enseña. */
+      dueno: null, naceHace: 0, vence: 1,
+    },
+    {
+      id: 'tarea-002', pac: 'pac-004', tipo: 'estudio_pendiente',
+      titulo: 'Radiografía de tórax — pedida hace seis días',
+      detalle: 'Disnea de medianos esfuerzos. No ha llegado el resultado.',
+      /* El paciente del nombre más largo, en la fila más cargada de la pantalla:
+         una fila de vencido lleva además la píldora roja y el motivo. */
+      prioridad: 'alta', estado: 'aceptada', dueno: 'medica', naceHace: 6, vence: -2,
+    },
+    {
+      id: 'tarea-003', pac: 'pac-002', tipo: 'seguimiento',
+      titulo: 'Control en dos semanas tras ajuste de dosis',
+      prioridad: 'normal', estado: 'agendada', dueno: 'medica', naceHace: 5, vence: 9,
+    },
+    {
+      id: 'tarea-004', pac: 'pac-005', tipo: 'receta_por_entregar',
+      titulo: 'Receta sin entregar al paciente',
+      detalle: 'Se cierra cuando el paciente la tiene.',
+      prioridad: 'normal', estado: 'solicitada', dueno: null, naceHace: 2, vence: 3,
+    },
+    {
+      id: 'tarea-005', pac: 'pac-003', tipo: 'seguimiento',
+      titulo: 'Revaloración tras el cambio de antihipertensivo',
+      prioridad: 'alta', estado: 'solicitada', dueno: null, naceHace: 3, vence: 5,
+    },
+    {
+      id: 'tarea-006', pac: 'pac-002', tipo: 'estudio_pendiente',
+      titulo: 'Perfil tiroideo — pedido ayer',
+      prioridad: 'normal', estado: 'aceptada', dueno: 'medica', naceHace: 1, vence: 6,
+    },
+    {
+      /* `reconciliacion_medicamento` cae en «Otros pendientes» a propósito, y
+         ese grupo tampoco se había visto nunca. */
+      id: 'tarea-007', pac: 'pac-001', tipo: 'reconciliacion_medicamento',
+      titulo: 'El paciente dice que dejó el losartán y la lista lo tiene vigente',
+      detalle: 'Confirmar con el paciente antes de tocar la lista.',
+      prioridad: 'alta', estado: 'solicitada', dueno: null, naceHace: 4, vence: 2,
+    },
+    {
+      /* Una CERRADA para que «Ver cerrados recientemente» tenga qué desplegar:
+         ese bloque tampoco se podía mirar. */
+      id: 'tarea-008', pac: 'pac-003', tipo: 'resultado_por_revisar',
+      titulo: 'Biometría hemática — revisada y comentada con el paciente',
+      prioridad: 'normal', estado: 'cerrada', dueno: 'medica', naceHace: 12, vence: -3,
+      cerradaHaceDias: 1,
+    },
+  ]
+
+  for (const t of TAREAS) {
+    const pac = PACIENTES.find(x => x.id === t.pac)
+    await escribir(`clinics/${CLINICA}/tareas_clinicas/${t.id}`, {
+      clinicId: CLINICA,
+      patientId: t.pac,
+      patientNombre: pac.nombre,
+      notaId: t.pac === 'pac-001' ? 'nota-demo-001' : undefined,
+      tipo: t.tipo,
+      titulo: t.titulo,
+      detalle: t.detalle,
+      prioridad: t.prioridad,
+      pesoUrgencia: pesoDeUrgencia(t.prioridad),
+      ...(t.dueno === 'medica' ? { ownerUid: uid, ownerNombre: 'Dra. Ximena Alcántara Robledo' } : {}),
+      estado: t.estado,
+      creadaEn: isoEnDias(-t.naceHace),
+      venceEn: isoEnDias(t.vence),
+      ...(t.cerradaHaceDias
+        ? { cerradaEn: isoEnDias(-t.cerradaHaceDias), cerradaPor: uid }
+        : {}),
+      origen: 'nota',
+    })
+  }
+
   await writeFile(
     new URL('./arnes-sesion.json', import.meta.url),
     JSON.stringify({ uid, correo: CORREO, clave: CLAVE, clinica: CLINICA, proyecto: PROYECTO }, null, 2) + '\n',
@@ -364,7 +817,8 @@ async function main() {
     consultorio  ${CLINICA}
     médica       Dra. Ximena Alcántara Robledo (sintética)
     pacientes    ${PACIENTES.length}
-    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+    cobros       ${COBROS.length}\n    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+    pendientes   ${TAREAS.length}  (${TAREAS.filter(t => t.estado !== 'cerrada').length} vivos, ${TAREAS.filter(t => !t.dueno && t.estado !== 'cerrada').length} sin dueño)
 
     entrar con   ${CORREO} / ${CLAVE}
     la app       npm run arnes:dev   →  http://localhost:3200

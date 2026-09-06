@@ -69,7 +69,7 @@ import { inventariar, sinCota, recuento, esDeHospital } from '../../scripts/esca
  * la lectura nueva está acotada por su naturaleza, lo que falta es que el
  * inventario sepa reconocer su forma de cota, y eso se arregla en el script.
  */
-const TECHO = { consultorio: 29, hospital: 9 }
+const TECHO = { consultorio: 28, hospital: 9 }
 
 describe('el inventario mide algo, y lo mide con cuidado', () => {
   it('encuentra las lecturas del árbol (si no, pasaría vacío)', () => {

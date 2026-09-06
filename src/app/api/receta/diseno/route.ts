@@ -1,6 +1,17 @@
 import { NextRequest } from 'next/server'
 import admin from '@/lib/firebase-admin'
-import { verificarPathDiseno, firmaObligatoria } from '@/lib/receta-diseno-token'
+import {
+  PATH_DISENO_OK,
+  compatibilidadSinCapacidad,
+  verificarCapacidadDiseno,
+  type VerificacionDiseno,
+} from '@/lib/receta-diseno-token'
+/**
+ * El tope por destino es de `main` (REG-346) y se conserva: esta ruta baja un
+ * objeto de Storage, y una descarga sin tope cuelga la función entera. Que este
+ * carril reescriba QUIÉN puede pedirla no cambia CUÁNTO se espera.
+ */
+import { fetchConTimeout } from '@/lib/fetch-con-timeout'
 
 /**
  * Proxy SAME-ORIGIN del formato de receta guardado en Firebase Storage.
@@ -12,47 +23,62 @@ import { verificarPathDiseno, firmaObligatoria } from '@/lib/receta-diseno-token
  * → el fondo sale en blanco. Sirviéndola desde ESTE origen, el navegador la trata
  * como propia y el PDF queda nítido.
  *
- * Seguridad (anti-SSRF): SOLO descarga URLs de descarga de NUESTRO bucket de
- * Firebase Storage. Cualquier otra URL → 403.
+ * Seguridad (anti-SSRF): SOLO descarga objetos de NUESTRO bucket, y sólo de la
+ * carpeta `receta-diseno/`.
  *
- * AUTENTICACIÓN (NEXUS-QUALITY-010): una <img src> no manda Authorization, así
- * que la protección es un TOKEN FIRMADO CON CADUCIDAD en la URL (exp+sig, HMAC —
- * ver lib/receta-diseno-token). Despliegue en dos pasos para no romper la
- * impresión: hoy una URL firmada se verifica SIEMPRE (inválida/vencida → 403) y
- * una sin firma sigue pasando (compatibilidad con las URLs guardadas en la config
- * de los médicos); cuando el camino de impresión acuñe URLs firmadas y la
- * papelería esté probada en vivo, se pone RECETA_DISENO_FIRMA=obligatoria en
- * Vercel y las URLs sin firma quedan cerradas. Mientras, siguen los otros
- * candados: rutas con uid (28 chars, no enumerables), `cache-control: private`
- * (ninguna caché compartida guarda la firma del médico), anti-traversal y
- * validación estricta del parámetro `u`.
+ * AUTORIZACIÓN (R-06 / #350): esta ruta descarga con **Admin SDK**, que ignora
+ * las reglas de Storage. Antes bastaba el `?path=` para llegar hasta ahí — y un
+ * path NO es una autorización. Ahora se exige una CAPACIDAD FIRMADA Y LIGADA a
+ * `version + path + ownerUid + clinicId + exp` (ver lib/receta-diseno-token),
+ * que sólo acuña la aplicación autenticada en POST /api/receta/diseno-url tras
+ * verificar membresía canónica del consultorio. Tocar cualquier campo rompe el
+ * HMAC y falla CERRADO; la capacidad caduca en minutos.
+ *
+ * Una `<img src>` no manda `Authorization`, así que la ligadura viaja en la URL.
+ * Eso NO debilita la descarga: la URL sólo existe porque una petición
+ * AUTENTICADA la pidió, sólo sirve para ese objeto, ese dueño y ese
+ * consultorio, y muere pronto. Se conserva `cache-control: private` para que
+ * ninguna caché compartida guarde la firma del médico.
+ *
+ * Compatibilidad: las URLs sin capacidad guardadas en la configuración de los
+ * médicos sólo pasan bajo `RECETA_DISENO_COMPAT_SIN_FIRMA=1`, que está muerto
+ * en cualquier entorno equivalente a producción. Por defecto: 403.
  */
 export const runtime = 'nodejs'
 
 const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
 
+/** Motivo legible del rechazo. Nunca revela el secreto ni el valor esperado. */
+function motivo(v: VerificacionDiseno): string {
+  switch (v) {
+    case 'vencida': return 'Enlace vencido; vuelve a abrir la impresión'
+    case 'sin_capacidad': return 'Este enlace requiere una capacidad firmada (ábrelo desde la aplicación)'
+    case 'sin_secreto': return 'Capacidad no verificable en este servidor'
+    case 'version_desconocida': return 'Formato de capacidad no soportado'
+    case 'dueno_no_coincide': return 'La capacidad no corresponde al dueño de esta imagen'
+    default: return 'Capacidad no válida'
+  }
+}
+
 export async function GET(req: NextRequest) {
-  // Camino nuevo: por PATH del bucket (lo suben las imágenes vía /api/config/imagen
-  // con Admin SDK). Se lee con Admin SDK — no depende de reglas ni tokens.
-  const path = req.nextUrl.searchParams.get('path')
+  const sp = req.nextUrl.searchParams
+  const path = sp.get('path')
   if (path) {
-    // Anti-traversal: solo la carpeta permitida.
-    if (!/^receta-diseno\/[^./][^:]*$/.test(path) || path.includes('..')) {
+    // Anti-traversal: sólo la carpeta permitida.
+    if (!PATH_DISENO_OK.test(path) || path.includes('..')) {
       return new Response('Ruta no permitida', { status: 403 })
     }
-    // NEXUS-QUALITY-010 — token firmado con caducidad (ver lib/receta-diseno-token):
-    //  · exp+sig presentes → se verifican SIEMPRE (nunca se degrada a "sin firma").
-    //  · ausentes → compatible mientras RECETA_DISENO_FIRMA !== 'obligatoria'
-    //    (las URLs guardadas en la config de los médicos siguen imprimiendo).
-    const verif = verificarPathDiseno(path, req.nextUrl.searchParams.get('exp'), req.nextUrl.searchParams.get('sig'), Date.now())
-    // 'sin_secreto' con firma presente también se rechaza: sin secreto nadie pudo
-    // acuñar una firma legítima, así que esa combinación siempre es sospechosa
-    // (y así el gate no queda abierto si la env var falta en prod).
-    if (verif === 'invalida' || verif === 'vencida' || verif === 'sin_secreto') {
-      return new Response(verif === 'vencida' ? 'Enlace vencido; vuelve a abrir la impresión' : 'Firma no válida', { status: 403 })
-    }
-    if (verif === 'sin_firma' && firmaObligatoria()) {
-      return new Response('Este enlace requiere firma (RECETA_DISENO_FIRMA=obligatoria)', { status: 403 })
+    const verif = verificarCapacidadDiseno(
+      path,
+      { v: sp.get('v'), own: sp.get('own'), cid: sp.get('cid'), exp: sp.get('exp'), sig: sp.get('sig') },
+      Date.now(),
+    )
+    // Sólo 'valida' autoriza. 'sin_capacidad' pasa únicamente bajo la
+    // compatibilidad explícita y acotada; el resto (firma rota, vencida,
+    // versión vieja, dueño cruzado, secreto ausente) es 403 SIEMPRE — nunca se
+    // degrada a "sin capacidad" para volver a caer en el camino permisivo.
+    if (verif !== 'valida' && !(verif === 'sin_capacidad' && compatibilidadSinCapacidad())) {
+      return new Response(motivo(verif), { status: 403 })
     }
     try {
       const file = admin.storage().bucket(BUCKET).file(path)
@@ -67,11 +93,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const u = req.nextUrl.searchParams.get('u')
+  const u = sp.get('u')
   if (!u) return new Response('Falta el parámetro u o path', { status: 400 })
-  // Modo estricto (010): la rama legacy `u` no puede firmarse (la firma liga un
-  // path del bucket); con el candado activo se cierra por completo.
-  if (firmaObligatoria()) return new Response('Este enlace requiere firma (usa ?path= firmado)', { status: 403 })
+  /**
+   * Rama LEGADA `?u=`: una URL de descarga completa guardada en configuraciones
+   * viejas. No puede ligarse a dueño ni a consultorio (la capacidad liga un path
+   * del bucket), así que queda cerrada salvo bajo la misma compatibilidad
+   * acotada — y por tanto cerrada del todo en producción. El cliente reescribe
+   * al vuelo estas URLs a la forma `?path=` cuando el objeto vive en
+   * `receta-diseno/` (ver lib/receta-diseno-client), que sí es acuñable.
+   */
+  if (!compatibilidadSinCapacidad()) {
+    return new Response('Este enlace requiere una capacidad firmada (usa ?path= acuñado)', { status: 403 })
+  }
 
   /**
    * El chequeo era `u.includes('/b/' + BUCKET + '/')`, que se satisface con que la
@@ -94,7 +128,9 @@ export async function GET(req: NextRequest) {
   if (!permitida) return new Response('Origen no permitido', { status: 403 })
 
   try {
-    const r = await fetch(u, { cache: 'no-store' })
+    // Con tiempo máximo: es un proxy, y un Storage lento inmoviliza la función
+    // igual que un proveedor lento. Misma razón que documenta el helper.
+    const r = await fetchConTimeout(u, { cache: 'no-store' })
     if (!r.ok) return new Response('Diseño no encontrado', { status: 404 })
     const contentType = r.headers.get('content-type') ?? 'image/png'
     const buf = await r.arrayBuffer()

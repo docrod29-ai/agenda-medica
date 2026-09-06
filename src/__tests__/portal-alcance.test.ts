@@ -67,6 +67,24 @@ import { crearTokenPaciente, verificarTokenPaciente, linkPortalPaciente } from '
 
 /** El mismo fallback de desarrollo que usa `patient-token.ts` fuera de producción. */
 const SECRETO_DEV = 'dev-portal-secret-no-usar-en-produccion-0123456789'
+
+/**
+ * ESTE ARCHIVO FIRMA TOKENS A MANO, ASÍ QUE TIENE QUE FIJAR EL SECRETO.
+ *
+ * Dos casos de aquí abajo re-firman un payload con `SECRETO_DEV` y esperan que
+ * el verificador los acepte. Eso sólo es cierto mientras `PORTAL_PACIENTE_SECRET`
+ * NO esté puesta: `getSecret()` la lee en cada llamada y prefiere la del
+ * entorno.
+ *
+ * Se descubrió al exportar esa variable en la misma terminal para que el arnés
+ * pudiera medir el portal del paciente: la suite se puso roja con «expected null
+ * not to be null» y el rojo no decía nada del producto. Una prueba que depende
+ * de que NADIE haya exportado una variable depende de que alguien se acuerde.
+ * Ahora la fija ella.
+ */
+beforeEach(() => {
+  vi.stubEnv('PORTAL_PACIENTE_SECRET', SECRETO_DEV)
+})
 const CLINICA = 'clinica-ficticia'
 const PACIENTE = 'pac-ficticio-001'
 

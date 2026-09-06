@@ -14,6 +14,7 @@
  *
  * Solo capa de presentación/agregación: el modelo de datos (cobros.ts) no cambia.
  */
+import { conMayusculaInicial } from '@/lib/texto-es'
 import { useEffect, useState, useMemo } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,6 +33,7 @@ import {
   DollarSign, Receipt, Activity, Users, Banknote, Landmark, CreditCard, AlertTriangle,
 } from 'lucide-react'
 
+import { Modal } from '@/components/ui'
 import { hoyISO } from '@/lib/timezone'
 
 type Periodo = 'dia' | 'semana' | 'mes'
@@ -228,9 +230,9 @@ export default function FinanzasPage() {
         {([['reportes', 'Reportes'], ['corte', 'Corte de caja'], ['comisiones', 'Comisiones']] as const).map(([k, label]) => {
           const activo = tab === k
           return (
-            <button key={k} onClick={() => setTab(k)} style={{
+            <button key={k} onClick={() => setTab(k)} className="nx-acc-plana" style={{
               padding: '8px 14px', fontSize: 13.5, fontWeight: activo ? 700 : 500, cursor: 'pointer',
-              background: 'none', border: 'none', borderBottom: '2px solid ' + (activo ? 'var(--nexus)' : 'transparent'),
+              border: 'none', borderBottom: '2px solid ' + (activo ? 'var(--nexus)' : 'transparent'),
               color: activo ? 'var(--nexus)' : 'var(--text2)', marginBottom: -1,
             }}>{label}</button>
           )
@@ -243,53 +245,68 @@ export default function FinanzasPage() {
         <PanelComisiones clinicId={clinicId} cobros={cobros} />
       ) : (
       <>
-      {/* Selector de periodo (Hoy · Semana · Mes) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 12 }}>
+      {/**
+        * QUÉ PERIODO MIRO — una sola fila, no dos bloques.
+        *
+        * Esto eran dos regiones separadas: el segmentado «Hoy · Semana · Mes» y,
+        * debajo, una TARJETA A TODO LO ANCHO cuyo contenido entero era una
+        * etiqueta y dos flechas. Mil píxeles de caja para doscientos de
+        * contenido, y encima partiendo en dos una pregunta que es una sola:
+        * ¿qué periodo estoy mirando?
+        *
+        * Ahora van juntos en una fila. No es «quitar una tarjeta para tener
+        * menos tarjetas»: es que el granulado (día/semana/mes) y la posición
+        * dentro de ese granulado son el mismo control, y separarlos obligaba a
+        * mirar en dos sitios para saber una cosa.
+        */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: 6, marginBottom: 18, flexWrap: 'wrap',
+      }}>
         {(['dia', 'semana', 'mes'] as Periodo[]).map(p => {
           const activo = periodo === p
           return (
             <button
               key={p}
               onClick={() => cambiarPeriodo(p)}
+              className="nx-chip"
+              aria-pressed={activo}
               style={{
                 padding: '6px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 border: '1px solid ' + (activo ? 'var(--nexus)' : 'var(--border)'),
-                background: activo ? 'var(--nexus-soft)' : 'var(--s)',
                 color: activo ? 'var(--nexus)' : 'var(--text2)',
-                transition: 'all var(--mov-rapido) var(--mov-curva)',
               }}
             >
               {PERIODO_LABEL[p]}
             </button>
           )
         })}
-      </div>
 
-      {/* Navegación dentro del periodo */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 18,
-        padding: '10px 16px', background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 10,
-      }}>
-        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} style={navBtn} aria-label="Periodo anterior">
+        {/* Separador fino: el granulado a la izquierda, la posición a la derecha. */}
+        <span aria-hidden="true" style={{ width: 1, height: 20, background: 'var(--border)', margin: '0 6px' }} />
+
+        <button onClick={() => setAncla(moverAncla(periodo, ancla, -1))} className="nx-acc-caja" style={navBtn} aria-label={`${PERIODO_LABEL[periodo]} anterior`}>
           <ChevronLeft size={16} />
         </button>
-        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', textTransform: 'capitalize', minWidth: 220, textAlign: 'center' }}>
-          {etiquetaPeriodo(periodo, ancla)}
+        <div style={{ fontSize: 'var(--t-body)', fontWeight: 700, color: 'var(--text)', minWidth: 190, textAlign: 'center' }}>
+          {conMayusculaInicial(etiquetaPeriodo(periodo, ancla))}
         </div>
         <button
           onClick={() => setAncla(moverAncla(periodo, ancla, 1))}
           disabled={noFuturo}
+          className="nx-acc-caja"
           style={{ ...navBtn, opacity: noFuturo ? 0.4 : 1, cursor: noFuturo ? 'default' : 'pointer' }}
-          aria-label="Periodo siguiente"
+          aria-label={`${PERIODO_LABEL[periodo]} siguiente`}
         >
           <ChevronRight size={16} />
         </button>
         {!esActual && (
-          <button onClick={() => setAncla(hoyISO())} style={{ ...navBtn, padding: '4px 10px', fontSize: 11.5 }}>
+          <button onClick={() => setAncla(hoyISO())} className="nx-acc-caja" style={{ ...navBtn, padding: '4px 10px', fontSize: 'var(--t-caption)' }}>
             Ahora
           </button>
         )}
       </div>
+
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
@@ -301,7 +318,7 @@ export default function FinanzasPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: 10, marginBottom: 14 }}>
             <div style={{
               padding: 18, borderRadius: 14, border: '1px solid var(--border)',
-              background: 'linear-gradient(135deg, rgba(61,90,254,0.14), rgba(61,90,254,0.04))',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--nexus) 14%, transparent), color-mix(in srgb, var(--nexus) 4%, transparent))',
             }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
                 <DollarSign size={13} /> Ingresos del periodo
@@ -312,7 +329,7 @@ export default function FinanzasPage() {
               <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 4 }}>
                 {resumen.totalCobros} cobro{resumen.totalCobros !== 1 ? 's' : ''}
                 {resumenAnterior && resumenAnterior.totalIngresos > 0 && (
-                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)' }}>
+                  <span style={{ marginLeft: 8, fontWeight: 700, color: cambio > 0 ? 'var(--green)' : cambio < 0 ? 'var(--red)' : 'var(--text3)' }}>
                     {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(0)}% vs anterior
                   </span>
                 )}
@@ -324,8 +341,8 @@ export default function FinanzasPage() {
               monto={efectivo.monto}
               n={efectivo.n}
               total={resumen.totalIngresos}
-              tint="#10b981"
-              tintBg="rgba(16,185,129,0.10)"
+              tint="var(--green)"
+              tintBg="color-mix(in srgb, var(--green) 10%, transparent)"
             />
             <MetodoCard
               titulo="Transferencia"
@@ -334,7 +351,7 @@ export default function FinanzasPage() {
               n={transferencia.n}
               total={resumen.totalIngresos}
               tint="var(--nexus)"
-              tintBg="rgba(61,90,254,0.10)"
+              tintBg="color-mix(in srgb, var(--nexus) 10%, transparent)"
             />
           </div>
 
@@ -367,14 +384,54 @@ export default function FinanzasPage() {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
                 Ingresos por día
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: periodo === 'semana' ? 8 : 2, height: 140 }}>
+              {/**
+                * UNA GRÁFICA QUE SÓLO SE LEE CON EL RATÓN NO ES INFORMACIÓN.
+                *
+                * Las cifras vivían ÚNICAMENTE en `title=`. Eso significa: no
+                * existen en una tableta —donde no hay hover—, no existen para un
+                * lector de pantalla, y no existen para quien mira la pantalla de
+                * lejos. El médico veía nueve barras y no podía saber cuánto vale
+                * ninguna. Nueve barras sin escala son una textura, no un dato.
+                *
+                * Es la misma familia que el estado de la cita (unidad 18): el
+                * dato existía y llegaba por un canal que no alcanza a todos.
+                *
+                * Dos arreglos, ninguno decorativo:
+                *  · el TECHO de la escala se dice arriba, así que cualquier
+                *    barra se puede leer por proporción sin tocar nada;
+                *  · cada barra entra en el árbol accesible con su día, su
+                *    importe y su número de cobros.
+                *
+                * Lo que NO se hace: pintar el importe encima de cada barra. Con
+                * 31 días eso es un muro de cifras de 8 px — cambiar ilegible por
+                * ilegible. La escala arriba y el detalle al posarse es lo que
+                * cabe.
+                */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                <span style={{ fontSize: 'var(--t-overline)', color: 'var(--text3)' }}>
+                  máx. {fmtMXN(maxDia)}
+                </span>
+                <span style={{ fontSize: 'var(--t-overline)', color: 'var(--text3)' }}>
+                  {serieDias.filter(d => d.monto > 0).length} de {serieDias.length} días con cobro
+                </span>
+              </div>
+              <div
+                style={{ display: 'flex', alignItems: 'flex-end', gap: periodo === 'semana' ? 8 : 2, height: 140 }}
+                role="list"
+                aria-label={`Ingresos por día. Máximo del periodo: ${fmtMXN(maxDia)}.`}
+              >
                 {serieDias.map(d => {
                   const altura = d.monto > 0 ? Math.max(2, (d.monto / maxDia) * 100) : 1
                   const etiqueta = new Date(d.dia + 'T00:00:00Z').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+                  const dicho = d.monto > 0
+                    ? `${etiqueta}: ${fmtMXN(d.monto)} · ${d.n} ${d.n === 1 ? 'cobro' : 'cobros'}`
+                    : `${etiqueta}: sin cobros`
                   return (
                     <div
                       key={d.dia}
-                      title={`${etiqueta}: ${fmtMXN(d.monto)} · ${d.n} cobro(s)`}
+                      role="listitem"
+                      aria-label={dicho}
+                      title={dicho}
                       style={{
                         flex: 1, height: `${altura}%`,
                         background: d.monto > 0 ? 'var(--nexus)' : 'var(--s2)',
@@ -480,13 +537,14 @@ export default function FinanzasPage() {
                         {c.medicoNombre && <> · {c.medicoNombre}</>}
                       </div>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? '#10b981' : '#ef4444', textAlign: 'right' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: c.monto >= 0 ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
                       {fmtMXN(c.monto)}
                     </div>
                     <button
                       onClick={() => { setAnulando(c); setMotivoAnul('') }}
                       title="Anular este cobro (captura equivocada)"
-                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      className="nx-acc-riesgo"
+                      style={{ border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 11, padding: '4px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
                     >Anular</button>
                   </div>
                 ))
@@ -544,13 +602,52 @@ export default function FinanzasPage() {
         />
       )}
 
-      {anulando && (
-        <div
-          onClick={() => !anulaGuardando && setAnulando(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: 22, width: '100%', maxWidth: 420 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Anular cobro</div>
+      {/**
+        * DIÁLOGO CANÓNICO, NO UNO A MANO.
+        *
+        * Estaba escrito a mano —`position: fixed` y dos `div`— y le faltaba todo
+        * lo que `ui/Modal` ya resuelve: **no cerraba con Escape, no atrapaba el
+        * foco y no se anunciaba como diálogo**. Con el foco suelto, tabular
+        * desde aquí se va a la página de detrás: el médico sigue tabulando
+        * creyendo que está en el diálogo de anular un cobro.
+        *
+        * Y esto no es un panel cualquiera: es la confirmación de un acto
+        * DESTRUCTIVO sobre dinero. `Modal` trae Escape, trampa de foco,
+        * `role="dialog"`, `aria-modal` y devuelve el foco a quien lo abrió.
+        *
+        * Se conserva lo que este diálogo sí hacía bien: mientras se está
+        * guardando no se puede cerrar, ni por Escape ni por el fondo.
+        */}
+      <Modal
+        open={!!anulando}
+        onClose={() => { if (!anulaGuardando) setAnulando(null) }}
+        closeOnOverlay={!anulaGuardando}
+        title="Anular cobro"
+        footer={(
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button disabled={anulaGuardando} onClick={() => setAnulando(null)} className="nx-acc-caja" style={{ color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+            <button
+              disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
+              onClick={async () => {
+                if (!clinicId || !user || !anulando?.id) return
+                setAnulaGuardando(true)
+                try {
+                  await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid, user.displayName || user.email || '')
+                  toast('Cobro anulado', 'info')
+                  setAnulando(null)
+                  await recargar()
+                } catch (e) {
+                  toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
+                } finally { setAnulaGuardando(false) }
+              }}
+              className="nx-acc-destructiva"
+              style={{ color: 'var(--sobre-aviso)', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
+            >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
+          </div>
+        )}
+      >
+        {anulando && (
+          <>
             <div style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14 }}>
               {anulando.patientNombre ?? 'Sin paciente'} · {fmtMXN(anulando.monto)} · {anulando.folio}
               <br />No se borra: queda registrado como anulado (con motivo, quién y cuándo). Si estaba ligado a una cita, podrás volver a cobrarla.
@@ -559,31 +656,14 @@ export default function FinanzasPage() {
               value={motivoAnul}
               onChange={e => setMotivoAnul(e.target.value)}
               placeholder="Motivo de la anulación (obligatorio). Ej. monto capturado por error."
+              // El `placeholder` no es nombre: desaparece al escribir la primera letra.
+              aria-label="Motivo de la anulación"
               rows={3}
-              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+              style={{ width: '100%', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }}
             />
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button disabled={anulaGuardando} onClick={() => setAnulando(null)} style={{ background: 'var(--s2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button
-                disabled={anulaGuardando || !motivoAnul.trim() || !clinicId || !user}
-                onClick={async () => {
-                  if (!clinicId || !user || !anulando?.id) return
-                  setAnulaGuardando(true)
-                  try {
-                    await cancelarCobro(clinicId, anulando.id, motivoAnul.trim(), user.uid, user.displayName || user.email || '')
-                    toast('Cobro anulado', 'info')
-                    setAnulando(null)
-                    await recargar()
-                  } catch (e) {
-                    toast(e instanceof Error ? e.message : 'No se pudo anular', 'error')
-                  } finally { setAnulaGuardando(false) }
-                }}
-                style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: (anulaGuardando || !motivoAnul.trim()) ? 'default' : 'pointer', opacity: (anulaGuardando || !motivoAnul.trim()) ? 0.6 : 1 }}
-              >{anulaGuardando ? 'Anulando…' : 'Anular cobro'}</button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -625,7 +705,7 @@ function Kpi({ titulo, valor, icon, cambio, color }: { titulo: string; valor: st
       {cambio !== null && cambio !== undefined && (
         <div style={{
           fontSize: 11, fontWeight: 600, marginTop: 4,
-          color: cambio > 0 ? '#10b981' : cambio < 0 ? '#ef4444' : 'var(--text3)',
+          color: cambio > 0 ? 'var(--green)' : cambio < 0 ? 'var(--red)' : 'var(--text3)',
         }}>
           {cambio > 0 ? '↑' : cambio < 0 ? '↓' : ''} {Math.abs(cambio).toFixed(1)}% vs periodo anterior
         </div>
@@ -668,7 +748,7 @@ function Breakdown({ titulo, items, total }: { titulo: string; items: { label: s
 }
 
 const navBtn: React.CSSProperties = {
-  background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text2)',
+  border: '1px solid var(--border)', color: 'var(--text2)',
   borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
 }

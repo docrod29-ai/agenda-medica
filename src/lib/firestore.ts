@@ -719,13 +719,70 @@ export async function updatePatient(
 
 // ── Waitlist ──────────────────────────────────────────────────
 
-export async function getWaitlist(clinicId: string): Promise<WaitlistEntry[]> {
+/**
+ * Cuántas entradas activas de la lista de espera se traen de una vez.
+ *
+ * Doscientas cubren cualquier lista real y dejan sitio de sobra. El número no es
+ * clínico: es el techo de una LECTURA, y por eso lo que importa no es acertarlo
+ * sino DECIRLO cuando se alcanza.
+ */
+export const TOPE_LISTA_DE_ESPERA = 200
+
+export interface ListaDeEspera {
+  entradas: WaitlistEntry[]
+  /**
+   * `true` = se alcanzó el tope y HAY entradas activas que no vienen aquí.
+   *
+   * No es cosmético (REG-351): quien recibe un recorte sin etiqueta lo lee como
+   * el censo completo. En esta pantalla eso significa un paciente esperando que
+   * no aparece, y en `/operaciones` un semáforo que dice «al día» de una lista
+   * que no lo está.
+   */
+  truncada: boolean
+  tope: number
+}
+
+/**
+ * La lista de espera ACTIVA, acotada y declarando su recorte.
+ *
+ * ── QUÉ CAMBIÓ, Y POR QUÉ NO BASTA CON PONER `limit` ────────────────────────
+ *
+ * Esto leía la colección ENTERA: `where estado == activo` con `orderBy` y sin
+ * techo, en el inventario de lecturas sin cota desde que ese inventario existe.
+ * Crece con el CONSULTORIO, no con el paciente, así que es de las que sólo
+ * duelen cuando el producto empieza a funcionar.
+ *
+ * Poner `limit` a secas habría cambiado un problema de coste por uno PEOR: una
+ * lista recortada **que se presenta como completa**. Es exactamente el defecto
+ * que REG-351 encontró en nueve pantallas a la vez. Por eso esta función deja de
+ * devolver un array pelado —un array no puede decir que viene recortado— y
+ * devuelve el recorte declarado.
+ *
+ * El orden es el del índice `waitlist(estado, createdAt)`, ya declarado, y no es
+ * decorativo: las que se quedan fuera son siempre las MÁS NUEVAS, nunca las que
+ * llevan más tiempo esperando.
+ *
+ * ── LO QUE ESTO NO ES ───────────────────────────────────────────────────────
+ *
+ * No es a quién se le ofrece un hueco: eso lo decide `ofrecerHuecoLiberado` con
+ * su propia lectura ordenada por PRIORIDAD, que es la que tiene que mirarla.
+ * Ésta es la lista que se PINTA.
+ */
+export async function getWaitlist(clinicId: string): Promise<ListaDeEspera> {
+  /* Se pide una de más para SABER si se quedó corta; la extra no se devuelve. */
   const snap = await getDocs(query(
     col(clinicId, COLLECTIONS.waitlist),
     where('estado', '==', 'activo'),
-    orderBy('createdAt', 'asc')
+    orderBy('createdAt', 'asc'),
+    limitarA(TOPE_LISTA_DE_ESPERA + 1),
   ))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as WaitlistEntry))
+  const truncada = snap.docs.length > TOPE_LISTA_DE_ESPERA
+  const docs = truncada ? snap.docs.slice(0, TOPE_LISTA_DE_ESPERA) : snap.docs
+  return {
+    entradas: docs.map(d => ({ id: d.id, ...d.data() } as WaitlistEntry)),
+    truncada,
+    tope: TOPE_LISTA_DE_ESPERA,
+  }
 }
 
 export async function createWaitlistEntry(clinicId: string, data: Omit<WaitlistEntry, 'id'>): Promise<string> {

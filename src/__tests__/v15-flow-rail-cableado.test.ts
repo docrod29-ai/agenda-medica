@@ -135,6 +135,14 @@ describe('V15 — plan de compatibilidad de rutas: nada de lo que vivía en Side
      * expediente sin borrar la declaración, lo caza el guardián de RTC-09
      * (`v15-rtc09-ia-contextual`), que exige que el expediente la consuma.
      */
+    /**
+     * 4-sep-2026 — una CUARTA situación, que no es una huérfana: la pausa.
+     * `/hospitalizacion` y `/uci` siguen declaradas en las dos superficies y
+     * las dos las filtran con `enPausa`. No se quedaron sin casa por descuido:
+     * se guardaron a propósito, y su guardián es
+     * `hospital-y-uci-en-pausa.test.ts`. Por eso esta prueba las sigue viendo
+     * alcanzables: lee las DECLARACIONES, que es lo que aquí se defiende.
+     */
     const rutasAntiguas = [...hrefsDeArreglo(SIDEBAR, /const NAV:/), '/guia', '/configuracion']
     expect(rutasAntiguas.length).toBeGreaterThanOrEqual(21)
 

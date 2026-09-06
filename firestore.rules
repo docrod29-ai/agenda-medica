@@ -290,6 +290,30 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        /**
+         * LO QUE EL PACIENTE PREGUNTÓ — V9 · PATIENT-AI-001.
+         *
+         * Cada pregunta del portal, con la clase del §2 de
+         * `.claude/rules/patient-facing-ai.md` que le puso el servidor y, cuando
+         * se le contestó, de qué paquete salió la cita.
+         *
+         * `write: if false` por la misma razón que el paquete, y una más: la
+         * CLASE es la decisión de seguridad de esta unidad. Si el navegador
+         * pudiera escribir aquí, quien tuviera el token del portal podría
+         * guardar su propia pregunta ya marcada `ANSWER_FROM_APPROVED_PLAN` —
+         * es decir, fabricarse la constancia de que el sistema le contestó algo
+         * que nunca le contestó. Clasifica el servidor, que es el único que ve
+         * el plan liberado.
+         *
+         * El paciente tampoco LEE de aquí: su historial se lo sirve /api/portal
+         * con su token, filtrado por su `patientId`. `isMedico` es para el
+         * consultorio, que es quien tiene que ver lo que se escaló.
+         */
+        match /preguntas_paciente/{docId} {
+          allow read: if isMedico(clinicId);
+          allow write: if false;
+        }
+
         match /formularios_previos/{docId} {
           // `isMedico` y no `isMember`: aquí van motivo, medicamentos, alergias
           // y antecedentes — es secreto médico, igual que las notas. El guardián

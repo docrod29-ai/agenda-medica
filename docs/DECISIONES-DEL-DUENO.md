@@ -72,26 +72,29 @@ tiene uso inmediato.
 
 ---
 
-## 2 · `FALTA_POLITICA_Q2_Q4` — quién corrige un registro, y hasta cuándo
+## 2 · ~~quién corrige un registro, y hasta cuándo~~ — **CONTESTADA 4-sep-2026 (D-026)**
 
-**Dónde**: `src/lib/hospital/eventos.ts:351`
+**Dónde**: `src/lib/hospital/eventos.ts` → `POLITICA_CORRECCION`
 
-Son **cuatro preguntas** y desbloquean el motor `validarCorreccion`, que hoy está
-escrito, probado y sin conectar por esto:
+Las cuatro preguntas están respondidas. La constante dejó de ser `null` y el
+símbolo que las pedía desapareció con ellas.
 
-| | Pregunta |
+| | Respuesta del dueño |
 |---|---|
-| **Q2** | ¿Qué roles pueden **anexar una corrección** a un registro? |
-| **Q2-bis** | ¿Puede **enfermería anular** una administración de medicamento, o eso queda reservado al médico? *(hoy `administrar` lo puede hacer enfermería)* |
-| **Q3** | ¿Hay **ventana de tiempo**? ¿Se corrige un evento de hace cinco días? ¿Y en un episodio **ya egresado**? |
-| **Q4** | ¿El **motivo escrito** es obligatorio? |
+| **Q2** · quién corrige | médico · enfermería · laboratorio · farmacia — **cada quien lo suyo**. Su razón: si corregir cuesta caro, se deja de corregir y el registro se degrada |
+| **Q2-bis** · quién **anula** una administración | **médico y enfermería**. Se le ofreció reservarlo al médico —anular borra la constancia de que un fármaco se dio— y eligió que quien administra pueda deshacerlo |
+| **Q3** · ventana | **24 h**, y **nunca** tras el egreso |
+| **Q4** · motivo escrito | **se pide y se marca en ámbar, pero NO bloquea**. Es justo el equilibrio que este apartado planteaba: la NOM-004 lo apunta, y bloquear encarece cada corrección |
 
-**Lo que hay que sopesar en Q4, y por eso es suya**: la NOM-004 lo apunta, pero
-encarece cada corrección. Si estorba, se deja de corregir — y entonces el
-registro se degrada por el otro lado.
+**En dos de los cuatro eligió distinto de lo que se le recomendó** (Q2-bis y
+Q4). Por eso la política está fijada campo a campo en
+`hospital-eventos-append-only.test.ts`: para que nadie la «corrija» de vuelta a
+lo recomendado creyendo que arregla algo.
 
-**Qué pasa hoy**: `POLITICA_CORRECCION` vale `null`. Nada se corrige, y nada se
-corrompe por una política inventada.
+**Lo que sigue faltando, y ya no es suyo**: `validarCorreccion` no tiene
+llamador. Falta el caso `corregir` en `api/hospital/mutar/route.ts` y la
+pantalla que lo dispare. Es trabajo de **Hospital/UCI** —en ALPHA, no a la
+venta—, declarado en `SIN_CABLEAR_CORRECCION`.
 
 ---
 

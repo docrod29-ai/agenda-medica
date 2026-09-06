@@ -37,22 +37,22 @@ const MOTIVOS = [
 const HUESPEDES = ['—', 'SOT — Renal', 'SOT — Hepático', 'SOT — Cardiaco', 'SOT — Pulmonar', 'TCMH — Autólogo', 'TCMH — Alogénico', 'VIH', 'No-VIH — Biológicos/Corticoides', 'Neutropenia/Quimioterapia', 'Asplenia']
 const IS_ESTADO = ['—', 'En curso', 'Va a iniciar (pre-protocolo)', 'Ninguna / suspendida']
 const RES_OPTS = ['—', 'Positivo', 'Negativo', 'Pendiente']
-const SEV_COLOR: Record<Sev, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
-const CARGA_COLOR: Record<string, string> = { alta: '#dc2626', media: '#d97706', baja: '#0d9488' }
+const SEV_COLOR: Record<Sev, string> = { alta: 'var(--red)', media: 'var(--amber)', baja: 'var(--nexus)' }
+const CARGA_COLOR: Record<string, string> = { alta: 'var(--red)', media: 'var(--amber)', baja: 'var(--nexus)' }
 const ALTA_CARGA = ['atg', 'alemtuzumab', 'anticd20', 'quimio', 'cicfos', 'purinas', 'anticd38', 'cart', 'fingolimod']
 
 const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'
 const SHOWN = new Set(Object.keys(TX_CHIPS))
 
 /** Sección colapsable con contador de seleccionados. */
-function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { titulo: string; count: number; accent?: string; defaultOpen?: boolean; children: ReactNode }) {
+function Grupo({ titulo, count, accent = 'var(--nexus)', defaultOpen, children }: { titulo: string; count: number; accent?: string; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
   return (
     <div className="rounded-lg border" style={{ borderColor: 'var(--border)', background: 'var(--s1)' }}>
       <button type="button" onClick={() => setOpen((o) => !o)} className="w-full flex items-center justify-between px-3 py-2 text-left">
         <span className="text-sm font-medium flex items-center gap-2" style={{ color: 'var(--text)' }}>
           {titulo}
-          {count > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: accent + '26', color: accent }}>{count}</span>}
+          {count > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: `color-mix(in srgb, ${accent} 15%, transparent)`, color: accent }}>{count}</span>}
         </span>
         <ChevronDown size={15} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--mov-rapido) var(--mov-curva)', color: 'var(--text3)' }} />
       </button>
@@ -64,7 +64,7 @@ function Grupo({ titulo, count, accent = '#0d9488', defaultOpen, children }: { t
 /** Píldora de estratificación (cabecera del copiloto). */
 function Pill({ label, color }: { label: string; color?: string }) {
   return (
-    <span className="text-[11px] font-semibold rounded-full px-2 py-1" style={{ background: (color ?? '#64748b') + '1f', color: color ?? 'var(--text2)', border: `1px solid ${(color ?? '#64748b')}44` }}>{label}</span>
+    <span className="text-[11px] font-semibold rounded-full px-2 py-1" style={{ background: `color-mix(in srgb, ${color ?? 'var(--text3)'} 12%, transparent)`, color: color ?? 'var(--text2)', border: `1px solid color-mix(in srgb, ${color ?? 'var(--text3)'} 27%, transparent)` }}>{label}</span>
   )
 }
 
@@ -266,11 +266,11 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
       {/* Estratificación */}
       <Card padding={14}>
         <div className="flex items-center gap-2 mb-2">
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: '#7c3aed', boxShadow: '0 0 0 3px rgba(124,58,237,.18)' }} />
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--r-pill)', background: 'var(--purple)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--purple) 18%, transparent)' }} />
           <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: 'var(--purple)' }}>Copiloto de Infectología · en vivo</span>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {huesped && huesped !== '—' && <Pill label={huesped} color="#0ea5e9" />}
+          {huesped && huesped !== '—' && <Pill label={huesped} color="var(--blue)" />}
           {isEstado && <Pill label={'IS: ' + isEstado} color="var(--purple)" />}
           {diasTx != null && diasTx >= 0 && <Pill label={'Día +' + diasTx} color="var(--teal)" />}
           {farmSel.length > 0 && <Pill label={'Carga IS ' + cargaIS} color={CARGA_COLOR[cargaIS]} />}
@@ -397,7 +397,7 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(grp.items).map(([ck, label]) => {
                         const on = v['hc_cb_' + gk + '_' + ck] === '1'
-                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#0d9488', background: 'rgba(13,148,136,.12)', color: 'var(--teal)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                        return <button key={ck} type="button" onClick={() => toggle('hc_cb_' + gk + '_' + ck)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: 'var(--nexus)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', color: 'var(--teal)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                       })}
                     </div>
                   </Grupo>
@@ -414,16 +414,16 @@ export default function ValoracionInmuno({ patient, onAplicarNota }: { patient: 
             {/* Estudios (inicial) — colapsable por categoría */}
             {modo === 'inicial' && (
               <Card padding={14}>
-                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: '#3b82f626', color: 'var(--blue)' }}>{estudiosSolicitados.length}</span>}</div>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-1.5"><FlaskConical size={15} style={{ color: 'var(--blue)' }} /> Estudios a solicitar {estudiosSolicitados.length > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: 'color-mix(in srgb, var(--blue) 15%, transparent)', color: 'var(--blue)' }}>{estudiosSolicitados.length}</span>}</div>
                 <div className="flex flex-col gap-2">
                   {TX_EST_CATS.filter((c) => c.g(flags)).map((c, ci) => {
                     const sel = Object.keys(c.items).filter((k) => v['hc_est_' + k] === '1').length
                     return (
-                      <Grupo key={c.cat} titulo={c.cat} count={sel} accent="#3b82f6" defaultOpen={false}>
+                      <Grupo key={c.cat} titulo={c.cat} count={sel} accent="var(--blue)" defaultOpen={false}>
                         <div className="flex flex-wrap gap-1.5">
                           {Object.entries(c.items).map(([k, label]) => {
                             const on = v['hc_est_' + k] === '1'
-                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: '#3b82f6', background: 'rgba(59,130,246,.12)', color: 'var(--blue)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
+                            return <button key={k} type="button" onClick={() => toggle('hc_est_' + k)} className="rounded-full border px-2.5 py-1 text-xs" style={on ? { borderColor: 'var(--blue)', background: 'color-mix(in srgb, var(--blue) 12%, transparent)', color: 'var(--blue)' } : { borderColor: 'var(--border)', color: 'var(--text2)' }}>{label}</button>
                           })}
                         </div>
                       </Grupo>

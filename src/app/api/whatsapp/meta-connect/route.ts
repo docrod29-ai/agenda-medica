@@ -23,13 +23,30 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { guardarSecretoCanal } from '@/lib/whatsapp/secreto-canal'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { fetchConTimeout, TiempoAgotado } from '@/lib/fetch-con-timeout'
 
 const APP_ID     = process.env.META_APP_ID ?? ''
 const APP_SECRET = process.env.META_APP_SECRET ?? ''
 const APP_URL    = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
-// Mismo valor que el webhook (acepta cualquiera de los dos nombres para no
-// depender de cuál pusiste en Vercel).
-const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || 'agenda-medica-bot'
+/**
+ * AQUÍ NO VA EL TOKEN DE VERIFICACIÓN, Y NO ES UN OLVIDO — REG-508.
+ *
+ * Este archivo declaraba `WEBHOOK_VERIFY_TOKEN` con un respaldo literal
+ * (`'agenda-medica-bot'`) y **no lo usaba en ninguna parte**: `registerWebhook`
+ * hace `POST /{wabaId}/subscribed_apps` y ahí no viaja ningún token. El de
+ * verificación se teclea UNA vez en el panel de la app de Meta —Webhooks →
+ * Callback URL + Verify token—, no se configura por WABA ni por API.
+ *
+ * Así que la constante no configuraba nada; sólo dejaba un literal adivinable en
+ * el repositorio y hacía creer, a quien leyera el archivo, que este camino
+ * acordaba un token con Meta. El webhook ya había tomado la decisión correcta y
+ * la dejó escrita —«sin fallback público… mejor que aceptar un token por defecto
+ * que está en el repo»—; a este archivo no le llegó.
+ *
+ * Quien manda es `WHATSAPP_WEBHOOK_TOKEN` (o su alias `WHATSAPP_VERIFY_TOKEN`)
+ * en `src/app/api/whatsapp/webhook/route.ts`, y **tiene que ser el mismo valor
+ * que esté tecleado en el panel de Meta**. Ver docs/ops/INVENTARIO-DE-ENTORNO.md.
+ */
 
 const GRAPH = 'https://graph.facebook.com/v20.0'
 
@@ -41,7 +58,7 @@ async function exchangeCodeForToken(code: string): Promise<string> {
   url.searchParams.set('code', code)
   url.searchParams.set('redirect_uri', '') // Embedded Signup uses empty redirect_uri
 
-  const res = await fetch(url.toString())
+  const res = await fetchConTimeout(url.toString())
   if (!res.ok) throw new Error(`Token exchange failed: ${await res.text()}`)
   const data = await res.json()
   return data.access_token as string
@@ -54,7 +71,7 @@ async function getWABAInfo(userToken: string): Promise<{
   phoneNumber: string
 } | null> {
   // Get WhatsApp Business Accounts this user has access to
-  const wabaRes = await fetch(
+  const wabaRes = await fetchConTimeout(
     `${GRAPH}/me/businesses?fields=whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number}}&access_token=${userToken}`
   )
 
@@ -82,14 +99,14 @@ async function getWABAInfo(userToken: string): Promise<{
   }
 
   // Alternative: try the shared_waba endpoint (Embedded Signup v2)
-  const sharedRes = await fetch(
+  const sharedRes = await fetchConTimeout(
     `${GRAPH}/me?fields=shared_waba_id&access_token=${userToken}`
   )
   if (sharedRes.ok) {
     const sharedData = await sharedRes.json()
     const wabaId = sharedData.shared_waba_id
     if (wabaId) {
-      const phonesRes = await fetch(
+      const phonesRes = await fetchConTimeout(
         `${GRAPH}/${wabaId}/phone_numbers?access_token=${userToken}`
       )
       if (phonesRes.ok) {
@@ -117,7 +134,7 @@ async function getLongLivedToken(shortToken: string): Promise<string> {
   url.searchParams.set('client_secret', APP_SECRET)
   url.searchParams.set('fb_exchange_token', shortToken)
 
-  const res = await fetch(url.toString())
+  const res = await fetchConTimeout(url.toString())
   if (!res.ok) return shortToken // fallback to short token if exchange fails
   const data = await res.json()
   return data.access_token as string
@@ -126,7 +143,7 @@ async function getLongLivedToken(shortToken: string): Promise<string> {
 // ── Register webhook on the WABA ──────────────────────────────────
 async function registerWebhook(wabaId: string, token: string): Promise<void> {
   try {
-    await fetch(`${GRAPH}/${wabaId}/subscribed_apps`, {
+    await fetchConTimeout(`${GRAPH}/${wabaId}/subscribed_apps`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -207,6 +224,27 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     safeLog.error('[meta-connect] Error:', err)
+    /**
+     * «SE TARDÓ» NO ES «FALLÓ», Y AL MÉDICO LE CAMBIA QUÉ HACER.
+     *
+     * Las seis llamadas de esta ruta van a la API de Meta y no llevaban tiempo
+     * máximo. `fetch-con-timeout` existe justo por eso —su cabecera lo dice: un
+     * socket colgado del proveedor inmoviliza la función los 300 s completos—
+     * pero se había aplicado al ENVÍO de mensajes y no a la CONEXIÓN.
+     *
+     * El daño no es sólo de factura. El médico que conecta su WhatsApp pulsa el
+     * botón y lo ve girar minutos, porque su petición espera a esta ruta, que
+     * espera a Meta. Es la misma familia que el «Guardando…» eterno del alta:
+     * ni error, ni éxito, ni nada que hacer.
+     *
+     * Con 504 y este texto, quien lo lee sabe que puede reintentar — y que el
+     * problema no está en sus credenciales.
+     */
+    if (err instanceof TiempoAgotado) {
+      return NextResponse.json({
+        error: 'Meta no respondió a tiempo. No se cambió nada: vuelve a intentar la conexión.',
+      }, { status: 504 })
+    }
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

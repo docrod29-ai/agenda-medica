@@ -3,6 +3,378 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1182 — la guía dejó de describir un menú que ya no existe
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
+
+**1 commit desde v1181** · texto y una prueba · cero código de producto, cero
+rutas, cero pantallas, `firestore.rules` sin tocar.
+
+La guía de la app le decía al médico que en el menú estaban «Dashboard, Citas,
+Consulta, **Hospitalización, Consultor IA**…» y que el Consultor se abría «en el
+menú». Las dos frases eran falsas: el menú son cinco destinos desde V15-IA-001,
+el Consultor se mudó al expediente del paciente en RTC-09, y Hospitalización
+entró en pausa ayer (D-030).
+
+Una guía falsa es peor que ninguna: la lee justamente quien ya está perdido. Y
+no la cazó ninguna prueba porque **el texto no se rompe** — cada reforma de menú
+la dejaba un poco más mentirosa sin que nada fallara.
+
+Ahora el paso «Reconoce el menú» se compara contra los destinos que `FlowRail`
+declara de verdad, contra lo que está en pausa y contra lo que se mudó al
+paciente. Si el riel cambia, la prueba cae. El tema de Hospitalización, además,
+dice que el módulo está en pausa y cómo se llega igualmente.
+
+---
+
+## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
+
+**3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
++530 / −40 · **3 de código de producto** · cero regresiones cerradas, cero rutas
+de API, cero pantallas nuevas, `firestore.rules` sin tocar.
+
+Dos peticiones del dueño mirando la pantalla de Operaciones, y las dos son la
+misma idea: **que el índice no compita con el trabajo del día**.
+
+**Hospital y UCI salen de la navegación** (D-030). Dos productos en ALPHA —se
+usan, no se venden— encabezando el índice por delante de la consulta y su
+agenda. Pausar no es borrar: las rutas siguen vivas, las pantallas y los motores
+intactos, y las filas del menú siguen escritas con su etiqueta y su «para qué».
+Se reactiva vaciando una lista. No es una defensa de seguridad: el entitlement
+sigue siendo quien decide el acceso.
+
+**El resto de la administración pasa a un cajón** (D-031). Nueve destinos de
+negocio, cumplimiento y documentos ocupaban dos pantallazos antes de lo que se
+usa a diario. Ahora esperan tras «Ver la gestión del consultorio», enteros y a
+un clic. El botón cuenta sus destinos de lo que va a pintar —ya filtrado por
+modo, por módulo y por la pausa—, así que no puede prometer de más.
+
+Ordenar por cadencia ya no bastaba: el problema no era el ORDEN, era la
+CANTIDAD visible de golpe.
+
+---
+
+## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
+
+**97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de
+producto** · **22 regresiones cerradas**. Cero rutas de API nuevas, cero
+pantallas nuevas.
+
+**Este paquete toca `firestore.rules`, y es lo único que no se publica solo.**
+Entra la colección `preguntas_paciente` —lo que el paciente le pregunta a su
+médico, con la clase que le puso el servidor—. Mientras no se despliegue, esa
+colección cae en el comodín de denegación y quien escribe es el servidor con
+Admin SDK: **no hay hueco abierto, hay una regla explícita que aún no rige**.
+
+Lo demás: el destino «Preguntar» del portal deja de ser un párrafo que dice
+«llame por teléfono» y pasa a clasificar y escalar **sin modelo de lenguaje** —
+lo que responde es una cadena que ya venía en el paquete que el médico liberó—;
+seis defectos que se leían correctos y no lo eran (un despliegue que anunciaba
+índices sin mandarlos, un acta de seguridad publicando «cero vulnerabilidades»
+sobre 21, y un documento que mandaba activar una casilla de GitHub que habría
+dejado `main` cerrada para siempre); ocho superficies del médico miradas en un
+teléfono; y seis decisiones del dueño que no cambian comportamiento pero cierran
+preguntas abiertas.
+
+---
+
+## v1179 — la durabilidad del expediente, la firma de la receta, y los índices que nunca se publicaron
+
+**Publicado el 1-sep 23:51 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #15).
+El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-09-01-v1179.md`](PAQUETE-PRODUCCION-2026-09-01-v1179.md).
+
+**40 commits desde v1178** (24 directos + 16 merges) · 121 archivos ·
++17 571 / −693 · **49 de código de producto** · **18 regresiones cerradas**.
+Cero rutas de API nuevas, cero pantallas nuevas.
+
+**Este paquete tocaba `firestore.indexes.json`, y es el primero que de verdad los
+ENVIÓ** — pero no a la primera: la ejecución #14 murió con un `403` porque a la
+credencial le faltaba `roles/datastore.indexAdmin`, y el acta acusó a las reglas,
+que eran lo único que había salido bien (REG-433). El dueño concedió el rol en
+IAM y la #15 pasó.
+
+Enviar no es construir: si Firestore **terminó de construirlos** sigue sin poder
+verse desde el repositorio.
+
+### Lo que cambia para el médico
+
+**El respaldo se puede conciliar, y la restauración tiene cinco candados**
+(#349, REG-417…420). El pie del archivo lleva recuento por colección y huella del
+conjunto, así que «restauramos 10 000 documentos» ya se puede desmentir si
+faltaban 300. Y lo que más pesa: **un paciente cuya supresión ARCO consta en el
+consultorio de destino no vuelve** al restaurar un respaldo anterior — ni con
+`sobrescribir=1`, ni en modo ensayo.
+
+**La firma de la receta deja de ser transferible** (#355, REG-432). El permiso de
+las imágenes de papelería pasa de ligar `path|exp` a ligar
+`versión + path + dueño + consultorio + caducidad`, y de durar 24 h a durar 15
+min. Antes, una URL filtrada servía un día entero y cruzaba consultorios.
+
+Y **si el membrete no carga, ahora te avisa antes de imprimir** en vez de
+entregar una receta incompleta en silencio. Ese defecto no existía: lo iba a
+crear el propio arreglo, y se cerró con él.
+
+**Cuatro consultas vivas llevaban meses sin índice** (#425, REG-421…424, 429,
+431). Y el guardián que debía cazarlo se saltaba lo que no entendía.
+
+### Los índices: la parte que hay que leer despacio
+
+`firebase.json` **nunca declaró dónde estaban los índices**. `firebase deploy
+--only firestore:indexes` no falla cuando no encuentra nada que publicar:
+devuelve éxito. Así que todas las actas anteriores registraron el paso en
+`success` **y no publicaron un solo índice** (REG-431).
+
+Con la línea puesta, este despliegue publica los **12 índices compuestos por
+primera vez**. Construirlos sobre colecciones con datos tarda de minutos a horas.
+
+Lo que impide que eso rompa una pantalla es REG-424: la consulta buena se
+intenta, y **sólo** si el error dice que falta el índice se cae al camino de
+antes, devolviendo `degradada: true` — y eso sube hasta donde se ve («no se pudo
+ordenar por urgencia: lo que se ve son los más antiguos»). Un permiso denegado o
+una red caída **siguen subiendo**: si esto los absorbiera, convertiría una fuga
+de aislamiento en una lista corta, que es peor porque no se ve.
+
+---
+
+## v1178 — el portal del paciente y el documento firmado entran a los arneses
+
+**40 commits desde v1177** · 10 archivos de código de producto · **cero rutas de
+API nuevas, cero pantallas nuevas, ni reglas ni índices**.
+
+Un despliegue arrastra TODO lo no desplegado, así que el paquete son dos cosas:
+los 5 commits que ya estaban en `main` de otro carril (actas de v1176 y v1177, y
+el pin del botón de producción — 4 archivos, +67/−4, todo documentación y
+workflow) y las cuatro unidades del carril de excelencia.
+
+### Lo que cambia para quien usa la aplicación
+
+**El portal del paciente** —la única pantalla que ve un paciente— no tenía
+`<main>`: seis bloques de contenido fuera de todo landmark, sin punto al que
+saltar con «ir al contenido». Y cuatro de sus cinco destinos no acusaban el
+puntero, entre ellos «Confirmar cita». Un paciente que no ve que algo se puede
+pulsar, simplemente no lo pulsa.
+
+**El visor del documento medicolegal** (`/nota/…`) se caía entero —«Algo salió
+mal», con un «Reintentar» que no puede funcionar— ante una nota sin bloque
+`metadata`. Una nota anterior al campo, o un respaldo restaurado a medias,
+quedaba íntegra en Firestore e **ilegible desde el producto**, y con ella la
+receta, la orden y el Word, que salen de esa pantalla. Ver **REG-415**.
+
+**Controles que se leían como texto**, todos por el mismo defecto —la apariencia
+escrita en el `style={{ }}` del JSX, que le gana por especificidad al `:hover` de
+la hoja—:
+
+- «Anular cobro» y «Cobrar una cita», los dos diálogos que tocan dinero.
+- «Ver versiones anteriores», la única puerta al historial de una nota
+  sobrescrita.
+- La cabecera de cada nota del expediente longitudinal.
+- «ya no», el acto de suspender un medicamento en la consulta.
+
+### Lo que cambia para quien lo mantiene
+
+El botón de producción podía publicar `firestore.rules` de un árbol viejo **con
+las tres compuertas en verde**: ninguna podía cazar que el pin envejeciera. La
+**Compuerta 0** compara ahora el contenido de los cuatro archivos que ese
+workflow publica o certifica, y se lee de `main` y no del checkout — una
+compuerta que viaja con lo que vigila no vigila nada.
+
+### Lo que este paquete NO trae
+
+Ni reglas de Firestore ni índices: **no hay nada que publicar aparte del
+despliegue**. Ni rutas de API nuevas, ni pantallas nuevas, ni cambios de esquema.
+
+---
+
+## v1177 — dos controles que no se podían pulsar
+
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 19:33 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-08-31-v1177.md`](PAQUETE-PRODUCCION-2026-08-31-v1177.md).
+
+**5 commits desde v1176** · 13 archivos · +359 / −26 · 7 de código de producto.
+Cero rutas de API nuevas, cero pantallas nuevas, y **ni reglas ni índices**.
+
+Un paquete pequeño con dos arreglos que no son cosméticos.
+
+### En `/consultor`, «Cerrar sesión» y «Ayuda» estaban muertos
+
+La barra de preguntas es `position: fixed; left: 0`, y en escritorio el riel de
+navegación ocupa los primeros 224 px — la barra se comía sus últimos 89. No es
+«se ve raro»: `document.elementFromPoint` en el centro del botón devolvía **la
+barra**, no el botón. Ahora arranca en 224 px, y en móvil —donde no hay riel—
+sigue ocupando todo.
+
+### En `/asistente`, las ocho horas que se pulsan para agendar no respondían
+
+Son literalmente el control con el que se agenda una cita. No aparecieron en la
+medición anterior porque aquel día **no había ninguna franja pintada**.
+
+### Y el punto ciego que los tapaba a los dos
+
+El arnés de estaticidad sólo miraba `<main>`. El armazón —riel, barra, pie— está
+en **todas** las pantallas y no lo medía nadie. El guardián que debía cazar el
+solape (`nada-tapa`) tenía **el mismo punto ciego**. Los dos se abren ahora a
+todo el documento, y el de solapes queda probado al revés: con la barra en
+`left: 0` canta 1 tapado; con el arreglo, 0.
+
+Queda escrita la lección, que vale más que los dos arreglos: **un trinquete a 0
+sólo vigila lo que se llegó a pintar el día que se midió.**
+
+### Qué NO cubre
+
+Sólo se abren dos diálogos: los que piden un estado difícil —un cobro a medias,
+una firma— siguen sin mirarse. Los formularios de varios pasos esconden controles.
+El portal del paciente sigue fuera de las 22 rutas. Y todo está medido en
+Chromium: WebKit sigue `BLOCKED_EXTERNAL`.
+
+## v1176 — el carril de excelencia: la agenda deja de aceptar días que no existen
+
+**Se preparó sin despliegue y se publicó el mismo día, 31-ago 13:28 UTC**
+(`PRODUCTION_RELEASE=SUCCESS`). El paquete completo vive en
+[`PAQUETE-PRODUCCION-2026-08-31.md`](PAQUETE-PRODUCCION-2026-08-31.md).
+
+**87 commits desde v1175** (31-ago) · 342 archivos · +22 934 / −819 · 102 de
+código de producto. **Cero rutas de API nuevas y cero pantallas nuevas.**
+
+Casi todo es el carril de excelencia de producto (PR #399, 27 unidades, cada una
+nacida de una medición en navegador y no de una opinión sobre una captura).
+
+### Lo que arregla, y que hoy está vivo en producción
+
+**Una cita podía reservarse dos veces sobre el mismo hueco, en un día que no
+existe.** `2027-02-30` pasaba la validación de forma y `new Date` la desbordaba
+al **2 de marzo**: la cita se validaba contra el horario de un día y se guardaba
+en otro. Y como el chequeo de solapes consulta por la fecha original, **no
+chocaba** con las citas reales del 2 de marzo. Resultado: dos pacientes en el
+mismo hueco, y una cita que no aparece en la vista de ningún día.
+
+Tampoco había techo: `9999-12-31` generaba huecos, y `/api/appointments` no
+miraba la fecha en absoluto — el GET de disponibilidad se negaba a **ofrecer** un
+hueco a tres años y el POST lo **aceptaba**. Ahora hay una puerta única
+(`src/lib/agenda/horizonte.ts`), techo `2050-12-31`, sin pregenerar fechas.
+
+**Reenviar la misma reserva le decía al paciente que otro le quitó el hueco**
+—«Ese horario acaba de ocuparse»— cuando quien lo había tomado era él. Ahora es
+idempotente.
+
+**Con la red caída, `/login` mandaba a recuperar una contraseña que nunca estuvo
+mal** («Error al iniciar sesión») y `/registro` no decía nada.
+
+### Accesibilidad, medida en Chromium real a 390 / 768 / 1440
+
+- **Los dos críticos de `/calendario` eliminados**: las flechas que mueven el mes
+  no tenían nombre (`button-name`), registrado en las líneas base de V10 **y**
+  V15, medido dos veces y nunca cerrado.
+- **El riel de navegación se apagaba en toda la familia de la agenda**: cero
+  `aria-current` en `/citas`, `/calendario`, `/asistente` y `/lista-espera`. La
+  causa no era una ruta olvidada — la lista de destinos estaba escrita **dos
+  veces** y las copias habían divergido en diecisiete rutas. Ahora 9 de 9.
+- **El estado de la cita vivía sólo en el pixel**: el nombre accesible decía
+  «Cita de … a las 13:00» de una cita **cancelada**. Ahora lo dice en las tres
+  vistas.
+- **Objetivos táctiles a 390 px**: de 12 incumplimientos a 2.
+
+### El instrumento
+
+- **REG-414** — la suite fallaba por la carga de la máquina, no por el código:
+  «Test timed out in 5000ms» dentro de un `await import()`, en archivos distintos
+  cada vuelta. El primer diagnóstico fue equivocado y queda escrito en el ledger.
+- Un **trinquete de interfaz** de 18 combinaciones ruta×ancho, con el mismo
+  contrato que los otros dos: axe, consola y desborde sólo bajan; `aria-current`
+  sólo sube. Antes había un álbum de capturas, no una compuerta.
+
+### Qué NO lleva
+
+**Ni reglas ni índices de Firestore.** A diferencia de v1175, este despliegue es
+sólo código: no hay paso aparte con `firebase deploy`.
+
+Y lo que el propio carril dejó declarado sin resolver: `/finanzas` sigue
+STATIC/FLAT · la fatiga de tarjeta se midió (15 en `/asistente`, 11–13 en
+`/finanzas`) y **no se redujo** · ningún lector de pantalla real · el trinquete de
+interfaz **no corre en CI** (necesita emuladores) · y tres violaciones de
+`/calendario` que son decisión de producto, no defectos.
+
+## v1175 — REG-373 a REG-413, y las reglas de Firestore que van APARTE
+
+**Este bump se prepara SIN su despliegue.** El paquete completo, con lo que se
+declara antes de publicar, vive en
+[`PAQUETE-PRODUCCION-2026-08-30.md`](PAQUETE-PRODUCCION-2026-08-30.md).
+
+**84 commits desde v1174** (28-ago → 31-ago) · 299 archivos · +46 589 / −1 100 ·
+138 archivos de código de producto — el mismo número que al declararse.
+
+### Lo que hay que hacer a mano, y si no se hace queda roto
+
+`vercel --prod` **no publica `firestore.rules`**. Este paquete las cambia
+(REG-340) y sin ese despliegue aparte quedan rotas dos cosas que el código nuevo
+da por buenas:
+
+- **El apodo del chat** (`clinics/{id}/members/{uid}`) se leía y se escribía
+  desde el navegador **sin regla**, así que caía en el comodín de denegación:
+  no se guardaba nunca y nadie se enteraba, porque el código cae con elegancia
+  al nombre por omisión.
+- **La bitácora append-only del episodio** (`.../registros/{id}`), que es la
+  copia íntegra para la NOM-004 y no estaba declarada en ningún sitio — así que
+  no se respaldaba.
+
+Y **70 líneas nuevas de `firestore.indexes.json`**: una consulta que las
+necesite falla en producción hasta que se publiquen.
+
+```
+npx firebase deploy --only firestore:rules,firestore:indexes --project nexomed-agenda
+```
+
+### Seguridad clínica y expediente longitudinal
+
+- **REG-413** — la comprobación que impide acuñar una URL firmada del membrete, la
+  firma autógrafa y el sello de otro consultorio existía en el servidor y **no
+  tenía ni una prueba**. No cambia comportamiento: pone el guardián que faltaba.
+- **REG-412** — «Negadas» se pintaba como un alérgeno en el aviso del expediente,
+  con severidad y con botón; cada pulsación la añadía otra vez al campo del
+  paciente. Lo que se filtra al escribir se filtra ahora también al leer.
+- **REG-410** — la warfarina de marzo, otra vez, y en la pantalla donde se firma:
+  el cuadro completo llegaba a cuatro consumidores y no a la barra de avisos.
+- **REG-409** — un WER bajo no compensa una dosis por mil.
+- **REG-405** — dos proyecciones volvían a ser la puerta que devuelve un array
+  pelado: la medicación vigente se calculaba sobre una ventana y se enseñaba
+  como el expediente entero.
+- **REG-403 / REG-404** — «lo vi» y «localicé a alguien» eran el mismo gesto; y
+  agendar contaba como haber visto al paciente.
+- **REG-411** — un aviso efímero sobre una pérdida permanente es no avisar.
+- **WS-09** — la función renal llega al motor de aplicabilidad, que llevaba dos
+  dimensiones ciegas.
+- **WS-10** — el eje de riesgos reúne lo que ya está declarado, y no decide qué
+  es un riesgo.
+- **WS-12** — una cita literal que dice LO CONTRARIO de lo que respalda.
+
+### Evidencia y consultor
+
+REG-400 (el pasaje existe, es literal, y aun así el estudio no lo demuestra) ·
+REG-401 (la etiqueta del diseño decía más de lo que dijo la fuente) · REG-402
+(una guía tiene edición, y las ediciones se sustituyen) · REG-406 (el guardián
+que impide que una proyección se vuelva la verdad) · REG-407 (un presuntivo
+elegido no es un presuntivo de fábrica).
+
+### Operación del bucle
+
+El bucle deja de girar en vacío y de pintarse de verde · un tablero, un escritor
+· los dos pliegos del dueño entran al repositorio y los carriles se miden contra
+ellos · el escritor no puede regenerar un documento derivado, así que se le
+prohíbe tocarlo.
+
+### Qué NO entra
+
+Ninguna ruta de API nueva y **ninguna pantalla nueva** — así que `e2e:seguridad:prod`
+no debería teñirse de rojo por una ruta privada que producción todavía no sirve.
+
 ## v1174 — «Recetas, órdenes y notas» son tres pasos (REG-338, REG-339)
 
 **Este bump va CON su despliegue**, igual que v1173.

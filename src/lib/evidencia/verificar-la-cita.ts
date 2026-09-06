@@ -42,13 +42,17 @@
 import { fuente, fechaPublicacionDesde, type Source } from '@/types/evidence'
 import { mapaDeSoporte, esRespuestaRespaldada, tasaSinRespaldo } from '@/lib/evidence-integrations/soporte'
 import type { ProveedorDeEvidencia } from '@/lib/evidence-integrations/catalogo'
-import { desajustesEntre, type DesajusteHallado } from '@/lib/evidencia/lo-que-el-pasaje-no-dijo'
 import {
   procedenciaDelPasaje, normalizarEtiqueta, NO_SE_SABE,
   type Procedencia, type ParteDelResumen,
 } from '@/lib/evidencia/de-donde-sale-el-pasaje'
 
 /** Lo mínimo de un artículo de PubMed para poder anclar un pasaje. */
+import {
+  contradiccionesEntre, comoSeDice as comoSeDiceLaContradiccion,
+  type Contradiccion,
+} from './la-cita-dice-lo-contrario'
+
 export interface ArticuloCitable {
   readonly pmid: string
   readonly titulo: string
@@ -77,6 +81,20 @@ export interface CitaFueraDeLosHallazgos {
   readonly procedencia: Procedencia
 }
 
+/**
+ * Una cita ANCLADA cuyo pasaje contradice a la afirmación que respalda.
+ *
+ * El tercero y peor de los defectos de cita: existe, es literal, sale de los
+ * hallazgos —pasa las tres compuertas anteriores— y dice lo contrario.
+ */
+export interface CitaContradicha {
+  readonly texto: string
+  readonly pmid: string
+  readonly contradicciones: readonly Contradiccion[]
+  /** Cómo se le dice al médico, sin decidir quién tiene razón. */
+  readonly frase: string
+}
+
 export interface Verificacion {
   /** true = toda afirmación citada quedó anclada a un pasaje literal. */
   readonly respaldada: boolean
@@ -99,20 +117,13 @@ export interface Verificacion {
    */
   readonly fueraDeLosHallazgos: readonly CitaFueraDeLosHallazgos[]
   /**
-   * Citas ANCLADAS cuyo pasaje dice otra cosa que la afirmación (REG-532).
+   * Citas ancladas cuyo pasaje NIEGA lo que la afirmación asevera (o al revés).
    *
-   * Tampoco están «sin respaldo»: el pasaje existe y es literal. Lo que pasa es
-   * que **lo niega** o **lo dice con reservas** que la frase quitó. Es un tercer
-   * problema distinto de los otros dos y se cuenta aparte por eso.
+   * Aparte de las otras dos, por la misma razón que ellas están aparte entre sí:
+   * son tres defectos distintos que se arreglan distinto. Éste es el único que
+   * se ve MÁS respaldado cuanto más se comprueba.
    */
-  readonly desajustes: readonly CitaDesajustada[]
-}
-
-/** Una cita anclada cuyo pasaje no dice lo que la afirmación afirma. */
-export interface CitaDesajustada {
-  readonly texto: string
-  readonly pmid: string
-  readonly desajuste: DesajusteHallado
+  readonly contradichasPorSuPasaje: readonly CitaContradicha[]
 }
 
 /**
@@ -165,7 +176,7 @@ export function verificarAfirmaciones(
   if (fuentes.length === 0 || afirmaciones.length === 0) {
     return {
       respaldada: false, tasaSinRespaldo: 0, sinRespaldo: [], respaldadas: 0,
-      fueraDeLosHallazgos: [], desajustes: [],
+      fueraDeLosHallazgos: [], contradichasPorSuPasaje: [],
       // Sin fuentes anclables no se puede verificar. Decir «no respaldada» aquí
       // sería convertir «no lo sé» en un juicio sobre el análisis.
       sePudoVerificar: false,
@@ -180,7 +191,7 @@ export function verificarAfirmaciones(
     respaldadas: mapa.respaldadas.length,
     sePudoVerificar: true,
     fueraDeLosHallazgos: citasFueraDeLosHallazgos(afirmaciones, articulos),
-    desajustes: citasDesajustadas(afirmaciones),
+    contradichasPorSuPasaje: citasQueDicenLoContrario(afirmaciones, articulos),
   }
 }
 
@@ -231,6 +242,54 @@ export function citasFueraDeLosHallazgos(
   return out
 }
 
+/**
+ * Qué citas ancladas dicen lo CONTRARIO de la afirmación que respaldan.
+ *
+ * Mismo recorrido que `citasFueraDeLosHallazgos` —pasaje a pasaje, resolviendo
+ * el artículo por el índice que devolvió el modelo— porque es la misma unidad de
+ * análisis: si una afirmación cita dos artículos y sólo uno la contradice, se
+ * marca ese, no la afirmación entera.
+ *
+ * A diferencia de aquélla, **no necesita que el resumen venga estructurado**: la
+ * polaridad se lee del pasaje tal cual, así que también protege a los artículos
+ * sin secciones, que son justo los que la comprobación de REG-400 no puede mirar.
+ */
+export function citasQueDicenLoContrario(
+  afirmaciones: readonly AfirmacionCruda[],
+  articulos: readonly ArticuloCitable[],
+): CitaContradicha[] {
+  const out: CitaContradicha[] = []
+  for (const af of afirmaciones) {
+    const texto = typeof af.texto === 'string' ? af.texto : ''
+    if (!texto.trim()) continue
+    const pasajes = Array.isArray(af.pasajes) ? af.pasajes : []
+    const citas = Array.isArray(af.citas) ? af.citas : []
+    for (let i = 0; i < pasajes.length; i++) {
+      const pasaje = typeof pasajes[i] === 'string' ? (pasajes[i] as string) : ''
+      if (!pasaje.trim()) continue
+      const n = Number(citas[i] ?? citas[0])
+      const a = Number.isFinite(n) ? articulos[n - 1] : undefined
+      if (!a) continue
+      const choques = contradiccionesEntre(texto, pasaje)
+      if (choques.length === 0) continue
+      out.push({
+        texto,
+        pmid: a.pmid,
+        contradicciones: choques,
+        frase: choques.map(comoSeDiceLaContradiccion).join('; '),
+      })
+    }
+  }
+  return out
+}
+
+export const POR_QUE_LA_CONTRADICCION_ES_EL_TERCER_DEFECTO =
+  'Una cita sin anclar no existe en el artículo. Una anclada en los antecedentes ' +
+  'existe pero no demuestra nada. Una CONTRADICHA existe, es literal, sale de los ' +
+  'hallazgos —pasa las dos compuertas anteriores— y dice lo opuesto. Es el único ' +
+  'de los tres que se ve MÁS respaldado cuanto más se comprueba, y por eso se ' +
+  'cuenta aparte en vez de esconderse dentro de los otros dos.'
+
 export const POR_QUE_NO_SE_BORRA_LO_NO_RESPALDADO =
   'Una afirmación sin respaldo bibliográfico puede seguir siendo buen ' +
   'razonamiento clínico —consenso, fisiopatología, experiencia— y borrarla le ' +
@@ -255,28 +314,24 @@ export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
  * si una afirmación cita dos artículos y sólo uno de los pasajes la contradice,
  * se marca ese.
  */
-export function citasDesajustadas(
-  afirmaciones: readonly AfirmacionCruda[],
-): CitaDesajustada[] {
-  const out: CitaDesajustada[] = []
-  for (const a of afirmaciones) {
-    const texto = String(a.texto ?? '').trim()
-    if (!texto) continue
-    const pasajes = Array.isArray(a.pasajes) ? a.pasajes : []
-    for (const p of pasajes) {
-      const cita = p as { texto?: unknown; pmid?: unknown }
-      const pasaje = String(cita.texto ?? '').trim()
-      if (!pasaje) continue
-      for (const d of desajustesEntre(texto, pasaje)) {
-        out.push({ texto, pmid: String(cita.pmid ?? ''), desajuste: d })
-      }
-    }
-  }
-  return out
-}
 
-export const POR_QUE_UN_DESAJUSTE_NO_ES_FALTA_DE_RESPALDO =
-  'Porque el pasaje SÍ existe y es literal: el anclaje hizo su trabajo. Lo que '
-  + 'falla es otra cosa —el pasaje niega el resultado, o lo dice con reservas que '
-  + 'la frase quitó— y se arregla distinto. Meterlo en el saco de «sin respaldo» '
-  + 'perdería la distincion que hace accionable cada marca.'
+/**
+ * EL HUECO QUE ESTA CAPA **NO** CUBRE, Y QUE NO SE PIERDE (REG-560).
+ *
+ * `citasQueDicenLoContrario` caza la POLARIDAD invertida: la frase afirma un
+ * efecto y el pasaje lo niega. No caza el otro medio defecto, que la rama
+ * paralela sí había construido y que aquí se declara en vez de duplicarse:
+ *
+ *     el pasaje dice lo mismo, pero CON RESERVAS que la frase quitó
+ *     («podría reducir», «sugiere una tendencia» → «reduce»).
+ *
+ * No es lo contrario, y por eso el detector de polaridad lo deja pasar. Es una
+ * afirmación más fuerte que su fuente, que es como se cita mal de buena fe.
+ *
+ * Se declara aquí, con nombre, para que el día que se construya nadie tenga que
+ * volver a descubrirlo — y para que hoy nadie lea el silencio como cobertura.
+ */
+export const LO_QUE_LA_POLARIDAD_NO_CAZA =
+  'NO se detecta el pasaje que dice lo mismo CON RESERVAS que la frase quitó '
+  + '(«podría reducir» citado como «reduce»). No es polaridad invertida: es una '
+  + 'afirmación más fuerte que su fuente. Ausencia de marca NO es respaldo.'
