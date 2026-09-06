@@ -1,6 +1,6 @@
 import type { NotaMedica, ValidationResult } from '@/types/expediente'
 import { requiereSignosVitales } from './templates'
-import { validarAlergiasVsMedicamentos } from './medical-dictionary'
+import { validarAlergiasVsMedicamentos, miembrosCubiertosPorAlergia } from './medical-dictionary'
 import { validarFormatoCie10 } from '../cie10'
 import { desdeSeveridadHeredada, etiquetaDe, detiene } from '@/lib/seguridad/clasificacion'
 
@@ -25,8 +25,26 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
     }
   }
 
-  // ── Diagnóstico obligatorio (excepto evolución que puede heredar) ──
-  const requiereDx = ['historia_clinica', 'primera_vez', 'ingreso', 'egreso'].includes(nota.tipo)
+  /**
+   * ── DIAGNÓSTICO ESTRUCTURADO OBLIGATORIO (excepto evolución, que hereda) ───
+   *
+   * MC-010 — `nota_postoperatoria` y `valoracion_preoperatoria` NO estaban en
+   * esta lista, así que se podían firmar sin un solo diagnóstico estructurado:
+   * «Diagnóstico postoperatorio: apendicitis aguda perforada» vivía en la prosa
+   * de la sección y en ningún otro sitio.
+   *
+   * Y de la prosa no lee nadie: el Condition de FHIR sale de `diagnosticos[]`
+   * (fhir-export.ts), la carta de referencia se prellena de `nota.diagnosticos`
+   * y el expediente longitudinal también. El expediente interoperable del
+   * paciente no sabía que lo habían operado de una apendicitis perforada.
+   *
+   * Las dos notas quirúrgicas ya EXIGEN el diagnóstico en su plantilla
+   * (`diagnosticoPreop` y `diagnosticoPostop` son secciones obligatorias): esto
+   * no añade un requisito clínico nuevo, pide que el dato quede además donde
+   * los demás sistemas lo leen.
+   */
+  const requiereDx = ['historia_clinica', 'primera_vez', 'ingreso', 'egreso',
+    'nota_postoperatoria', 'valoracion_preoperatoria'].includes(nota.tipo)
   if (requiereDx && nota.diagnosticos.length === 0) {
     errores.push('Falta al menos un diagnóstico')
   }
@@ -67,8 +85,25 @@ export function validarNOM004(nota: NotaMedica): ValidationResult {
        * pedirle al médico que lo mire.
        */
       const puedeSerFarmaco = al.tipo == null || al.tipo === 'medicamento'
-      if (puedeSerFarmaco && token.length >= 3 &&
-          med.nombre.toLowerCase().includes(token)) {
+      /**
+       * ── LA CLASE ESCRITA CUENTA COMO EL FÁRMACO — MI-004 ──────────────────
+       *
+       * La comparación por TOKEN es `'ceftriaxona 1 g'.includes('cefalosporinas')`,
+       * que es `false`: un expediente que dice «Cefalosporinas» —como lo escribe
+       * un médico mexicano— no disparaba nada al prescribir ceftriaxona. Con
+       * «Penicilinas» funcionaba de casualidad, porque «penicilina» es subcadena
+       * de la palabra; con las cefalosporinas no hay subcadena posible.
+       *
+       * La cobertura por clase la resuelve `miembrosCubiertosPorAlergia`, que es
+       * la MISMA fuente que usa el cruce del copiloto — no un segundo
+       * vocabulario. Se SUMA al token, no lo sustituye: el token sigue cazando
+       * el caso de siempre («Tramadol» + «Tramadol 100 mg») y fármacos que no
+       * son betalactámicos, que la cobertura por clase todavía no conoce.
+       */
+      const porClase = miembrosCubiertosPorAlergia(al.alergeno)
+        .some(f => med.nombre.toLowerCase().includes(f))
+      const porToken = token.length >= 3 && med.nombre.toLowerCase().includes(token)
+      if (puedeSerFarmaco && (porToken || porClase)) {
         errores.push(`⚠️ Posible alergia: se prescribe "${med.nombre}" y el paciente refiere alergia a "${al.alergeno}"`)
       }
     }

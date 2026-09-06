@@ -25,9 +25,22 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
 import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
-import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
+import { paginarParaDocumento, etiquetaVia, avisoDeDesborde, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
+import { marcaDelRenglonImpreso } from '@/lib/receta-renglon-impreso'
+import { edadLegible } from '@/lib/edad-legible'
+
+/**
+ * El rojo de los avisos del PAPEL, en un solo sitio.
+ *
+ * Literal y no token a propósito (ver la nota de arriba: el papel se rasteriza
+ * sobre un clon donde las variables CSS no resuelven). Una constante en vez de
+ * seis copias: el mismo argumento que el sistema de diseño hace con los tokens,
+ * aplicado a la superficie donde los tokens no pueden usarse.
+ */
+const ROJO_DEL_PAPEL = '#b91c1c'
 
 /**
  * EN EL PAPEL NO SE USAN VARIABLES DE COLOR — Y ES DELIBERADO.
@@ -282,6 +295,16 @@ export function contarPaginas(data: RecetaData, config: ClinicConfig | null, rec
   return calcularPaginas(data, config, recetaConfig).length
 }
 
+/**
+ * Lo que NO cabe en la hoja, dicho para que la pantalla lo enseñe (ZL-018).
+ *
+ * Cadena vacía cuando todo cabe. Se calcula con la MISMA paginación que se
+ * imprime: si se calculara aparte, el aviso y el papel podrían discrepar.
+ */
+export function avisoDeRecorte(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): string {
+  return avisoDeDesborde(calcularPaginas(data, config, recetaConfig))
+}
+
 function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): PaginaReceta[] {
   const paper = paperEfectivo(recetaConfig)
   const custom = !!recetaConfig.disenoCompletoDataUrl
@@ -511,6 +534,11 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
           <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
             <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
             {m.via && <span> · {etiquetaVia(m.via)}</span>}
+            {/* MP-005 — el hueco del renglón viaja con el papel, no se queda en
+                la pantalla del médico: quien surte también tiene que verlo. */}
+            {marcaDelRenglonImpreso(m) && (
+              <span style={{ color: ROJO_DEL_PAPEL, fontWeight: 700 }}> · {marcaDelRenglonImpreso(m)}</span>
+            )}
             <br />
             <span style={{ fontSize: fontSize - 0.5 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -536,6 +564,10 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
             <div style={{ fontSize: fontSize + 0.5, fontWeight: 700, color: '#111', lineHeight: 1.25 }}>
               {m.nombre}{m.dosis ? ` ${m.dosis}` : ''}
               {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {etiquetaVia(m.via)}</span>}
+              {/* MP-005 — ver la nota de la variante «plano». */}
+              {marcaDelRenglonImpreso(m) && (
+                <span style={{ color: ROJO_DEL_PAPEL, fontSize: fontSize - 1 }}> · {marcaDelRenglonImpreso(m)}</span>
+              )}
             </div>
             <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -765,10 +797,19 @@ function HojaCustom({
               Se conserva el comportamiento de no pintar el recuadro cuando no hay
               dato: un impreso no debe afirmar «Negadas» a partir de un campo que
               nadie llenó.
+
+              MI-002 — POR QUÉ ESTA HOJA SIGUE ESCONDIENDO EL RECUADRO Y LA DE
+              FÁBRICA NO. La hoja generada es nuestra y ahí cabe el renglón «Sin
+              registro en el expediente», que le dice a quien dispensa que nadie
+              preguntó. Ésta se pinta ENCIMA del diseño que subió el médico, con
+              sus coordenadas calibradas: un recuadro que hoy sólo aparece cuando
+              hay alergia pasaría a aparecer siempre y le movería el papel. Las
+              dos coinciden en lo que importa —ninguna afirma una negación—; se
+              diferencian en quién es el dueño de la maqueta.
             */}
             {recetaConfig.mostrarAlergias !== false && alergiasParaImpreso(data.paciente) && (
               <div style={{
-                border: '1px solid #b91c1c', color: '#b91c1c',
+                border: `1px solid ${ROJO_DEL_PAPEL}`, color: ROJO_DEL_PAPEL,
                 padding: '2px 6px', borderRadius: 3,
                 fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
               }}>
@@ -956,7 +997,8 @@ function HojaGenerada({
               <span style={{ fontWeight: 700, color: '#111' }}>{data.paciente?.nombre ?? '—'}</span>
             </div>
             <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
-              {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
+              {/* C-018 — «1 años» en la receta que va a la farmacia, no. */}
+              {edadLegible(data.paciente?.edad) ? <>{edadLegible(data.paciente?.edad)}{data.paciente?.sexo ? ' · ' : ''}</> : ''}
               {data.paciente?.sexo || ''}
               {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#555' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
               {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#555' }}>Tel. {data.paciente.telefono}</div>}
@@ -966,15 +1008,21 @@ function HojaGenerada({
           {/* Alergias destacadas */}
           {recetaConfig.mostrarAlergias !== false && (
             <div style={{
-              border: '1.2px solid #b91c1c',
-              color: '#b91c1c',
+              border: `1.2px solid ${ROJO_DEL_PAPEL}`,
+              color: ROJO_DEL_PAPEL,
               borderRadius: 4,
               padding: '3px 8px',
               fontSize: 10,
               fontWeight: 700,
               marginBottom: 6,
             }}>
-              ALERGIAS: {data.paciente?.alergias || 'Negadas / no referidas'}
+              {/* MI-002 — la hoja de FÁBRICA afirmaba «Negadas / no referidas»
+                  a partir de un campo vacío, y leía el texto libre en crudo (se
+                  saltaba `alergiasEstructuradas`). Las dos cosas las resuelve
+                  `alergiasParaElPapel`, que es la frase única de todos los
+                  impresos: alérgeno, «Sin registro en el expediente» o «NO
+                  DISPONIBLE». Ninguna de las tres inventa una negación. */}
+              ALERGIAS: {alergiasParaElPapel(data.paciente)}
             </div>
           )}
 
@@ -1042,7 +1090,7 @@ function HojaGenerada({
                   de maquetación y no la ausencia de un dato obligatorio. */}
               {cedula !== '—'
                 ? <>Cédula Prof. {cedula}</>
-                : <span style={{ color: '#b91c1c' }}>[FALTA CÉDULA PROFESIONAL]</span>}
+                : <span style={{ color: ROJO_DEL_PAPEL }}>[FALTA CÉDULA PROFESIONAL]</span>}
               {recetaConfig.registroDGP && <><br />Reg. DGP/SSA {recetaConfig.registroDGP}</>}
             </div>
           </div>

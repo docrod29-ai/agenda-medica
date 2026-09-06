@@ -92,8 +92,13 @@ describe('V15-A11Y-001 — el formulario de /referencia tiene nombre', () => {
     // Prellenado desde la última nota (preferir firmada; ?nota= manda).
     expect(sinComentarios).toContain("searchParams.get('nota')")
     expect(sinComentarios).toContain("notas.find(n => n.estado === 'firmada')")
-    // Alergias SIEMPRE desde el campo estructurado — la hoja viaja a otro médico.
-    expect(sinComentarios).toContain('alergiasParaImpreso(patient)')
+    /* Alergias SIEMPRE desde el campo estructurado — la hoja viaja a otro
+       médico. Desde MI-002 la llamada es `alergiasParaElPapel(patient)`, que
+       envuelve a `alergiasParaImpreso` y además decide qué se dice cuando el
+       expediente está vacío (antes decía «Negadas / no referidas», que es una
+       afirmación clínica que nadie hizo). Cualquiera de las dos satisface lo
+       que esta prueba congela: que la fuente no sea el texto libre en crudo. */
+    expect(sinComentarios).toMatch(/alergiasPara(Impreso|ElPapel)\(patient\)/)
     // Cédula ausente se DECLARA, no se imprime un guion.
     expect(sinComentarios).toContain('[FALTA CÉDULA PROFESIONAL]')
     // Mismas salidas: PDF + impresión del mismo nodo #doc.

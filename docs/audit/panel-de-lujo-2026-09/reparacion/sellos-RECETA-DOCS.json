@@ -1,0 +1,57 @@
+[
+  {
+    "archivo": "src/__tests__/el-impreso-no-afirma-alergias-negadas.test.ts",
+    "minCasos": 10,
+    "hallazgos": ["MI-002"]
+  },
+  {
+    "archivo": "src/__tests__/el-ajuste-renal-de-la-receta-ve-lo-vigente.test.ts",
+    "minCasos": 2,
+    "hallazgos": ["MI-001"]
+  },
+  {
+    "archivo": "src/__tests__/el-consentimiento-lo-firma-quien-consiente.test.ts",
+    "minCasos": 6,
+    "hallazgos": ["MC-003"]
+  },
+  {
+    "archivo": "src/__tests__/la-carta-de-referencia-queda-en-el-expediente.test.ts",
+    "minCasos": 9,
+    "hallazgos": ["MC-004", "ZL-002"]
+  },
+  {
+    "archivo": "src/__tests__/la-receta-dice-lo-que-no-comprobo.test.ts",
+    "minCasos": 17,
+    "hallazgos": ["MP-007", "MG-002", "MP-005", "N-022"]
+  },
+  {
+    "archivo": "src/__tests__/la-orden-de-imagen-dice-de-que-lado.test.ts",
+    "minCasos": 15,
+    "hallazgos": ["MO-003", "PO-015", "MO-012", "MO-005", "ZL-002"]
+  },
+  {
+    "archivo": "src/__tests__/la-compuerta-de-firma-ve-la-clase-y-pide-diagnostico.test.ts",
+    "minCasos": 8,
+    "hallazgos": ["MC-010", "MI-004"]
+  },
+  {
+    "archivo": "src/__tests__/el-impreso-no-lleva-un-diagnostico-descartado.test.ts",
+    "minCasos": 6,
+    "hallazgos": ["PC-001", "PO-001"]
+  },
+  {
+    "archivo": "src/__tests__/la-nota-quirurgica-tiene-donde-asentarlo-todo.test.ts",
+    "minCasos": 15,
+    "hallazgos": ["MC-009", "MC-021", "MC-022", "MC-020", "MI-011"]
+  },
+  {
+    "archivo": "src/__tests__/lo-que-sale-al-mundo-no-afirma-de-mas.test.ts",
+    "minCasos": 14,
+    "hallazgos": ["ZL-003", "ZL-004", "ZL-005", "ZL-018", "MO-005"]
+  },
+  {
+    "archivo": "src/__tests__/el-papel-no-dice-1-anios-ni-la-fecha-de-manana.test.ts",
+    "minCasos": 11,
+    "hallazgos": ["C-015", "C-018"]
+  }
+]

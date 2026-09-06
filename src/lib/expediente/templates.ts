@@ -17,6 +17,7 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'estudiosPrevios',       label: 'Estudios previos',                placeholder: 'Laboratorio, imagen' },
     { key: 'planAbordajeDx',        label: 'Plan de abordaje diagnóstico',    obligatorio: true,  placeholder: 'Estudios solicitados, diagnósticos diferenciales priorizados, criterio de descarte/confirmación' },
     { key: 'planTratamiento',       label: 'Plan de tratamiento',             obligatorio: true,  placeholder: 'Fármaco · dosis · vía · intervalo · duración. Medidas no farmacológicas. Signos de alarma.' },
+    { key: 'pronostico',            label: 'Pronóstico',                      placeholder: 'Para la vida, la función y la enfermedad' },
   ],
   primera_vez: [
     { key: 'motivoConsulta',        label: 'Motivo de consulta',   obligatorio: true },
@@ -25,12 +26,14 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'exploracionFisica',     label: 'Exploración física',   obligatorio: true },
     { key: 'planAbordajeDx',        label: 'Plan de abordaje diagnóstico', obligatorio: true,  placeholder: 'Estudios solicitados + diagnósticos diferenciales priorizados' },
     { key: 'planTratamiento',       label: 'Plan de tratamiento',  obligatorio: true,  placeholder: 'Fármaco · dosis · vía · intervalo · duración' },
+    { key: 'pronostico',            label: 'Pronóstico',           placeholder: 'Para la vida, la función y la enfermedad' },
   ],
   seguimiento: [
     { key: 'subjetivo',  label: 'Subjetivo (S)',  obligatorio: true,  placeholder: 'Evolución referida, cumplimiento del tratamiento, nuevos síntomas' },
     { key: 'objetivo',   label: 'Objetivo (O)',   obligatorio: true,  placeholder: 'Exploración física de hoy, resultados de estudios' },
     { key: 'evaluacion', label: 'Evaluación (A)', obligatorio: true,  placeholder: 'Evolución de diagnósticos, razonamiento clínico' },
     { key: 'plan',       label: 'Plan (P)',       obligatorio: true,  placeholder: 'Cambios de medicamentos, estudios, próxima cita, signos de alarma' },
+    { key: 'pronostico', label: 'Pronóstico',     placeholder: 'Para la vida, la función y la enfermedad' },
   ],
   alta_consulta: [
     { key: 'resumenEvolucion', label: 'Resumen de la evolución', obligatorio: true },
@@ -68,6 +71,8 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'laboratorios',      label: 'Laboratorios relevantes',    placeholder: 'BH, QS (creatinina, glucosa), electrolitos, coagulación, etc.' },
     { key: 'conclusionRiesgo',  label: 'Conclusión de riesgo',       obligatorio: true,  placeholder: 'Se llena automáticamente con las escalas' },
     { key: 'recomendaciones',   label: 'Recomendaciones perioperatorias', obligatorio: true,  placeholder: 'Se generan automáticamente según la evidencia' },
+    { key: 'tipoIntervencion',  label: 'Tipo de intervención',       placeholder: 'Electiva / urgente · ambulatoria / con internamiento' },
+    { key: 'pronostico',        label: 'Pronóstico',                 placeholder: 'Para la vida, la función y la enfermedad' },
   ],
   valoracion_inmuno: [
     { key: 'motivoHuesped',        label: 'Motivo y tipo de huésped',            obligatorio: true,  placeholder: 'Motivo de la interconsulta, tipo de huésped (SOT/TCMH/VIH…), estado de inmunosupresión, fecha TX/inicio IS, CD4' },
@@ -76,16 +81,49 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'planProfilaxis',       label: 'Profilaxis y plan antimicrobiano',    obligatorio: true,  placeholder: 'Profilaxis indicada (PJP, CMV, antifúngica, HBV, TB latente…), fármaco · vía · intervalo · duración. Ajuste renal. Validación clínica.' },
     { key: 'impresionPlan',        label: 'Impresión y plan — Infectología',     obligatorio: true,  placeholder: 'Conclusión de la valoración y seguimiento' },
   ],
+  /**
+   * ── LO QUE LA NOTA POSTOPERATORIA NO TENÍA DÓNDE ASENTAR (MC-009, MC-021,
+   *    MC-022) ──────────────────────────────────────────────────────────────
+   *
+   * No había campo para la operación PLANEADA frente a la realizada («planeada:
+   * apendicectomía laparoscópica / realizada: convertida a abierta»), ni para
+   * la cuenta de gasas, compresas e instrumental, ni para el equipo quirúrgico,
+   * ni para las piezas enviadas a patología, ni para el pronóstico. Todo eso
+   * acababa —de memoria— dentro de «Descripción de la técnica». Una pieza no
+   * enviada a patología o una cuenta de gasas no asentada es exactamente lo que
+   * un perito busca.
+   *
+   * Y el cirujano privado mexicano opera en quirófano ajeno: el impreso llevaba
+   * como establecimiento su consultorio y no había dónde decir dónde se operó
+   * (MC-022). La fecha del procedimiento tampoco existía (MC-021), así que
+   * ningún motor podía calcular el día postoperatorio.
+   *
+   * TODAS NACEN OPCIONALES. Que la NOM-004 exija cada una de estas secciones en
+   * la nota postoperatoria es `NEEDS_CLINICAL_REVIEW` / revisión legal: el
+   * auditor lo marcó así y el equipo rojo bajó el hallazgo a `parcial` por eso
+   * mismo. Marcarlas obligatorias BLOQUEARÍA la firma por un requisito que
+   * nadie ha verificado contra el texto de la norma; dejarlas sin existir
+   * garantiza que el dato no se capture nunca. Existir y no bloquear es lo que
+   * se puede sostener hoy.
+   */
   nota_postoperatoria: [
     { key: 'diagnosticoPreop',   label: 'Diagnóstico preoperatorio',   obligatorio: true },
     { key: 'diagnosticoPostop',  label: 'Diagnóstico postoperatorio',  obligatorio: true },
+    { key: 'operacionPlaneada',  label: 'Operación planeada',          placeholder: 'Lo que se programó, para contrastarlo con lo que se hizo' },
     { key: 'cirugiaRealizada',   label: 'Cirugía realizada',           obligatorio: true,  placeholder: 'Procedimiento efectuado, técnica' },
+    { key: 'fechaProcedimiento', label: 'Fecha y hora del procedimiento', placeholder: 'Cuándo se operó (si no fue hoy)' },
+    { key: 'lugarProcedimiento', label: 'Lugar del procedimiento',     placeholder: 'Hospital y quirófano donde se operó, si no fue en el consultorio' },
+    { key: 'equipoQuirurgico',   label: 'Equipo quirúrgico',           placeholder: 'Cirujano, ayudantes, instrumentista, anestesiólogo, circulante' },
     { key: 'hallazgos',          label: 'Hallazgos transoperatorios',  obligatorio: true },
     { key: 'tecnica',            label: 'Descripción de la técnica',   placeholder: 'Pasos quirúrgicos relevantes' },
     { key: 'sangrado',           label: 'Sangrado y líquidos',         placeholder: 'Sangrado estimado, transfusiones, balance' },
+    { key: 'cuentaMaterial',     label: 'Cuenta de gasas, compresas e instrumental', placeholder: 'Completa / incompleta, y qué se hizo si no cuadró' },
+    { key: 'estudiosTransop',    label: 'Estudios transoperatorios',   placeholder: 'Congelación, cultivos, imagen en quirófano' },
+    { key: 'piezasPatologia',    label: 'Piezas enviadas a patología', placeholder: 'Qué se envió, o «no se envió ninguna»' },
     { key: 'complicaciones',     label: 'Incidentes / complicaciones', placeholder: 'Ninguno / describir' },
     { key: 'estadoEgreso',       label: 'Estado al salir de quirófano', obligatorio: true, placeholder: 'Condición, destino (recuperación/UCI/piso)' },
     { key: 'planPostop',         label: 'Plan postoperatorio',         obligatorio: true,  placeholder: 'Indicaciones, analgesia, vigilancia, signos de alarma' },
+    { key: 'pronostico',         label: 'Pronóstico',                  placeholder: 'Para la vida, la función y la enfermedad' },
   ],
   nota_anestesia: [
     { key: 'valoracionPreanestesica', label: 'Valoración preanestésica (ASA)', obligatorio: true, placeholder: 'Clasificación ASA, vía aérea, ayuno, riesgo' },
@@ -94,6 +132,7 @@ export const SECCIONES_POR_TIPO: Record<TipoNota, Omit<NotaSeccion, 'value'>[]> 
     { key: 'monitoreo',          label: 'Monitoreo transanestésico',   placeholder: 'Signos vitales, SpO2, capnografía, eventos' },
     { key: 'liquidos',           label: 'Líquidos y hemoderivados',    placeholder: 'Cristaloides, coloides, sangrado, uresis' },
     { key: 'incidentes',         label: 'Incidentes anestésicos',      placeholder: 'Ninguno / describir' },
+    { key: 'lugarProcedimiento', label: 'Lugar del procedimiento',     placeholder: 'Hospital y quirófano, si no fue en el consultorio' },
     { key: 'estadoEgreso',       label: 'Estado al egreso de anestesia', obligatorio: true, placeholder: 'Aldrete, destino, indicaciones' },
   ],
   consentimiento: [
@@ -191,7 +230,40 @@ export function esInmuno(tipo: TipoNota): boolean {
   return tipo === 'valoracion_inmuno'
 }
 
-/** ¿Es una nota hospitalaria? */
-export function esHospitalaria(tipo: TipoNota): boolean {
-  return ['ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia'].includes(tipo)
+/**
+ * ¿Es una nota hospitalaria? — MC-020.
+ *
+ * ── LA CONTRADICCIÓN ─────────────────────────────────────────────────────────
+ *
+ * Esta función decía que una `nota_postoperatoria` es hospitalaria. La pantalla
+ * del expediente —la única que de verdad clasifica notas— dice lo contrario con
+ * su propia copia local:
+ *
+ *     const esHospitalaria = (n) => !!n.internamientoId || [...].includes(n.tipo)
+ *
+ * Y tiene razón: un cirujano privado firma notas postoperatorias en Practice,
+ * sin internamiento ninguno. Esta exportación no la usaba ninguna pantalla
+ * —«escrito y sin conectar»—, así que la contradicción no hacía daño todavía:
+ * lo haría el día que alguien la importara creyendo que es la respuesta buena.
+ *
+ * ── LA REGLA, UNA SOLA ───────────────────────────────────────────────────────
+ *
+ * Lo que hace hospitalaria a una nota es el EPISODIO, no el tipo: si tiene
+ * `internamientoId`, lo es. El tipo sólo decide en los que sólo existen dentro
+ * de un internamiento (ingreso, evolución, evolución de UCI, egreso).
+ *
+ * Acepta el tipo suelto —como la llamaba el único consumidor que tenía— o la
+ * nota entera, que es como hay que llamarla cuando se conoce el episodio.
+ */
+export function esHospitalaria(
+  notaOTipo: TipoNota | { tipo: TipoNota; internamientoId?: string },
+): boolean {
+  const tipo = typeof notaOTipo === 'string' ? notaOTipo : notaOTipo.tipo
+  const internada = typeof notaOTipo === 'string' ? false : !!notaOTipo.internamientoId
+  return internada || ['ingreso', 'evolucion', 'evolucion_uci', 'egreso'].includes(tipo)
 }
+
+export const POR_QUE_EL_EPISODIO_MANDA_SOBRE_EL_TIPO =
+  'Porque un cirujano privado firma notas postoperatorias en su consultorio, ' +
+  'sin internamiento. Lo que hace hospitalaria a una nota es estar dentro de un ' +
+  'episodio de internamiento, y eso lo dice `internamientoId`, no el tipo.'

@@ -27,6 +27,7 @@
  * módulo no inventa un estado paralelo ni eleva una sugerencia por sí solo.
  */
 import type { Diagnostico } from '@/types/expediente'
+import { estaVigente } from './problemas-activos'
 
 /** Normaliza para comparar: sin acentos, sin plurales obvios, sin relleno. */
 function clave(texto: string): string {
@@ -208,9 +209,40 @@ export interface DxImprimible {
  */
 export function diagnosticoParaImprimir(dxs: readonly DxImprimible[] | undefined): string {
   const conTexto = (dxs ?? []).filter(d => String(d?.descripcion ?? '').trim())
-  if (!conTexto.length) return ''
-  const principal = conTexto.find(d => d.tipo === 'definitivo') ?? conTexto[0]
+  /**
+   * ── LO QUE EL MÉDICO DESCARTÓ NO SE IMPRIME (PC-001 · PO-001) ──────────────
+   *
+   * Esto era `conTexto.find(d => d.tipo === 'definitivo') ?? conTexto[0]`: se
+   * PREFERÍA el definitivo, pero si no había ninguno caía al primero con texto
+   * — y ese primero podía ser un `descartado`, un `diferencial` o un problema
+   * ya `resuelto`.
+   *
+   * El caso del esguince, medido por el equipo rojo: la única línea con texto
+   * es «fractura descartada». La receta salía, con cédula y firma, diciendo que
+   * el diagnóstico es una fractura que el médico acababa de descartar; y el
+   * paciente la reenvía al trabajo para justificar la incapacidad.
+   *
+   * El criterio NO se inventa aquí: `estaVigente` es el mismo que usan la
+   * proyección longitudinal, el resumen del expediente y `problemasDelCuadro`.
+   * Este —el que IMPRIME— era el que no lo aplicaba.
+   *
+   * Un `presuntivo` SÍ se imprime: es el diagnóstico de trabajo con el que se
+   * receta, y es lo que el médico escribió. Lo que no puede salir es lo que él
+   * mismo marcó como descartado o resuelto.
+   *
+   * Si no queda ninguno vigente, se devuelve cadena vacía: el campo se queda en
+   * blanco para que lo escriba el médico. Vacío es la respuesta honesta —
+   * imprimir un descartado no lo es.
+   */
+  const vigentes = conTexto.filter(d => estaVigente({ tipo: d.tipo as never, estado: d.estado as never }))
+  if (!vigentes.length) return ''
+  const principal = vigentes.find(d => d.tipo === 'definitivo') ?? vigentes[0]
   const texto = String(principal.descripcion).trim()
   const codigo = String(principal.codigoCIE10 ?? '').trim()
   return codigo ? `${texto} (${codigo})` : texto
 }
+
+export const POR_QUE_UN_DESCARTADO_NO_SE_IMPRIME =
+  'Porque un diagnóstico descartado impreso bajo una cédula profesional dice ' +
+  'lo contrario de lo que el médico concluyó, y quien lo lee —la farmacia, el ' +
+  'jefe del paciente, el propio paciente— no tiene cómo saberlo.'

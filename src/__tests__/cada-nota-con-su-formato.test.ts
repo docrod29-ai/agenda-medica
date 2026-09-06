@@ -117,7 +117,12 @@ describe('las claves de otro tipo no sobreviven', () => {
 
   it('sin nada previo, la plantilla limpia del tipo', () => {
     const { secciones } = seccionesDelTipo('seguimiento')
-    expect(secciones.map(s => s.key)).toEqual(['subjetivo', 'objetivo', 'evaluacion', 'plan'])
+    /* `pronostico` se añadió a las notas de consultorio con MI-011 (Panel de
+       Lujo, sep-2026): opcional, porque que la NOM-004 lo exija en la nota
+       AMBULATORIA no está demostrado y es decisión del dueño. Lo que esta
+       prueba congela es que la plantilla del tipo salga LIMPIA y en su orden,
+       no cuántas secciones tiene. */
+    expect(secciones.map(s => s.key)).toEqual(['subjetivo', 'objetivo', 'evaluacion', 'plan', 'pronostico'])
   })
 })
 

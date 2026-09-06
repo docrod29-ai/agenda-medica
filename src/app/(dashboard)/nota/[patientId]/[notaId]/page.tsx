@@ -27,9 +27,14 @@ import { descargarComoPDF, descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarNotaWord } from '@/lib/nota-word'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'
-import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { alergiasParaElPapel } from '@/lib/impreso-medico'
+import {
+  TITULO_OTORGAMIENTO, DECLARACION_OTORGAMIENTO, RENGLONES_DE_FIRMA,
+  RENGLON_LUGAR_FECHA, huellaDelTextoAceptado,
+} from '@/lib/consentimiento-impreso'
 import { fechaLegible } from '@/lib/fecha-local'
 import { hoyISO } from '@/lib/timezone'
+import { conEtiquetaDeEdad } from '@/lib/edad-legible'
 
 /**
  * La tinta del documento-papel. UN solo literal: el color va INLINE en cada
@@ -384,7 +389,7 @@ export default function NotaImprimiblePage() {
           </button>
           {/* Word editable — para ajustar la nota al membrete/formato propio (igual
               que receta y orden; capacidad consistente entre documentos). */}
-          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: patient ? (alergiasParaImpreso(patient) || 'Negadas / no referidas') : 'NO DISPONIBLE — verificar con el paciente', membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} className="btn btn-secondary">
+          <button onClick={() => { if (configError) return; descargarNotaWord(nota, config ?? null, { edad: patient?.edad, sexo: patient?.sexo, telefono: patient?.telefono, alergias: alergiasParaElPapel(patient), membrete }).catch(() => toast('No se pudo generar el Word', 'error')) }} disabled={!!configError} className="btn btn-secondary">
             <FileText size={16} /> Word
           </button>
           {/* Generar receta y orden — solo cuando la nota está firmada */}
@@ -438,7 +443,9 @@ export default function NotaImprimiblePage() {
             </tr>
             <tr>
               <td style={{ padding: '2px 0', color: TINTA }}>
-                {patient?.edad ? `Edad: ${patient.edad} años` : ''}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
+                {/* C-018 — «Edad: 1 años» en un documento con cédula. Una sola
+                    función lo escribe, aquí y en la carta de referencia. */}
+                {conEtiquetaDeEdad(patient?.edad)}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
               </td>
               <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
             </tr>
@@ -466,9 +473,7 @@ export default function NotaImprimiblePage() {
           {/* Tres estados, no dos: si el paciente NO se pudo leer, la nota NO puede
                   afirmar que las alergias se interrogaron y se negaron. Es un
                   documento legal (NOM-004) y eso sería un dato inventado. */}
-              ALERGIAS: {patient
-              ? (alergiasParaImpreso(patient) || 'Negadas / no referidas')
-              : 'NO DISPONIBLE — verificar con el paciente'}
+              ALERGIAS: {alergiasParaElPapel(patient)}
         </div>
 
         {/* Resumen ejecutivo */}
@@ -521,6 +526,31 @@ export default function NotaImprimiblePage() {
                 <li key={i}>{[`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')}{m.indicacion ? ` — ${m.indicacion}` : ''}</li>
               ))}
             </ol>
+          </div>
+        )}
+
+        {/* MC-003 — EL CONSENTIMIENTO LO FIRMA QUIEN CONSIENTE.
+            Antes, una nota tipo `consentimiento` se imprimía con el mismo bloque
+            único de firma que cualquier otra: el del médico. El acto de
+            otorgamiento —paciente o representante, dos testigos, lugar y fecha, y
+            la huella del texto aceptado— no existía en el papel, así que el
+            documento que debía demostrar que al paciente se le explicaron riesgos
+            y alternativas no llevaba su firma. Las palabras salen de
+            `consentimiento-impreso.ts`: la hoja y el .doc dicen lo mismo.
+            El bloque va ANTES de la firma del médico y se imprime con la nota
+            (no lleva `no-print`), tanto con membrete como sin él. */}
+        {nota.tipo === 'consentimiento' && (
+          <div style={{ marginTop: 18, breakInside: 'avoid' }}>
+            <SecTitle>{TITULO_OTORGAMIENTO}</SecTitle>
+            <div style={{ fontSize: 12, marginBottom: 6 }}>{DECLARACION_OTORGAMIENTO}</div>
+            {[...RENGLONES_DE_FIRMA, RENGLON_LUGAR_FECHA].map(etiqueta => (
+              <div key={etiqueta} style={{ marginTop: 26 }}>
+                <div style={{ borderTop: `1px solid ${TINTA}`, maxWidth: 380, paddingTop: 3, fontSize: 10.5 }}>{etiqueta}</div>
+              </div>
+            ))}
+            <div style={{ marginTop: 12, fontSize: 10.5, color: TINTA }}>
+              {huellaDelTextoAceptado(nota.metadata.hashIntegridad)}
+            </div>
           </div>
         )}
 

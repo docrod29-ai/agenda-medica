@@ -45,6 +45,15 @@ export type AuditEvento =
   | 'receta_generada'            // se generó una receta
   | 'receta_descargada'          // se descargó PDF de receta
   | 'orden_generada'             // se generó una orden médica
+  /**
+   * LA CARTA DE REFERENCIA TAMBIÉN ES UN ACTO — MC-004.
+   *
+   * Se imprimía y desaparecía: ninguna colección, ningún evento, ningún rastro
+   * de a quién se refirió al paciente ni por qué. La nota de referencia es
+   * parte del expediente que la norma exige conservar; sin asiento, ante un
+   * perito no hay constancia de la interconsulta.
+   */
+  | 'referencia_emitida'         // se emitió una carta de referencia/contrarreferencia
   | 'paciente_creado'            // se creó un nuevo paciente
   | 'paciente_modificado'        // se modificaron datos del paciente
   | 'paciente_borrado'           // se borró un paciente
@@ -151,6 +160,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   receta_generada: 'Generó receta',
   receta_descargada: 'Descargó receta',
   orden_generada: 'Generó orden',
+  referencia_emitida: 'Emitió referencia',
   paciente_creado: 'Creó paciente',
   paciente_modificado: 'Modificó paciente',
   paciente_borrado: 'Borró paciente',
