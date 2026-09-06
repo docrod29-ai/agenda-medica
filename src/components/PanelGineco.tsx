@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Baby, CalendarDays, HeartPulse, Microscope, Plus, Stethoscope } from 'lucide-react'
 import { SelloMotor } from '@/components/SelloMotor'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, zonaActiva } from '@/lib/timezone'
 import {
   gestacionPorFUM, gestacionPorUltrasonido, hitosSegunEG,
   aspirinaPreeclampsia, RIESGO_ALTO_PE, RIESGO_MODERADO_PE,
@@ -50,7 +50,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, gestacionInicial,
    * la edad gestacional y la fecha probable de parto se corrían un día — sobre
    * un dato que decide cuándo se cita a una embarazada.
    */
-  const hoy = useMemo(() => hoyProp ?? hoyISO(), [hoyProp])
+  const hoy = useMemo(() => hoyProp ?? hoyISO(zonaActiva()), [hoyProp])
 
   // Gestación
   const [metodo, setMetodo] = useState<'fum' | 'us'>(gestacionInicial?.metodo ?? 'fum')

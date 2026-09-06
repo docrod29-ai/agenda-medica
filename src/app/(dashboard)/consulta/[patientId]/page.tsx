@@ -19,7 +19,7 @@ import { useBorrador } from '@/context/BorradorContext'
 import { useTarea } from '@/context/TareasContext'
 import { useConfig } from '@/hooks/useConfig'
 import { usePatientAppointments } from '@/hooks/useAppointments'
-import { hoyISO } from '@/lib/timezone'
+import { hoyISO, zonaActiva } from '@/lib/timezone'
 import type { Appointment, AlergiaEstructurada } from '@/types'
 import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
@@ -48,6 +48,7 @@ import {
   SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
 } from './signos-que-se-capturan'
 import { comprobarCitasDelAnalisis } from './citas-del-analisis'
+import { textoDelConsentimiento, puntosDelConsentimiento, VERSION_DEL_CONSENTIMIENTO } from './consentimiento-de-grabacion'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -983,6 +984,14 @@ export default function ConsultaActivaPage() {
   // Vacunas atrasadas para la edad: se calcula aquí para que la barra lo avise
   // SIN tener que abrir la herramienta (es lo que no se debe pasar por alto).
   /**
+   * HOY, EN LA ZONA DEL CONSULTORIO — una sola vez y compartido.
+   *
+   * Lo usan la cita de hoy, la edad en meses del paciente y los paneles de
+   * gineco y pediatría (C-014): con la fecha del navegador en UTC, después de
+   * las 18:00 en México ya es «mañana» y la edad gestacional se corre un día.
+   */
+  const hoyDeLaConsulta = useMemo(() => hoyISO(zonaActiva()), [])
+  /**
    * ── LA EDAD EN MESES, DE VERDAD (MP-002) ──────────────────────────────────
    *
    * `Math.round(edad * 12)` colapsa a 0 en todo lactante —un niño de 11 meses
@@ -992,9 +1001,9 @@ export default function ConsultaActivaPage() {
    * barra no. Ahora las dos derivan igual, y con la fecha del consultorio.
    */
   const edadEnMesesDelPaciente = useMemo(() => {
-    if (patient?.fechaNacimiento) return edadEnMeses(patient.fechaNacimiento, hoyISO())
+    if (patient?.fechaNacimiento) return edadEnMeses(patient.fechaNacimiento, hoyDeLaConsulta)
     return patient?.edad != null ? Math.round(patient.edad * 12) : null
-  }, [patient?.fechaNacimiento, patient?.edad])
+  }, [patient?.fechaNacimiento, patient?.edad, hoyDeLaConsulta])
 
   /**
    * ── «CORRESPONDEN POR EDAD», NO «ATRASADAS» (MP-011) ──────────────────────
@@ -1022,11 +1031,10 @@ export default function ConsultaActivaPage() {
    */
   const { appointments: citasDelPaciente } = usePatientAppointments(patientId)
   const citaDeHoy = useMemo(() => {
-    const hoy = hoyISO()
     return citasDelPaciente
-      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoy && !['cancelada', 'reagendada'].includes(c.estado))
+      .filter((c: Appointment) => c.fechaHora.slice(0, 10) === hoyDeLaConsulta && !['cancelada', 'reagendada'].includes(c.estado))
       .sort((a: Appointment, b: Appointment) => a.fechaHora.localeCompare(b.fechaHora))[0] ?? null
-  }, [citasDelPaciente])
+  }, [citasDelPaciente, hoyDeLaConsulta])
 
   /**
    * ═══ GOLDEN PATH 9 — EL NOMBRE DE ESTE ENCUENTRO ═══
@@ -1361,6 +1369,19 @@ export default function ConsultaActivaPage() {
   // Material de origen (dictado): colapsado por defecto: NO forma parte de la nota
   const [verFuente, setVerFuente] = useState(false)
   // Red de seguridad local: respaldo de la nota en el navegador (anti-pérdida)
+  /**
+   * ── LA CONSULTA SIN CERRAR QUE ESTÁ EN EL SERVIDOR (ASN-003) ──────────────
+   *
+   * Entrar por «Iniciar consulta» desde la agenda abre `/consulta/<id>` SIN
+   * `?nota=`, y esta pantalla sólo miraba memoria y `localStorage`: los signos
+   * que la enfermera capturó en su equipo no estaban delante del médico, aunque
+   * el borrador con esos signos existía en Firestore. La ruta que sí funciona
+   * —«Consulta sin cerrar — continuar» del expediente— lleva el `?nota=`.
+   *
+   * Se OFRECE, no se adopta solo: adoptar a ciegas pisaría lo que el médico ya
+   * hubiera tecleado, que es el defecto hermano (ASN-001).
+   */
+  const [borradorDelServidor, setBorradorDelServidor] = useState<{ id: string; fecha: string; conSignos: boolean } | null>(null)
   const [respaldoDisponible, setRespaldoDisponible] = useState(false)
   /**
    * DE QUÉ NOTA ES EL RESPALDO, Y DE CUÁNDO. Sin esto el aviso no puede
@@ -2067,6 +2088,13 @@ export default function ConsultaActivaPage() {
      * volverá a pedir la próxima vez, que es el lado seguro del error.
      */
     if (clinicId) {
+      /**
+       * PC-012 · PI-008 — QUÉ TEXTO SE LEYÓ. Hoy sólo se guardan fecha y médico,
+       * así que un cambio de redacción deja consentimientos que no se pueden
+       * reproducir. `VERSION_DEL_CONSENTIMIENTO` ya viaja con el texto; guardarla
+       * exige un campo en `Patient.consentimientoGrabacion` (src/types/index.ts)
+       * y su regla de Firestore, que son de otra rebanada: está en el handoff.
+       */
       void updatePatient(clinicId, patientId, {
         consentimientoGrabacion: { fecha: new Date().toISOString(), medicoId: auth.currentUser?.uid },
       }).catch(() => { /* se volverá a pedir: es el lado seguro */ })
@@ -2227,6 +2255,24 @@ export default function ConsultaActivaPage() {
           .filter(n => Number.isFinite(n.kg) && n.kg > 0 && !!n.fecha)
           .sort((a, b) => a.fecha.localeCompare(b.fecha))
         setPesoPrevio(conPeso.length ? conPeso[conPeso.length - 1] : null)
+        /**
+         * ASN-003 — ¿hay una consulta de este paciente sin firmar que no sea la
+         * que tengo abierta? `PatientAnchor` ya usa esta misma regla
+         * (`orden.find(n => n.estado !== 'firmada')`).
+         */
+        if (!notaIdParam) {
+          const sinCerrar = ns
+            .filter(n => n.estado !== 'firmada' && n.id !== notaIdRef.current)
+            .sort((a, b) => String(a.fechaConsulta ?? '').localeCompare(String(b.fechaConsulta ?? '')))
+            .pop()
+          setBorradorDelServidor(sinCerrar
+            ? {
+              id: sinCerrar.id,
+              fecha: sinCerrar.fechaConsulta ?? sinCerrar.metadata?.fechaCreacion ?? '',
+              conSignos: !!sinCerrar.signosVitales && Object.values(sinCerrar.signosVitales).some(v => v != null && String(v).trim() !== ''),
+            }
+            : null)
+        }
         /**
          * LEARN — lo que el médico corrigió a mano deja de perderse.
          *
@@ -5553,6 +5599,38 @@ export default function ConsultaActivaPage() {
       )}
 
       {/*
+        ── LA CONSULTA QUE ALGUIEN MÁS DEJÓ ABIERTA (ASN-003) ─────────────────
+        Los signos que la enfermera capturó en su equipo viven en el servidor, no
+        aquí. Se ofrece continuarla; el médico decide. Empezar una nota nueva
+        sigue siendo válido —hay días en que eso es justo lo que se quiere—, así
+        que el aviso se puede cerrar sin consecuencias.
+      */}
+      {!firmada && borradorDelServidor && !notaIdParam && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
+        }}>
+          <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+            Este paciente tiene una <strong>consulta sin cerrar</strong>
+            {borradorDelServidor.fecha ? ` del ${formatDateMX(borradorDelServidor.fecha)}` : ''}
+            {borradorDelServidor.conSignos ? ', con signos vitales ya capturados' : ''}.
+            {' '}Si la abres, sigues sobre ella en vez de empezar una nota nueva.
+          </span>
+          <button
+            onClick={() => router.push(`/consulta/${patientId}?nota=${borradorDelServidor.id}`)}
+            className="btn btn-sm btn-primary"
+          >
+            Continuar esa consulta
+          </button>
+          <button onClick={() => setBorradorDelServidor(null)} className="btn btn-sm btn-ghost">
+            Empezar una nueva
+          </button>
+        </div>
+      )}
+
+      {/*
         ── QUÉ NOTA ES: UNA LÍNEA EN VEZ DE DOCE CONTROLES (7-ago-2026) ────────
         Aquí había diez botones de tipo de nota en dos filas y un desplegable de
         especialidad con su etiqueta y su explicación. El médico lo dijo con
@@ -6218,6 +6296,59 @@ export default function ConsultaActivaPage() {
           )}
         </div>
       )}
+
+      {/*
+        ── LOS ESTUDIOS DICTADOS LLEGAN A LA ORDEN (MO-004) ────────────────────
+
+        `estudiosOrden` sólo lo llenaba la Valoración del inmunocomprometido, así
+        que en una consulta normal el médico dictaba «solicito biometría y
+        radiografía» y la orden se quedaba en el tintero: con receta,
+        `aDondeIrDirecto` mandaba a /receta y la orden no se imprimía nunca.
+
+        La extracción ya devuelve los estudios (`entidades.tests`) y nadie los
+        recogía. NO se añaden solos: se enseñan y el médico elige — lo que el
+        modelo extrae se revisa antes de convertirse en una orden.
+      */}
+      {!firmada && (entidades?.tests?.length ?? 0) > 0 && (() => {
+        const nuevos = (entidades?.tests ?? [])
+          .map(t => String(t.texto ?? '').trim())
+          .filter(t => t.length > 1 && !estudiosOrden.some(e => e.toLowerCase() === t.toLowerCase()))
+        if (nuevos.length === 0) return null
+        return (
+          <div style={{
+            marginBottom: 14, borderRadius: 11, padding: '11px 13px',
+            border: '1px solid var(--nexus-borde)', background: 'var(--nexus-tenue)',
+          }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
+              {nuevos.length === 1 ? 'Del dictado salió 1 estudio' : `Del dictado salieron ${nuevos.length} estudios`} que no están en la orden
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text3)', margin: '3px 0 8px', lineHeight: 1.5 }}>
+              Revísalos: se agregan a la orden médica sólo si tú lo pides.
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 9 }}>
+              {nuevos.map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setEstudiosOrden(prev => [...prev, t])}
+                  title="Agregar este estudio a la orden"
+                  style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}
+                >
+                  + {t}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => { setEstudiosOrden(prev => [...prev, ...nuevos]); toast(`${nuevos.length} ${nuevos.length === 1 ? 'estudio agregado' : 'estudios agregados'} a la orden`, 'success') }}
+              className="nx-acc-caja"
+              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+            >
+              Agregarlos todos a la orden
+            </button>
+          </div>
+        )
+      })()}
 
       {/* Panel NER en vivo */}
       {(entidades || nerCargando || nerError) && (
@@ -7469,7 +7600,7 @@ export default function ConsultaActivaPage() {
           id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
           para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
           contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
-            hoy={hoyISO()}
+            hoy={hoyDeLaConsulta}
             /* MG-022: la gestación capturada sobrevive a cerrar la herramienta. */
             gestacionInicial={gestacionDeLaConsulta ?? undefined}
             onCambioDeGestacion={setGestacionDeLaConsulta}
@@ -7486,7 +7617,7 @@ export default function ConsultaActivaPage() {
             fechaNacimiento={patient?.fechaNacimiento} pesoInicial={signosNum.peso}
             /* MP-006: el previo es el de la última nota firmada con peso, no el de hoy. */
             pesoPrevio={pesoPrevio?.kg} fechaDelPesoPrevio={pesoPrevio?.fecha}
-            hoy={hoyISO()}
+            hoy={hoyDeLaConsulta}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}
             onRecetar={med => setMedicamentos(prev => [...prev, med])} />,
         }] : []),
@@ -7863,16 +7994,17 @@ export default function ConsultaActivaPage() {
           </>
         )}
       >
+        {/*
+          El texto vive en `consentimiento-de-grabacion.ts` para que una prueba
+          pueda comparar lo que AFIRMA con lo que el pipeline HACE (PG-003 ·
+          PI-003 · PO-016), y para que cambie a la vez su versión (PC-012).
+          En pediatría quien consiente es el tutor (PP-009).
+        */}
         <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.65, margin: '0 0 14px' }}>
-          Confirme que el paciente fue informado de que la conversación será grabada y transcrita para
-          estructurar la nota clínica con asistencia de IA. El audio se envía a un servicio de
-          transcripción para generar el texto y se conserva temporalmente en este dispositivo por si la
-          transcripción falla; el expediente guarda únicamente la transcripción de texto.
+          {textoDelConsentimiento(esPediatrico)}
         </p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.7 }}>
-          <li>El paciente puede pedir detener la grabación en cualquier momento.</li>
-          <li>La nota final debe ser revisada y firmada por usted.</li>
-          <li>La IA NO guarda datos clínicos sin su aprobación.</li>
+          {puntosDelConsentimiento(esPediatrico).map(p => <li key={p}>{p}</li>)}
         </ul>
       </Modal>
 

@@ -14,6 +14,7 @@
  * principal. Este panel es referencia rápida + alerta de seguridad.
  */
 
+import { useState } from 'react'
 import type { EntidadesExtraidas } from '@/lib/expediente/medical-ner'
 import { AlertTriangle, ShieldAlert, Pill, Stethoscope, TestTube, Scissors, X, Loader2, FlaskConical, Lightbulb, Bone } from 'lucide-react'
 
@@ -53,8 +54,8 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       <div className="card" style={{ padding: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
         <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--teal)' }} />
         <div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>Extrayendo entidades clínicas…</div>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>Claude está identificando condiciones, fármacos, dosis, alergias e interacciones.</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Leyendo la nota…</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>Buscando diagnósticos, fármacos, dosis, alergias e interacciones.</div>
         </div>
       </div>
     )
@@ -65,8 +66,8 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       <div className="card" style={{ padding: 16, borderColor: 'color-mix(in srgb, var(--red) 50%, transparent)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
           <AlertTriangle size={18} color="var(--red)" />
-          <span style={{ fontWeight: 600 }}>Error en extracción:</span>
-          <span style={{ color: 'var(--text2)' }}>{error}</span>
+          <span style={{ fontWeight: 600 }}>No se pudo leer la nota.</span>
+          <span style={{ color: 'var(--text2)' }}>Vuelve a intentarlo. {error && <span style={{ color: 'var(--text3)', fontSize: 12 }}>({error})</span>}</span>
           {onCerrar && (
             <button onClick={onCerrar} className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
               <X size={14} /> Cerrar
@@ -135,9 +136,21 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
             Esto es lo que el modelo vio en el texto. La firma la detiene la verificación NOM-004
             con las alergias registradas en el expediente, aunque no abras este panel.
           </div>
+          {/*
+            ── LA PALABRA «SEGURA» LA PONÍA LA PANTALLA (ZC-002) ─────────────
+            `alternativa_sugerida` la escribe el modelo de lenguaje: ningún motor
+            determinista la cruza con las alergias del paciente. Llamarla
+            «alternativa segura» es una afirmación de seguridad que nadie hizo.
+            El campo se conserva —puede ahorrar tiempo— con el rótulo que le
+            corresponde.
+          */}
           {c.alternativa_sugerida && (
-            <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Lightbulb size={13} className="ds-icon" color="var(--amber)" /> Alternativa segura: <strong>{c.alternativa_sugerida}</strong>
+            <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <Lightbulb size={13} className="ds-icon" color="var(--amber)" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                Alternativa que propone el modelo, <b>sin verificar</b>: <strong>{c.alternativa_sugerida}</strong>.
+                <span style={{ color: 'var(--text3)' }}> Si la recetas, la comprobación de alergias corre al escribirla en la lista de medicamentos.</span>
+              </span>
             </div>
           )}
         </div>
@@ -164,13 +177,13 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {(cruzAlergias.length > 0 || interaccionesLeves.length > 0) && (
         <details style={{ fontSize: 12 }}>
           <summary style={{ cursor: 'pointer', color: 'var(--text2)', padding: '4px 0' }}>
-            {cruzAlergias.length + interaccionesLeves.length} cross-checks adicionales (riesgo menor)
+            {cruzAlergias.length + interaccionesLeves.length} {cruzAlergias.length + interaccionesLeves.length === 1 ? 'aviso más' : 'avisos más'} de riesgo menor
           </summary>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
             {cruzAlergias.map((c, i) => (
               <div key={i} style={{ padding: '8px 12px', background: 'var(--s2)', borderRadius: 6, fontSize: 12 }}>
                 <strong>{c.alergeno}</strong> vs <strong>{c.farmaco_riesgoso}</strong> — riesgo {c.riesgo}
-                {c.alternativa_sugerida && <div style={{ color: 'var(--text3)', marginTop: 2 }}>Alternativa: {c.alternativa_sugerida}</div>}
+                {c.alternativa_sugerida && <div style={{ color: 'var(--text3)', marginTop: 2 }}>Alternativa que propone el modelo, sin verificar: {c.alternativa_sugerida}</div>}
               </div>
             ))}
             {interaccionesLeves.map((i, idx) => (
@@ -190,7 +203,9 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
           color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
           border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
         }}>
-          <b>Se reclasificaron {negacionesCorregidas!.length} condición(es): el paciente las negó.</b>
+          <b>{negacionesCorregidas!.length === 1
+            ? 'Se reclasificó 1 diagnóstico: el paciente lo negó.'
+            : `Se reclasificaron ${negacionesCorregidas!.length} diagnósticos: el paciente los negó.`}</b>
           <div style={{ marginTop: 4 }}>
             {negacionesCorregidas!.map((n, i) => (
               <div key={`${n.condicion}-${i}`}>«{n.texto}» → descartada. En el dictado: {n.cita}</div>
@@ -209,7 +224,9 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
           color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
           border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
         }}>
-          <b>{avisosTemporales!.length} condición(es) salen como activas y en el dictado se dijeron en pasado.</b>
+          <b>{avisosTemporales!.length === 1
+            ? '1 diagnóstico sale como activo y en el dictado se dijo en pasado.'
+            : `${avisosTemporales!.length} diagnósticos salen como activos y en el dictado se dijeron en pasado.`}</b>
           <div style={{ marginTop: 4 }}>
             {avisosTemporales!.map((a, i) => (
               <div key={`${a.condicion}-${i}`}>«{a.texto}» · en el dictado: {a.cita}</div>
@@ -225,13 +242,12 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {conditions.length > 0 && (
         <Seccion icono={<Stethoscope size={14} />} titulo={`Diagnósticos / condiciones · ${conditions.length}`}>
           {conditions.map((c, i) => (
-            <span key={i} style={chipStyle(c.certeza === 'descartado' ? 'gris' : c.certeza === 'sospecha' ? 'ambar' : 'teal')}
-              title={c.source_quote}>
+            <ChipConCita key={i} estilo={chipStyle(c.certeza === 'descartado' ? 'gris' : c.certeza === 'sospecha' ? 'ambar' : 'teal')} cita={c.source_quote}>
               {c.texto}
               {c.cie10 && <code style={codeStyle}>{c.cie10}</code>}
               {c.estado && c.estado !== 'activo' && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {c.estado}</em>}
               {c.severidad && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {c.severidad}</em>}
-            </span>
+            </ChipConCita>
           ))}
         </Seccion>
       )}
@@ -240,7 +256,7 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {medications.length > 0 && (
         <Seccion icono={<Pill size={14} />} titulo={`Medicamentos · ${medications.length}`}>
           {medications.map((m, i) => (
-            <div key={i} style={cardChipStyle} title={m.source_quote}>
+            <div key={i} style={cardChipStyle}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>
                 {m.generico || m.texto}
                 {m.marca && <span style={{ fontWeight: 400, color: 'var(--text3)', fontSize: 11, marginLeft: 6 }}>({m.marca})</span>}
@@ -263,6 +279,7 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
                   Indicación: {m.indicacion}
                 </div>
               )}
+              <ProcedenciaDeLaEntidad cita={m.source_quote} />
             </div>
           ))}
         </Seccion>
@@ -272,12 +289,11 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {allergies.length > 0 && (
         <Seccion icono={<AlertTriangle size={14} />} titulo={`Alergias · ${allergies.length}`}>
           {allergies.map((a, i) => (
-            <span key={i} style={chipStyle(a.severidad === 'anafilaxia' || a.severidad === 'grave' ? 'rojo' : 'ambar')}
-              title={a.source_quote}>
+            <ChipConCita key={i} estilo={chipStyle(a.severidad === 'anafilaxia' || a.severidad === 'grave' ? 'rojo' : 'ambar')} cita={a.source_quote}>
               {a.alergeno}
               {a.reaccion && <em style={{ marginLeft: 4, fontSize: 11, opacity: 0.8 }}>· {a.reaccion}</em>}
               {a.severidad && a.severidad !== 'desconocida' && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {a.severidad}</em>}
-            </span>
+            </ChipConCita>
           ))}
         </Seccion>
       )}
@@ -286,11 +302,11 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {tests.length > 0 && (
         <Seccion icono={<TestTube size={14} />} titulo={`Estudios paraclínicos · ${tests.length}`}>
           {tests.map((t, i) => (
-            <span key={i} style={chipStyle(t.anormal ? 'rojo' : 'gris')} title={t.source_quote}>
+            <ChipConCita key={i} estilo={chipStyle(t.anormal ? 'rojo' : 'gris')} cita={t.source_quote}>
               {t.texto}
               {t.valor && <strong style={{ marginLeft: 4 }}>· {t.valor}{t.unidad ? ' ' + t.unidad : ''}</strong>}
               {t.anormal && <em style={{ marginLeft: 4, fontSize: 10, color: 'var(--red)' }}>· anormal</em>}
-            </span>
+            </ChipConCita>
           ))}
         </Seccion>
       )}
@@ -299,11 +315,11 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {procedures.length > 0 && (
         <Seccion icono={<Scissors size={14} />} titulo={`Procedimientos · ${procedures.length}`}>
           {procedures.map((p, i) => (
-            <span key={i} style={chipStyle('teal')} title={p.source_quote}>
+            <ChipConCita key={i} estilo={chipStyle('teal')} cita={p.source_quote}>
               {p.texto}
               {p.lateralidad && p.lateralidad !== 'no_aplica' && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {p.lateralidad}</em>}
               {p.fecha && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {p.fecha}</em>}
-            </span>
+            </ChipConCita>
           ))}
         </Seccion>
       )}
@@ -312,10 +328,10 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
       {anatomy.length > 0 && (
         <Seccion icono={<Bone size={14} />} titulo={`Regiones anatómicas · ${anatomy.length}`}>
           {anatomy.map((a, i) => (
-            <span key={i} style={chipStyle('gris')} title={a.source_quote}>
+            <ChipConCita key={i} estilo={chipStyle('gris')} cita={a.source_quote}>
               {a.texto}
               {a.region && <em style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>· {a.region}</em>}
-            </span>
+            </ChipConCita>
           ))}
         </Seccion>
       )}
@@ -326,6 +342,62 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
 // ─────────────────────────────────────────────────────────────────
 // Helpers visuales
 // ─────────────────────────────────────────────────────────────────
+
+/**
+ * ── DE DÓNDE SALIÓ ESTO, ALCANZABLE (ZC-017) ────────────────────────────────
+ *
+ * La cita del dictado vivía SÓLO en el atributo `title` de un `<span>`: en el
+ * teléfono no hay puntero que la muestre y con teclado no hay forma de llegar.
+ * PROCEDENCIA es uno de los dos principios propios de este producto
+ * (`design-system.md`) y estaba dependiendo de un tooltip.
+ *
+ * Ahora el chip es un `<button>` —focalizable, pulsable, anunciable— que abre
+ * la cita en el DOM. Sin cita no hay botón: no se ofrece algo que no se puede
+ * enseñar.
+ */
+function ChipConCita({ estilo, cita, children }: { estilo: React.CSSProperties; cita?: string; children: React.ReactNode }) {
+  const [abierta, setAbierta] = useState(false)
+  if (!cita) return <span style={estilo}>{children}</span>
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
+      <button
+        type="button"
+        onClick={() => setAbierta(a => !a)}
+        aria-expanded={abierta}
+        title="Ver de dónde salió esto en el dictado"
+        style={{ ...estilo, cursor: 'pointer', font: 'inherit', textAlign: 'left' }}
+      >
+        {children}
+      </button>
+      {abierta && (
+        <span style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.45, maxWidth: 320 }}>
+          En el dictado: «{cita}»
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** La misma procedencia, para las tarjetas de medicamento (que no son chips). */
+function ProcedenciaDeLaEntidad({ cita }: { cita?: string }) {
+  const [abierta, setAbierta] = useState(false)
+  if (!cita) return null
+  return (
+    <div style={{ marginTop: 4 }}>
+      <button
+        type="button"
+        onClick={() => setAbierta(a => !a)}
+        aria-expanded={abierta}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 600, color: 'var(--nexus)', cursor: 'pointer', textDecoration: 'underline' }}
+      >
+        {abierta ? 'Ocultar de dónde salió' : 'De dónde salió'}
+      </button>
+      {abierta && (
+        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>En el dictado: «{cita}»</div>
+      )}
+    </div>
+  )
+}
 
 function Seccion({ icono, titulo, children }: { icono: React.ReactNode; titulo: string; children: React.ReactNode }) {
   return (

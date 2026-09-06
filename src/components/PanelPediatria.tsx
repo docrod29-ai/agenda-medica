@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp, ClipboardPlus } from 'lucide-react'
 import { SelloMotor } from '@/components/SelloMotor'
-import { hoyISO as hoyDelConsultorio } from '@/lib/timezone'
+import { hoyISO as hoyDelConsultorio, zonaActiva } from '@/lib/timezone'
 import type { Medicamento } from '@/types/expediente'
 import {
   FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses,
@@ -62,7 +62,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, pesoPr
   /* C-014: la fecha es la del consultorio, no la del navegador en UTC — después
      de las 18:00 en México «hoy» en UTC ya es mañana y la edad en meses baila. */
   const mesesIniciales = fechaNacimiento
-    ? String(edadEnMeses(fechaNacimiento, hoy ?? hoyDelConsultorio()))
+    ? String(edadEnMeses(fechaNacimiento, hoy ?? hoyDelConsultorio(zonaActiva())))
     : (edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
   const [meses, setMeses] = useState(mesesIniciales)
   const [busca, setBusca] = useState('')
