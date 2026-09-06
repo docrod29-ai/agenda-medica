@@ -67,8 +67,29 @@ const REGIONES_PARES = [
 /** Cómo aparece el lado escrito en una orden mexicana. */
 const RE_LATERALIDAD = /\b(derech[oa]s?|izquierd[oa]s?|bilateral(?:es)?|ambos|ambas)\b/i
 
+/**
+ * Modalidades: lo que va DELANTE de «de pie» cuando «pie» es el pie del
+ * paciente («radiografía de pie») y no una posición («abdomen de pie»).
+ */
+const MODALIDADES = /(radiograf|rx|placa|tc|tomograf|rm|resonancia|ultrasonido|usg|doppler|gammagra|densitometr|mastograf|serie)/
+
+/**
+ * «RADIOGRAFÍA DE ABDOMEN (SIMPLE Y DE PIE)» NO ES UN ESTUDIO DE PIE.
+ *
+ * `pie` es región par y también es la posición en la que se toma una placa de
+ * abdomen o de tórax. Sin esto, el catálogo entero se marcaba como «falta el
+ * lado» y la orden quedaba bloqueada por un dato que no existe.
+ *
+ * Dos limpiezas antes de buscar la región:
+ *  · lo que va entre paréntesis es la proyección o el protocolo, no la región;
+ *  · «<región> de pie» / «<región> en pie» es posición — salvo cuando lo que va
+ *    delante es la modalidad, que es como se nombra el pie de verdad
+ *    («radiografía de pie»).
+ */
 const norm = (s: string) =>
   String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/([a-z]+)\s+(?:de|en)\s+pies?\b/g, (m, prev: string) => (MODALIDADES.test(prev) ? m : prev))
 
 /** ¿Esta región tiene dos, y por tanto la orden necesita decir cuál? */
 export function admiteLateralidad(estudio: string): boolean {

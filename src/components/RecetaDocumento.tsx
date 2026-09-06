@@ -30,6 +30,7 @@ import type { Medicamento } from '@/types/expediente'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { alergiasParaElPapel } from '@/lib/impreso-medico'
 import { marcaDelRenglonImpreso } from '@/lib/receta-renglon-impreso'
+import { edadLegible } from '@/lib/edad-legible'
 
 /**
  * El rojo de los avisos del PAPEL, en un solo sitio.
@@ -987,7 +988,8 @@ function HojaGenerada({
               <span style={{ fontWeight: 700, color: '#111' }}>{data.paciente?.nombre ?? '—'}</span>
             </div>
             <div style={{ fontSize: 10, color: '#555', textAlign: 'right' }}>
-              {data.paciente?.edad ? <>{data.paciente.edad} años{data.paciente?.sexo ? ' · ' : ''}</> : ''}
+              {/* C-018 — «1 años» en la receta que va a la farmacia, no. */}
+              {edadLegible(data.paciente?.edad) ? <>{edadLegible(data.paciente?.edad)}{data.paciente?.sexo ? ' · ' : ''}</> : ''}
               {data.paciente?.sexo || ''}
               {data.paciente?.fechaNacimiento && <div style={{ fontSize: 9.5, color: '#555' }}>F. nac.: {fmtFechaNac(data.paciente.fechaNacimiento)}</div>}
               {data.paciente?.telefono && <div style={{ fontSize: 9.5, color: '#555' }}>Tel. {data.paciente.telefono}</div>}

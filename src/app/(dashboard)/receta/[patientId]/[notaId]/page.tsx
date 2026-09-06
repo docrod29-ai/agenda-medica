@@ -47,16 +47,18 @@ import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funci
 import { edadParaDosificar, AVISO_SIN_EDAD_PARA_DOSIFICAR } from '@/lib/seguridad/edad-para-dosificar'
 import { pesoParaDosificar, AVISO_SIN_PESO_PARA_DOSIFICAR } from '@/lib/receta-peso-para-dosificar'
 import { revisionGestacionalDeLaReceta } from '@/lib/receta-revision-gestacional'
+import { medicamentosARenovar } from '@/lib/receta-renovacion'
 // E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
 // local del bucle de dosis; el alias evita cualquier sombra accidental.
 import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quantity'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { hoyISO } from '@/lib/timezone'
 import { auth } from '@/lib/firebase'
 import { registrarRecetados, cargarRecetasFrecuentes, type MedRecetado } from '@/lib/learning'
 import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
-  AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
+  AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors, ClipboardList,
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
@@ -226,6 +228,9 @@ export default function GeneradorRecetaPage() {
     diagnosticos: dxParaGestacional,
     medicamentos: medsDelCuadro,
   })
+
+  /** N-022 — lo vigente del expediente que todavía no está en la receta de hoy. */
+  const porRenovar = medicamentosARenovar(vigentes, medicamentos)
 
   const esPediatrico = edadPaciente != null && edadPaciente < 18
   const pesoDosis = pesoParaDosificar(esPediatrico, pesoDeLaNota, pesoKg)
@@ -581,7 +586,10 @@ export default function GeneradorRecetaPage() {
       // (carta si imprimirEn === 'carta', el papel de la receta si no)
       const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date().toISOString().slice(0, 10)
+      // C-015 — `new Date().toISOString().slice(0,10)` da el día en UTC: a las
+      // 19:00 de CDMX el archivo salía con la fecha de MAÑANA. `hoyISO()` usa la
+      // zona del consultorio (REG-067).
+      const fechaCorta = hoyISO()
       // PDF LIMPIO hoja-por-hoja. Antes: con diseño se enrutaba por el diálogo de
       // impresión y el navegador estampaba "about:blank" + la fecha DENTRO del PDF
       // (queja del Dr) y a veces una 2ª hoja. Ahora se rasteriza cada hoja física y
@@ -756,6 +764,12 @@ export default function GeneradorRecetaPage() {
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
+          </button>
+          {/* MO-011 — la consulta corta necesita los dos papeles, y volver a la
+              nota para ir del uno al otro son dos clics de ida y dos de vuelta.
+              El enlace directo vive donde está el trabajo. */}
+          <button onClick={() => router.push(`/orden/${patientId}/${notaId}`)} className="btn btn-secondary" title="Orden de estudios de esta misma nota">
+            <ClipboardList size={14} /> Orden
           </button>
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template
@@ -1001,6 +1015,34 @@ export default function GeneradorRecetaPage() {
                       type="button"
                       onClick={() => agregarMedDesde(r)}
                       title={`${r.nombre}${r.dosis ? ' · ' + r.dosis : ''}${r.frecuencia ? ' · ' + r.frecuencia : ''}${r.duracion ? ' · ' + r.duracion : ''}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      <Plus size={11} style={{ color: 'var(--nexus)' }} />
+                      {r.nombre}{r.dosis ? <span style={{ color: 'var(--text3)', fontWeight: 500 }}> · {r.dosis}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* N-022 — RENOVAR LO CRÓNICO SIN VOLVER A DICTARLO.
+                Un internista receta lo mismo cada tres meses y hoy lo dicta
+                entero otra vez. Lo renovado entra como un renglón más: vuelve a
+                pasar por unidad, mg/kg, alergias, duplicidad, interacciones,
+                riñón y embarazo — una renovación NO hereda la aprobación de la
+                receta anterior. */}
+            {porRenovar.length > 0 && medicamentos.length < MAX_MEDS && (
+              <div style={{ marginBottom: 10 }}>
+                <div className="nx-meta" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Lightbulb size={12} style={{ color: 'var(--nexus)' }} /> Ya lo toma — renovar en la receta de hoy
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {porRenovar.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setMedicamentos([...medicamentos, { ...r }])}
+                      title={`Renovar ${r.nombre}${r.dosis ? ' · ' + r.dosis : ''} — se revisa otra vez antes de imprimir`}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', borderRadius: 'var(--r-pill)', padding: '5px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                     >
                       <Plus size={11} style={{ color: 'var(--nexus)' }} />

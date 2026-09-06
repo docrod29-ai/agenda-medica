@@ -13,6 +13,8 @@ import type { ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { fondoWord, imagenADataUri, WORD_HTML_NS } from '@/lib/word-membrete'
+import { fechaISOLocal } from '@/lib/timezone'
+import { conEtiquetaDeEdad } from '@/lib/edad-legible'
 import {
   TITULO_OTORGAMIENTO, DECLARACION_OTORGAMIENTO, RENGLONES_DE_FIRMA,
   RENGLON_LUGAR_FECHA, huellaDelTextoAceptado,
@@ -121,7 +123,7 @@ body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1
   ${encabezado}
   <div style="text-align:center;font-size:13pt;font-weight:bold;text-transform:uppercase;margin-bottom:8pt;">${esc(TIPO_NOTA_LABEL[nota.tipo])}</div>
   ${nota.estado !== 'firmada' ? `<div style="text-align:center;border:1.5pt solid #b91c1c;color:#b91c1c;font-weight:bold;font-size:11pt;letter-spacing:2pt;padding:4pt 8pt;margin-bottom:8pt;">BORRADOR — DOCUMENTO NO FIRMADO, SIN VALIDEZ LEGAL</div>` : ''}
-  <div style="font-size:10.5pt;margin-bottom:4pt;"><b>Paciente:</b> ${esc(nota.pacienteNombre)}${extra?.edad ? ' · Edad: ' + esc(String(extra.edad)) + ' años' : ''}${extra?.sexo ? ' · ' + esc(extra.sexo) : ''}${extra?.telefono ? ' · Tel: ' + esc(extra.telefono) : ''} &nbsp;&nbsp; <b>Fecha:</b> ${esc(fecha)}</div>
+  <div style="font-size:10.5pt;margin-bottom:4pt;"><b>Paciente:</b> ${esc(nota.pacienteNombre)}${conEtiquetaDeEdad(extra?.edad) ? ' · ' + esc(conEtiquetaDeEdad(extra?.edad)) : ''}${extra?.sexo ? ' · ' + esc(extra.sexo) : ''}${extra?.telefono ? ' · Tel: ' + esc(extra.telefono) : ''} &nbsp;&nbsp; <b>Fecha:</b> ${esc(fecha)}</div>
   ${alergias}
   ${nota.resumenEjecutivo ? `<div style="font-style:italic;margin-bottom:6pt;font-size:10.5pt;">${esc(nota.resumenEjecutivo)}</div>` : ''}
   ${signos ? sec('Signos vitales', signos) : ''}
@@ -142,7 +144,10 @@ export async function descargarNotaWord(nota: NotaMedica, config: ClinicConfig |
   const blob = new Blob(['﻿', html], { type: 'application/msword' })
   const url = URL.createObjectURL(blob)
   const nombrePac = (nota.pacienteNombre || 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-  const fechaCorta = new Date(nota.fechaConsulta).toISOString().slice(0, 10)
+  // C-015 — `toISOString()` da el día en UTC y corre la fecha del nombre del
+  // archivo un día por las tardes en México. La fecha del documento se
+  // formatea en la zona del consultorio.
+  const fechaCorta = fechaISOLocal(new Date(nota.fechaConsulta))
   const a = document.createElement('a')
   a.href = url
   a.download = `Nota_${nombrePac}_${fechaCorta}.doc`

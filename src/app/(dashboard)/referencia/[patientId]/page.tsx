@@ -19,6 +19,8 @@ import { descargarComoPDF } from '@/lib/pdf-download'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
+import { hoyISO, zonaActiva } from '@/lib/timezone'
+import { edadLegible } from '@/lib/edad-legible'
 import { alergiasParaElPapel } from '@/lib/impreso-medico'
 
 type Tipo = 'referencia' | 'contrarreferencia'
@@ -117,7 +119,10 @@ export default function CartaReferenciaPage() {
     setDescargando(true)
     try {
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date().toISOString().slice(0, 10)
+      // C-015 — `new Date().toISOString().slice(0,10)` da el día en UTC: a las
+      // 19:00 de CDMX el archivo salía con la fecha de MAÑANA. `hoyISO()` usa la
+      // zona del consultorio (REG-067).
+      const fechaCorta = hoyISO()
       const tag = tipo === 'referencia' ? 'Referencia' : 'Contrarreferencia'
       await descargarComoPDF(el, { filename: `${tag}_${nombre}_${fechaCorta}` })
       return true
@@ -187,7 +192,10 @@ export default function CartaReferenciaPage() {
   const cedula = config?.cedulaProfesional || '—'
   const especialidad = config?.especialidad || ''
   const establecimiento = config?.nombreClinica || ''
-  const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  /* C-015 — la fecha que se IMPRIME en la carta salía en la zona del navegador:
+     a las 19:00 de CDMX desde un equipo en otra zona, la carta se fecha otro
+     día. Se formatea en la zona del consultorio, como el resto del producto. */
+  const fecha = new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: zonaActiva() })
   const titulo = tipo === 'referencia' ? 'CARTA DE REFERENCIA' : 'CARTA DE CONTRARREFERENCIA'
 
   return (
@@ -215,10 +223,16 @@ export default function CartaReferenciaPage() {
         </div>
       </div>
 
-      {/* MC-004 — se dice DÓNDE va a quedar la carta, o que no va a quedar.
-          Callarlo es lo que hacía que el médico creyera que el sistema la
-          guardaba: no la guardaba en ninguna parte. */}
-      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 12px' }}>
+      {/* Formulario (no se imprime). Habla las clases del sistema
+          (.label/.input, como /login y /registro) y cada control lleva su
+          htmlFor/id: la primera medición axe de esta pantalla encontró el
+          formulario entero sin nombres accesibles (`label` crítico +
+          `select-name`) — la única deuda CRÍTICA del inventario de
+          V15-A11Y-001, pagada en su 2ª rebanada. */}
+      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 20px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* MC-004 — se dice DÓNDE va a quedar la carta, o que no va a quedar.
+            Callarlo es lo que hacía que el médico creyera que el sistema la
+            guardaba: no la guardaba en ninguna parte. */}
         <div style={{
           background: notaOrigen?.estado === 'firmada' ? 'var(--s2)' : 'var(--badge-amber-b)',
           border: `1px solid ${notaOrigen?.estado === 'firmada' ? 'var(--border)' : 'var(--amber)'}`,
@@ -228,15 +242,7 @@ export default function CartaReferenciaPage() {
             ? <>Al imprimir o descargar, la carta queda asentada en el expediente como adenda de la nota firmada, y su emisión en la bitácora.{asentada ? ' Ya quedó asentada.' : ''}</>
             : <><strong>Esta carta no quedará en el expediente.</strong> No hay una nota firmada de la que colgarla, así que sólo se registrará en la bitácora que se emitió. Firma la nota de la consulta y vuelve a emitirla si necesitas que conste.</>}
         </div>
-      </div>
 
-      {/* Formulario (no se imprime). Habla las clases del sistema
-          (.label/.input, como /login y /registro) y cada control lleva su
-          htmlFor/id: la primera medición axe de esta pantalla encontró el
-          formulario entero sin nombres accesibles (`label` crítico +
-          `select-name`) — la única deuda CRÍTICA del inventario de
-          V15-A11Y-001, pagada en su 2ª rebanada. */}
-      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 20px', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 160 }}>
             <label className="label" htmlFor="ref-tipo">Tipo de carta</label>
@@ -322,7 +328,8 @@ export default function CartaReferenciaPage() {
         {/* Datos del paciente */}
         <div style={{ marginBottom: 10, fontSize: 12.5 }}>
           <strong>Paciente:</strong> {patient?.nombre ?? ''}
-          {patient?.edad ? ` · ${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
+          {/* C-018 — esta hoja viaja a OTRO médico: «1 años» no. */}
+          {edadLegible(patient?.edad) ? ` · ${edadLegible(patient?.edad)}` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''}{patient?.telefono ? ` · Tel: ${patient.telefono}` : ''}
         </div>
         <div style={{ border: '1.5px solid #b91c1c', color: 'var(--red)', borderRadius: 4, padding: '5px 10px', fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
           {/* Misma fuente que la pantalla y que la receta: leer `patient.alergias`

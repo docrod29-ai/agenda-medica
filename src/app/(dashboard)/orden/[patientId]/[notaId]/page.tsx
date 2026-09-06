@@ -30,6 +30,7 @@ import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { hoyISO } from '@/lib/timezone'
 import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import { agregarAdenda } from '@/lib/expediente/firestore'
 import { claveDeIntento } from '@/lib/idempotencia'
@@ -40,7 +41,7 @@ import {
 import { textoDeLaOrdenEmitida, motivoDeLaOrdenEmitida } from '@/lib/orden-emitida'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
-  AlertTriangle,
+  AlertTriangle, Pill,
 } from 'lucide-react'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
@@ -422,39 +423,8 @@ export default function GeneradorOrdenPage() {
       medicoNombre: config?.nombreMedico,
     }, ahora), 'orden', { avisar: m => toast(`La orden quedó emitida, pero ${m}`, 'error') })
   }
-  /**
-   * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
-   *
-   * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
-   * qué ahí y no en la nota ni en una colección nueva). Idempotente por
-   * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
-   * documento inmutable.
-   */
   const claveAsiento = useRef<string | null>(null)
   const [asentada, setAsentada] = useState(false)
-  const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
-    if (!clinicId || !estudios.length) return
-    if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice
-    if (asentada) return
-    claveAsiento.current ??= claveDeIntento()
-    try {
-      await agregarAdenda(clinicId, patientId, notaId, {
-        texto: textoDeLaOrdenEmitida({ folio, estudios, diagnostico, indicaciones, formato }),
-        motivo: motivoDeLaOrdenEmitida(folio, estudios.filter(e => e.trim()).length),
-        autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
-        autorEmail: user?.email || '',
-        autorCedula: medicoEnSesion
-          ? (medicoEnSesion.cedulaProfesional || undefined)
-          : (config?.cedulaProfesional || undefined),
-      }, claveAsiento.current)
-      setAsentada(true)
-    } catch {
-      // REG-411 — la orden ya salió y esto no puede tumbarla; pero perder el
-      // asiento sin decirlo es el defecto que se está cerrando.
-      toast('La orden se emitió, pero no se pudo asentar en el expediente. Vuelve a intentarlo.', 'error')
-    }
-  }
-
   const [indicaciones, setIndicaciones] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
@@ -559,6 +529,37 @@ export default function GeneradorOrdenPage() {
   /** La cédula es requisito del impreso; sin ella el documento no es válido. */
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
+  /**
+   * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
+   *
+   * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
+   * qué ahí y no en la nota ni en una colección nueva). Idempotente por
+   * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
+   * documento inmutable.
+   */
+  const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
+    if (!clinicId || !estudios.length) return
+    if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice
+    if (asentada) return
+    claveAsiento.current ??= claveDeIntento()
+    try {
+      await agregarAdenda(clinicId, patientId, notaId, {
+        texto: textoDeLaOrdenEmitida({ folio, estudios, diagnostico, indicaciones, formato }),
+        motivo: motivoDeLaOrdenEmitida(folio, estudios.filter(e => e.trim()).length),
+        autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
+        autorEmail: user?.email || '',
+        autorCedula: medicoEnSesion
+          ? (medicoEnSesion.cedulaProfesional || undefined)
+          : (config?.cedulaProfesional || undefined),
+      }, claveAsiento.current)
+      setAsentada(true)
+    } catch {
+      // REG-411 — la orden ya salió y esto no puede tumbarla; pero perder el
+      // asiento sin decirlo es el defecto que se está cerrando.
+      toast('La orden se emitió, pero no se pudo asentar en el expediente. Vuelve a intentarlo.', 'error')
+    }
+  }
+
   const descargarWord = () => {
     void descargarRecetaWord(
       {
@@ -589,7 +590,10 @@ export default function GeneradorOrdenPage() {
     try {
       const host = dimensionesImpresion(recetaConfigOri)
       const nombre = (patient?.nombre ?? 'paciente').replace(/[^\w\sáéíóúñ-]/gi, '').replace(/\s+/g, '_')
-      const fechaCorta = new Date().toISOString().slice(0, 10)
+      // C-015 — `new Date().toISOString().slice(0,10)` da el día en UTC: a las
+      // 19:00 de CDMX el archivo salía con la fecha de MAÑANA. `hoyISO()` usa la
+      // zona del consultorio (REG-067).
+      const fechaCorta = hoyISO()
       // PDF LIMPIO hoja-por-hoja (misma corrección que receta): sin "about:blank" ni
       // fecha del navegador, hoja física exacta, fiel al diseño.
       const paginas = Array.from(el.querySelectorAll<HTMLElement>('.receta-sheet-wrap'))
@@ -740,6 +744,10 @@ export default function GeneradorOrdenPage() {
           </button>
           <button disabled={noSePuedeEmitir} onClick={() => { if (configError || descargando || noSePuedeEmitir) return; logAudit({ evento: 'orden_generada', clinicId: clinicId ?? '', patientId, notaId, meta: { folio, estudios: estudios.slice(0, 40), total: estudios.length, formato: 'word' } }).catch(() => {}); crearPendientesDeLaOrden(); void asentarOrden('word'); descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
             <FileText size={14} /> Word
+          </button>
+          {/* MO-011 — ver el comentario hermano en /receta. */}
+          <button onClick={() => router.push(`/receta/${patientId}/${notaId}`)} className="btn btn-secondary" title="Receta de esta misma nota">
+            <Pill size={14} /> Receta
           </button>
           <button onClick={() => router.push('/configuracion?tab=recetas')} className="btn btn-secondary" title="Configurar template">
             <Settings size={14} /> Template

@@ -88,8 +88,11 @@ function notaFirmadaPor(nombre: string, cedula: string, over: Partial<NotaMedica
   } as unknown as NotaMedica
 }
 
-const recursos = (b: ReturnType<typeof exportarPacienteAFhir>, tipo: string) =>
-  b.entry.map(e => e.resource).filter(r => r.resourceType === tipo)
+/* `FhirResource` es un índice abierto; para leer un campo concreto en la
+   prueba se pasa por `unknown`, que es lo que TypeScript pide y lo que deja
+   claro que aquí se está inspeccionando una salida, no usándola. */
+const recursos = (b: ReturnType<typeof exportarPacienteAFhir>, tipo: string): Record<string, unknown>[] =>
+  b.entry.map(e => e.resource).filter(r => r.resourceType === tipo) as unknown as Record<string, unknown>[]
 
 describe('ZL-003 · el bundle dice quién firmó', () => {
   const bundle = exportarPacienteAFhir({
@@ -105,12 +108,12 @@ describe('ZL-003 · el bundle dice quién firmó', () => {
   })
 
   it('el attester de la firma apunta a quien firmó', () => {
-    const comp = recursos(bundle, 'Composition')[0] as { attester: { party: { reference: string } }[] }
+    const comp = recursos(bundle, 'Composition')[0] as unknown as { attester: { party: { reference: string } }[] }
     expect(comp.attester[0].party.reference).toBe('Practitioner/BBB222')
   })
 
   it('el requester de la receta también', () => {
-    const mr = recursos(bundle, 'MedicationRequest')[0] as { requester: { reference: string } }
+    const mr = recursos(bundle, 'MedicationRequest')[0] as unknown as { requester: { reference: string } }
     expect(mr.requester.reference).toBe('Practitioner/BBB222')
   })
 
@@ -120,14 +123,14 @@ describe('ZL-003 · el bundle dice quién firmó', () => {
     // médico). Es el caso que el propio hallazgo dice no cubrir.
     const legada = notaFirmadaPor('', '', { firma: undefined } as never)
     const b = exportarPacienteAFhir({ paciente: PACIENTE, notas: [legada], config: CONFIG })
-    const comp = recursos(b, 'Composition')[0] as { author: { reference: string }[] }
+    const comp = recursos(b, 'Composition')[0] as unknown as { author: { reference: string }[] }
     expect(comp.author[0].reference).toBe('Practitioner/AAA111')
   })
 
   it('… y una nota legada CON cédula en la metadata usa esa, no la de la clínica', () => {
     const legada = notaFirmadaPor('', 'CCC333', { firma: undefined } as never)
     const b = exportarPacienteAFhir({ paciente: PACIENTE, notas: [legada], config: CONFIG })
-    const comp = recursos(b, 'Composition')[0] as { author: { reference: string }[] }
+    const comp = recursos(b, 'Composition')[0] as unknown as { author: { reference: string }[] }
     expect(comp.author[0].reference).toBe('Practitioner/CCC333')
   })
 })
@@ -138,7 +141,7 @@ describe('ZL-004 · no se afirma una certeza que el expediente no tiene', () => 
   })
 
   it('una alergia sin marca de verificación sale «unconfirmed», no «confirmed»', () => {
-    const al = recursos(bundle, 'AllergyIntolerance')[0] as { verificationStatus: { coding: { code: string }[] } }
+    const al = recursos(bundle, 'AllergyIntolerance')[0] as unknown as { verificationStatus: { coding: { code: string }[] } }
     expect(al.verificationStatus.coding[0].code).toBe('unconfirmed')
   })
 
@@ -164,7 +167,7 @@ describe('MO-005 · los estudios pedidos existen para el mundo', () => {
       notas: [notaFirmadaPor('Dra. Sintética A', 'AAA111', { estudiosOrden: ['Radiografía de tobillo izquierdo'] } as never)],
       config: CONFIG,
     })
-    const sr = recursos(b, 'ServiceRequest') as { code: { text: string } }[]
+    const sr = recursos(b, 'ServiceRequest') as unknown as { code: { text: string } }[]
     expect(sr.length).toBe(1)
     expect(sr[0].code.text).toBe('Radiografía de tobillo izquierdo')
   })
@@ -187,17 +190,17 @@ describe('ZL-005 · la fusión de los dos códigos de saturación se declara', (
 describe('ZL-018 · lo que no cabe en la hoja se declara', () => {
   const base = {
     estudios: [], fontSizePx: 11, areaAltoMm: 90, areaAnchoMm: 100,
-    headerPrimeraMm: 40, firmaMm: 20,
+    headerPrimeraMm: 40, headerContinuacionMm: 8, firmaMm: 20,
   }
 
   it('un medicamento con una indicación enorme deja constancia del recorte', () => {
     const paginas = paginarReceta({
       ...base,
       medicamentos: [{
-        nombre: 'Insulina sintética', dosis: '10 U', via: 'sc',
+        nombre: 'Insulina sintética', dosis: '10 U', via: 'sc' as const,
         frecuencia: 'según esquema', duracion: 'indefinido',
         indicacion: 'Esquema sintético por glucemia. '.repeat(60),
-      }] as never,
+      }],
     })
     expect(hayDesborde(paginas), 'el bloque no cabe y nadie lo dice').toBe(true)
     expect(avisoDeDesborde(paginas)).toMatch(/Insulina sintética/)
@@ -208,9 +211,9 @@ describe('ZL-018 · lo que no cabe en la hoja se declara', () => {
     const paginas = paginarReceta({
       ...base,
       medicamentos: [{
-        nombre: 'Paracetamol', dosis: '500 mg', via: 'oral',
+        nombre: 'Paracetamol', dosis: '500 mg', via: 'oral' as const,
         frecuencia: 'cada 8 horas', duracion: '3 días',
-      }] as never,
+      }],
     })
     expect(hayDesborde(paginas)).toBe(false)
     expect(avisoDeDesborde(paginas)).toBe('')

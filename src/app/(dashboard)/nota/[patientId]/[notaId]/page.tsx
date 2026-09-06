@@ -34,6 +34,7 @@ import {
 } from '@/lib/consentimiento-impreso'
 import { fechaLegible } from '@/lib/fecha-local'
 import { hoyISO } from '@/lib/timezone'
+import { conEtiquetaDeEdad } from '@/lib/edad-legible'
 
 /**
  * La tinta del documento-papel. UN solo literal: el color va INLINE en cada
@@ -442,7 +443,9 @@ export default function NotaImprimiblePage() {
             </tr>
             <tr>
               <td style={{ padding: '2px 0', color: TINTA }}>
-                {patient?.edad ? `Edad: ${patient.edad} años` : ''}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
+                {/* C-018 — «Edad: 1 años» en un documento con cédula. Una sola
+                    función lo escribe, aquí y en la carta de referencia. */}
+                {conEtiquetaDeEdad(patient?.edad)}{patient?.sexo ? ` · Sexo: ${patient.sexo}` : ''}
               </td>
               <td style={{ padding: '2px 0', color: TINTA, textAlign: 'right' }}>{patient?.telefono ? `Tel: ${patient.telefono}` : ''}</td>
             </tr>
