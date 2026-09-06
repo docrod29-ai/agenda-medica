@@ -48,6 +48,7 @@ import {
   SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
 } from './signos-que-se-capturan'
 import { comprobarCitasDelAnalisis } from './citas-del-analisis'
+import { avisoDeCirugiaYAnticoagulante, prellenadoPreoperatorio } from './anticoagulantes-y-cirugia'
 import { textoDelConsentimiento, puntosDelConsentimiento, VERSION_DEL_CONSENTIMIENTO } from './consentimiento-de-grabacion'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
@@ -1331,6 +1332,19 @@ export default function ConsultaActivaPage() {
       : {}),
   }), [patient?.edad, patient?.sexo, patient?.alergias, patient?.alergiasEstructuradas, diagnosticos, medicamentos, signosNum, labsDeLaConsulta, trayectoriasDeLaConsulta, vigenciaRenal])
   const [resumen, setResumen] = useState('')
+  /**
+   * ── CIRUGÍA PROGRAMADA + ANTICOAGULANTE (MC-015) ──────────────────────────
+   *
+   * El sistema tenía los dos datos y no los cruzaba fuera de la valoración
+   * preoperatoria, y ahí sólo si el médico marcaba la casilla a mano. Se mira
+   * TODO lo que hay escrito hoy —resumen, secciones y diagnósticos— contra la
+   * lista de medicamentos de la consulta y la vigente del expediente.
+   */
+  const avisoQuirurgicoAnticoagulante = useMemo(() => avisoDeCirugiaYAnticoagulante(
+    [...medicamentos, ...vigentes.map(v => ({ nombre: v.medicamento.nombre }))],
+    [resumen, ...secciones.map(s => s.value ?? ''), ...diagnosticos.map(d => d.descripcion)].join(' · '),
+  ), [medicamentos, vigentes, resumen, secciones, diagnosticos])
+
   /**
    * QUÉ ES ESTA NOTA PARA EL SELLO — una vez, para las dos lecturas.
    *
@@ -7376,7 +7390,11 @@ export default function ConsultaActivaPage() {
         <PreopAssessment
           edadPaciente={patient?.edad}
           disabled={firmada}
-          initialInputs={preop?.inputs}
+          /**
+           * MC-015: la casilla del anticoagulante sale de la lista de fármacos,
+           * no de la memoria del médico. Lo que él ya guardó manda sobre esto.
+           */
+          initialInputs={{ ...prellenadoPreoperatorio(medicamentos), ...(preop?.inputs ?? {}) }}
           /**
            * ── LO QUE ESCRIBIÓ EL CIRUJANO NO SE PISA (MC-013) ──────────────
            *
@@ -7632,6 +7650,25 @@ export default function ConsultaActivaPage() {
           </button>
         )}
       </Section>
+
+      {/*
+        ── LA CIRUGÍA QUE VIENE Y EL FÁRMACO QUE SANGRA (MC-015) ──────────────
+        No propone conducta —los tiempos de suspensión viven en el motor de la
+        valoración preoperatoria, con su fuente— : enciende la luz y señala.
+      */}
+      {!firmada && avisoQuirurgicoAnticoagulante && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 4,
+          padding: '11px 13px', borderRadius: 11,
+          border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+          background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+            {avisoQuirurgicoAnticoagulante}
+          </div>
+        </div>
+      )}
 
       {/*
         ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
