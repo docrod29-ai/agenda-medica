@@ -172,8 +172,18 @@ export function verificar(crudo: string, corregido: string): Veredicto {
     const n = norm(t)
     return { d: DERECHA.test(n), i: IZQUIERDA.test(n), b: BILATERAL.test(n) }
   }
+  /**
+   * ── TAMBIÉN POR POSICIÓN (Panel de Lujo, MO-015) ─────────────────────────
+   *
+   * Por presencia, «hombro derecho y pie izquierdo» → «hombro izquierdo y pie
+   * derecho» pasaba: los dos lados siguen presentes y, con el mismo género, la
+   * cuenta por forma tampoco cambia. La SECUENCIA de lados en orden de aparición
+   * sí lo ve: [derecho, izquierdo] ≠ [izquierdo, derecho].
+   */
+  const secuencia = (t: string) => (norm(t).match(/\b(derech[oa]s?|izquierd[oa]s?|bilateral(?:es)?)\b/g) ?? [])
+    .map(w => w.startsWith('derech') ? 'D' : w.startsWith('izquierd') ? 'I' : 'B').join('')
   const lc = lado(crudo), lk = lado(corregido)
-  if (lc.d !== lk.d || lc.i !== lk.i || lc.b !== lk.b) {
+  if (lc.d !== lk.d || lc.i !== lk.i || lc.b !== lk.b || secuencia(crudo) !== secuencia(corregido)) {
     const desc = (l: { d: boolean; i: boolean; b: boolean }) =>
       [l.d && 'derecho', l.i && 'izquierdo', l.b && 'bilateral'].filter(Boolean).join(' + ') || '—'
     violaciones.push({

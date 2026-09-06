@@ -201,6 +201,22 @@ export const SafetyBlock = z.object({
    * la opinión del modelo, y como tal se guarda: útil para contrastar las dos.
    */
   dictamen: z.string().optional().default(''),
+  /**
+   * LAS CORRECCIONES DE AUDIO QUE HIZO EL MODELO, DECLARADAS (Panel de Lujo, MO-001).
+   *
+   * La regla G del prompt autorizaba escribir «directamente el término
+   * correcto, sin mostrar el error». Eso es una corrección que el médico no
+   * puede ver ni deshacer — regla 3 de seguridad clínica. Ahora el modelo sigue
+   * escribiendo el término correcto en la prosa (la nota no es un reporte del
+   * audio), pero DECLARA cada corrección aquí, para que la pantalla la enseñe
+   * junto a las del corrector léxico y el médico pueda revertirla. Lateralidad
+   * y negación no entran nunca: ésas no se corrigen; se preguntan.
+   */
+  correcciones_de_audio: z.array(z.object({
+    oido:      z.string().optional().default(''),
+    escrito:   z.string().optional().default(''),
+    ubicacion: z.string().optional().default(''),
+  })).optional().default([]),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
 

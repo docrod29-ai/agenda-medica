@@ -28,6 +28,8 @@ export const MOTIVOS_CLINICAMENTE_MATERIALES = new Set([
   'sigla_de_modo_o_dispositivo_incierta',
   'farmaco_solo_propuesto',
   'estudio_solo_propuesto',
+  'lateralidad_contradictoria',
+  'paciente_nombrado_no_coincide',
 ] as const)
 
 export function esMotivoClinicamenteMaterial(motivo: string): boolean {
@@ -60,6 +62,10 @@ export const TEXTO_MOTIVO: Record<string, string> = {
     'Este fármaco se mencionó como posibilidad, no como indicación inequívoca. Confirma si realmente va en la receta.',
   estudio_solo_propuesto:
     'Este estudio se mencionó como posibilidad, no como solicitud inequívoca. Confirma si realmente va en la orden.',
+  lateralidad_contradictoria:
+    'En el dictado se oyeron los dos lados para la misma región, o una corrección sobre la marcha. Confirma cuál es el lado antes de firmar: la nota conserva el último que se dictó.',
+  paciente_nombrado_no_coincide:
+    'El dictado nombra a una persona que no es el paciente del expediente abierto. Confirma de quién es esta consulta antes de guardarla.',
 }
 
 /**
