@@ -57,12 +57,11 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy NO está vacía.** La auditoría «Panel de Lujo» (6-sep-2026) reescribió
-`firestore.rules` —339 líneas nuevas— y nada de eso rige todavía en producción.
-Rige la versión anterior, la publicada en la ejecución **#18** del botón de
-producción.
-
-Mientras no se despliegue, lo que sigue **está escrito y no protege nada**:
+**Hoy NO está vacía.** La auditoría «Panel de Lujo» (6-sep-2026) añadió **339
+líneas** a `firestore.rules` y nada de eso rige todavía: rige la versión que
+publicó la ejecución **#26**. Se despliega con el paso `FIRESTORE_RULES` del
+botón de producción, que es lo único que publica este archivo — `vercel --prod`
+no lo toca. **Esta sección se vacía al desplegar, no a mano.**
 
 | Regla escrita | Qué NO rige hoy | Qué se rompe mientras tanto |
 |---|---|---|
@@ -75,18 +74,25 @@ Mientras no se despliegue, lo que sigue **está escrito y no protege nada**:
 | S-010 · quince `match` de raíz nuevos | Los `match` de `platform_config`, `platform_incidentes`, `platform_heartbeats`, `platform_recargas`, `platform_csp`, `errores`, `soporte`, `rate_limits`, `oauthStates`, `transcript_owners`, `whatsapp_channels`, `whatsapp_dedup`, `anticipos_procesados`, `recargas_procesadas` y `pruebas_estrenadas` | Nada: sin `match` propio caen en el deniego general y quedan cerradas. Lo que falta es que la regla DIGA quién puede, que es lo que exige el guardián de la matriz |
 | S-012 · `notification_logs` cerrado al cliente | El cierre | Se lee y se escribe el registro de notificaciones desde el navegador |
 
-Ninguna de estas filas es una regresión nueva: es el estado que ya había antes
-de la auditoría, y sigue vigente hasta que se publique. El aislamiento entre
+Ninguna fila es una regresión nueva: es el estado que ya había antes de la
+auditoría y sigue vigente hasta que se publique. El aislamiento entre
 consultorios —lo que impide que un consultorio lea a otro— **sí** rige: el
 equipo rojo lo probó contra el emulador con las reglas de hoy y denegó los 13
 ataques.
 
-Se despliega con el paso `FIRESTORE_RULES` del botón de producción
-(`.github/workflows/deploy-production.yml`), que es lo único que publica este
-archivo: `vercel --prod` no lo toca. **Esta sección se vacía al desplegar, no
-a mano.**
+La fila que hubo aquí unas horas, el 6-sep-2026, era el `match` de
+`platform_authz_denegadas` (REG-578, el registro de denegaciones de autorización
+que lee el vigilante). Se escribió al fusionarse #466 y **se cerró el mismo día**
+con la ejecución **#26** del botón de producción, sobre el árbol `7c2465ea`
+(v1186).
 
-La última fila que hubo aquí era el `match` de
+Conviene conservar por qué esa fila decía «no protege nada mientras tanto», que
+es la parte que se lee mal con prisa: esa regla no ABRE ni CIERRA nada por sí
+sola, porque el `match /{document=**}` del final ya deniega todo lo no declarado.
+Lo que faltaba era que fuese **explícita** — lo que impide que un `match` futuro
+más laxo deje la colección al descubierto sin que nadie lo note.
+
+La fila anterior a ésa era el `match` de
 `clinics/{id}/patients/{pid}/preguntas_paciente/{doc}` (V9 `PATIENT-AI-001`),
 escrito al fusionarse #443 y sin regir hasta la ejecución **#18** del botón de
 producción, el 4-sep-2026. Se cerró ahí.

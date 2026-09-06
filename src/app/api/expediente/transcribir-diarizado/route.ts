@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { topeDe, TOPE_TERMINOS, componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
+import { nombresDelModulo, MODULOS_DE_DICTADO, type ModuloDictado } from '@/lib/asr/lexicon'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -161,6 +162,23 @@ export async function POST(req: NextRequest) {
       return Array.isArray(j) ? j.map(String).slice(0, 200) : []
     } catch { return [] }
   }
+  /**
+   * ── EL MÓDULO DESDE EL QUE SE DICTA, AL MOTOR QUE DE VERDAD CORRE (B-009) ──
+   *
+   * El cliente manda `contexto` por los dos caminos desde hace tiempo y ESTA
+   * ruta no lo leía. La diarización es el motor bueno y Whisper es el repuesto,
+   * así que el vocabulario de UCI o de hospitalización sesgaba ÚNICAMENTE al
+   * motor que entra cuando el bueno se cae — justo al revés de lo que hace
+   * falta. Es la celda que REG-520 dejó declarada como abierta.
+   *
+   * Se valida contra la lista cerrada: un valor que no sea un módulo conocido
+   * se descarta y el sesgo cae al catálogo global, como siempre. Nunca se queda
+   * sin sesgo por un dato ausente o mal escrito.
+   */
+  const comoModulo = (v: unknown): ModuloDictado | undefined => {
+    const t = typeof v === 'string' ? v.trim() : ''
+    return (MODULOS_DE_DICTADO as readonly string[]).includes(t) ? (t as ModuloDictado) : undefined
+  }
 
   try {
     if (contentType.includes('application/json')) {
@@ -175,7 +193,7 @@ export async function POST(req: NextRequest) {
         problemas: comoLista(body?.problemas),
         alergias: comoLista(body?.alergias),
         aprendidas: comoLista(body?.aprendidas),
-        especialidad: comoLista(body?.especialidades),
+        especialidad: [...comoLista(body?.especialidades), ...nombresDelModulo(comoModulo(body?.contexto))],
       }
     } else {
       const formData = await req.formData()
@@ -200,7 +218,7 @@ export async function POST(req: NextRequest) {
         problemas: comoLista(formData.get('problemas')),
         alergias: comoLista(formData.get('alergias')),
         aprendidas: comoLista(formData.get('aprendidas')),
-        especialidad: comoLista(formData.get('especialidades')),
+        especialidad: [...comoLista(formData.get('especialidades')), ...nombresDelModulo(comoModulo(formData.get('contexto')))],
       }
     }
 

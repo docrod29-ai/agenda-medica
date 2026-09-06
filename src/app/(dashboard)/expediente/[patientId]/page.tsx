@@ -38,7 +38,9 @@ import { InternamientosDelPaciente } from '@/components/InternamientosDelPacient
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
 import { tareasDePaciente } from '@/lib/tareas-clinicas/firestore'
 import { getInternamientosDePaciente } from '@/lib/hospital/firestore'
-import { estadoDeProblemas, resumenProblemas } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeProblemas, nombreConCerteza, resumenProblemas, avisoDeHistorialRecortado,
+} from '@/lib/expediente/problemas-activos'
 import { estadoDeBanderas, avisoDeBanderasIncompletas } from '@/lib/expediente/banderas-de-riesgo'
 import { estadoDeMedicamentos, resumenVigentes } from '@/lib/expediente/ordenes-medicamento'
 import { fechaLegible } from '@/lib/fecha-local'
@@ -426,6 +428,43 @@ export default function ExpedientePage() {
         No corrige nada. Corregir es un acto del médico, y su sitio es
         `/consulta`, donde el campo se edita con el paciente delante.
       */}
+      {/*
+        ── LO QUE ALGUIEN YA DECLARÓ COMO RIESGO (WS-10) ────────────────────────
+
+        No es un catálogo de banderas: ése es política clínica y no está
+        decidido. Son juicios que ya hizo una persona —una severidad escrita, un
+        problema marcado crónico— puestos juntos y con la nota de la que salen.
+
+        Se pinta SIEMPRE, también cuando no hay ninguna, y ahí está el punto: una
+        lista vacía al lado de nada se lee como «este paciente no tiene riesgos».
+        Al lado de lo que este eje NO mira se lee como lo que es. Ausencia de dato
+        no es dato de ausencia.
+
+        En gris y sin icono de alarma a propósito: lo que sí es una alerta —una
+        alergia sellada que la compuerta de hoy no está mirando— tiene su recuadro
+        rojo justo debajo, y dos rojos seguidos no dejan ver cuál urge.
+      */}
+      {banderas.banderas.length > 0 && (
+        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
+          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
+            Riesgos declarados
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {banderas.banderas.map((b, i) => (
+              <li key={`${b.origen}-${b.texto}-${i}`}>
+                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
+                {b.detalle && <> · {b.detalle}</>}
+                {b.desde && <> · desde el {fechaCorta(b.desde)}</>}
+                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
+              </li>
+            ))}
+          </ul>
+          {avisoBanderas && (
+            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
+          )}
+        </section>
+      )}
+
       {avisoAlergias && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
@@ -453,42 +492,11 @@ export default function ExpedientePage() {
             </ul>
             {estadoAlergias.historialIncompleto && (
               <div style={{ color: 'var(--text3)', marginTop: 4 }}>
-                El historial vino recortado: puede haber más en notas que no se cargaron.
+                {avisoDeHistorialRecortado(true)}
               </div>
             )}
           </div>
         </div>
-      )}
-
-      {/*
-        LO QUE YA ESTÁ DECLARADO COMO RIESGO, JUNTO (WS-10).
-
-        No es una alarma y por eso no se pinta como tal: el aviso de alergias de
-        arriba SÍ señala algo que la compuerta de hoy no está mirando, y esto
-        sólo reúne lo que ya consta. Dos rojos seguidos harían que ninguno se
-        leyera.
-
-        Cada línea dice de dónde salió. Ninguna se reescribe.
-      */}
-      {banderas.banderas.length > 0 && (
-        <section style={{ marginBottom: 16 }} aria-label="Banderas de riesgo declaradas">
-          <h3 style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', fontWeight: 600 }}>
-            Riesgos declarados
-          </h3>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
-            {banderas.banderas.map((b, i) => (
-              <li key={`${b.origen}-${b.texto}-${i}`}>
-                <strong style={{ color: 'var(--text)' }}>{b.texto}</strong>
-                {b.detalle && <> · {b.detalle}</>}
-                {b.desde && <> · desde el {fechaCorta(b.desde)}</>}
-                <span style={{ color: 'var(--text3)' }}> · {b.declaradoPor}</span>
-              </li>
-            ))}
-          </ul>
-          {avisoBanderas && (
-            <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 4 }}>{avisoBanderas}</div>
-          )}
-        </section>
       )}
 
       {(problemas.length > 0 || vigentes.length > 0) && (
@@ -503,6 +511,13 @@ export default function ExpedientePage() {
             <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              {/* REG-579 — `proyeccionRecortada` se calculaba y no se pintaba en
+                  ningún sitio. La línea de arriba afirma sobre el expediente
+                  ENTERO; sobre una ventana es falsa y el médico no puede saberlo
+                  mirando la pantalla. */}
+              {avisoDeHistorialRecortado(proyeccionRecortada) && (
+                <> {avisoDeHistorialRecortado(proyeccionRecortada)}</>
+              )}
             </div>
           </div>
         </div>
@@ -1202,7 +1217,7 @@ function NotaCard({ nota, esUltima, abierta, onToggle, onEditar, onImprimir, onG
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase' }}>Diagnósticos</div>
                 {nota.diagnosticos.map((d, i) => (
                   <div key={i} style={{ fontSize: 13, color: 'var(--text2)', marginTop: 3 }}>
-                    • {d.descripcion} {d.codigoCIE10 && <span style={{ color: 'var(--text3)' }}>({d.codigoCIE10})</span>}
+                    • {nombreConCerteza(d)} {d.codigoCIE10 && <span style={{ color: 'var(--text3)' }}>({d.codigoCIE10})</span>}
                   </div>
                 ))}
               </div>

@@ -2,7 +2,7 @@
  "sellado": "2026-09-06",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 7374,
+ "totalCasos": 7973,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -11,6 +11,10 @@
   {
    "archivo": "src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts",
    "minCasos": 8
+  },
+  {
+   "archivo": "src/__tests__/agendada-era-una-declaracion-no-un-hecho.test.ts",
+   "minCasos": 21
   },
   {
    "archivo": "src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts",
@@ -241,6 +245,10 @@
    "minCasos": 7
   },
   {
+   "archivo": "src/__tests__/consultorio-degradacion-segura.test.ts",
+   "minCasos": 14
+  },
+  {
    "archivo": "src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts",
    "minCasos": 5
   },
@@ -303,6 +311,10 @@
   {
    "archivo": "src/__tests__/de-donde-salio-esto-se-ve.test.ts",
    "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/de-que-manera-consta-el-aviso-de-un-critico.test.ts",
+   "minCasos": 16
   },
   {
    "archivo": "src/__tests__/de-que-se-enferma-este-sistema.test.ts",
@@ -397,6 +409,10 @@
    "minCasos": 12
   },
   {
+   "archivo": "src/__tests__/el-arnes-daba-a-todos-los-pacientes-la-misma-historia.test.ts",
+   "minCasos": 21
+  },
+  {
    "archivo": "src/__tests__/el-arnes-de-carga-no-inventa-un-cero.test.ts",
    "minCasos": 10
   },
@@ -429,12 +445,20 @@
    "minCasos": 18
   },
   {
+   "archivo": "src/__tests__/el-cajon-de-pendientes-no-se-borraba-al-cerrar-sesion.test.ts",
+   "minCasos": 10
+  },
+  {
    "archivo": "src/__tests__/el-camino-del-medico-llega-entero.test.ts",
    "minCasos": 9
   },
   {
    "archivo": "src/__tests__/el-catalogo-de-fuentes-no-calla-ninguna.test.ts",
    "minCasos": 9
+  },
+  {
+   "archivo": "src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts",
+   "minCasos": 14
   },
   {
    "archivo": "src/__tests__/el-cierre-se-llena-no-se-adivina.test.ts",
@@ -453,6 +477,10 @@
    "minCasos": 11
   },
   {
+   "archivo": "src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts",
+   "minCasos": 15
+  },
+  {
    "archivo": "src/__tests__/el-dedo-manda-sobre-el-scroll.test.ts",
    "minCasos": 15
   },
@@ -469,8 +497,20 @@
    "minCasos": 8
   },
   {
+   "archivo": "src/__tests__/el-diferencial-de-embarazo-ahora-avisa.test.ts",
+   "minCasos": 11
+  },
+  {
+   "archivo": "src/__tests__/el-diferencial-no-es-una-sola-cosa.test.ts",
+   "minCasos": 12
+  },
+  {
    "archivo": "src/__tests__/el-dinero-cabe-en-un-telefono.test.ts",
    "minCasos": 6
+  },
+  {
+   "archivo": "src/__tests__/el-doi-llegaba-a-la-pantalla-y-no-se-pintaba.test.ts",
+   "minCasos": 20
   },
   {
    "archivo": "src/__tests__/el-editor-de-pacientes-no-borra-lo-que-no-ensena.test.ts",
@@ -521,6 +561,10 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/el-factor-no-se-teclea-se-calcula.test.ts",
+   "minCasos": 16
+  },
+  {
    "archivo": "src/__tests__/el-foso-no-inventa-competidores.test.ts",
    "minCasos": 6
   },
@@ -539,6 +583,10 @@
   {
    "archivo": "src/__tests__/el-indice-que-nadie-declaro.test.ts",
    "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts",
+   "minCasos": 10
   },
   {
    "archivo": "src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts",
@@ -569,12 +617,24 @@
    "minCasos": 5
   },
   {
+   "archivo": "src/__tests__/el-motor-de-aplicabilidad-leia-mas-de-lo-que-le-llegaba.test.ts",
+   "minCasos": 17
+  },
+  {
+   "archivo": "src/__tests__/el-motor-de-voz-tiene-techo.test.ts",
+   "minCasos": 18
+  },
+  {
    "archivo": "src/__tests__/el-motor-tiene-que-aportar.test.ts",
    "minCasos": 6
   },
   {
    "archivo": "src/__tests__/el-no-que-corrige-afirma.test.ts",
    "minCasos": 5
+  },
+  {
+   "archivo": "src/__tests__/el-numero-correcto-en-otra-unidad.test.ts",
+   "minCasos": 20
   },
   {
    "archivo": "src/__tests__/el-orden-de-los-nombres-no-decide-si-existes.test.ts",
@@ -665,6 +725,10 @@
    "minCasos": 11
   },
   {
+   "archivo": "src/__tests__/el-router-bajaba-de-modelo-sin-avisar.test.ts",
+   "minCasos": 19
+  },
+  {
    "archivo": "src/__tests__/el-secreto-del-segundo-factor-no-sale-del-navegador.test.ts",
    "minCasos": 3
   },
@@ -701,6 +765,14 @@
    "minCasos": 9
   },
   {
+   "archivo": "src/__tests__/el-sobre-llegaba-a-la-puerta-y-se-tiraba.test.ts",
+   "minCasos": 10
+  },
+  {
+   "archivo": "src/__tests__/el-tablero-citaba-de-memoria-en-la-seccion-que-promete-no-hacerlo.test.ts",
+   "minCasos": 9
+  },
+  {
    "archivo": "src/__tests__/el-tablero-del-loop-no-miente.test.ts",
    "minCasos": 15
   },
@@ -715,6 +787,10 @@
   {
    "archivo": "src/__tests__/el-tope-por-caso-no-mide-la-maquina.test.ts",
    "minCasos": 4
+  },
+  {
+   "archivo": "src/__tests__/el-umbral-decidido-de-verdad-reprueba.test.ts",
+   "minCasos": 16
   },
   {
    "archivo": "src/__tests__/el-vacio-del-servidor-no-pisa-el-acierto-local.test.ts",
@@ -913,6 +989,10 @@
    "minCasos": 2
   },
   {
+   "archivo": "src/__tests__/la-agenda-no-se-lee-entera.test.ts",
+   "minCasos": 7
+  },
+  {
    "archivo": "src/__tests__/la-alergia-estructurada-llega-a-la-compuerta.test.ts",
    "minCasos": 7
   },
@@ -1061,6 +1141,14 @@
    "minCasos": 3
   },
   {
+   "archivo": "src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts",
+   "minCasos": 18
+  },
+  {
+   "archivo": "src/__tests__/la-hoja-muda-no-inventa-su-unidad.test.ts",
+   "minCasos": 12
+  },
+  {
    "archivo": "src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts",
    "minCasos": 8
   },
@@ -1095,6 +1183,10 @@
   {
    "archivo": "src/__tests__/la-misma-sustancia-dos-veces-se-dice.test.ts",
    "minCasos": 17
+  },
+  {
+   "archivo": "src/__tests__/la-muestra-viene-de-la-cabecera.test.ts",
+   "minCasos": 15
   },
   {
    "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
@@ -1289,6 +1381,10 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/las-escrituras-sin-intencion-solo-bajan.test.ts",
+   "minCasos": 9
+  },
+  {
    "archivo": "src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts",
    "minCasos": 9
   },
@@ -1441,6 +1537,10 @@
    "minCasos": 15
   },
   {
+   "archivo": "src/__tests__/los-fallos-del-bot-tenian-un-escritor-y-cero-lectores.test.ts",
+   "minCasos": 13
+  },
+  {
    "archivo": "src/__tests__/los-huecos-se-proponen-marcados.test.ts",
    "minCasos": 15
   },
@@ -1489,6 +1589,10 @@
    "minCasos": 11
   },
   {
+   "archivo": "src/__tests__/nadie-vigilaba-el-riesgo-nombrado.test.ts",
+   "minCasos": 15
+  },
+  {
    "archivo": "src/__tests__/negacion-parser.test.ts",
    "minCasos": 4
   },
@@ -1499,6 +1603,10 @@
   {
    "archivo": "src/__tests__/ngramas-antonimos.test.ts",
    "minCasos": 1
+  },
+  {
+   "archivo": "src/__tests__/ni-una-escritura-clinica-sin-nombre.test.ts",
+   "minCasos": 14
   },
   {
    "archivo": "src/__tests__/ningun-dialogo-se-escribe-su-propio-teclado.test.ts",
@@ -1953,6 +2061,10 @@
    "minCasos": 18
   },
   {
+   "archivo": "src/__tests__/un-200-ilegible-no-es-no-hay-articulos.test.ts",
+   "minCasos": 16
+  },
+  {
    "archivo": "src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts",
    "minCasos": 8
   },
@@ -1969,8 +2081,24 @@
    "minCasos": 11
   },
   {
+   "archivo": "src/__tests__/un-derecho-y-una-foto-no-se-duplican.test.ts",
+   "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/un-descarte-no-puede-ser-el-motivo-de-la-receta.test.ts",
+   "minCasos": 15
+  },
+  {
    "archivo": "src/__tests__/un-documento-sin-metadata-no-tumba-el-visor.test.ts",
    "minCasos": 5
+  },
+  {
+   "archivo": "src/__tests__/un-episodio-largo-no-puede-dejar-de-escribirse.test.ts",
+   "minCasos": 11
+  },
+  {
+   "archivo": "src/__tests__/un-error-es-un-reporte-dos-son-una-averia.test.ts",
+   "minCasos": 19
   },
   {
    "archivo": "src/__tests__/un-estado-de-la-escucha-se-dice-una-sola-vez.test.ts",
@@ -1997,12 +2125,20 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/un-numero-de-mensajes-muertos-no-deja-hacer-nada.test.ts",
+   "minCasos": 13
+  },
+  {
    "archivo": "src/__tests__/un-pendiente-perdido-no-muere-con-el-aviso.test.ts",
    "minCasos": 23
   },
   {
    "archivo": "src/__tests__/un-pendiente-que-falta-no-se-calla.test.ts",
    "minCasos": 7
+  },
+  {
+   "archivo": "src/__tests__/un-programa-de-tres-no-es-el-producto.test.ts",
+   "minCasos": 14
   },
   {
    "archivo": "src/__tests__/un-proveedor-caido-no-se-reintenta-mil-veces.test.ts",
@@ -2015,6 +2151,14 @@
   {
    "archivo": "src/__tests__/un-solo-parser-de-alergias.test.ts",
    "minCasos": 10
+  },
+  {
+   "archivo": "src/__tests__/un-solo-percentil-en-el-arbol.test.ts",
+   "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/un-trabajo-de-fondo-tambien-deja-hilo.test.ts",
+   "minCasos": 12
   },
   {
    "archivo": "src/__tests__/un-wer-bajo-no-compensa-una-dosis.test.ts",
@@ -2045,6 +2189,14 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/una-denegacion-no-es-una-anomalia-dos-consultorios-si.test.ts",
+   "minCasos": 20
+  },
+  {
+   "archivo": "src/__tests__/una-dispensacion-no-se-descuenta-dos-veces.test.ts",
+   "minCasos": 10
+  },
+  {
    "archivo": "src/__tests__/una-frecuencia-tiene-forma-de-frecuencia.test.ts",
    "minCasos": 21
   },
@@ -2055,6 +2207,14 @@
   {
    "archivo": "src/__tests__/una-guia-tiene-edicion-y-las-ediciones-caducan.test.ts",
    "minCasos": 18
+  },
+  {
+   "archivo": "src/__tests__/una-interconsulta-pedida-no-entraba-al-bucle.test.ts",
+   "minCasos": 22
+  },
+  {
+   "archivo": "src/__tests__/una-lectura-no-es-un-guardian.test.ts",
+   "minCasos": 17
   },
   {
    "archivo": "src/__tests__/una-lista-no-dice-de-cuanto-historial-salio.test.ts",

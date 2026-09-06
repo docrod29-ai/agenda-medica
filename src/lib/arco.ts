@@ -13,8 +13,9 @@
  * Las solicitudes viven en clinics/{clinicId}/arco_requests/{requestId}.
  * Solo médicos/admin de la clínica las pueden ver.
  */
-import { collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where } from 'firebase/firestore'
+import { collection, addDoc, getDocs, getDoc, doc, setDoc, updateDoc, query, orderBy, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { idIdempotente } from '@/lib/idempotencia'
 import { logAudit } from '@/lib/expediente/audit-log'
 
 export type ArcoTipo = 'acceso' | 'rectificacion' | 'cancelacion' | 'oposicion' | 'revocacion'
@@ -118,8 +119,7 @@ export function documentoDeSolicitudArco(
   ahoraIso: string,
   origen: { desde: 'portal-publico' } | { desde: 'consultorio'; patientId: string; verificadaPor: string },
 ): Omit<ArcoRequest, 'id'> {
-  const base: Omit<ArcoRequest, 'id'> = {
-    ...req,
+  const base: Omit<ArcoRequest, 'id'> = {    ...req,
     estado: 'recibida',
     fechaSolicitud: ahoraIso,
     fechaLimiteRespuesta: calcularFechaLimite(ahoraIso),
@@ -144,11 +144,37 @@ export function documentoDeSolicitudArco(
 export async function crearSolicitudArco(
   req: Omit<ArcoRequest, 'id' | 'estado' | 'fechaSolicitud' | 'fechaLimiteRespuesta'>,
   origen: { desde: 'portal-publico' } | { desde: 'consultorio'; patientId: string; verificadaPor: string } = { desde: 'portal-publico' },
+  /**
+   * ── UN DERECHO EJERCIDO UNA VEZ, UN EXPEDIENTE ────────────────────────────
+   *
+   * El formulario del portal es público y lo llena una persona desde su
+   * teléfono, con la conexión que tenga. Si el `addDoc` commitea y la respuesta
+   * se pierde, el paciente ve un error, vuelve a pulsar «Enviar» y quedan DOS
+   * solicitudes del mismo derecho — con dos folios, dos plazos legales de
+   * respuesta (Art. 32 LFPDPPP) y dos procesos que el consultorio tiene que
+   * contestar por separado.
+   *
+   * La clave se acuña cuando se ABRE el formulario, no cuando se pulsa enviar:
+   * acuñarla al enviar haría que cada reintento trajera una nueva.
+   */
+  claveDeIntento?: string,
 ): Promise<string> {
   const fechaSolicitud = new Date().toISOString()
   const payload = documentoDeSolicitudArco(req, fechaSolicitud, origen)
-  const ref = await addDoc(collection(db, 'clinics', req.clinicId, 'arco_requests'), payload)
+  const col = collection(db, 'clinics', req.clinicId, 'arco_requests')
   /**
+   * Si ya existe **no se pisa**: la solicitud anterior puede llevar horas con su
+   * plazo corriendo, y reescribirla movería `fechaSolicitud` — que es justo la
+   * fecha desde la que cuenta el plazo legal.
+   */
+  const ref = claveDeIntento
+    ? await (async () => {
+      const r = doc(col, idIdempotente(req.clinicId, 'arco', claveDeIntento))
+      const previa = await getDoc(r)
+      if (!previa.exists()) await setDoc(r, payload)
+      return r
+    })()
+    : await addDoc(col, payload)  /**
    * BITÁCORA. Los eventos `arco_solicitud_recibida` y `arco_solicitud_resuelta`
    * existían en el catálogo, en la lista blanca del servidor y en las etiquetas
    * del panel de Cumplimiento — pero NADIE los emitía. El panel enseñaba

@@ -59,10 +59,15 @@ describe('Un analito que el catálogo no conoce NO desaparece en silencio', () =
   it('se acusa en vez de tirarse', () => {
     // Antes `evaluar` devolvia null y el filtro lo tiraba sin que nadie se
     // enterara: un resultado medido que la nota no menciona ni acusa.
-    const r = resumen([{ clave: 'antiXa', valor: 0.31 }, { clave: 'creatinina', valor: 2.4 }])
-    expect(r.sinCatalogo.map(x => x.clave)).toEqual(['antiXa'])
+    /**
+     * REG-601 cargó el catálogo del dueño y `antiXa` dejó de ser desconocido
+     * (§8). Se usa otro que sigue sin estar: la aldolasa se pide en consulta y
+     * su documento no la trae. El caso que se prueba no cambia — sólo el ejemplo.
+     */
+    const r = resumen([{ clave: 'aldolasa', valor: 0.31 }, { clave: 'creatinina', valor: 2.4 }])
+    expect(r.sinCatalogo.map(x => x.clave)).toEqual(['aldolasa'])
     expect(r.aviso).toMatch(/catálogo de analitos/i)
-    expect(r.aviso).toContain('antiXa')
+    expect(r.aviso).toContain('aldolasa')
   })
 
   it('desconocidos los lista tal cual', () => {

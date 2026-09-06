@@ -3,6 +3,13 @@
 > **Estado: PREPARADO, NO PUBLICADO.** Sigue el ciclo que el dueño autorizó el
 > 5-sep-2026 para este trabajo. Se escribe ANTES de fusionar.
 
+> **SUPERADO — 5-sep-2026. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `90e5cb5a`: ejecución [#22](https://github.com/docrod29-ai/agenda-medica/actions/runs/33998676281), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1182` contra el sitio vivo. La línea de arriba no se
+> borra: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó).
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1181` → **`nexusmed-v1182`** |

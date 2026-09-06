@@ -9,7 +9,8 @@
  *
  * Nivel Premium usa Opus 4.8 + razonamiento; Pro usa Sonnet 5.
  *
- * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}], contexto:{edad,sexo,alergias} }
+ * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}],
+ *         contexto:{edad,sexo,alergias,embarazo,tfg:{valor,vigente},problemas,medicamentosActuales} }
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -109,7 +110,14 @@ export async function POST(req: NextRequest) {
     motivo?: string
     resumen?: string
     motor?: string   // 'rapida' | 'estandar' | 'maxima' — el motor que el médico eligió para la nota
-    contexto?: { edad?: number; sexo?: string; alergias?: unknown }
+    contexto?: {
+      edad?: number; sexo?: string; alergias?: unknown
+      /* WS-09 — lo que el motor de aplicabilidad ya sabía leer y no le llegaba. */
+      embarazo?: boolean
+      tfg?: { valor?: number; vigente?: boolean }
+      problemas?: unknown
+      medicamentosActuales?: unknown
+    }
   }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 

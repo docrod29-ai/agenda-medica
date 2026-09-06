@@ -328,6 +328,10 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
     tipo: 'capacidad', capacidad: 'mensajeria.enviar',
     activacionPendiente: PENDIENTE_AGENDA,
   },
+  /* Sin `activacionPendiente`: el guardián YA corre en los dos métodos. Marcarla
+     pendiente habría dicho que la puerta está declarada y no puesta, que es lo
+     contrario de lo que hace la ruta. */
+  'whatsapp/no-entregados': { tipo: 'capacidad', capacidad: 'mensajeria.enviar' },
   'whatsapp/manual-connect': { tipo: 'capacidad', capacidad: 'administrar' },
   'whatsapp/meta-connect': { tipo: 'capacidad', capacidad: 'administrar' },
   'whatsapp/plantillas-config': { tipo: 'porMetodo', metodos: { GET: 'administrar', POST: 'administrar' } },

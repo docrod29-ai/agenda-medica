@@ -159,3 +159,95 @@ export async function reprogramarEntrada(
     console.warn('[whatsapp/outbox] no se pudo reprogramar:', String(e))
   }
 }
+
+/**
+ * ── UN AVISO QUE DICE «CUÁNTAS» NO DEJA HACER NADA — REG-580 ────────────────
+ *
+ * REG-397 puso el instrumento: el vigilante cuenta las muertas y las distingue
+ * de las pausadas —una pausa se arregla sola cuando el proveedor vuelve; una
+ * muerta ya no se reintenta nunca—. Pero el aviso dice **un número**, y con un
+ * número no se puede hacer nada: no se ve de qué paciente era, ni qué decía, ni
+ * por qué murió, ni se puede volver a intentar.
+ *
+ * Contar es el primer paso y no es el trabajo. Un recordatorio de cita que murió
+ * es un paciente que no sabe que tiene cita, y hoy eso sólo se sabía en plural.
+ *
+ * ── POR QUÉ REVIVIR ES UN ACTO Y NO UN REINTENTO AUTOMÁTICO ────────────────
+ *
+ * Una entrada muerta agotó sus reintentos. Puede que el mensaje NUNCA llegara —y
+ * entonces revivirla es lo correcto— o puede que **llegara y se perdiera el
+ * acuse**: el proveedor lo entregó y nosotros no nos enteramos. Reintentar a
+ * ciegas duplicaría el mensaje al paciente.
+ *
+ * Ninguna de las dos se puede distinguir desde aquí. Así que no se reintenta
+ * solo: lo revive **una persona que ve el mensaje**, que es quien puede juzgar si
+ * duplicarlo es peor que no mandarlo. La cola no decide eso por ella.
+ */
+export const TOPE_LISTA_MUERTAS = 50
+
+/**
+ * Las entradas muertas de ESTE consultorio, con lo que hace falta para
+ * reconocerlas.
+ *
+ * `clinicId` no es opcional y la colección cuelga del consultorio: una cola de
+ * mensajes lleva teléfonos de pacientes, y listarlas entre inquilinos sería la
+ * fuga que las reglas cierran por el otro lado.
+ */
+export async function listarMuertas(
+  clinicId: string, tope = TOPE_LISTA_MUERTAS,
+): Promise<EntradaOutbox[]> {
+  if (!clinicId) return []
+  try {
+    const snap = await outboxCol(clinicId)
+      .where('estado', '==', 'muerto')
+      .limit(tope)
+      .get()
+    return snap.docs.map(d => ({ ...(d.data() as Omit<EntradaOutbox, 'id'>), id: d.id }))
+  } catch {
+    /* Una cola que no se puede leer no puede convertirse en «no hay ninguna»:
+       quien llama distingue el fallo por la excepción, no por una lista vacía. */
+    throw new Error('No se pudo leer la cola de mensajes no entregados.')
+  }
+}
+
+/**
+ * Devuelve una entrada muerta a la cola, para que el drenado la vuelva a
+ * intentar.
+ *
+ * Los intentos se ponen a cero: si no, nacería agotada y volvería a morir en el
+ * primer fallo sin haberlo intentado de verdad. Las **pausas se conservan**,
+ * porque cuentan otra cosa —cuántas veces no estaba el proveedor— y borrarlas
+ * escondería que el problema era él.
+ *
+ * `revivida` queda escrito para que no se confunda con una entrada nueva: una
+ * muerta que vuelve ya falló una vez, y quien mire la cola tiene que poder verlo.
+ */
+export async function revivirEntrada(
+  clinicId: string, id: string, quien: string, ahoraMs: number,
+): Promise<'revivida' | 'no_estaba_muerta' | 'no_existe'> {
+  const ref = outboxCol(clinicId).doc(id)
+  const snap = await ref.get()
+  if (!snap.exists) return 'no_existe'
+  const d = snap.data() as EntradaOutbox
+  /* Sólo se revive lo muerto. Tocar una pendiente le reiniciaría el retroceso y
+     la mandaría antes de tiempo contra un proveedor que quizá sigue caído. */
+  if (d.estado !== 'muerto') return 'no_estaba_muerta'
+  await ref.set({
+    estado: 'pendiente',
+    intentos: 0,
+    proximoIntentoAt: new Date(ahoraMs).toISOString(),
+    revivida: { por: quien, cuando: new Date(ahoraMs).toISOString() },
+  }, { merge: true })
+  return 'revivida'
+}
+
+export const POR_QUE_REVIVIR_ES_UN_ACTO =
+  'Porque una entrada muerta pudo no haber llegado NUNCA —y entonces revivirla es '
+  + 'lo correcto— o pudo llegar y perderse el acuse. Desde la cola no se distinguen, '
+  + 'asi que reintentar a ciegas duplicaria el mensaje al paciente. Lo revive una '
+  + 'persona que VE el mensaje, que es quien puede juzgar si duplicarlo es peor que '
+  + 'no mandarlo.'
+
+export const POR_QUE_LAS_PAUSAS_NO_SE_BORRAN =
+  'Porque cuentan otra cosa: los intentos son del mensaje y las pausas, del '
+  + 'proveedor. Ponerlas a cero al revivir escondería que el problema era él.'

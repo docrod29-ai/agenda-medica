@@ -284,7 +284,14 @@ describe('el número significa algo: tres categorías (REG-260)', () => {
        comentarios. Los dos van con su nombre en el documento de abajo, y los
        dos declarados como huecos reales abiertos — no se explicaron como
        benignos ni se arreglaron de paso. */
-    expect(m.conCuerpo.length).toBeLessThanOrEqual(8)
+    /* 8 → 9 el 6-sep-2026, al FUSIONAR las dos ramas. El nuevo es
+       `hay-que-escalar.ts::claseSegura`, que viene de la otra rama y es un hueco
+       REAL: la clase 4 del §2 de la regla del paciente está escrita y ningún
+       camino la llama. Va con su nombre y su motivo en el documento de abajo, y
+       NO se arregla de paso — cablearla decide qué le pasa a una pregunta que el
+       sistema no entiende, y eso lo fija el dueño. Se sube el techo porque el
+       hueco se declara; taparlo sería lo contrario de lo que este archivo hace. */
+    expect(m.conCuerpo.length).toBeLessThanOrEqual(9)
     const doc = readFileSync(join(RAIZ, 'docs/quality/MOTORES-SIN-CONECTAR.md'), 'utf8')
     for (const x of m.conCuerpo) expect(doc, `${x} no está en el documento`).toContain(x)
   })

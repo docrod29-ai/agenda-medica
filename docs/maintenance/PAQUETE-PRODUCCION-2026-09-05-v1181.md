@@ -6,6 +6,13 @@
 > se escribe ANTES de fusionar, para que lo que se declara no se pueda ajustar
 > a lo que salga.
 
+> **SUPERADO — 5-sep-2026. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `e78e1242`: ejecuciones [#19](https://github.com/docrod29-ai/agenda-medica/actions/runs/33989602747) y [#20](https://github.com/docrod29-ai/agenda-medica/actions/runs/33990363464), las dos en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1181` contra el sitio vivo. La línea de arriba no se
+> borra: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó).
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1180` → **`nexusmed-v1181`** |

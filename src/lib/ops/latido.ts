@@ -23,6 +23,7 @@
  */
 import { adminDb } from '@/lib/firebase-admin'
 import { safeLog } from '@/lib/security/sanitize'
+import { esCorrelacionValida } from '@/lib/observabilidad/correlacion'
 
 export interface Latido {
   job: string
@@ -46,7 +47,22 @@ const ref = (job: string) => adminDb.collection('platform_heartbeats').doc(job)
  */
 export async function registrarLatido(
   job: string,
-  datos: { ok: boolean; duracionMs: number; detalle?: Record<string, string | number | boolean>; error?: string },
+  datos: {
+    ok: boolean
+    duracionMs: number
+    detalle?: Record<string, string | number | boolean>
+    error?: string
+    /**
+     * La traza de ESTA ejecución (REG-566). Se acuña al arrancar el trabajo con
+     * `correlacionDeTrabajo()`.
+     *
+     * Sin ella, «el recordatorio de las 8:00 no llegó» se puede seguir hasta la
+     * colección donde acabó y no hasta la corrida que lo intentó: el latido dice
+     * que el cron corrió y los mensajes dicen que fallaron, y nada une las dos
+     * cosas cuando hay dos corridas en la misma hora.
+     */
+    correlacion?: string
+  },
 ): Promise<void> {
   try {
     await ref(job).set({
@@ -56,6 +72,8 @@ export async function registrarLatido(
       duracionMs: Math.max(0, Math.round(datos.duracionMs)),
       ...(datos.detalle ? { detalle: datos.detalle } : {}),
       ...(datos.error ? { error: String(datos.error).slice(0, 300) } : {}),
+      /* Se valida antes de escribirla: la forma es la defensa (WS-13). */
+      ...(esCorrelacionValida(datos.correlacion) ? { correlacion: datos.correlacion } : {}),
     })
   } catch (e) {
     safeLog.warn(`[latido] no se pudo registrar el de ${job}`, e)

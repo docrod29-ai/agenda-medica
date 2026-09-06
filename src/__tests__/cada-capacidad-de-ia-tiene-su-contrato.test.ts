@@ -160,12 +160,49 @@ describe('un umbral es un número CON FUENTE, o es una decisión pendiente', () 
     expect(POR_QUE_NO_SE_INVENTA_UN_UMBRAL).toMatch(/regla 1 prohíbe inventarlas/)
   })
 
-  it('los dos umbrales que SÍ son cero salen de una regla escrita, no de una opinión', () => {
+  it('un umbral decidido sale de una REGLA ESCRITA o de una DECISIÓN FECHADA, nunca de una opinión', () => {
+    /**
+     * ACTUALIZADO EN REG-594, y no se debilita: se amplía a la otra fuente que
+     * el propio módulo declara legítima.
+     *
+     * Hasta hoy los únicos umbrales decididos eran dos ceros derivados de reglas
+     * del repositorio, así que el guardián exigía «regla». Cuando el médico
+     * dueño fijó el de `nota-consulta` el 31-ago-2026, esa exigencia habría
+     * obligado a disfrazar su decisión de regla — o a bajar el guardián.
+     *
+     * Las dos fuentes válidas, y ninguna tercera: una regla escrita del
+     * repositorio, o una decisión del médico CON FECHA. «Lo habitual» sigue sin
+     * ser ninguna de las dos.
+     */
     const decididos = CONTRATOS.filter(c => !esperaAlMedico(c.umbral))
     expect(decididos.length).toBeGreaterThan(0)
     for (const c of decididos) {
       const f = (c.umbral as { fuente: string }).fuente
-      expect(f, `${c.capacidad}`).toMatch(/regla|\.claude\/rules|escrit/i)
+      const deRegla = /regla|\.claude\/rules|escrit/i.test(f)
+      /* Fechada de verdad: no vale «lo decidió el médico» sin cuándo. */
+      const deDecision = /DECIDIDO/.test(f) && /\d{1,2}-[a-z]{3}-\d{4}/.test(f)
+      expect(deRegla || deDecision, `${c.capacidad}: ni regla escrita ni decisión fechada`).toBe(true)
+    }
+  })
+
+  it('un umbral con VARIOS EJES declara cada uno, y el `valor` es el más laxo', () => {
+    /**
+     * REG-594 · `nota-consulta` tiene dos errores que no cuestan lo mismo, y el
+     * médico los fijó distintos: perder ≤ 1 %, añadir 0 %.
+     *
+     * `valor` lleva el más LAXO a propósito: quien lea sólo ese campo no puede
+     * llevarse una impresión mejor que la real. Si llevara el más estricto, un
+     * lector superficial creería que la capacidad exige cero en todo.
+     */
+    for (const c of CONTRATOS.filter(c => !esperaAlMedico(c.umbral))) {
+      const u = c.umbral as { valor: number; ejes?: readonly { nombre: string; valor: number; porQue: string }[] }
+      if (!u.ejes) continue
+      expect(u.ejes.length, `${c.capacidad}: un solo eje no necesita la lista`).toBeGreaterThan(1)
+      expect(u.valor, `${c.capacidad}: el valor tiene que ser el más laxo de sus ejes`)
+        .toBe(Math.max(...u.ejes.map(e => e.valor)))
+      for (const e of u.ejes) {
+        expect(e.porQue.length, `${c.capacidad}/${e.nombre} no dice por qué`).toBeGreaterThan(80)
+      }
     }
   })
 })

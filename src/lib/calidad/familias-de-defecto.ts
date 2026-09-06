@@ -313,6 +313,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * fábrica y no daba forma de ejercer la distinción: la fila del diagnóstico
      * enseñaba descripción, código y borrar.
      */
+    /**
+     * 456 es esta familia sobre un dato que la HOJA sí traía. El examen general
+     * de orina y el líquido cefalorraquídeo llaman a sus renglones igual que
+     * una química sanguínea —glucosa, proteínas, leucocitos— y lo que los
+     * distingue está en la cabecera. La lectura de la hoja no la pedía, así que
+     * una glucosuria de 250 se archivaba como glucemia: una urgencia diabética
+     * que nadie tuvo, con una cifra perfectamente plausible en suero.
+     *
+     * Ningún rango la caza, porque el rango compara magnitudes y lo que dice
+     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-599.
+     */
 
     /**
      * 425, 426 y 427 son los tres que salieron de ABRIR EL PRODUCTO en un
@@ -466,7 +477,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * se imprime lo que se dispensa— conservó la llamada vieja sobre el papel
      * de hoy. Dos entradas al mismo motor; la más importante era la ciega.
      */
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 515, 519, 520, 521, 523, 526, 527, 542, 547, 548, 563, 568, 569, 571, 572, 576, 593, 596, 601, 602],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 515, 519, 520, 521, 523, 526, 527, 542, 547, 548, 568, 570, 571, 574, 575, 577, 579, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 595, 596, 597, 598, 599, 600, 601, 604, 612, 617, 618, 620, 621, 625, 642, 645, 650, 651],
   },
   {
     clave: 'se_contradice',
@@ -608,7 +619,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * código no cumple es la contradicción más cara: quien la lee deja de
      * comprobar.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516, 532, 544, 545, 546, 561, 562, 564, 565, 584, 588, 589],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516, 532, 544, 545, 546, 569, 572, 576, 610, 611, 613, 614, 633, 637, 638],
   },
   {
     clave: 'habla_real',
@@ -876,7 +887,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * y la guardia de membresía de la que cuelgan las 99 rutas, sin una sola
      * prueba que la ejecutara contra un doble que distinga ids.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 522, 529, 530, 531, 543, 549, 550, 551, 552, 553, 554, 555, 566, 574, 580, 597],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 522, 529, 530, 531, 543, 549, 550, 551, 552, 553, 554, 555, 562, 565, 566, 573, 578, 580, 615, 623, 629, 646],
   },
   {
     clave: 'hueco_como_dato',
@@ -973,7 +984,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hay edad» leído como «no es niño». El resultado se LEÍA bien: una receta
      * sin alertas.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 557, 560, 567, 570, 573, 577, 578, 579, 600],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 602, 606, 609, 616, 619, 622, 626, 627, 628, 649],
   },
   {
     clave: 'aislamiento',
@@ -1014,7 +1025,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la vez leían «libre» los dos. Aislamiento que dependía de que dos
      * peticiones no coincidieran.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 559, 581, 582, 583, 598, 599],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648],
   },
   {
     clave: 'charter_vacio',
@@ -1129,7 +1140,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 575, 591, 592, 594],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643],
   },
   {
     clave: 'tarde',
@@ -1174,7 +1185,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * CORRECTA. Una configuración se revisa leyéndola, y leyéndola no se ve que
      * del otro lado no haya nadie que pueda decir que sí.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 556, 585],
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634],
   },
   {
     clave: 'decision_del_dueno',
@@ -1192,8 +1203,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * La lección: cuando falta una política, el código ya está aplicando una.
      * Conviene que sea la que falla cerrado, y que la decisión siga marcada
      * como del dueño en vez de darse por tomada.
+     *
+     * 443 son las DOS PRIMERAS de la lista de catorce que se le pasó al dueño el
+     * 31-ago-2026, y traen la lección de vuelta con una vuelta de tuerca: una de
+     * las dos (D-037) **no cambió una sola línea de conducta**. Sólo cambió su
+     * estatus, de regir por conservación a regir por decisión.
+     *
+     * Parece cosmético y no lo es: un valor por omisión que nadie eligió acaba
+     * pareciendo elegido, y entonces ya nadie lo revisa. Contarlas aquí es lo
+     * que impide que una omisión se disfrace de criterio.
      */
-    regs: [174, 175, 292, 357],
+    regs: [174, 175, 292, 357, 591, 592, 593, 594, 603],
   },
   {
     /**
@@ -1204,6 +1224,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * instrumento (`sin_medir`): el dato correcto EXISTE en el repositorio y el
      * registro que lo copia se queda atrás porque copiarlo depende de que
      * alguien se acuerde.
+     */
+    /**
+     * 412 es esta familia sobre el propio censo: la lista de escrituras sin
+     * clave de intención vivía en un campo de texto, y estaba mal en las dos
+     * direcciones — nombraba dos que no lo eran y se dejaba cuatro que sí,
+     * incluidos los signos vitales que alimentan NEWS2. Una lista de veinticinco
+     * sitios escrita a mano envejece sola.
      */
     clave: 'depende_de_recordar',
     nombre: 'Depende de que alguien se acuerde',
@@ -1386,7 +1413,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * `catch` y no en un helper con guardián depende de que el siguiente se
      * acuerde.
      */
-    regs: [13, 241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 534],
+    regs: [13, 241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 534, 560, 564],
   },
   {
     /**
@@ -1433,7 +1460,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * cerrado. Se agradece que el módulo se negara a inventar el dato; lo que
      * hacía falta era el eje.
      */
-    regs: [183, 227, 360, 558, 586, 587, 595],
+    regs: [183, 227, 360, 607, 635, 636, 644],
   },
   {
     /**
@@ -1527,7 +1554,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no puede decir que viene recortado.
      */
 
-    regs: [341, 350, 351, 352, 393, 423, 429, 590],
+    regs: [341, 350, 351, 352, 393, 423, 429, 563, 639],
   },
 ] as const
 

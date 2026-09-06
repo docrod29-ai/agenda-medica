@@ -3,23 +3,25 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1186 — la auditoría del panel de lujo, reparada entera
+## v1187 — la auditoría del panel de lujo, reparada entera
 
-**43 commits desde v1185** · 269 archivos · +22 226 / −3 520 · **164 de código
-de producto** · 47 regresiones documentadas (**REG-556 … REG-602**, 43 cerradas
-y 4 abiertas a la espera de una cifra del dueño) · **1 ruta nueva**
-(`api/arco/ligar`) · 0 pantallas nuevas · **`firestore.rules` SÍ cambia** —
-339 líneas— y **`firestore.indexes.json` no**.
+**269 archivos · 164 de código de producto · 47 regresiones documentadas
+(REG-605 … REG-651, 43 cerradas y 4 abiertas) · 1 ruta nueva (`api/arco/ligar`)
+· 0 pantallas nuevas · `firestore.rules` SÍ cambia (339 líneas) ·
+`firestore.indexes.json` no.**
 
-### Lo que hay que saber antes de publicar
+Salió numerada REG-556…602 y se renumeró al fusionar: `main` ya había dado esos
+números al programa que corría en paralelo. Tercera vez en este repositorio; el
+número lo da `main`, no la rama.
 
-**Las reglas de Firestore no las publica Vercel.** Van en el paso
+### Antes de publicar
+
+Las reglas de Firestore **no las publica Vercel**. Van en el paso
 `FIRESTORE_RULES` del botón de producción. Mientras no corra, las 339 líneas
 nuevas están escritas y **no protegen nada**: qué no rige y qué se rompe
-mientras tanto está declarado fila por fila en
-`docs/ops/REGLAS-DE-FIRESTORE.md`, bajo «PENDIENTE DE DESPLIEGUE». El
-aislamiento entre consultorios —lo que impide que un consultorio lea a otro— sí
-rige hoy: el equipo rojo lo probó contra el emulador y denegó los 13 ataques.
+mientras tanto está declarado fila por fila en `docs/ops/REGLAS-DE-FIRESTORE.md`.
+El aislamiento entre consultorios sí rige hoy — el equipo rojo lo probó contra
+el emulador y denegó los 13 ataques.
 
 ### De dónde salió
 
@@ -27,8 +29,8 @@ rige hoy: el equipo rojo lo probó contra el emulador y denegó los 13 ataques.
 especialidades médicas, treinta pacientes y cinco asistentes— con un equipo rojo
 que intentó REFUTAR cada hallazgo y una reproducción que fallaba para cada P0 y
 P1. De 493 hallazgos crudos quedaron 465 tras la refutación (28 refutados, un
-5.7 %). La reparación fue por diez rebanadas en paralelo, cada una con su
-bitácora en `docs/audit/panel-de-lujo-2026-09/reparacion/`.
+5.7 %). Diez rebanadas en paralelo, cada una con su bitácora en
+`docs/audit/panel-de-lujo-2026-09/reparacion/`.
 
 ### Los cuatro P0
 
@@ -60,13 +62,34 @@ dos catálogos renales manda y con qué escala se dosifica, y la fuente de las
 dosis de profilaxis quirúrgica. El mecanismo que las declararía ya existe y
 avisa solo. No se rellenaron.
 
-### Compuertas
+## v1186 — la rama de laboratorio se reencuentra con `main`, a la tercera
 
-`npx vitest run` 1 050 archivos y 13 781 casos, todo en verde ·
-`node scripts/lint-trinquete.mjs` 93, igual que el techo · `npx tsc --noEmit`
-limpio · `npm run build` compila · trinquete de diseño sin deuda nueva.
+**PUBLICADO Y VERIFICADO el 6-sep-2026**, ejecución #26 del botón, sobre el
+árbol `7c2465ea`. Arrastró v1184 y v1185, que seguían preparados y sin publicar.
+Reglas e índices de Firestore publicados en la misma ejecución; el índice trece
+queda **enviado y aceptado**, pendiente de confirmar `Enabled` en la consola.
 
----
+El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1186.md`](PAQUETE-PRODUCCION-2026-09-06-v1186.md).
+
+**52 commits sobre v1185** · las 45 unidades de la rama de laboratorio
+(REG-560…604) y diez decisiones del dueño (D-036…045).
+
+Lo que trae: el catálogo maestro de plausibilidad del dueño (220 analitos)
+cargado por máquina; la unidad se normaliza ANTES de juzgar el número; los
+factores de conversión se CALCULAN de pesos atómicos IUPAC en vez de teclearse;
+el espécimen sale de la cabecera de la hoja, así que una glucosuria de 250 deja
+de archivarse como glucemia. Y en voz, el umbral de motor con su trinquete.
+
+**Tercera renumeración**: `main` se llevó REG-515…555 y D-032…035 mientras esto
+se fusionaba. Y en la vuelta anterior el detector de colisiones casi deja pasar
+veintiún duplicados, porque buscaba `## REG-N —` con raya y `main` escribe
+`## REG-N ·` con punto medio.
+
+**Dos cosas van APARTE del botón y las autoriza el dueño**: el índice compuesto
+de `errores` —sin él Firestore rechaza la consulta del vigilante en cada
+ejecución— y la regla de `platform_authz_denegadas`, que no abre nada porque el
+comodín final ya deniega, pero conviene que sea explícita.
 
 ## v1185 — el carril de excelencia de producto: doce encargos, medidos en un navegador
 
@@ -89,7 +112,8 @@ No prueba iPhone: no hay WebKit en el entorno de medición.
 
 ## v1184 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 6-sep 02:04 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #24).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
 
 **Diecisiete cortes desde v1182, fusionados sobre v1183** (17 cortes + fusión + contabilidad) · 40 rutas de
@@ -119,7 +143,8 @@ que se ve bien no es una pantalla que funciona.
 
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #22).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
 
 **1 commit desde v1181** · texto y una prueba · cero código de producto, cero
@@ -144,7 +169,8 @@ dice que el módulo está en pausa y cómo se llega igualmente.
 
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecuciones #19 y #20).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
 
 **3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
@@ -174,7 +200,8 @@ CANTIDAD visible de golpe.
 
 ## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 4-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #18).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
 
 **97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de
@@ -3605,6 +3632,10 @@ Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
 
 ## v1183 — 6-sep-2026
+
+**Publicado el 6-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #23).
+El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1183.md`](PAQUETE-PRODUCCION-2026-09-06-v1183.md).
 
 Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
 auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime

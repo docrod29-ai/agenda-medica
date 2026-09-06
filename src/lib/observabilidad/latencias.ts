@@ -16,6 +16,21 @@
  * miraron una pantalla parada minuto y medio delante de su paciente. El p95 los
  * ve; el promedio no.
  *
+ * ── HAY OTRO PERCENTIL EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-565 ───
+ *
+ * Éste interpola. `src/lib/finanzas/cost-ledger.ts` calcula por rango más
+ * cercano —siempre una muestra que ocurrió— sobre los MISMOS asientos. No dan lo
+ * mismo: con veinte muestras de 100 a 290 ms, p50 195 aquí y 190 allí; p99 288,1
+ * aquí y 290 allí.
+ *
+ * Ninguno de los dos está mal y los dos están probados. Lo que está mal es que
+ * existan los dos sin decidirlo: dos tableros del mismo periodo enseñan cifras
+ * distintas y las dos parecen ciertas.
+ *
+ * No se unifica por iniciativa de quien pasaba por aquí: la cifra sale en el
+ * tablero que mira el dueño, y elegir método cambia números que él ya ha visto.
+ * Está anotado en los dos archivos y en el censo (`WS-12.p99`).
+ *
  * ── LO QUE NO HACE ───────────────────────────────────────────────────────────
  *
  * No define umbrales de «lento». No hay un número honesto que separe rápido de

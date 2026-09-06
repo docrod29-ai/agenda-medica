@@ -13,7 +13,7 @@ import { useToast } from '@/context/ToastContext'
 import { Camera, Loader2, Trash2, GitCompare, X } from 'lucide-react'
 import { subirImagen } from '@/lib/subir-imagen'
 import {
-  crearFoto, getFotos, deleteFoto, agruparPorRegion, parAntesDespues, diasEntre,
+  crearFoto, claveDeLaFoto, getFotos, deleteFoto, agruparPorRegion, parAntesDespues, diasEntre,
   REGIONES, REGIONES_AGRUPADAS, type FotoClinica,
 } from '@/lib/expediente/fotos-clinicas'
 
@@ -110,7 +110,7 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
         region,
         ...(descripcion.trim() ? { descripcion: descripcion.trim() } : {}),
         ...(notaId ? { notaId } : {}),
-      })
+      }, claveDeLaFoto({ file, patientId, region }))
       setDescripcion('')
       await cargar()
     } catch (e) {

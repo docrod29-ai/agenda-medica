@@ -15,6 +15,7 @@ import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { getPatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
 import { noSePudo } from '@/lib/texto-es'
+import { claveDeIntento } from '@/lib/idempotencia'
 import {
   listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento, listarMovimientos,
   CATEGORIA_LABEL,
@@ -69,7 +70,14 @@ export default function FarmaciaPage() {
   const [categoriaFiltro, setCategoriaFiltro] = useState<FarmaciaCategoria | 'todas' | 'alertas'>('todas')
   const [editando, setEditando] = useState<FarmaciaItem | null>(null)
   const [creando, setCreando] = useState(false)
-  const [moviendo, setMoviendo] = useState<{ item: FarmaciaItem; tipo: 'entrada' | 'salida' } | null>(null)
+  /**
+   * LA CLAVE NACE AL ABRIR EL MODAL, NO AL CONFIRMAR (REG-560).
+   *
+   * Si se acuñara dentro de `onConfirmar`, cada reintento traería una clave
+   * nueva y el movimiento volvería a escribirse — que es exactamente el defecto.
+   * Naciendo con la intención, el reintento converge sobre el mismo documento.
+   */
+  const [moviendo, setMoviendo] = useState<{ item: FarmaciaItem; tipo: 'entrada' | 'salida'; clave: string } | null>(null)
   /** Para poder decir a QUIÉN se dispensó (trazabilidad lote → paciente). */
   /** El libro de movimientos de un ítem, que hasta ahora no se podía abrir. */
   const [verMovimientos, setVerMovimientos] = useState<FarmaciaItem | null>(null)
@@ -264,8 +272,8 @@ export default function FarmaciaPage() {
               item={item}
               onEditar={() => setEditando(item)}
               onMovimientos={() => setVerMovimientos(item)}
-              onEntrada={() => setMoviendo({ item, tipo: 'entrada' })}
-              onSalida={() => setMoviendo({ item, tipo: 'salida' })}
+              onEntrada={() => setMoviendo({ item, tipo: 'entrada', clave: claveDeIntento() })}
+              onSalida={() => setMoviendo({ item, tipo: 'salida', clave: claveDeIntento() })}
               onBorrar={async () => {
                 if (!clinicId || !item.id) return
                 if (!(await confirm(`¿Eliminar "${item.nombre}"?`, { peligro: true, confirmar: 'Eliminar' }))) return
@@ -333,7 +341,7 @@ export default function FarmaciaPage() {
                 motivo,
                 ...(extra.patientId ? { patientId: extra.patientId } : {}),
                 realizadoPor: user?.uid ?? '',
-              })
+              }, moviendo.clave)
               // Refleja la cantidad REALMENTE aplicada (puede ser menor por falta de
               // stock): antes decía "-10" aunque solo salieran 3 → engañaba la
               // trazabilidad, crítico en controlados.

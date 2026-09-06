@@ -13,7 +13,8 @@
  * ⚠️ Son datos personales sensibles (PHI/imagen clínica): requieren consentimiento
  *    del paciente y se tratan con el mismo cuidado que el resto del expediente.
  */
-import { collection, doc, addDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore'
+import { collection, doc, addDoc, getDoc, setDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore'
+import { idIdempotente } from '@/lib/idempotencia'
 import { db } from '@/lib/firebase'
 import { logAudit } from '@/lib/expediente/audit-log'
 
@@ -67,13 +68,50 @@ function fotosCol(clinicId: string, patientId: string) {
   return collection(db, 'clinics', clinicId, 'patients', patientId, 'fotos')
 }
 
+/**
+ * LA IDENTIDAD DE UNA FOTO ES LA FOTO, NO EL MOMENTO DE SUBIRLA — REG-561.
+ *
+ * Aquí la clave NO puede acuñarse al abrir nada, y ésa es la diferencia con la
+ * dispensación de farmacia o con el formulario de ARCO. El flujo entero —leer el
+ * archivo, subirlo a Storage, escribir el documento— ocurre dentro de un solo
+ * manejador que arranca al elegir el archivo. Si la escritura commitea y la
+ * respuesta se pierde, el usuario ve «No se pudo guardar la foto» y vuelve a
+ * elegir **el mismo archivo**: para la interfaz eso es un intento nuevo, y una
+ * clave acuñada ahí sería nueva también.
+ *
+ * Así que la identidad sale del archivo: nombre, tamaño, fecha de modificación,
+ * paciente y región. Dos subidas del MISMO archivo a la MISMA región del MISMO
+ * paciente son la misma foto, y convergen. Dos fotos distintas de la misma herida
+ * son dos archivos distintos —otros bytes, otra marca de tiempo— y no colapsan.
+ *
+ * LO QUE ESTO NO DESHACE: la subida a Storage ya ocurrió las dos veces, así que
+ * el segundo intento deja un objeto huérfano en el bucket. Cuesta espacio y no
+ * cuesta expediente, que es la mitad que importaba.
+ */
+export function claveDeLaFoto(p: {
+  file: { name: string; size: number; lastModified: number }
+  patientId: string
+  region: string
+}): string {
+  return [p.patientId, p.region, p.file.name, p.file.size, p.file.lastModified].join('|')
+}
+
 /** Guarda una foto ya subida (recibe la URL de Storage, no el base64). */
 export async function crearFoto(
   clinicId: string,
   patientId: string,
   datos: Omit<FotoClinica, 'id'>,
+  /** `claveDeLaFoto(...)`. Sin ella se comporta como antes. */
+  clave?: string,
 ): Promise<string> {
   const limpio = Object.fromEntries(Object.entries(datos).filter(([, v]) => v !== undefined))
+  if (clave) {
+    const ref = doc(fotosCol(clinicId, patientId), idIdempotente(clinicId, 'foto', clave))
+    /* No se pisa: la foto anterior lleva su `fecha`, que es dato clínico. */
+    const previa = await getDoc(ref)
+    if (!previa.exists()) await setDoc(ref, limpio)
+    return ref.id
+  }
   const ref = await addDoc(fotosCol(clinicId, patientId), limpio)
   return ref.id
 }

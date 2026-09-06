@@ -25,6 +25,7 @@ import { useToast } from '@/context/ToastContext'
 import { leerNdjson } from '@/lib/ndjson'
 import { parsearAlergiasTexto } from '@/lib/seguridad/alergias'
 import { corregirViaParenteral } from '@/lib/expediente/via-parenteral'
+import { enlaceDoi } from '@/lib/evidencia/identidad-de-la-publicacion'
 import { auth, db } from '@/lib/firebase'
 import { doc, getDoc, type DocumentSnapshot } from 'firebase/firestore'
 import { getPatient, updatePatient, updateAppointment, saveConfigPartial } from '@/lib/firestore'
@@ -179,13 +180,17 @@ import { comoSeDice as comoSeDiceVencido, yaDebioTerminar } from '@/lib/expedien
 import { abrirPendientes as abrirPendientesEn } from '@/lib/tareas-clinicas/abrir'
 import { DialogoDiarizado, Section, S, CampoNarrativo } from './consulta-ui'
 import { estadoDeMedicamentos, type OrdenVigente } from '@/lib/expediente/ordenes-medicamento'
-import { estadoDeProblemas, haceCuanto, nombreConCerteza, type ProblemaVigente } from '@/lib/expediente/problemas-activos'
+import {
+  estadoDeProblemas, haceCuanto, nombreConCerteza, avisoDeHistorialRecortado,
+  type ProblemaVigente,
+} from '@/lib/expediente/problemas-activos'
 import {
   estadoDeAlergias, avisoDeAlergiasQueNoSeVen, peorSeveridadRegistrada, reaccionRegistrada,
   listaConAlergeno,
   type NotaConAlergias,
 } from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
+import { comoSeDegrada } from '@/lib/expediente/que-sobrevive-a-un-fallo'
 import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
@@ -210,6 +215,10 @@ import { mencionesEnPasado, desajustesTemporales, avisoDeDesajuste } from '@/lib
 import { useFirmaProtegida } from '@/hooks/useFirmaProtegida'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
 import { vigilarGestoDelUsuario } from '@/lib/ui/el-dedo-manda'
+import { tfgPorCkdEpi } from '@/lib/expediente/funcion-renal'
+import {
+  loQueElExpedienteDiceDelEmbarazo, embarazoParaAplicabilidad,
+} from '@/lib/expediente/lo-que-el-expediente-dice-del-embarazo'
 import {
   ArrowLeft, Mic, Square, Sparkles, Loader2, AlertTriangle, CheckCircle2,
   Trash2, Plus, ShieldCheck, Pill, Stethoscope, FileSignature, Headphones,
@@ -1262,6 +1271,9 @@ export default function ConsultaActivaPage() {
    * cambia ningún veredicto y devuelve la estabilidad que el memo necesita.
    */
   const ahoraParaVigencia = useMemo(() => new Date().toISOString(), [panelesLab])
+  /* WS-09 — la TFG que viaja con la evidencia. `null` cuando no hay con qué
+     calcularla: un cero sería una insuficiencia renal terminal inventada. */
+  const tfgParaEvidencia = tfgPorCkdEpi(labsDeLaConsulta.labs.creatinina, patient?.edad, patient?.sexo)
   const vigenciaRenal = vigenciaDeLaFuncionRenal(
     labsDeLaConsulta.medidoEn.creatinina,
     ahoraParaVigencia,
@@ -1412,8 +1424,24 @@ export default function ConsultaActivaPage() {
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
   // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
   const [modoEco, setModoEco] = useState(false)
+  /**
+   * REG-584 · el router puede servir un modelo que NO es el del nivel pedido.
+   *
+   * La decisión del dueño lo dice con todas las letras —«no bajar de modelo por
+   * velocidad sin avisar»— y hasta ahora el modelo viajaba como procedencia y
+   * nadie lo comparaba con lo pedido. El aviso viene calculado del servidor: la
+   * pantalla lo enseña, no lo juzga.
+   */
+  const [avisoModelo, setAvisoModelo] = useState('')
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
-  type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string }
+  /**
+   * REG-581 · el DOI y la abreviatura ISO YA venían en la respuesta —
+   * `/api/expediente/evidencia` devuelve los artículos enteros— y este tipo
+   * declaraba cinco campos, así que TypeScript los borraba y el render pintaba
+   * «título · revista año». La cola de «el dato tiene que LLEGAR»: no faltaba
+   * traerlo, faltaba no tirarlo en la puerta.
+   */
+  type ArtEv = { pmid: string; titulo: string; revista: string; anio: string; url: string; doi?: string; revistaAbrev?: string }
   type PuntoEv = { punto?: string; opcion?: string; dx?: string; sustento?: string; porque?: string; razon?: string; citas?: number[] }
   const [evidencia, setEvidencia] = useState<{ articulos: ArtEv[]; evaluacion: PuntoEv[]; alternativas: PuntoEv[]; diferencial: PuntoEv[]; aviso?: string; noConsultadas?: string[]; sinRespaldo?: string[]; aplicabilidad?: { pmid: string; veredicto: string; frase: string; porQue: string }[] } | null>(null)
   const [analizandoEv, setAnalizandoEv] = useState(false)
@@ -2588,6 +2616,9 @@ export default function ConsultaActivaPage() {
             alergias: patient?.alergias,
             creatinina: labsDeLaConsulta.labs.creatinina,
             funcionRenalVigente: vigenciaRenal.vigente,
+            /* REG-560 · los diagnósticos ESTRUCTURADOS, con su `tipo`. El
+               servidor decide el embarazo leyendo el tipo, nunca la cadena. */
+            diagnosticos: dxDelCuadro.map(d => ({ descripcion: d.descripcion, tipo: d.tipo })),
           },
         }),
       })
@@ -2599,9 +2630,9 @@ export default function ConsultaActivaPage() {
       // que se mandó (edad, sexo, alergias, diagnósticos). El estado dice qué
       // pasó; el cuerpo no hace falta para eso.
       console.error('[evidencia] fallo', res.status)
-        toast(data?.error || `No se pudo analizar (HTTP ${res.status})`, 'error')
+        toast(comoSeDegrada('evidencia_http', { estado: res.status, dijo: data?.error }).mensaje, 'error')
       }
-    } catch (e) { console.error('[evidencia] excepción', e); toast(`Error de red al analizar (${String(e).slice(0, 60)})`, 'error') }
+    } catch (e) { console.error('[evidencia] excepción', e); toast(comoSeDegrada('evidencia_red', { dijo: String(e).slice(0, 60) }).mensaje, 'error') }
     finally { setAnalizandoEv(false) }
   }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
 
@@ -2736,7 +2767,7 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
-      if (!data) { if (!enVivo) { toast('La IA no respondió correctamente. Tu nota NO se modificó; intenta de nuevo.', 'error'); setTareaProc({ ejecutando: false }) } return }
+      if (!data) { if (!enVivo) { toast(comoSeDegrada('ia_respuesta_ilegible').mensaje, 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
         if (!enVivo) {
           if (data.sinCreditos) {
@@ -2754,6 +2785,7 @@ export default function ConsultaActivaPage() {
       if (!enVivo) {
         setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
         if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
+        setAvisoModelo(data._modeloDegradado ? String(data._avisoModelo ?? '') : '')
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
@@ -3001,7 +3033,7 @@ export default function ConsultaActivaPage() {
         setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts, notaId: notaIdRef.current } })
       }
     } catch {
-      if (!enVivo) { toast('Error al conectar con la IA', 'error'); setTareaProc({ ejecutando: false }) }
+      if (!enVivo) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
     } finally {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
@@ -5401,7 +5433,10 @@ export default function ConsultaActivaPage() {
           </ul>
           {estadoAlergias.historialIncompleto && (
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-              El historial vino recortado: puede haber más alergias en notas que no se cargaron.
+              {/* La de alergias dice «más alergias» y no «más»: es el mismo hecho
+                  sobre otra lista, y la frase canónica no debe fingir precisión
+                  que no tiene. Se compone. */}
+              {avisoDeHistorialRecortado(true).replace('más en notas', 'más alergias en notas')}
             </div>
           )}
         </div>
@@ -5462,6 +5497,13 @@ export default function ConsultaActivaPage() {
                 ? `Última consulta ${haceCuanto(ultimaVisita, new Date().toISOString())}.`
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
+              {/* REG-579 — la frase de arriba afirma sobre el expediente ENTERO.
+                  El sobre de la proyección traía `historialRecortado` y esta
+                  pantalla lo tiraba en la puerta: se quedaba sólo con
+                  `.problemas` y `.vigentes`. */}
+              {problemas.length > 0 && avisoDeHistorialRecortado(historialTruncado) && (
+                <> {avisoDeHistorialRecortado(historialTruncado)}</>
+              )}
             </div>
             {/*
               ── LA DUDA DE LA OTRA VEZ (REG-367) ───────────────────────────
@@ -6483,6 +6525,25 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/**
+        * REG-584 · el nivel pedido no estaba y se usó otro modelo.
+        *
+        * Va ARRIBA del aviso de modo económico y con su misma forma, porque es
+        * la misma clase de hecho: la nota no se generó como el médico creía. Se
+        * enseña sólo cuando el servidor lo marcó degradado — decirlo en cada
+        * nota lo convertiría en ruido y dejaría de leerse.
+        */}
+      {avisoModelo && !sinCreditos && !grabandoAhora() && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>
+            <AlertTriangle size={16} /> Esta nota no usó el nivel de IA que pediste
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoModelo}</div>
+        </div>
+      )}
       {modoEco && !sinCreditos && !grabandoAhora() && (
         <div style={{
           marginBottom: 14, padding: '13px 16px', borderRadius: 12,
@@ -6691,10 +6752,27 @@ export default function ConsultaActivaPage() {
                   const dudoso = ap?.veredicto === 'datos_insuficientes'
                   return (
                     <div key={a.pmid} style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revista} {a.anio}
+                      [{i + 1}] <a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · {a.revistaAbrev || a.revista} {a.anio}
                       {(fuera || dudoso) && (
                         <span title={ap?.porQue} style={{ color: fuera ? 'var(--amber)' : 'var(--text3)', fontWeight: fuera ? 600 : 400 }}>
                           {' '}· {ap?.frase}
+                        </span>
+                      )}
+                      {/**
+                        * El DOI (REG-581). Es lo que hace CITABLE una referencia: la URL de
+                        * PubMed sirve para mirar, el DOI sobrevive a que la revista cambie de
+                        * sitio y es lo que necesita un gestor bibliográfico.
+                        *
+                        * El enlace sólo se ofrece cuando la forma cuadra: un `doi.org` con un
+                        * DOI roto parece verificable y no lleva a ninguna parte. Si no cuadra
+                        * se enseña el identificador como texto — se retira la promesa de que
+                        * resuelve, no el dato.
+                        */}
+                      {a.doi && (
+                        <span style={{ marginLeft: 6 }}>
+                          {enlaceDoi(a.doi)
+                            ? <a href={enlaceDoi(a.doi) as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>
+                            : <span title="El DOI que dio la fuente no tiene la forma 10.xxxx/yyy, así que no se enlaza.">DOI: {a.doi}</span>}
                         </span>
                       )}
                     </div>

@@ -11,6 +11,8 @@
  * instrumento de medición, PURO y testeable.
  */
 
+import type { LoMedido } from './contratos-de-evaluacion'
+
 export interface CasoOro {
   id: string
   /** Texto de entrada (transcripción/contexto) del que se generó la nota. */
@@ -201,4 +203,47 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
   const porId = new Map(generadas.map(g => [g.id, g]))
   const resultados = oro.map(c => evaluarCaso(c, porId.get(c.id) ?? { id: c.id, campos: {} }))
   return { resultados, resumen: resumirEvaluacion(resultados) }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-595, generalizado en REG-596.
+
+   La compuerta que compara contra el umbral decidido vive en
+   `contratos-de-evaluacion.ts`, con el tipo `Umbral` al que aplica. Aquí sólo
+   queda la TRADUCCIÓN: qué mide este arnés y cómo se llama cada eje.
+
+   ── CÓMO SE TRADUCE CADA EJE, Y POR QUÉ ASÍ ─────────────────────────────────
+
+   El médico decidió (D-042) sobre «medicamentos o diagnósticos dictados que
+   faltan» y «medicamentos añadidos». Este arnés mide CAMPOS. La traducción es de
+   quien escribe el código, así que se dice entera y se elige siempre la lectura
+   MÁS ESTRICTA — nunca la que hace pasar más fácil:
+
+    · **perdida** ← `tasaError` = (faltantes + incorrectos) / esperados. Se
+      cuentan también los INCORRECTOS. Un campo que llegó cambiado tampoco
+      llegó: la enalapril que sale como enalaprilato no está «presente con
+      matices», está mal. Contarlo dentro es más duro que la lectura literal de
+      la palabra «perdida», y ése es el lado por el que se quiere errar.
+
+    · **alucinacion** ← `alucinacionesPorCaso`. Con el umbral en cero el
+      denominador da igual; se deja el promedio por caso para que el día que
+      alguien lo suba por encima de cero, el número siga significando algo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/** Lo que el arnés midió, traducido a los nombres de eje que usó el médico. */
+export function medirEjes(r: ResumenEvaluacion): Record<string, number> {
+  return { perdida: r.tasaError, alucinacion: r.alucinacionesPorCaso }
+}
+
+/** El escalón mínimo medible de cada eje. Un umbral por debajo no se ejerce. */
+export function resolucionDelConjunto(r: ResumenEvaluacion): Record<string, number> {
+  return {
+    perdida: r.camposEsperados > 0 ? 1 / r.camposEsperados : 1,
+    alucinacion: r.casos > 0 ? 1 / r.casos : 1,
+  }
+}
+
+/** Lo que la compuerta necesita para juzgar una evaluación de campos. */
+export function loMedidoDeLaNota(r: ResumenEvaluacion): LoMedido {
+  return { hayConjunto: r.casos > 0, ejes: medirEjes(r), resolucion: resolucionDelConjunto(r) }
 }

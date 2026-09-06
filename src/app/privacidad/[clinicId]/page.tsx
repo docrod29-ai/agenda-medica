@@ -8,6 +8,7 @@
 import { useEffect, useId, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { crearSolicitudArco, ARCO_TIPO_LABEL, type ArcoTipo } from '@/lib/arco'
+import { claveDeIntento } from '@/lib/idempotencia'
 import { generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
 import type { ClinicConfig } from '@/types'
 import { Shield, Check, Loader2, FileText, AlertCircle } from 'lucide-react'
@@ -28,6 +29,14 @@ export default function PortalPrivacidadPage() {
   const [paso, setPaso] = useState<'info' | 'formulario' | 'enviado' | 'aviso'>('info')
   const [enviando, setEnviando] = useState(false)
   const [folioConfirmacion, setFolioConfirmacion] = useState('')
+  /**
+   * REG-561 — la clave nace con el formulario, no con el envío.
+   *
+   * `useState(claveDeIntento)` y no `useState(claveDeIntento())`: la forma
+   * perezosa acuña UNA vez en el primer render. Con la llamada directa se
+   * evaluaría en cada render, que es la misma clave nueva de siempre disfrazada.
+   */
+  const [claveSolicitud] = useState(claveDeIntento)
 
   const [tipo, setTipo] = useState<ArcoTipo>('acceso')
   const [nombre, setNombre] = useState('')
@@ -108,7 +117,7 @@ export default function PortalPrivacidadPage() {
         descripcion: enRepresentacion && titular.trim()
           ? `[Solicitud presentada por ${nombre.trim()} en representación de ${titular.trim()}${parentesco.trim() ? ` (${parentesco.trim()})` : ''}]\n${descripcion.trim()}`
           : descripcion.trim(),
-      })
+      }, undefined, claveSolicitud)
       setFolioConfirmacion(id.slice(-8).toUpperCase())
       setPaso('enviado')
     } catch {

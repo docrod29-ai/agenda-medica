@@ -44,6 +44,7 @@ import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
   AlertTriangle, Pill,
 } from 'lucide-react'
+import { diagnosticoQueSeImprime } from '@/lib/expediente/problemas-activos'
 import { Spinner } from '@/components/ui'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { TituloDeDocumentoClinico } from '@/components/TituloDeDocumentoClinico'

@@ -31,6 +31,7 @@ import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEc
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-modelo-se-eligio'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -85,15 +86,30 @@ const headersAnthropic = (key: string) => ({
   'Content-Type': 'application/json',
 })
 
-/** Cachea el modelo resuelto entre invocaciones del runtime (uno por perfil) */
+/**
+ * Cachea el modelo resuelto entre invocaciones del runtime (uno por perfil).
+ *
+ * REG-584 · **una degradación NO se cachea.** Antes se guardaba cualquier
+ * elección y sólo se limpiaba con un 404, así que un modelo de último recurso
+ * escogido durante una caída parcial quedaba clavado toda la vida de la
+ * instancia caliente — todas las notas de todos los médicos de esa instancia.
+ */
 const modeloResuelto: Record<Perfil, string> = { live: '', pro: '', premium: '' }
 
-/** Descubre un modelo válido para esta cuenta vía /v1/models */
-async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
-  // El override por env solo aplica al perfil premium (la nota "de máximo nivel").
-  if (perfil === 'premium' && MODELO_OVERRIDE_OK()) return MODEL_OVERRIDE
-  if (modeloResuelto[perfil]) return modeloResuelto[perfil]
+/**
+ * Descubre un modelo válido para esta cuenta vía /v1/models, y **dice cómo llegó
+ * a él**: la decisión vive en `que-modelo-se-eligio.ts`, que es donde se puede
+ * probar. Ver REG-584.
+ */
+async function resolverModelo(key: string, perfil: Perfil): Promise<Eleccion> {
   const candidatos = CANDIDATOS[perfil]
+  // El override por env solo aplica al perfil premium (la nota "de máximo nivel").
+  if (perfil === 'premium' && MODELO_OVERRIDE_OK()) {
+    return { modelo: MODEL_OVERRIDE, comoSeEligio: 'candidato', degradado: false, aviso: '' }
+  }
+  if (modeloResuelto[perfil]) {
+    return { modelo: modeloResuelto[perfil], comoSeEligio: 'candidato', degradado: false, aviso: '' }
+  }
   try {
     /**
      * REG-346 — con señal. Es un GET de descubrimiento, pero corre en una ruta
@@ -108,15 +124,25 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<string> {
     if (res.ok) {
       const data = await res.json()
       const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
-      // Prefiere candidatos conocidos; si no, el primer "sonnet"; si no, el primero
-      const elegido =
-        candidatos.find(c => ids.includes(c)) ??
-        ids.find(id => id.includes('sonnet')) ??
-        ids[0]
-      if (elegido) { modeloResuelto[perfil] = elegido; return elegido }
+      /**
+       * REG-584 · el ramal que degradaba en silencio vivía aquí:
+       * `?? ids[0]` se quedaba con el primer modelo que la cuenta tuviera, que
+       * para el perfil `premium` —la nota que el dueño decidió que no escatima—
+       * puede ser Haiku. El modelo viajaba como procedencia y nadie lo comparaba
+       * con lo que se había pedido. La ELECCIÓN no cambia; lo que cambia es que
+       * ahora se sabe, se dice y no se recuerda.
+       */
+      const eleccion = elegirModelo(candidatos, ids)
+      if (eleccion.degradado) {
+        safeLog.warn(`[expediente/procesar] modelo degradado en perfil ${perfil}: ${eleccion.comoSeEligio}`)
+      }
+      if (sePuedeRecordar(eleccion) && eleccion.modelo) modeloResuelto[perfil] = eleccion.modelo
+      if (eleccion.modelo) return eleccion
     }
   } catch { /* cae al fallback */ }
-  return candidatos[0]
+  /* El descubrimiento no contestó: se usa el candidato de ARRIBA, que es el
+     mejor, y si no existe el 404 lo redescubre. Eso no es una degradación. */
+  return elegirModelo(candidatos, null)
 }
 
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
@@ -457,13 +483,15 @@ export async function POST(req: NextRequest) {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA, { proponerHuecos: !rapido })
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
-    let model = await resolverModelo(API_KEY, perfil)
+    let eleccion = await resolverModelo(API_KEY, perfil)
+    let model = eleccion.modelo ?? CANDIDATOS[perfil][0]
     let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
       modeloResuelto[perfil] = ''
-      model = await resolverModelo(API_KEY, perfil)
+      eleccion = await resolverModelo(API_KEY, perfil)
+      model = eleccion.modelo ?? CANDIDATOS[perfil][0]
       res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
     }
 
@@ -588,7 +616,7 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
 
     void registrarUso(clinicId, fuente)
@@ -682,7 +710,7 @@ export async function POST(req: NextRequest) {
      * su nota se redactó con el criterio de ninguna rama. Se dice.
      */
     const conGuia = tieneGuia(contexto.especialidad)
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

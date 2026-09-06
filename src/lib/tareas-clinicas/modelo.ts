@@ -89,6 +89,37 @@ export type TipoTarea =
    */
   | 'reconciliacion_medicamento'
   /**
+   * SE PIDIÓ UNA INTERCONSULTA Y EL COLEGA NO HA CONTESTADO — REG-570.
+   *
+   * Hasta hoy una interconsulta vivía SÓLO dentro de `Internamiento.interconsultas`,
+   * así que `tareasVivas`, `cabosDelPaciente` y `estadoDeAccion` no la veían nunca:
+   * una pedida y no contestada era invisible fuera de una pestaña de un episodio.
+   * Es la misma fuga que REG-252 cerró para los resultados de laboratorio.
+   *
+   * ── SU GRUPO DEL WORKLIST ES `otros`, Y ESO ES UNA DECISIÓN ────────────────
+   *
+   * `estadoDeAccion` no la nombra, así que cae en `otros` («Otros pendientes»).
+   * No es un olvido:
+   *
+   *  · `esperando_resultado` la etiquetaría MAL — dice «Esperando resultado» y
+   *    aquí se espera a un colega, no a una máquina.
+   *  · una categoría nueva es la clase de modelo sin información que REG-404
+   *    evitó a propósito: se añade cuando haya algo que decir con ella.
+   *
+   * `otros` es honesto —hay un pendiente vivo y su cajón no está decidido— y lo
+   * que importaba se consigue igual: **se ve**. Qué grupo merece es una decisión
+   * de producto, y queda dicha en el censo.
+   *
+   * ── SIN `venceEn`, A PROPÓSITO ────────────────────────────────────────────
+   *
+   * El plazo tras el cual una interconsulta sin contestar está vencida depende
+   * de especialidad, urgencia y acuerdo del hospital: es criterio clínico y no
+   * está decidido. Sin él `estaVencida` no opina, que es lo correcto — inventar
+   * «48 h» pondría en rojo un pendiente que quizá no lo está, y en cuanto un
+   * grupo «Vencidos» miente, deja de leerse.
+   */
+  | 'interconsulta_pendiente'
+  /**
    * REG-521 — el paciente preguntó desde su portal y el motor determinista
    * lo ESCALÓ (o lo marcó urgente). Es un hecho real, no derivado del plan:
    * hay un humano esperando a otro humano. La escribe SÓLO el servidor
@@ -210,6 +241,37 @@ export interface TareaClinica {
   patientNombre?: string
   /** De qué consulta salió. Es la traza hacia atrás. */
   notaId?: string
+  /**
+   * EL HECHO DEL QUE NACIÓ, CUANDO NO ES UNA NOTA — REG-570.
+   *
+   * `notaId` daba identidad estable a lo que nace de una consulta, y sobre él se
+   * construye `idDerivado` para que repetir la acción de origen no duplique la
+   * tarea. Una interconsulta no nace de una nota: nace de un elemento dentro de
+   * un episodio de internamiento.
+   *
+   * Meter ese id en `notaId` habría sido lo barato y lo peor: TODO el que lee
+   * `notaId` espera una nota —la traza de la pantalla, el enlace de vuelta, los
+   * motores que la abren— y de pronto encontraría un id que no resuelve a
+   * ninguna. Un campo haciendo dos trabajos es la forma exacta de REG-566, y
+   * arreglar uno rompería al otro.
+   *
+   * Va acompañado de `origen`, que dice de QUÉ clase es este id.
+   */
+  origenId?: string
+  /**
+   * LA CITA QUE SOSTIENE UN `agendada` — REG-585.
+   *
+   * Sin esto, `agendada` era una DECLARACIÓN y no un hecho del calendario: si la
+   * cita se cancelaba, se movía o el paciente no venía, el pendiente se quedaba
+   * esperando a nadie para siempre.
+   *
+   * Va en su propio campo y no dentro de `origenId`, que ya significa otra cosa
+   * (de qué hecho NACIÓ la tarea). Un campo haciendo dos trabajos es REG-566.
+   *
+   * Ausente en las tareas anteriores a este campo: eso se lee como «no se puede
+   * saber», nunca como «no hay cita». Ver `lo-que-el-calendario-dice.ts`.
+   */
+  citaId?: string
   tipo: TipoTarea
   titulo: string
   detalle?: string
@@ -280,6 +342,66 @@ export interface TareaClinica {
  */
 export type AvisoAlPaciente = 'avisado' | 'no_avisado' | 'no_aplica'
 
+/**
+ * DE QUÉ MANERA CONSTA EL AVISO — decisión del dueño, 31-ago-2026 (D-041).
+ *
+ * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo constaba sí /
+ * todavía no / no hacía falta, **sin a quién ni por qué vía**.
+ *
+ * El dueño decidió que **las cuatro cuentan como avisado**, con estas palabras:
+ * «al que sea». Así que ninguna de ellas vale menos que otra a la hora de
+ * marcar el cierre — lo que se registra es CUÁL fue, no cuánto vale.
+ *
+ * ── UN CAMPO, UNA PREGUNTA ──────────────────────────────────────────────────
+ *
+ * Tres de las cuatro son *a quién* y la cuarta es *por qué vía*. Guardarlas en
+ * un campo llamado `destinatario` habría sido un campo haciendo dos trabajos,
+ * que es REG-566 — el defecto que este repositorio lleva cazando desde entonces.
+ *
+ * Por eso el campo pregunta una sola cosa: **de qué manera consta**. Las cuatro
+ * respuestas son respuestas a esa pregunta.
+ */
+export type ComoSeAviso =
+  /** Se habló con el paciente. Comunicación de ida y vuelta. */
+  | 'hablado_con_paciente'
+  /** Se habló con un cuidador autorizado. */
+  | 'hablado_con_cuidador'
+  /** Se le entregó a otro médico tratante, que es quien va a actuar. */
+  | 'entregado_a_otro_medico'
+  /**
+   * Se mandó un mensaje. **Sin confirmación de que se leyera.**
+   *
+   * Cuenta como avisado por decisión del dueño, y se guarda distinto de los
+   * otros tres a propósito: este repositorio ya sabe que un mensaje puede morir
+   * sin acuse (REG-580, REG-586), y quien lea el expediente dentro de un año
+   * tiene derecho a distinguir «hablé con él» de «le mandé un mensaje».
+   */
+  | 'mensaje_enviado'
+
+export const COMO_SE_AVISO_ETIQUETA: Record<ComoSeAviso, string> = {
+  hablado_con_paciente: 'Hablé con el paciente',
+  hablado_con_cuidador: 'Hablé con un cuidador',
+  entregado_a_otro_medico: 'Lo tomó otro médico',
+  mensaje_enviado: 'Mandé un mensaje',
+}
+
+/** Los que fueron una conversación de ida y vuelta. */
+const HUBO_CONVERSACION: ReadonlySet<ComoSeAviso> = new Set<ComoSeAviso>([
+  'hablado_con_paciente', 'hablado_con_cuidador', 'entregado_a_otro_medico',
+])
+
+/**
+ * ¿Consta que alguien lo RECIBIÓ, o sólo que se mandó?
+ *
+ * No cambia si cuenta como avisado —el dueño decidió que las cuatro cuentan—,
+ * pero permite que la pantalla lo diga y que un día se pueda contar cuántos
+ * críticos constan sólo por un mensaje sin acuse.
+ */
+export function constaQueLoRecibieron(c: ComoSeAviso | undefined): boolean | null {
+  if (!c) return null   // no se registró: no es «no lo recibieron»
+  return HUBO_CONVERSACION.has(c)
+}
+
 export interface CierreDeTarea {
   /** Qué se decidió. Obligatorio: cerrar sin decisión es cerrar sin cerrar. */
   readonly decision: string
@@ -290,6 +412,13 @@ export interface CierreDeTarea {
   readonly accion?: string
   /** Si se le avisó al paciente. Sin valor = no se registró. */
   readonly avisoAlPaciente?: AvisoAlPaciente
+  /**
+   * De qué manera consta el aviso (D-041). Opcional **a propósito**: exigirlo
+   * convertiría el cierre en un formulario, y un worklist que cuesta se
+   * abandona. Sin valor con `avisado` = se avisó y no se dijo cómo, que es
+   * exactamente lo que pasaba antes de este campo.
+   */
+  readonly comoSeAviso?: ComoSeAviso
   readonly quien: string
   readonly cuando: string
 }
@@ -386,6 +515,23 @@ export function preguntasAlCerrar(
   if (cierre?.avisoAlPaciente) return []
   return ['Este resultado es crítico. ¿Se le avisó a alguien? Cerrar sin contestar deja el expediente diciendo que no consta.']
 }
+
+export const LA_DECISION_DEL_PLAZO =
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-040): un valor crítico NO '
+  + 'vence. Se le ofrecieron 1 h, 4 h, 24 h y ninguno, y eligió ninguno. Así que '
+  + '`venceEn` no se pone en las tareas de resultado crítico y `estaVencida` no '
+  + 'opina sobre ellas — igual que antes, pero ahora por decisión y no por '
+  + 'conservación. Lo que sigue en pie es que se PREGUNTA al cerrar: sin plazo, '
+  + 'la pregunta es la única defensa que queda.'
+
+export const LA_DECISION_DE_QUIEN_CUENTA =
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-041): cuentan como avisado '
+  + 'hablar con el paciente, hablar con un cuidador autorizado, entregárselo a '
+  + 'otro médico tratante Y un mensaje enviado — «al que sea», con sus palabras. '
+  + 'Se le advirtió expresamente de que un mensaje puede morir sin acuse '
+  + '(REG-580, REG-586) y aun así cuenta. Lo que SÍ se guarda es CUÁL de las '
+  + 'cuatro fue, para que quien lea el expediente dentro de un año distinga '
+  + '«hablé con él» de «le mandé un mensaje».'
 
 export const POR_QUE_EL_CRITICO_PREGUNTA_Y_NO_BLOQUEA =
   'Si el aviso de un valor crítico debe ser obligatorio, y en cuánto tiempo, es ' +
@@ -546,6 +692,7 @@ export const ETIQUETA_TIPO: Record<TipoTarea | string, string> = {
   receta_por_entregar: 'Receta',
   indicacion_paciente: 'Indicación',
   reconciliacion_medicamento: 'Reconciliar',
+  interconsulta_pendiente: 'Interconsulta',
   pregunta_paciente: 'Pregunta',
   otra: 'Pendiente',
 }

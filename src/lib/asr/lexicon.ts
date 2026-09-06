@@ -51,7 +51,14 @@ const ESTRATEGIA = mapa.strategy as unknown as {
 export const NOMBRES_ESPECIALIDAD: readonly string[] = Object.keys(ESPECIALIDADES)
 
 /** Dónde está dictando el médico. */
-export type ModuloDictado = 'consulta' | 'hospitalizacion' | 'uci' | 'urgencias' | 'quirofano'
+/**
+ * Los módulos desde los que se puede dictar, como LISTA además de como tipo.
+ *
+ * El tipo se borra al compilar, así que un servidor que reciba «uci» por el
+ * cable no tiene con qué comprobarlo. Esta lista es lo que valida ese borde.
+ */
+export const MODULOS_DE_DICTADO = ['consulta', 'hospitalizacion', 'uci', 'urgencias', 'quirofano'] as const
+export type ModuloDictado = typeof MODULOS_DE_DICTADO[number]
 
 /**
  * Contextos que aporta cada módulo de la app.
@@ -112,7 +119,10 @@ export interface ContextoDictado {
  */
 export function contextosActivos(ctx: ContextoDictado): string[] {
   const pedidas = (ctx.especialidades ?? []).filter(e => e in ESPECIALIDADES)
-  const delModulo = CONTEXTOS_POR_MODULO[ctx.modulo] ?? []
+  // Por el accesor, no por el índice: `nombresDelModulo` es el único sitio que
+  // sabe qué hacer cuando el módulo no consta —devolver nada, no reventar— y
+  // tenerlo escrito aquí y allí era la forma de que un día dejaran de coincidir.
+  const delModulo = nombresDelModulo(ctx.modulo)
   const orden = [...pedidas, ...delModulo, ...ESTRATEGIA.default_contexts]
   const vistos = new Set<string>()
   const out: string[] = []

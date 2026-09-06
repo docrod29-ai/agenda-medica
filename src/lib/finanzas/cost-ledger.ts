@@ -180,13 +180,62 @@ export interface ResumenCosto {
   modelosSinTarifa: string[]
   latenciaP50: number | null
   latenciaP95: number | null
+  /**
+   * ── EL P99, QUE YA EXISTÍA AL LADO — REG-565 ─────────────────────────────
+   *
+   * El censo decía «no hay p99 en ningún sitio del repositorio», y era falso:
+   * `observabilidad/latencias.ts` lo calcula desde hace tiempo sobre los asientos
+   * de este mismo libro. Lo que faltaba aquí era exponerlo en el resumen del
+   * libro de costos, y sobre todo que las dos cifras salieran del MISMO cálculo.
+   *
+   * Para el desglose por función y por modelo manda `latencias.ts` —`porFeature`,
+   * `porModelo`—, que además da `n` y `max`. Aquí sólo se resume la tanda.
+   */
+  latenciaP99: number | null
+  /** Cuántas llamadas midieron latencia. Sin esto, un percentil no se puede leer. */
+  muestrasDeLatencia: number
+  /**
+   * ── LA TASA DE ERROR, QUE YA SE REGISTRABA Y NADIE SUMABA ────────────────
+   *
+   * `EventoCosto.fallo` existe desde que existe el libro —«un fallo cuesta
+   * tokens igual»— y sólo se usaba para no contar consultas fallidas. La cifra
+   * que dice si una función está rota nunca se calculaba.
+   */
+  fallos: number
+  /** Fracción de llamadas que fallaron. `null` sin llamadas: dividir entre cero no es 0. */
+  tasaDeFallo: number | null
 }
 
+/**
+ * ── HAY DOS PERCENTILES EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-565 ──
+ *
+ * Éste calcula por **rango más cercano**: devuelve siempre una muestra que
+ * ocurrió de verdad. `src/lib/observabilidad/latencias.ts` calcula por
+ * **interpolación lineal**, sobre los asientos de este mismo libro. No dan lo
+ * mismo — con veinte muestras de 100 a 290 ms:
+ *
+ *     p50: 190 aquí,  195 allí
+ *     p95: 280 aquí,  280.5 allí
+ *     p99: 290 aquí,  288.1 allí
+ *
+ * **Ninguno de los dos métodos está mal**, y los dos están razonados y probados:
+ * aquí, porque «con pocas muestras interpolar sugiere una precisión que no hay»
+ * y porque un p95 que señala una llamada REAL es más fácil de defender ante el
+ * médico que la sufrió; allí, porque interpola suave y `percentil([0, 10], 0.5)`
+ * da 5 en vez de 0, que se lee mejor.
+ *
+ * Lo que está mal es que existan los dos sin que nadie lo haya decidido: dos
+ * tableros del mismo periodo enseñan cifras distintas y las dos parecen ciertas.
+ *
+ * **NO se unifica aquí por iniciativa propia**: la cifra sale en el tablero de
+ * costos que mira el dueño, y elegir método cambia números que él ya ha visto.
+ * Es una decisión de qué se reporta, no de cómo se programa. Queda anotada en
+ * los dos archivos y en el censo (`WS-12.p99`) para que ninguno de los dos se
+ * edite sin ver al otro, y su guardián comprueba que las dos notas siguen ahí.
+ */
 const percentil = (xs: number[], p: number): number | null => {
   if (xs.length === 0) return null
   const o = [...xs].sort((a, b) => a - b)
-  // Índice por el método del más cercano: con pocas muestras interpolar sugiere
-  // una precisión que no hay.
   return o[Math.min(o.length - 1, Math.max(0, Math.ceil((p / 100) * o.length) - 1))]
 }
 
@@ -211,6 +260,12 @@ export function resumir(eventos: readonly EventoCosto[]): ResumenCosto {
     modelosSinTarifa: [...new Set(eventos.filter(e => e.motivoSinCosto === 'sin_tarifa').map(e => e.modelo))],
     latenciaP50: percentil(lat, 50),
     latenciaP95: percentil(lat, 95),
+    latenciaP99: percentil(lat, 99),
+    muestrasDeLatencia: lat.length,
+    fallos: eventos.filter(e => e.fallo).length,
+    tasaDeFallo: eventos.length > 0
+      ? Number((eventos.filter(e => e.fallo).length / eventos.length).toFixed(4))
+      : null,
   }
 }
 

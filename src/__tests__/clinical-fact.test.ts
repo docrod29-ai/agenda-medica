@@ -349,6 +349,50 @@ describe('E1-01 · esUsableParaCalculo', () => {
 // 6. GUARDIÁN DE COBERTURA — el hueco medido, para que no crezca en silencio
 // ---------------------------------------------------------------------------
 
+/**
+ * EL HUECO DE UNIDADES, CONGELADO — pasó de 5 a 29 con REG-601.
+ *
+ * Son las unidades que aparecen en `ANALITOS` y que el motor de cantidades
+ * todavía no sabe expresar. La lista es EXACTA a propósito: un «≤» dejaría
+ * entrar una unidad nueva sin que nadie lo decidiera.
+ *
+ * Nótese `10^3/µL` y `10³/µL`: la misma unidad escrita de dos maneras, porque el
+ * documento del dueño usa el circunflejo y los analitos de producción el
+ * superíndice. `claveDeUnidad` ya las trata como iguales al validar; aquí
+ * aparecen las dos porque esto mira la cadena literal.
+ */
+const UNIDADES_SIN_DIMENSION_HOY: readonly string[] = [
+  '/100 WBC',
+  '10^3/µL',
+  '10^6/µL',
+  '10³/µL',
+  'IU/L',
+  'IU/mL',
+  'U/L',
+  'cm H2O',
+  'copias/mL',
+  'células/µL',
+  'fL',
+  'log10 copias/mL',
+  'mIU/mL',
+  'mOsm/kg',
+  'mg/24 h',
+  'mg/g',
+  'mm/h',
+  'ng/L',
+  'ng/dL',
+  'ng/mL',
+  'ng/mL FEU',
+  'pH',
+  'pg',
+  'pg/mL',
+  'ratio',
+  'µIU/mL',
+  'µUI/mL',
+  'µg/dL',
+  'índice ODI',
+]
+
 describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
   /**
    * E1-01 NO amplía el catálogo de E0-04 (ampliarlo toca un guardián deliberado
@@ -367,8 +411,29 @@ describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
   })
 
   it('las unidades de ANALITOS que HOY faltan siguen siendo exactamente éstas', () => {
+    /**
+     * EL HUECO CRECIÓ, Y ESO ES LO QUE ESTE GUARDIÁN EXISTE PARA QUE SE VEA.
+     *
+     * REG-598 metió ocho analitos del catálogo del dueño (D-045) y con ellos dos
+     * unidades que el motor de cantidades todavía no sabe expresar: `fL` (VCM) y
+     * `ng/mL` (ferritina, vitamina D). No se «arregló» ampliando `FACTORES` de
+     * paso: ampliarlo toca un guardián deliberado de otra unidad de trabajo, y
+     * hacerlo de refilón es cómo un hueco declarado se convierte en uno oculto.
+     *
+     * Sigue siendo prerrequisito de E1-03, ahora con cinco unidades en vez de tres.
+     */
     const faltantes = [...new Set(ANALITOS.map((a) => a.unidad))].filter((u) => !unidadEsExpresable(u))
-    expect(faltantes.sort()).toEqual(['10³/µL', 'U/L', 'µUI/mL'])
+    /**
+     * REG-601: el hueco pasó de 5 a 29 de golpe porque entró el catálogo ENTERO
+     * del médico dueño (220 analitos, 41 unidades distintas). No se «arregló»
+     * ampliando `FACTORES` de paso: ampliarlo toca un guardián deliberado de otra
+     * unidad de trabajo, y hacerlo de refilón es cómo un hueco declarado se
+     * vuelve uno oculto.
+     *
+     * Lo que este guardián protege sigue en pie: la lista es EXACTA, así que si
+     * mañana entra una unidad nueva sin que nadie lo decida, esto se pone rojo.
+     */
+    expect(faltantes.sort()).toEqual(UNIDADES_SIN_DIMENSION_HOY)
   })
 
   it('el comportamiento seguro está garantizado: lo no expresable FALLA, no se degrada', () => {

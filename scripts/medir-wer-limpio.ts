@@ -41,7 +41,7 @@ import { join } from 'node:path'
 import { wer } from '../src/lib/uci/benchmark-voz'
 import { terminoPresente, evaluable } from '../src/lib/uci/benchmark-metricas'
 import { procesarTranscript } from '../src/lib/asr/pipeline'
-import { leerConsulta } from '../src/lib/asr/lo-que-pesa-de-un-error'
+import { leerConsulta, leerElMotor, type ConsultaMedida } from '../src/lib/asr/lo-que-pesa-de-un-error'
 
 const RAIZ = process.argv[2]
 if (!RAIZ || !existsSync(RAIZ)) {
@@ -96,6 +96,8 @@ function leerCsv(texto: string): Record<string, string>[] {
 
 interface Acumulado {
   filas: number
+  /** Cada consulta medida, para la lectura a nivel de MOTOR (una sola función). */
+  medidas: ConsultaMedida[]
   werCrudo: number
   werPipeline: number
   terminos: number
@@ -117,7 +119,7 @@ interface Acumulado {
 
 const vacio = (): Acumulado => ({
   filas: 0, werCrudo: 0, werPipeline: 0, terminos: 0, vivosCrudo: 0, vivosPipeline: 0,
-  criticos: 0, sinClasificar: 0, frasesConCritico: 0, porClase: {},
+  criticos: 0, sinClasificar: 0, frasesConCritico: 0, porClase: {}, medidas: [],
 })
 
 function acumular(a: Acumulado, fila: Record<string, string>, transcripcion: string) {
@@ -129,6 +131,7 @@ function acumular(a: Acumulado, fila: Record<string, string>, transcripcion: str
   /* La lectura se hace sobre el texto TRAS el pipeline: es el que llega a la
      nota, y por tanto el que puede hacer daño. */
   const lectura = leerConsulta(ref, tras)
+  a.medidas.push({ gold: ref, oido: tras })
   a.criticos += lectura.criticos.length
   a.sinClasificar += lectura.sinClasificar.length
   if (lectura.criticos.length > 0) a.frasesConCritico++
@@ -162,6 +165,20 @@ function informar(nombre: string, a: Acumulado) {
   if (a.criticos > 0) {
     console.log('  ↑ Estos NO se promedian con el WER: están prohibidos, no penalizados.')
   }
+
+  /*
+   * LA LECTURA A NIVEL DE MOTOR, por la MISMA función que usa la compuerta.
+   *
+   * Este guion producía su propio recuento y la compuerta de D-043 el suyo, con
+   * el mismo corpus. Dos medidores del mismo número es exactamente el defecto
+   * que REG-598 y REG-603 cazaron en el laboratorio, dos veces: el informe podía
+   * decir una cosa y la compuerta otra, y nadie lo sabría hasta que divergieran.
+   */
+  const motor = leerElMotor(a.medidas)
+  console.log(`  ── a nivel de MOTOR (lo que mide la compuerta de D-043) ──`)
+  console.log(`  error ordinario ................. ${(motor.tasaOrdinaria * 100).toFixed(2)} %`)
+  console.log(`  consultas con CRÍTICO ........... ${motor.conCriticos} de ${motor.consultas}`)
+  console.log(`  consultas con SIN CLASIFICAR .... ${motor.conSinClasificar} de ${motor.consultas}`)
 }
 
 function main() {

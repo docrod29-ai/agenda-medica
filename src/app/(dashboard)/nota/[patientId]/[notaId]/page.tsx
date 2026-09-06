@@ -32,6 +32,7 @@ import {
   TITULO_OTORGAMIENTO, DECLARACION_OTORGAMIENTO, RENGLONES_DE_FIRMA,
   RENGLON_LUGAR_FECHA, huellaDelTextoAceptado,
 } from '@/lib/consentimiento-impreso'
+import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import { fechaLegible } from '@/lib/fecha-local'
 import { hoyISO } from '@/lib/timezone'
 import { conEtiquetaDeEdad } from '@/lib/edad-legible'
@@ -511,7 +512,7 @@ export default function NotaImprimiblePage() {
             <SecTitle>Diagnósticos</SecTitle>
             <ol style={{ margin: 0, paddingLeft: 20, fontSize: 12.5 }}>
               {nota.diagnosticos.map((d, i) => (
-                <li key={i}>{d.descripcion}{d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}</li>
+                <li key={i}>{nombreConCerteza(d)}{d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}</li>
               ))}
             </ol>
           </div>
