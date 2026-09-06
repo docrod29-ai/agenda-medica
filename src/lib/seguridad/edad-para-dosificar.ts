@@ -1,5 +1,5 @@
 /**
- * LA EDAD CON LA QUE SE DOSIFICA — Y SI NO HAY, SE DICE. REG-520.
+ * LA EDAD CON LA QUE SE DOSIFICA — Y SI NO HAY, SE DICE. REG-524.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

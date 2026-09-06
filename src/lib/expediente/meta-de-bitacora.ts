@@ -1,5 +1,5 @@
 /**
- * ACOTAR EL `meta` DE UN ASIENTO DE BITÁCORA SIN PERDERLO ENTERO — REG-521.
+ * ACOTAR EL `meta` DE UN ASIENTO DE BITÁCORA SIN PERDERLO ENTERO — REG-525.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

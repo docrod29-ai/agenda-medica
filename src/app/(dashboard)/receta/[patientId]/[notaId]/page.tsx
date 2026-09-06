@@ -134,7 +134,7 @@ export default function GeneradorRecetaPage() {
   // que se dispensa. Reactivo a cada cambio de medicamento. Antes solo se
   // chequeaba en la consulta; aquí se podía agregar un fármaco peligroso sin alerta.
   //
-  // D-032 (dueño, 5-sep-2026): una alergia crítica o una interacción mayor
+  // D-033 (dueño, 5-sep-2026): una alergia crítica o una interacción mayor
   // AVISA y no bloquea imprimir ni firmar. Bloquear cambiaría el acto clínico;
   // la decisión de recetar a pesar del aviso es del médico y queda a la vista.
   const alertasAlergia = useMemo(() => {
@@ -150,7 +150,7 @@ export default function GeneradorRecetaPage() {
   // Interacciones fármaco-fármaco + controlados COFEPRIS (apoyo decisional)
   const meds = useMemo(() => medicamentos.filter(m => m.nombre?.trim()).map(m => ({ nombre: m.nombre })), [medicamentos])
   /**
-   * EL EXPEDIENTE COMPLETO, TAMBIÉN AQUÍ — REG-523.
+   * EL EXPEDIENTE COMPLETO, TAMBIÉN AQUÍ — REG-527.
    *
    * La consulta ya cruza lo de hoy con la medicación VIGENTE del expediente
    * (REG-188) y ya ve la creatinina de los paneles (REG-368). Esta pantalla
@@ -176,7 +176,7 @@ export default function GeneradorRecetaPage() {
   // Se saca del memo para que la dependencia inferida sea la EDAD y no el objeto
   // paciente entero: si no, el compilador de React no puede conservar el memo.
   /**
-   * LA EDAD SE CALCULA DE LA FECHA DE NACIMIENTO, Y SI NO HAY, SE DICE — REG-520.
+   * LA EDAD SE CALCULA DE LA FECHA DE NACIMIENTO, Y SI NO HAY, SE DICE — REG-524.
    *
    * `patient.edad` es un número congelado: un paciente dado de alta desde la
    * reserva pública nace sin él, y con `undefined` esta pantalla lo trataba
@@ -241,9 +241,9 @@ export default function GeneradorRecetaPage() {
       if (al.length) out.push({ med: m.nombre, alertas: al })
     }
     /**
-     * REG-524 — «Paracetamol 500 mg» y «Tempra 1 g» pasaban renglón a renglón:
+     * REG-528 — «Paracetamol 500 mg» y «Tempra 1 g» pasaban renglón a renglón:
      * 1 500 y 3 000 debajo del techo, 4 500 sumados. Se cruza la lista entera
-     * entre sí y contra lo vigente del expediente (lo que REG-523 ya carga).
+     * entre sí y contra lo vigente del expediente (lo que REG-527 ya carga).
      */
     out.push(...terapiaDuplicadaDeLaLista(medicamentos, vigentes.map(v => v.medicamento)))
     return out
@@ -252,7 +252,7 @@ export default function GeneradorRecetaPage() {
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
   /**
-   * CON QUÉ CREATININA SE AJUSTA (REG-523): la tecleada hoy manda; si no hay,
+   * CON QUÉ CREATININA SE AJUSTA (REG-527): la tecleada hoy manda; si no hay,
    * la más reciente del expediente con su fecha y su vigencia (REG-375, ventana
    * conservadora porque esta pantalla no conoce el contexto). El instante se
    * ancla a la llegada de los paneles, no al render.
@@ -338,7 +338,7 @@ export default function GeneradorRecetaPage() {
   }, [clinicId, patientId, notaId])
 
   /**
-   * Los paneles de laboratorio y la medicación vigente del expediente (REG-523).
+   * Los paneles de laboratorio y la medicación vigente del expediente (REG-527).
    * Dos lecturas más, las mismas que ya hace la consulta. Degradan sin romper:
    * si fallan, esta pantalla ve lo de hoy, que es exactamente como se
    * comportaba antes — y el historial recortado se declara, no se calla.
@@ -352,7 +352,7 @@ export default function GeneradorRecetaPage() {
       .then(({ notas: ns, truncada }) => {
         setHistorialTruncado(truncada)
         /**
-         * SIN LA NOTA QUE SE ESTÁ IMPRIMIENDO — REG-531. Esta nota ya está
+         * SIN LA NOTA QUE SE ESTÁ IMPRIMIENDO — REG-535. Esta nota ya está
          * firmada, así que entraba en «lo vigente» y la receta decía
          * «Ketorolaco ya figura como vigente… y hoy se receta Ketorolaco»: se
          * cruzaba consigo misma. Se vio en el navegador, no en las pruebas.
@@ -750,7 +750,7 @@ export default function GeneradorRecetaPage() {
           )}
 
           {/* ⚠️ Verificación determinista de DOSIS (error de decimal, sobre-máximo, pediátrico) */}
-          {/* REG-520 — sin edad no hay red pediátrica, y eso se DICE, no se supone adulto. */}
+          {/* REG-524 — sin edad no hay red pediátrica, y eso se DICE, no se supone adulto. */}
           {origenEdad === 'desconocida' && (
             <div role="status" style={{
               padding: '10px 14px', borderRadius: 10,

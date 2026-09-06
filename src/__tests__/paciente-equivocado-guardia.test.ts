@@ -22,7 +22,7 @@
  * Esta prueba recorre los archivos que deciden y falla si alguno vuelve a
  * emparejar sin pasar por el motor, que exige parecido de NOMBRE.
  *
- * ── Y POR QUÉ ESA PRUEBA NO PROTEGÍA — REG-518 ──────────────────────────────
+ * ── Y POR QUÉ ESA PRUEBA NO PROTEGÍA — REG-522 ──────────────────────────────
  *
  * El test-the-test del 5-sep-2026 aplicó el mutante obvio a los tres caminos:
  * sustituir la llamada al motor por `candidatos[0]`, dejando el `import` y los
@@ -147,7 +147,7 @@ describe('a qué expediente se cuelga una cita', () => {
   })
 })
 
-describe('AUTOTEST · el guardián se pone rojo con los mutantes que antes pasaban (REG-518)', () => {
+describe('AUTOTEST · el guardián se pone rojo con los mutantes que antes pasaban (REG-522)', () => {
   const MUTANTES: Record<Camino, [RegExp, string]> = {
     // El del auditor: se sustituye la llamada por «el primero», y se deja todo lo demás.
     'src/app/(dashboard)/asistente/page.tsx': [

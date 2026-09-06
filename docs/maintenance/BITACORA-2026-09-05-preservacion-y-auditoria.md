@@ -46,14 +46,14 @@ y, para los cuatro que se cerraron, sin **reproducirlo** primero.
 | **516** | La pregunta atendida seguía «pendiente» en el portal: cerrar la tarea ahora marca `atendidaEn` por una ruta de servidor | con `/pendientes` sin el gancho, el guardián rojo |
 | **517** | Sin edad en el expediente la receta aplicaba topes de adulto a un niño, en silencio; ahora manda la fecha de nacimiento y la falta se pinta | cuatro casos rojos con las pantallas como estaban |
 | **518** | La huella de una receta larga se perdía entera en la bitácora, con `ok: true`; ahora se acota por campo y lo omitido se declara | `meta: null` para 80 fármacos |
-| **519** | La cancelación ARCO dejaba vivo el enlace del portal (D-034): el bloqueo sube `portalTokenVersion` en el mismo `set` | la versión no subía y `decidirVigencia` decía «vigente» |
+| **519** | La cancelación ARCO dejaba vivo el enlace del portal (D-035): el bloqueo sube `portalTokenVersion` en el mismo `set` | la versión no subía y `decidirVigencia` decía «vigente» |
 | **520** | La receta sólo veía el papel de hoy: ahora cruza con la medicación vigente (y dice qué ya existía) y precarga la creatinina del expediente con fecha y vigencia a 7 días | `detectarInteracciones(hoy)` no ve warfarina + ketorolaco; el guardián de fuente, cuatro rojos |
 | **521** | «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a renglón (4 500 mg/día); ahora la misma sustancia se dice, con la suma contra el techo del catálogo, en consulta y receta | renglón a renglón, vacío; con la lista y las pantallas como estaban, cinco rojos |
 | **522 · 523** | Port de PR #442 (eran 444 y 506, números que `main` ya había gastado): la vista previa del papel mide su sitio; la sonda de pantallas recorre el scroller de dentro y mide el área de golpe; `/pendientes` se siembra | verificado que las pruebas pasan aquí; las inversiones son de la sesión de origen |
 | **524 · 525 · 526** | Test-the-test: `csp-manifest` corre tras el build (antes, siempre saltada); el prompt se vigila por frases sobre lo emitido (antes, literales); la membresía del servidor tiene su primera prueba ejecutada contra un doble con id | dos rojos sin el paso de CI; el guardián viejo verde con la orden reformulada; tres mutantes de `auth-server.ts` cazados |
 | **527 · 528** | Seguridad: `sanitize` redacta nombres por llave y llaves de Stripe por patrón (su cabecera lo prometía y no lo hacía); `reclamarCanal` en transacción, con la carrera provocada en el arnés en memoria | cuatro rojos con `sanitize.ts` como estaba; la carrera la gana el segundo con `reclamar-canal.ts` como estaba |
 | **529** | Cuarenta rutas devolvían `String(err)` al cliente (la auditoría contó 25; el guardián, 46 sitios): helper que no recibe el error, detalle a `safeLog`, barrido de todas las rutas | con `src/app/api` como estaba, el barrido lista los 46 |
-| **530** | Verificación en navegador (arnés de emuladores, paciente sintético `pac-006`, sonda nueva): los avisos de REG-520/520/521 se ven; y la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta | caso 1 rojo con la receta como estaba; la sonda lo enseñó en rojo antes del arreglo |
+| **530** | Verificación en navegador (arnés de emuladores, paciente sintético `pac-006`, sonda nueva): los avisos de REG-524/520/521 se ven; y la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta | caso 1 rojo con la receta como estaba; la sonda lo enseñó en rojo antes del arreglo |
 
 Cada uno con su golden (qué fallaba, cómo se descubrió, causa raíz, regla, **qué
 NO cubre**), su entrada en el ledger, su familia de defecto, su sello, y las
@@ -63,12 +63,12 @@ compuertas medidas en el mensaje del commit.
 
 | | |
 |---|---|
-| `npx vitest run` | **12 755 pasan · 1 falla** · 952 archivos (tras REG-531; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-523 pasó) |
+| `npx vitest run` | **12 755 pasan · 1 falla** · 952 archivos (tras REG-535; la falla es `ops-timeout-y-punto-ciego`, el proxy del contenedor rechaza `10.255.255.1` al instante — entorno, no árbol; en la corrida de REG-527 pasó) |
 | `npx tsc --noEmit` | limpio |
-| `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-520 |
+| `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-524 |
 | `npm run build` | 164/164 páginas, con los placeholders del CI |
 | Sello | 476 archivos · 6 685 casos (tras fusionar `main`) |
-| Ledger | 325 REG · última **REG-531** (main aportó 512–514; los de esta rama se renumeraron a 515–531) |
+| Ledger | 325 REG · última **REG-535** (main aportó 512–514; los de esta rama se renumeraron a 515–531) |
 
 ## Lo que se supo y no estaba escrito
 
@@ -89,6 +89,6 @@ llave de 360dialog como id de documento es decisión del dueño (D-E). El PR
 sin llamador son una decisión nueva para el dueño (D-D en el readiness §9).
 
 Las tres decisiones que se le llevaron al dueño (D-A, D-B, D-C) están
-resueltas y escritas donde se leen: **D-032** (la alergia crítica sólo avisa),
-**D-033** (la pregunta viaja completa por WhatsApp) y **D-034** (la
-cancelación ARCO revoca el portal, implementada como REG-522).
+resueltas y escritas donde se leen: **D-033** (la alergia crítica sólo avisa),
+**D-034** (la pregunta viaja completa por WhatsApp) y **D-035** (la
+cancelación ARCO revoca el portal, implementada como REG-526).

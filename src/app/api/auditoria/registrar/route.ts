@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
    * `meta` es libre por diseño (contadores, ids), pero se acota para que no se
    * convierta en un vertedero de PHI ni en un vector de documentos enormes.
    *
-   * REG-521 — se acota POR CAMPO, no por carácter. Antes se cortaba el JSON a
+   * REG-525 — se acota POR CAMPO, no por carácter. Antes se cortaba el JSON a
    * 2 000 caracteres y, si quedaba inválido, se descartaba `meta` ENTERO: en
    * `receta_generada` eso era perder el hash y el folio de lo impreso justo en
    * las recetas largas, con `ok: true` de respuesta. Ahora lo corto (hash,

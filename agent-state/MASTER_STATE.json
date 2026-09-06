@@ -63,7 +63,7 @@
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
     "regsEnElLedger": 325,
-    "ultimaREG": "REG-531",
+    "ultimaREG": "REG-535",
     "archivosDePrueba": 953,
     "casosDePrueba": 11485,
     "lint": "ver scripts/lint-trinquete.mjs"

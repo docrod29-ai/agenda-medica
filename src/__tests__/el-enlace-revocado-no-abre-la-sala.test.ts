@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
- * EL ENLACE REVOCADO NO ABRE LA SALA DE VIDEO — REG-515.
+ * EL ENLACE REVOCADO NO ABRE LA SALA DE VIDEO — REG-519.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -139,7 +139,7 @@ beforeEach(() => {
   delete process.env.DAILY_API_KEY
 })
 
-describe('REG-515 · el enlace revocado no abre la sala de video', () => {
+describe('REG-519 · el enlace revocado no abre la sala de video', () => {
   it('1 · token vigente (versión igual a la del expediente) → entra, como antes', async () => {
     tokenDelPaciente(0)
     const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1', token: 'tk' }))
@@ -204,7 +204,7 @@ function sinComentarios(fuente: string): string {
   return fuente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 }
 
-describe('REG-515 · guardián: quien acepta el token del paciente comprueba su revocación', () => {
+describe('REG-519 · guardián: quien acepta el token del paciente comprueba su revocación', () => {
   const consumidores = rutasDeApi(join(process.cwd(), 'src', 'app', 'api'))
     .filter(ruta => /\bverificarTokenPaciente\s*\(/.test(sinComentarios(readFileSync(ruta, 'utf8'))))
 

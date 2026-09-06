@@ -129,7 +129,7 @@ describe('EL LÉXICO DEL PACIENTE TAMBIÉN EN VIVO', () => {
   })
 
   it('el hook manda fármacos, problemas y especialidades en cada trozo', () => {
-    // REG-516: por la lista compartida, desde la referencia viva.
+    // REG-520: por la lista compartida, desde la referencia viva.
     for (const k of ['medicamentos', 'problemas', 'especialidades'] as const) {
       expect(CLAVES_DE_SESGO_DEL_PACIENTE).toContain(k)
     }

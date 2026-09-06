@@ -18822,7 +18822,7 @@ rama (REG-437, REG-438); se compara sin comentarios.
   el dueño es fijar vocabulario de producto.
 - **No es un iPhone.** Chromium a 390 px.
 
-## REG-515 · El enlace REVOCADO del paciente seguía abriendo la sala de video
+## REG-519 · El enlace REVOCADO del paciente seguía abriendo la sala de video
 
 **CÓMO SE DESCUBRIÓ.** Equipo rojo read-only sobre las 99 rutas de `src/app/api`,
 el 5-sep-2026, con una consigna: refutar cada hallazgo antes de reportarlo. La
@@ -18918,7 +18918,7 @@ doble de `patient-token` pasa a ser parcial porque la ruta ahora consume
   el bloqueo ARCO sin baja no). Es sospecha S2 del mismo equipo rojo y queda
   abierta con nombre.
 
-## REG-516 · Los alérgenos del expediente no llegaban a Whisper por ningún camino
+## REG-520 · Los alérgenos del expediente no llegaban a Whisper por ningún camino
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only del pipeline de voz, 5-sep-2026, con
 la tabla que `.claude/rules/voice-asr.md` pide y nadie había dibujado:
@@ -19006,7 +19006,7 @@ ayudante— y ninguna lista literal de claves fuera de la constante: con el
   está probado, pero su único consumidor es un script que necesita el corpus:
   no corre en ninguna compuerta. Declarado, no cerrado.
 
-## REG-517 · La pregunta escalada del paciente no le llegaba a nadie del consultorio
+## REG-521 · La pregunta escalada del paciente no le llegaba a nadie del consultorio
 
 **CÓMO SE DESCUBRIÓ.** Dos auditorías read-only independientes del 5-sep-2026
 —experiencia del paciente y seguridad— llegaron a la misma línea de
@@ -19098,7 +19098,7 @@ nuevo.
   decisión pendiente del dueño (D-B en `AUSCULTA-ULTRA-READINESS.md`), no
   se toca aquí.
 
-## REG-518 · El guardián del paciente equivocado se satisfacía con un comentario
+## REG-522 · El guardián del paciente equivocado se satisfacía con un comentario
 
 **CÓMO SE DESCUBRIÓ.** Test-the-test read-only del 5-sep-2026, con la consigna
 de meter el defecto y ver si el guardián lo caza. El mutante obvio, aplicado a
@@ -19178,9 +19178,9 @@ comentarios intactos ponen rojo el detector; el comentario largo entre
 - **`autorizacion-servidor.test.ts`**, cuyo doble ignora el id del documento
   (la frontera del Admin SDK). Hallazgo #3 del mismo informe, abierto.
 
-## REG-519 · La pregunta atendida seguía «pendiente de revisar» en el portal del paciente
+## REG-523 · La pregunta atendida seguía «pendiente de revisar» en el portal del paciente
 
-**CÓMO SE DESCUBRIÓ.** Lo declaró REG-517 en su «qué NO cubre», el mismo día:
+**CÓMO SE DESCUBRIÓ.** Lo declaró REG-521 en su «qué NO cubre», el mismo día:
 la tarea `pregunta_paciente` se cierra en `/pendientes` con su decisión, y el
 portal del paciente sigue diciendo «Tu consultorio la tiene pendiente de
 revisar» para siempre. `atendidaEn` nacía en `null` y **ningún código lo
@@ -19209,7 +19209,7 @@ colección que sólo tenía una.
    se responde `yaEstaba`. Un doble clic o un reintento no reescriben la
    historia. Una pregunta que no existe → 404 sin más detalle.
 3. **`/pendientes` la llama después de cerrar**, sólo para tareas
-   `pregunta_paciente` con `preguntaId` (la traza que REG-517 dejó puesta), y
+   `pregunta_paciente` con `preguntaId` (la traza que REG-521 dejó puesta), y
    si falla **lo dice** con un aviso: la tarea queda cerrada igual y nadie cree
    que el portal ya cambió.
 4. Declarada en `registro-rutas.ts`; los tres contadores congelados del
@@ -19240,7 +19240,7 @@ pregunta nadie avisa al servidor»).
 - **`atendidaPor` no sale al portal** (la lista blanca de `case 'preguntas'`
   no lo incluye) y no debe: es traza interna.
 
-## REG-520 · Sin edad en el expediente, la receta aplicaba topes de ADULTO a un niño, en silencio
+## REG-524 · Sin edad en el expediente, la receta aplicaba topes de ADULTO a un niño, en silencio
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
 siguiendo el dato desde el expediente hasta `revisarDosis`. Verificado por el
@@ -19317,7 +19317,7 @@ declarar una dependencia y el trinquete se aprieta.
   Pedirla ahí es un cambio de producto (fricción en la puerta más expuesta) y
   no se decide aquí.
 
-## REG-521 · La huella de una receta larga se perdía entera en la bitácora, con `ok: true`
+## REG-525 · La huella de una receta larga se perdía entera en la bitácora, con `ok: true`
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026,
 siguiendo la huella de lo impreso desde el botón de imprimir hasta Firestore.
@@ -19379,7 +19379,7 @@ la ruta como estaba, el asiento de la receta de 80 fármacos llevaba
 - **Los asientos históricos con `meta: null`** no se recuperan: lo que no se
   escribió no está.
 
-## REG-522 · La cancelación ARCO dejaba vivo el enlace del portal del paciente
+## REG-526 · La cancelación ARCO dejaba vivo el enlace del portal del paciente
 
 **CÓMO SE DESCUBRIÓ.** Sospecha S2 del equipo rojo de API del 5-sep-2026,
 verificada en `api/arco/cancelar/route.ts`: el camino de BLOQUEO escribía
@@ -19387,7 +19387,7 @@ verificada en `api/arco/cancelar/route.ts`: el camino de BLOQUEO escribía
 eran la reactivación y las campañas. `portalTokenVersion` no se tocaba.
 
 Se llevó al dueño como **decisión**, no como arreglo (D-C del readiness):
-revocar el portal es un acto sobre el paciente. Decidió que sí (**D-034**,
+revocar el portal es un acto sobre el paciente. Decidió que sí (**D-035**,
 5-sep-2026).
 
 **LO QUE PASABA.** El paciente que ejercía su derecho de cancelación —y cuyo
@@ -19408,7 +19408,7 @@ subía.
 El bloqueo sube `portalTokenVersion` **en el mismo `set`** que escribe
 `arcoBloqueo`: no hay ventana con el expediente bloqueado y el enlace vivo.
 `decidirVigencia` hace el resto —versión menor que la del expediente es
-`revocado`, 401 definitivo—, y con REG-515 eso alcanza también a la sala de
+`revocado`, 401 definitivo—, y con REG-519 eso alcanza también a la sala de
 video. En la SUPRESIÓN no hace falta: el expediente deja de existir, y eso ya
 cuenta como revocado.
 
@@ -19425,11 +19425,11 @@ tres casos rojos (la versión no subía y `decidirVigencia` seguía diciendo
 
 - **No ejecuta el portal después**: comprueba que la versión sube y que la
   decisión pura la lee como revocación; el portal ya está probado contra esa
-  decisión (REG-331, REG-515).
+  decisión (REG-331, REG-519).
 - **La oposición ARCO (`arco/oponerse`) no revoca el portal**, y es correcto:
   oponerse es dejar de recibir contacto proactivo, no dejar de ver lo propio.
 
-## REG-523 · La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente
+## REG-527 · La receta sólo veía el papel de hoy: ni la medicación vigente ni la creatinina del expediente
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
 (readiness §3, «la creatinina del expediente llega a la consulta y no a la
@@ -19487,7 +19487,7 @@ cuatro casos del guardián rojos.
   abre la ventana sola.
 - **No mira la alergia ni la terapia duplicada**: siguen en el readiness §11.
 
-## REG-524 · La misma sustancia en dos renglones pasaba: «Paracetamol 500 mg» + «Tempra 1 g»
+## REG-528 · La misma sustancia en dos renglones pasaba: «Paracetamol 500 mg» + «Tempra 1 g»
 
 **CÓMO SE DESCUBRIÓ.** Auditoría read-only de medicación del 5-sep-2026
 (readiness §3: «sin detección de terapia duplicada, paracetamol + Tempra pasa,
@@ -19518,7 +19518,7 @@ la suma diaria se compara con el techo **que ya estaba en el catálogo**
 tres niveles que `revisarDosis`. Un renglón de hoy que repite algo vigente del
 expediente → `terapia_duplicada` que lo dice, sin sumar. **Ninguna cifra
 nueva.** Entra por `dosisPeligrosasDeLaLista` (la consulta, con `yaToma` del
-cuadro) y por el bloque de dosis de la receta (con lo vigente que REG-523 ya
+cuadro) y por el bloque de dosis de la receta (con lo vigente que REG-527 ya
 carga). Es aviso de nivel «revisa»; no bloquea. El registro del motor de
 techos de dosis lo declara (v1.2.0, archivo y puerta de entrada).
 
@@ -19542,7 +19542,7 @@ AINE distintos NO son duplicado (declarado). **Probado al revés**: con
   justo lo que hoy se cambia. Se dice; no se calcula.
 - **No bloquea** ni cambia la compuerta de firma (decisión del dueño, 5-ago).
 
-## REG-525 · Los cuatro casos de `csp-manifest` llevaban saltados en cada corrida del CI desde que existen
+## REG-529 · Los cuatro casos de `csp-manifest` llevaban saltados en cada corrida del CI desde que existen
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («4 casos que nunca
 corren en CI porque vitest va antes del build»). Verificado leyendo
@@ -19579,7 +19579,7 @@ estaba, dos rojos.
 - No ejecuta el CI: comprueba el orden por fuente.
 - `csp-manifest` sigue sin sello, a propósito: en local sin build se salta.
 
-## REG-526 · El guardián de «el modelo no calcula» casaba literales: una orden con otras palabras pasaba
+## REG-530 · El guardián de «el modelo no calcula» casaba literales: una orden con otras palabras pasaba
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026 («casa
 literales»). Verificado: `el-llm-no-calcula-en-ninguna-nota.test.ts` (REG-194)
@@ -19623,7 +19623,7 @@ verde con «Estima la TFG con CKD-EPI» en el prompt; el nuevo, rojo.
 - Es vocabulario: una fórmula fuera de la lista no se vigila.
 - No mira `buildUserPrompt`.
 
-## REG-527 · Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id del documento
+## REG-531 · Ninguna prueba ejecutaba la membresía del servidor; los dobles de las rutas ignoran el id del documento
 
 **CÓMO SE DESCUBRIÓ.** Auditoría test-the-test del 5-sep-2026: «el doble
 ignora el id del documento (la frontera del Admin SDK)» en un archivo que no
@@ -19665,7 +19665,7 @@ capacidad. **Probado al revés** con tres mutantes sobre `auth-server.ts`:
 - Las 99 rutas: siguen siendo del guardián estático. Aquí se prueba la guardia.
 - Firebase Auth: `verifyIdToken` es un doble.
 
-## REG-528 · `sanitize` prometía redactar nombres de pacientes y llaves de API, y no cazaba ni el nombre ni las de Stripe
+## REG-532 · `sanitize` prometía redactar nombres de pacientes y llaves de API, y no cazaba ni el nombre ni las de Stripe
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 (readiness §3,
 «reportado»): «`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`,
@@ -19708,7 +19708,7 @@ real. **Probado al revés**: con el módulo como estaba, cuatro rojos.
   siendo no pasar texto clínico a los logs.
 - No revisa los llamadores de `safeLog`.
 
-## REG-529 · `reclamarCanal` leía, decidía y escribía en tres pasos: dos consultorios a la vez podían quedarse el mismo canal
+## REG-533 · `reclamarCanal` leía, decidía y escribía en tres pasos: dos consultorios a la vez podían quedarse el mismo canal
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («check-then-write
 sin transacción; `dueño === ''` cuenta como libre»). Verificado por el
@@ -19754,7 +19754,7 @@ de REG-3xx se adaptó a la lectura dentro de la transacción.
 - No es Firestore de verdad: el arnés imita el contrato, no el motor.
 
 
-## REG-530 · Cuarenta rutas devolvían `String(err)` al cliente
+## REG-534 · Cuarenta rutas devolvían `String(err)` al cliente
 
 **CÓMO SE DESCUBRIÓ.** Auditoría de seguridad del 5-sep-2026 («`String(err)`
 hacia el cliente en ~25 rutas y en un redirect», BAJO). Verificado por el
@@ -19803,17 +19803,17 @@ verdes.
   guardián sólo vigila `String(…)`.
 - No ejecuta las rutas: es de fuente.
 
-## REG-531 · La receta contaba su propia nota como «lo que el paciente ya toma» y se avisaba a sí misma
+## REG-535 · La receta contaba su propia nota como «lo que el paciente ya toma» y se avisaba a sí misma
 
 **CÓMO SE DESCUBRIÓ.** **Mirando la pantalla**, no leyendo el código. Sonda
 `scripts/ausculta-transformacion/mirar-la-receta-con-expediente.mjs` sobre el
 arnés de emuladores (5-sep-2026), con el paciente sintético `pac-006` sembrado
-para ver los avisos de REG-520/520/521. En la captura a 1440: «Ketorolaco ya
+para ver los avisos de REG-524/520/521. En la captura a 1440: «Ketorolaco ya
 figura como vigente en el expediente («Ketorolaco 10 mg cada 8 horas») y hoy
 se receta «Ketorolaco 10 mg cada 8 horas»», en rojo, en cada renglón. Las 33
-pruebas de REG-523 y REG-524 estaban en verde.
+pruebas de REG-527 y REG-528 estaban en verde.
 
-**LO QUE PASABA.** La receta se abre desde una nota YA FIRMADA. REG-523 le
+**LO QUE PASABA.** La receta se abre desde una nota YA FIRMADA. REG-527 le
 hizo cargar las notas firmadas para cruzar lo de hoy con lo que ya toma, y la
 nota que se está imprimiendo es una de ellas: entraba en «lo vigente». La
 consulta tiene el mismo camino cuando se reabre una nota firmada (adenda).
@@ -19823,7 +19823,7 @@ consulta tiene el mismo camino cuando se reabre una nota firmada (adenda).
 Correcto por dentro, insoportable por fuera: cada motor hacía su trabajo con
 la entrada que se le dio, y la entrada incluía al propio sujeto. Ninguna
 prueba ejercitaba «la nota que se imprime también está firmada», porque las
-pruebas de REG-523 miraban helpers puros y fuente.
+pruebas de REG-527 miraban helpers puros y fuente.
 
 ### El arreglo
 

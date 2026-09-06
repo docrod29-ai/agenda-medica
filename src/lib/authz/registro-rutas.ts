@@ -179,7 +179,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * decidir qué se le enseña al paciente como aprobado por su médico (POSTVISIT-001).
    */
   'expediente/paquete-de-visita': { tipo: 'capacidad', capacidad: 'firmar' },
-  // REG-519: marca atendida la pregunta del paciente al cerrar su tarea. Un campo, tres ids, ni un dato del cuerpo al documento.
+  // REG-523: marca atendida la pregunta del paciente al cerrar su tarea. Un campo, tres ids, ni un dato del cuerpo al documento.
   'expediente/pregunta-atendida': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
   'expediente/antibiograma-razonar': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
   'expediente/antibiograma-vision': { tipo: 'entitlementIA', modulo: 'expediente', capacidad: 'clinico.escribir', activacionPendiente: PENDIENTE_Q1 },
@@ -296,7 +296,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
       'OR REAL, no un guard normal: (a) token HMAC del paciente DE ESA cita, o (b) ' +
       'miembro autenticado. El token se evalúa PRIMERO y el fallo devuelve 404, no ' +
       '403, para no confirmar que el citaId existe (fuga cerrada en la auditoría ' +
-      'maestra 2026-07). Y desde REG-515 comprueba la REVOCACIÓN del enlace ' +
+      'maestra 2026-07). Y desde REG-519 comprueba la REVOCACIÓN del enlace ' +
       '(portalTokenVersion) como sus dos hermanas: antes un enlace revocado ' +
       'seguía abriendo la sala hasta caducar.',
     // RESUELTO 2026-08-01: el dueño confirmó que el mostrador NO entra a la sala.

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { TiendaEnMemoria, adminDbSobre } from './_harness/firestore-admin-en-memoria'
 
 /**
- * DOS CONSULTORIOS NO RECLAMAN EL MISMO CANAL A LA VEZ — REG-529.
+ * DOS CONSULTORIOS NO RECLAMAN EL MISMO CANAL A LA VEZ — REG-533.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -61,7 +61,7 @@ const RUTA = 'whatsapp_channels/canal-1'
 
 beforeEach(() => { tienda = new TiendaEnMemoria(); dbRota = null })
 
-describe('REG-529 · reclamarCanal, en transacción', () => {
+describe('REG-533 · reclamarCanal, en transacción', () => {
   it('1 · un canal libre se reclama y queda a nombre del consultorio', async () => {
     expect(await reclamarCanal('canal-1', 'clinica-A', { provider: 'meta' })).toEqual({ ok: true })
     expect(tienda.obtener(RUTA)).toMatchObject({ clinicId: 'clinica-A', provider: 'meta' })

@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-515…531 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-519…535 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 755 pasan · 1 falla (entorno)** tras REG-531 (952 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 755 pasan · 1 falla (entorno)** tras REG-535 (952 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
-| `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-520 |
+| `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-524 |
 | Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **476 · 6 685** (tras fusionar `main`) |
-| Ledger | 305 REG · última REG-511 | **325 · REG-531** (tras fusionar `main`, que traía 512–514) |
+| Ledger | 305 REG · última REG-511 | **325 · REG-535** (tras fusionar `main`, que traía 512–514) |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -70,7 +70,7 @@ equivalencia (§«Ninguna pérdida funcional sin autorización» del pliego).
 | **Presupuesto del sesgo por modelo** (224 Whisper · 1000 / 200 AAI) y orden paciente > catálogo | `asr/lexicon.ts`, `sesgo-diarizado.ts` | `whisper-prompt-presupuesto`, `sesgo-llega-al-motor-bueno` | PROVEN |
 | **Gateway único de IA**: costo asentado aunque falle, interruptor por proveedor **y por llave**, contrapresión, correlación ≠ requestId | `src/lib/ia/gateway.ts` | REG-353, 17 rutas por la puerta; sólo `ai-keys` y `health` fuera | PROVEN |
 | **Agenda transaccional**: allowlist anti mass-assignment, fecha validada en servidor, sobreagenda sólo médico y auditada, `branchId` rechazado a propósito | `api/appointments/route.ts` | leído hoy por el orquestador | IMPLEMENTED_NOT_PROVEN (cableado leído, no ejecutado hoy) |
-| **Portal del paciente**: HMAC en tiempo constante, alcance fail-closed, revocación en 3 estados (503 no quema el enlace), 429 estricto, lista blanca de salida | `patient-token.ts`, `portal/vigencia-del-enlace.ts`, `api/portal/route.ts` | REG-331, y desde hoy REG-515 en la tercera ruta | PROVEN |
+| **Portal del paciente**: HMAC en tiempo constante, alcance fail-closed, revocación en 3 estados (503 no quema el enlace), 429 estricto, lista blanca de salida | `patient-token.ts`, `portal/vigencia-del-enlace.ts`, `api/portal/route.ts` | REG-331, y desde hoy REG-519 en la tercera ruta | PROVEN |
 | **Aislamiento entre consultorios**: guard = path en las 99 rutas; modelo path-scoped | `firestore.rules`, `authz/`, `test:emulador` (140 casos) | equipo rojo 5-sep: refutado en las 99 | PROVEN (emulador) |
 | **Tres sitios por colección** (reglas · matriz · respaldo) con guardián que deriva el censo del código | `scripts/seguridad/colecciones-escritas.mjs` | REG-340 | PROVEN |
 | **IA del paciente sin modelo**: clasifica antes de contestar; urgencia > acto prohibido > administrativo > plan > escalar; nivel 9 no origina datos | `paciente/pregunta-del-paciente.ts` | 29 fixtures en `evals/patient-ai/` bajo vitest | PROVEN |
@@ -96,27 +96,27 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 
 | ID | Qué | Verificado | Estado |
 |---|---|---|---|
-| **P1-A** | `telesalud/sala` aceptaba el magic-link **sin comprobar `portalTokenVersion`**: un enlace revocado seguía abriendo la sala de video 7 días. El cron que lo emite afirmaba lo contrario | ✔ leído y reproducido (200 con URL donde debía ser 401) | **CERRADO — REG-515** |
-| **P1-B** | Voz: los **alérgenos del expediente no llegaban a Whisper** por ningún camino (`anexarContexto` y `flushChunks` omitían `alergias`; las dos rutas lo leían y recibían `[]`). El guardián casaba el literal en la rama de AssemblyAI | ✔ reproducido sobre un `FormData` real | **CERRADO — REG-516** (una lista para los cuatro puntos de envío) |
-| **P1-C** | Portal: una pregunta **escalada** (incluso `URGENT_REVIEW_REQUIRED`) en un consultorio sin teléfono no avisaba a nadie ni dejaba rastro, y al paciente se le decía «el consultorio la va a ver». Nadie leía `preguntas_paciente` | ✔ reproducido ejecutando la ruta: documento escrito, cero tareas, cero avisos | **CERRADO — REG-517 + REG-519**: la escalación abre una tarea `pregunta_paciente` en `/pendientes` (crítica si urgente), haya teléfono o no; y cerrarla marca `atendidaEn` por una ruta de servidor, así que el portal dice «ya la revisó» |
-| **P1-D** | Test-the-test: el guardián del **paciente equivocado** (asistente, booking, webhook) se satisfacía con un COMENTARIO — mutante verde en los 3 caminos. El código es sano; el guardián no protegía, y no estaba sellado | ✔ mutantes reproducidos dentro del propio archivo | **CERRADO — REG-518**: comentarios fuera, se exige la llamada Y que su resultado decida, un solo `[0]` declarado, autotest contra los mutantes, barrido de cuartos caminos, sellado |
+| **P1-A** | `telesalud/sala` aceptaba el magic-link **sin comprobar `portalTokenVersion`**: un enlace revocado seguía abriendo la sala de video 7 días. El cron que lo emite afirmaba lo contrario | ✔ leído y reproducido (200 con URL donde debía ser 401) | **CERRADO — REG-519** |
+| **P1-B** | Voz: los **alérgenos del expediente no llegaban a Whisper** por ningún camino (`anexarContexto` y `flushChunks` omitían `alergias`; las dos rutas lo leían y recibían `[]`). El guardián casaba el literal en la rama de AssemblyAI | ✔ reproducido sobre un `FormData` real | **CERRADO — REG-520** (una lista para los cuatro puntos de envío) |
+| **P1-C** | Portal: una pregunta **escalada** (incluso `URGENT_REVIEW_REQUIRED`) en un consultorio sin teléfono no avisaba a nadie ni dejaba rastro, y al paciente se le decía «el consultorio la va a ver». Nadie leía `preguntas_paciente` | ✔ reproducido ejecutando la ruta: documento escrito, cero tareas, cero avisos | **CERRADO — REG-521 + REG-523**: la escalación abre una tarea `pregunta_paciente` en `/pendientes` (crítica si urgente), haya teléfono o no; y cerrarla marca `atendidaEn` por una ruta de servidor, así que el portal dice «ya la revisó» |
+| **P1-D** | Test-the-test: el guardián del **paciente equivocado** (asistente, booking, webhook) se satisfacía con un COMENTARIO — mutante verde en los 3 caminos. El código es sano; el guardián no protegía, y no estaba sellado | ✔ mutantes reproducidos dentro del propio archivo | **CERRADO — REG-522**: comentarios fuera, se exige la llamada Y que su resultado decida, un solo `[0]` declarado, autotest contra los mutantes, barrido de cuartos caminos, sellado |
 
 ### Receta (medication-safety) — PARTIAL / BROKEN, después de los P1
 
-- ~~Sin detección de **terapia duplicada** (paracetamol + Tempra pasa)~~ — **CERRADO, REG-524**: misma sustancia en dos renglones (por el catálogo de `dosis.ts`, que ya sabía que Tempra es paracetamol) o ya vigente en el expediente; la suma diaria contra el techo que ya estaba en el catálogo. En la consulta y en la receta. Clases terapéuticas (dos AINE distintos) siguen `NOT_IMPLEMENTED`, declarado.
-- ~~**Red pediátrica apagada en silencio** cuando `edad` falta~~ — **CERRADO, REG-520**: la fecha de nacimiento manda, la edad congelada después, y sin ninguna la receta lo pinta en ámbar junto a las dosis. No bloquea (D-A).
-- ~~La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco~~ — **CERRADO, REG-523**: la receta carga paneles y notas firmadas, cruza lo de hoy con lo vigente (y dice qué ya existía) y precarga la creatinina más reciente con su fecha y su vigencia a 7 días (`STALE_RENAL_FUNCTION` cuando caduca; se sigue calculando, REG-375).
+- ~~Sin detección de **terapia duplicada** (paracetamol + Tempra pasa)~~ — **CERRADO, REG-528**: misma sustancia en dos renglones (por el catálogo de `dosis.ts`, que ya sabía que Tempra es paracetamol) o ya vigente en el expediente; la suma diaria contra el techo que ya estaba en el catálogo. En la consulta y en la receta. Clases terapéuticas (dos AINE distintos) siguen `NOT_IMPLEMENTED`, declarado.
+- ~~**Red pediátrica apagada en silencio** cuando `edad` falta~~ — **CERRADO, REG-524**: la fecha de nacimiento manda, la edad congelada después, y sin ninguna la receta lo pinta en ámbar junto a las dosis. No bloquea (D-A).
+- ~~La **creatinina del expediente** (`labsDelCuadro`) llega a la consulta y **no a la receta**; `interaccionesDelCuadro` (REG-188) tampoco~~ — **CERRADO, REG-527**: la receta carga paneles y notas firmadas, cruza lo de hoy con lo vigente (y dice qué ya existía) y precarga la creatinina más reciente con su fecha y su vigencia a 7 días (`STALE_RENAL_FUNCTION` cuando caduca; se sigue calculando, REG-375).
 - `validacionesGeneralesMedicamentos`, `tieneAlergiaGrave`, `esMedicamentoCritico`: **cero llamadores, verificado el 5-sep** (sólo pruebas y el registro). Clasificación: `IMPLEMENTED_NOT_PROVEN`. No se cablean en este tramo a propósito: `validacionesGeneralesMedicamentos` necesita un contexto (embarazo, ERC, anticoagulación) que la receta no tiene estructurado y sus patrones (`aines`, `prednisona` como crítico) no los ha revisado el médico; conectarlos sin esa revisión sería señalar de más. Queda para el dueño (§9): decidir si esas reglas valen tal cual, y entonces se cablean con su prueba. `esMedicamentoCritico` y `tieneAlergiaGrave` son marcas de pantalla sin pantalla; el registro los declara como puertas de entrada y **existen**, pero no se llaman.
-- ~~El hash de lo impreso puede **perderse entero** si `meta` se trunca~~ — **CERRADO, REG-521**: se acota por campo, el hash y el folio siempre caben, lo omitido se declara en el asiento.
+- ~~El hash de lo impreso puede **perderse entero** si `meta` se trunca~~ — **CERRADO, REG-525**: se acota por campo, el hash y el folio siempre caben, lo omitido se declara en el asiento.
 - Que las alertas **no bloqueen** la impresión es **política**: no se toca sin decisión del dueño (cola §9).
 
 ### Seguridad — reportado
 
-- ~~`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`, `motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera~~ — **CERRADO, REG-528**: llaves clínicas por nombre, Stripe por patrón, cabecera con la lista real.
-- ~~`reclamarCanal` es check-then-write sin transacción~~ — **CERRADO, REG-529**: en `runTransaction`, con la carrera provocada en el arnés. `dueño === ''` sigue contando como libre a propósito (el alta de 360dialog deja el documento sin `clinicId` hasta el callback); declarado en el código.
+- ~~`safeLog` no redacta `nombre`, `pacienteNombre`, `diagnosticos`, `motivo` ni `sk_live_`/`whsec_` pese a prometerlo en su cabecera~~ — **CERRADO, REG-532**: llaves clínicas por nombre, Stripe por patrón, cabecera con la lista real.
+- ~~`reclamarCanal` es check-then-write sin transacción~~ — **CERRADO, REG-533**: en `runTransaction`, con la carrera provocada en el arnés. `dueño === ''` sigue contando como libre a propósito (el alta de 360dialog deja el documento sin `clinicId` hasta el callback); declarado en el código.
 - 360dialog: la llave viva como id de documento (`whatsapp_channels/{apiKey}`, escrita por el callback, leída por el webhook con `findClinicByDialog360ApiKey` y borrada por `whatsapp-disconnect`) — **verificado**. Cambiarlo exige otra clave de documento (p. ej. `channelId`) y **migrar los documentos vivos**, que son datos de producción: es decisión del dueño (**D-E**, §9). El webhook se autentica con la cabecera `D360-API-KEY`, que es el mecanismo del proveedor; 360dialog no ofrece firma HMAC del cuerpo, así que «sin HMAC» no es un defecto de aquí. MEDIO-BAJO, sin cambios.
-- ~~`String(err)` hacia el cliente en ~25 rutas y en un redirect~~ — **CERRADO, REG-530**: eran 46 sitios en 40 rutas (el `grep` de la auditoría contaba 25); helper `errorAlCliente` que no recibe el error, detalle a `safeLog`, y un barrido de todas las rutas que no permite `String(err)` fuera de un log o una redacción.
-- ~~`arco/cancelar` no sube `portalTokenVersion`~~ — **CERRADO, REG-522 (D-034)**: el bloqueo ARCO revoca el portal en el mismo acto.
+- ~~`String(err)` hacia el cliente en ~25 rutas y en un redirect~~ — **CERRADO, REG-534**: eran 46 sitios en 40 rutas (el `grep` de la auditoría contaba 25); helper `errorAlCliente` que no recibe el error, detalle a `safeLog`, y un barrido de todas las rutas que no permite `String(err)` fuera de un log o una redacción.
+- ~~`arco/cancelar` no sube `portalTokenVersion`~~ — **CERRADO, REG-526 (D-035)**: el bloqueo ARCO revoca el portal en el mismo acto.
 - `npm audit`: 0 críticas; lo único servido al navegador es `dompurify` (moderada) vía `html2pdf.js`.
 
 ### Test-the-test — cifras
@@ -125,12 +125,12 @@ rutas** (la variable que se verifica es la que enraíza la ruta de Firestore).
 ellos sellados. 82 bucles sobre listas derivadas sin guarda de longitud. 27
 casos con `toBeDefined` como única aserción. **0** tautologías, **0**
 `continue-on-error` en `ci.yml`. ~~`csp-manifest`: 4 casos que nunca corren en CI
-porque vitest va antes del build~~ — **CERRADO, REG-525** (paso tras el build).
+porque vitest va antes del build~~ — **CERRADO, REG-529** (paso tras el build).
 ~~`autorizacion-servidor.test.ts`: el doble ignora el id del documento~~ — el
 archivo no existe con ese nombre; lo verificado es peor: **ninguna prueba
-ejecutaba la membresía del servidor**. **CERRADO, REG-527** (primera prueba
+ejecutaba la membresía del servidor**. **CERRADO, REG-531** (primera prueba
 ejecutada contra un doble con id, tres mutantes cazados). ~~`el-llm-no-calcula`
-casa literales~~ — **CERRADO, REG-526** (detector por frases sobre el prompt
+casa literales~~ — **CERRADO, REG-530** (detector por frases sobre el prompt
 emitido, 442 combinaciones). Quedan: 215 guardianes de texto puros (no se
 reescriben en bloque; se revisan cuando se tocan), 82 bucles sin guarda de
 longitud, 27 `toBeDefined` solos. Sello con 31 casos de holgura.
@@ -187,7 +187,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **529** | Cuarenta rutas devolvían `String(err)` al cliente (46 sitios, un redirect, dos avisos) | `el-error-crudo-no-sale-al-cliente.test.ts` (5) | con `src/app/api` como estaba, el barrido lista los 46 |
 | **530** | La receta contaba su propia nota firmada como «ya lo toma» y se avisaba a sí misma | `la-receta-no-se-cruza-consigo-misma.test.ts` (3) | con la receta como estaba, caso 1 rojo; **se vio en el navegador**, no en las pruebas |
 
-Compuertas tras REG-515: se anotan en el commit y en la bitácora de sesión
+Compuertas tras REG-519: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
 
 ---
@@ -207,14 +207,14 @@ Comprueba en el DOM que el médico ve, no en el código:
 
 | Aviso | 390 | 1440 |
 |---|---|---|
-| «Falta la edad» y el aviso de dosificación sin edad (REG-520) | ✔ | ✔ |
-| Creatinina 2.1 del expediente con fecha, marcada `STALE_RENAL_FUNCTION` (REG-523) | ✔ | ✔ |
-| Anticoagulante + AINE con la warfarina VIGENTE, introducida hoy (REG-523) | ✔ | ✔ |
-| «Paracetamol ya figura como vigente («Tempra 500 mg…»)» (REG-524) | ✔ | ✔ |
-| La receta NO se cruza consigo misma (REG-531) | ✔ | ✔ |
+| «Falta la edad» y el aviso de dosificación sin edad (REG-524) | ✔ | ✔ |
+| Creatinina 2.1 del expediente con fecha, marcada `STALE_RENAL_FUNCTION` (REG-527) | ✔ | ✔ |
+| Anticoagulante + AINE con la warfarina VIGENTE, introducida hoy (REG-527) | ✔ | ✔ |
+| «Paracetamol ya figura como vigente («Tempra 500 mg…»)» (REG-528) | ✔ | ✔ |
+| La receta NO se cruza consigo misma (REG-535) | ✔ | ✔ |
 | Errores de consola | 0 | 0 |
 
-**Y lo que las pruebas no vieron: REG-531.** En la primera captura la receta
+**Y lo que las pruebas no vieron: REG-535.** En la primera captura la receta
 decía «Ketorolaco ya figura como vigente… y hoy se receta Ketorolaco»: contaba
 su propia nota firmada como «lo que ya toma». Arreglado en la receta y en la
 consulta (adenda), sonda en verde después. Es exactamente lo que
@@ -234,9 +234,9 @@ demo-nexusmed-v10`.
 
 | # | Decisión | Recomendación por omisión | Qué sigue sin ella |
 |---|---|---|---|
-| ~~D-A~~ | **RESUELTA 5-sep-2026 (D-032): sólo AVISAR.** Una alergia crítica o una interacción mayor no bloquea imprimir ni firmar. Escrita en la receta, junto al cruce de alergias | — | — |
-| ~~D-B~~ | **RESUELTA 5-sep-2026 (D-033): SÍ viaja completa.** La pregunta escalada va entera (hasta 300 caracteres, con nombre) al WhatsApp del consultorio. WA-9 queda resuelto por decisión. Escrita en `pregunta-del-paciente.ts` | — | — |
-| ~~D-C~~ | **RESUELTA 5-sep-2026 (D-034): SÍ.** El bloqueo ARCO sube `portalTokenVersion` en el mismo acto y el enlace del paciente deja de servir. Implementada como **REG-522** | — | — |
+| ~~D-A~~ | **RESUELTA 5-sep-2026 (D-033): sólo AVISAR.** Una alergia crítica o una interacción mayor no bloquea imprimir ni firmar. Escrita en la receta, junto al cruce de alergias | — | — |
+| ~~D-B~~ | **RESUELTA 5-sep-2026 (D-034): SÍ viaja completa.** La pregunta escalada va entera (hasta 300 caracteres, con nombre) al WhatsApp del consultorio. WA-9 queda resuelto por decisión. Escrita en `pregunta-del-paciente.ts` | — | — |
+| ~~D-C~~ | **RESUELTA 5-sep-2026 (D-035): SÍ.** El bloqueo ARCO sube `portalTokenVersion` en el mismo acto y el enlace del paciente deja de servir. Implementada como **REG-526** | — | — |
 | **D-D** | Tres validadores escritos y sin llamador (`validacionesGeneralesMedicamentos`: embarazo/ERC/anticoagulación por expresión regular; `esMedicamentoCritico`; `tieneAlergiaGrave`). ¿Valen sus reglas tal cual para conectarlas a la receta y a la consulta, o se revisan antes? Conectarlas sin revisar sería señalar de más (regla 5) | `src/lib/expediente/medical-dictionary.ts`, `src/lib/seguridad/alergias.ts` | Se cablean con prueba en cuanto lo diga; si dice que no, se quitan del registro como puertas de entrada |
 | **D-E** | 360dialog: la llave de API viva es el **id del documento** `whatsapp_channels/{apiKey}` (la escribe el callback, la lee el webhook, la borra la desconexión). Un secreto como id aparece en rutas, reglas y bitácoras. Cambiarlo a `channelId` exige **migrar los documentos vivos** en producción y un periodo con los dos ids. ¿Se hace, y cuándo? | `src/app/api/whatsapp/360dialog-callback/route.ts`, `src/lib/whatsapp-send.ts` (`findClinicByDialog360ApiKey`), `src/app/api/clinic/whatsapp-disconnect/route.ts` | Con el sí: migración con doble lectura, prueba al revés, y borrar el id viejo al confirmar |
 
@@ -247,7 +247,7 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 10 · Preparación para producción — lectura honesta
 
-- **No hay P0 abierto.** Los cuatro P1 confirmados están cerrados (REG-515 a
+- **No hay P0 abierto.** Los cuatro P1 confirmados están cerrados (REG-519 a
   516). Lo que queda son los hallazgos de receta reportados y sin verificar
   (§3), y los guardianes de texto del test-the-test.
 - **Lo que se vende (Practice)** sigue siendo lo que GP-FINAL recorrió el 1-sep.
@@ -255,12 +255,12 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 
 ## 11 · Siguiente slice
 
-**La receta queda cerrada en lo verificado** (REG-520, 518, 520, 521); los
+**La receta queda cerrada en lo verificado** (REG-524, 518, 520, 521); los
 tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
-#442 está hecho (REG-513, 523), los tres del test-the-test también (REG-525,
-525, 526) y de los cuatro de seguridad, tres cerrados (REG-528, 528, 529) y
+#442 está hecho (REG-513, 523), los tres del test-the-test también (REG-529,
+525, 526) y de los cuatro de seguridad, tres cerrados (REG-532, 528, 529) y
 uno es decisión del dueño (D-E). **Lo reportado el 5-sep está agotado**, y la
-verificación en navegador (§8) está hecha: destapó y cerró REG-531.
+verificación en navegador (§8) está hecha: destapó y cerró REG-535.
 
 Lo que sigue: (1) **mirar la consulta con `pac-006`** con la misma sonda
 (barra de avisos con `yaToma`, tema claro, teclado) y anotar en §8; (2) los

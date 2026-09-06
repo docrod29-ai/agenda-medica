@@ -89,7 +89,7 @@ export type TipoTarea =
    */
   | 'reconciliacion_medicamento'
   /**
-   * REG-517 — el paciente preguntó desde su portal y el motor determinista
+   * REG-521 — el paciente preguntó desde su portal y el motor determinista
    * lo ESCALÓ (o lo marcó urgente). Es un hecho real, no derivado del plan:
    * hay un humano esperando a otro humano. La escribe SÓLO el servidor
    * (`/api/portal`, acción `preguntar`), con id derivado de la pregunta, y
@@ -242,7 +242,7 @@ export interface TareaClinica {
   /** Quién o qué la creó: 'nota', 'laboratorio', 'manual', 'portal:pregunta'. */
   origen: string
   /**
-   * Sólo en `pregunta_paciente` (REG-517): el documento de
+   * Sólo en `pregunta_paciente` (REG-521): el documento de
    * `patients/{patientId}/preguntas_paciente/{preguntaId}` del que nació. Es
    * la traza hacia atrás, y lo que permite que cerrar la tarea marque la
    * pregunta como atendida en vez de dejarla «pendiente de revisar» para

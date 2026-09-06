@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 /**
- * LA MEMBRESÍA DEL SERVIDOR SE EJECUTA CONTRA UN DOBLE QUE DISTINGUE IDS — REG-527.
+ * LA MEMBRESÍA DEL SERVIDOR SE EJECUTA CONTRA UN DOBLE QUE DISTINGUE IDS — REG-531.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -100,7 +100,7 @@ const statusDe = (a: { ok: boolean; response?: Response }) => (a.ok ? 200 : a.re
 
 beforeEach(() => { idsPedidos.length = 0 })
 
-describe('REG-527 · verificarMiembro, ejecutado', () => {
+describe('REG-531 · verificarMiembro, ejecutado', () => {
   it('1 · sin cabecera o con token que Firebase rechaza → 401, y no se lee Firestore', async () => {
     expect(statusDe(await verificarMiembro(req(), 'clinica-A'))).toBe(401)
     expect(statusDe(await verificarMiembro(req('tok-falso'), 'clinica-A'))).toBe(401)
@@ -139,7 +139,7 @@ describe('REG-527 · verificarMiembro, ejecutado', () => {
   })
 })
 
-describe('REG-527 · verificarCapacidad, ejecutado sobre la misma membresía', () => {
+describe('REG-531 · verificarCapacidad, ejecutado sobre la misma membresía', () => {
   it('7 · el rol decide: secretaria no escribe clínica, médico sí', async () => {
     expect(statusDe(await verificarCapacidad(req('tok-recepcion'), 'clinica-A', 'clinico.escribir'))).toBe(403)
     expect(statusDe(await verificarCapacidad(req('tok-medico'), 'clinica-A', 'clinico.escribir'))).toBe(200)

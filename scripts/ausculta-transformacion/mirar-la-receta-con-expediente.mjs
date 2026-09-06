@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * MIRAR LA RECETA CON EL EXPEDIENTE DETRÁS — REG-520 · 520 · 521.
+ * MIRAR LA RECETA CON EL EXPEDIENTE DETRÁS — REG-524 · 520 · 521.
  *
  * Sonda de OBSERVAR: abre `/receta/pac-006/nota-hoy-006` sobre el arnés de
  * emuladores y comprueba, en el DOM que el médico ve, que los tres avisos
  * nuevos de la receta están pintados y dicen lo que dicen sus pruebas:
  *
- *   · «Falta la edad» y el aviso de dosificación sin edad (REG-520);
- *   · la creatinina del expediente con su fecha y la marca de caducidad (REG-523);
+ *   · «Falta la edad» y el aviso de dosificación sin edad (REG-524);
+ *   · la creatinina del expediente con su fecha y la marca de caducidad (REG-527);
  *   · la interacción con la warfarina VIGENTE y «ya existía antes de hoy» no
- *     (la introduce el ketorolaco de hoy) (REG-523);
- *   · «Paracetamol aparece 2 veces» con la suma contra el techo (REG-524).
+ *     (la introduce el ketorolaco de hoy) (REG-527);
+ *   · «Paracetamol aparece 2 veces» con la suma contra el techo (REG-528).
  *
  * `design-system.md`: «No se aprueba una interfaz leyendo el código». Esto es
  * mirarla. Guarda una captura a 390 y a 1440 y publica lo que encontró en JSON.
@@ -38,7 +38,7 @@ const ESPERADO = [
   { clave: 'interaccion_es_de_hoy', re: /Anticoagulante o antiagregante \+ AINE(?![^\n]*ya existía antes de hoy)/ },
   { clave: 'cruza_con_expediente', re: /Cruza lo de hoy con lo que el paciente ya toma/ },
   { clave: 'duplicado_ya_vigente', re: /Paracetamol ya figura como vigente en el expediente \(«Tempra 500 mg cada 8 horas»\)/ },
-  /* REG-531: la nota que se imprime NO puede contarse como «ya lo toma». */
+  /* REG-535: la nota que se imprime NO puede contarse como «ya lo toma». */
   { clave: 'no_se_cruza_consigo_misma', re: /^(?![\s\S]*Ketorolaco ya figura como vigente)/ },
 ]
 

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { sanitize, redactarString, safeStringify } from '@/lib/security/sanitize'
 
 /**
- * EL LOG NO GUARDA EL NOMBRE DEL PACIENTE NI LA LLAVE DE STRIPE — REG-528.
+ * EL LOG NO GUARDA EL NOMBRE DEL PACIENTE NI LA LLAVE DE STRIPE — REG-532.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -48,7 +48,7 @@ import { sanitize, redactarString, safeStringify } from '@/lib/security/sanitize
  *   del guardián de rutas.
  */
 
-describe('REG-528 · lo que la cabecera prometía y no hacía', () => {
+describe('REG-532 · lo que la cabecera prometía y no hacía', () => {
   it('1 · EL CASO: nombre, apellidos, pacienteNombre, diagnósticos y motivo se redactan por llave', () => {
     const s = sanitize({
       nombre: 'Paciente Ficticio', apellidos: 'Sintético', pacienteNombre: 'Paciente Ficticio',

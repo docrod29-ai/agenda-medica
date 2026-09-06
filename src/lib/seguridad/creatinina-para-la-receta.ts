@@ -1,5 +1,5 @@
 /**
- * LA CREATININA CON LA QUE LA RECETA AJUSTA — Y DE DÓNDE SALE. REG-523.
+ * LA CREATININA CON LA QUE LA RECETA AJUSTA — Y DE DÓNDE SALE. REG-527.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

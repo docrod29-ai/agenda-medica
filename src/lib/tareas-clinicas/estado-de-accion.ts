@@ -102,7 +102,7 @@ export function estadoDeAccion(
   if (t.tipo === 'seguimiento') return t.estado === 'agendada' ? 'esperando_paciente' : 'necesita_agendar'
   if (t.tipo === 'receta_por_entregar') return 'esperando_paciente'
   /**
-   * UNA PREGUNTA ESCALADA ES «LLEGÓ Y NADIE LO HA MIRADO» (REG-517).
+   * UNA PREGUNTA ESCALADA ES «LLEGÓ Y NADIE LO HA MIRADO» (REG-521).
    *
    * Es la misma forma que el resultado por revisar: un dato que entró de fuera
    * —aquí del paciente, allí del laboratorio— y espera a que un humano del

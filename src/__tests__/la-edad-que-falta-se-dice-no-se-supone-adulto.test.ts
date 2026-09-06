@@ -5,7 +5,7 @@ import { edadParaDosificar, AVISO_SIN_EDAD_PARA_DOSIFICAR } from '@/lib/segurida
 import { limpiarComentarios } from '@/lib/authz/analisis-estatico'
 
 /**
- * LA EDAD QUE FALTA SE DICE; NO SE SUPONE ADULTO — REG-520.
+ * LA EDAD QUE FALTA SE DICE; NO SE SUPONE ADULTO — REG-524.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -52,7 +52,7 @@ import { limpiarComentarios } from '@/lib/authz/analisis-estatico'
 
 const HOY = '2026-09-05'
 
-describe('REG-520 · edadParaDosificar', () => {
+describe('REG-524 · edadParaDosificar', () => {
   it('la fecha de nacimiento manda: años cumplidos hoy, aunque la edad congelada diga otra cosa', () => {
     expect(edadParaDosificar({ fechaNacimiento: '2015-09-06', edad: 8 }, HOY)).toEqual({ edad: 10, origen: 'fecha_nacimiento' })
     expect(edadParaDosificar({ fechaNacimiento: '2015-09-05', edad: 8 }, HOY)).toEqual({ edad: 11, origen: 'fecha_nacimiento' })
@@ -84,7 +84,7 @@ describe('REG-520 · edadParaDosificar', () => {
   })
 })
 
-describe('REG-520 · la receta y la consulta pasan por él (comentarios fuera)', () => {
+describe('REG-524 · la receta y la consulta pasan por él (comentarios fuera)', () => {
   const receta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8'))
   const consulta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8'))
 

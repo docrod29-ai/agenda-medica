@@ -8,7 +8,7 @@ import { revisarDosis, CATALOGO } from '@/lib/seguridad/dosis'
 import { cantidad } from '@/types/clinical-quantity'
 
 /**
- * LA MISMA SUSTANCIA DOS VECES SE DICE — REG-524.
+ * LA MISMA SUSTANCIA DOS VECES SE DICE — REG-528.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -56,7 +56,7 @@ const HOY = [
   { nombre: 'Tempra', dosis: '1 g', frecuencia: 'cada 8 horas', via: 'oral' },
 ]
 
-describe('REG-524 · lo que veía el producto antes', () => {
+describe('REG-528 · lo que veía el producto antes', () => {
   it('1 · EL CASO: renglón a renglón, paracetamol 500 + Tempra 1 g no dicen nada', () => {
     for (const r of HOY) {
       const a = revisarDosis({ farmaco: r.nombre, dosis: cantidad(r.nombre === 'Tempra' ? 1000 : 500, 'mg', 'masa'), tomasDia: 3, via: 'oral' })
@@ -65,7 +65,7 @@ describe('REG-524 · lo que veía el producto antes', () => {
   })
 })
 
-describe('REG-524 · terapiaDuplicadaDeLaLista', () => {
+describe('REG-528 · terapiaDuplicadaDeLaLista', () => {
   it('2 · EL CASO: dos renglones de la misma sustancia se dicen, y la suma pasa del techo del catálogo', () => {
     const r = terapiaDuplicadaDeLaLista(HOY)
     expect(r).toHaveLength(1)
@@ -168,7 +168,7 @@ describe('REG-524 · terapiaDuplicadaDeLaLista', () => {
   })
 })
 
-describe('REG-524 · la revisión de la lista lo incluye (la consulta pasa por ahí)', () => {
+describe('REG-528 · la revisión de la lista lo incluye (la consulta pasa por ahí)', () => {
   it('12 · dosisPeligrosasDeLaLista devuelve el duplicado junto con lo de siempre', () => {
     const r = dosisPeligrosasDeLaLista(HOY)
     expect(r.map(x => x.med)).toEqual(['Paracetamol'])
@@ -188,12 +188,12 @@ describe('REG-524 · la revisión de la lista lo incluye (la consulta pasa por a
   })
 })
 
-describe('REG-524 · las dos pantallas pasan por él (comentarios fuera)', () => {
+describe('REG-528 · las dos pantallas pasan por él (comentarios fuera)', () => {
   const receta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx'), 'utf8'))
   const consulta = limpiarComentarios(readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8'))
   const lista = limpiarComentarios(readFileSync(join(process.cwd(), 'src/lib/seguridad/dosis-de-la-lista.ts'), 'utf8'))
 
-  it('15 · la receta cruza la lista de hoy contra lo vigente que REG-523 ya carga', () => {
+  it('15 · la receta cruza la lista de hoy contra lo vigente que REG-527 ya carga', () => {
     expect(receta).toContain('terapiaDuplicadaDeLaLista(medicamentos, vigentes.map(v => v.medicamento))')
   })
 

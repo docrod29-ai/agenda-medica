@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * LA PREGUNTA ESCALADA LLEGA AL WORKLIST, HAYA TELÉFONO O NO — REG-517.
+ * LA PREGUNTA ESCALADA LLEGA AL WORKLIST, HAYA TELÉFONO O NO — REG-521.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -158,7 +158,7 @@ beforeEach(() => {
   avisarAlConsultorio.mockClear()
 })
 
-describe('REG-517 · la escalación abre una tarea en el worklist', () => {
+describe('REG-521 · la escalación abre una tarea en el worklist', () => {
   it('1 · EL CASO: urgente, consultorio SIN teléfono → tarea crítica escrita, y ningún WhatsApp intentado', async () => {
     const res = await preguntar('Me falta el aire desde anoche.')
     expect(res.status).toBe(200)
@@ -230,7 +230,7 @@ describe('REG-517 · la escalación abre una tarea en el worklist', () => {
   })
 })
 
-describe('REG-517 · la función pura que arma la tarea', () => {
+describe('REG-521 · la función pura que arma la tarea', () => {
   const base = {
     clinicId: CLINICA, patientId: PACIENTE, preguntaId: 'preg-x',
     clase: 'ESCALATE_TO_CLINICIAN' as const, motivo: 'cambio_de_dosis' as const,

@@ -66,7 +66,7 @@ export async function reclamarCanal(
   const ref = adminDb.collection('whatsapp_channels').doc(canal)
 
   /**
-   * EN UNA TRANSACCIÓN — REG-529. La primera versión leía, decidía y escribía
+   * EN UNA TRANSACCIÓN — REG-533. La primera versión leía, decidía y escribía
    * en tres pasos sueltos: dos consultorios reclamando el mismo canal en la
    * misma ventana leían los dos «libre» y el último `set` ganaba, que es
    * exactamente el secuestro que este módulo existe para impedir, sólo que

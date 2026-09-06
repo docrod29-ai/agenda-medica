@@ -34,7 +34,7 @@ vi.mock('@/lib/firebase-admin', () => ({
 }))
 vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: vi.fn(async () => null) }))
 /**
- * Doble PARCIAL desde REG-515: la ruta ahora consume `tokenVigente` (vía
+ * Doble PARCIAL desde REG-519: la ruta ahora consume `tokenVigente` (vía
  * `bloquearSiNoVigente`) además de `verificarTokenPaciente`. Se conserva el
  * módulo real y sólo se sustituye el verificador; el doble de Firestore de
  * arriba devuelve la cita también para el expediente, y como no trae

@@ -81,7 +81,7 @@ describe('estadoDeAccion — una tarea, un grupo, con motivo', () => {
     expect(estadoDeAccion(tarea({ tipo: 'otra' }), AHORA)).toBe('otros')
   })
 
-  it('pregunta_paciente (REG-517) es necesita_revision: llegó de fuera y nadie la ha mirado, como un resultado', () => {
+  it('pregunta_paciente (REG-521) es necesita_revision: llegó de fuera y nadie la ha mirado, como un resultado', () => {
     expect(estadoDeAccion(tarea({ tipo: 'pregunta_paciente' }), AHORA)).toBe('necesita_revision')
     // Y si venció, vencida gana, como con todo lo demás.
     expect(estadoDeAccion(tarea({ tipo: 'pregunta_paciente', venceEn: AYER }), AHORA)).toBe('vencida')

@@ -117,7 +117,7 @@ describe('está conectado en TODO el camino, no sólo en el módulo', () => {
 
   it('el grabador los sigue mandando — por los CUATRO puntos de envío', () => {
     /**
-     * REG-516: este caso comprobaba `toContain("['alergias', ctx.alergias]")`
+     * REG-520: este caso comprobaba `toContain("['alergias', ctx.alergias]")`
      * y ese literal vivía UNA vez en el archivo, en la rama de AssemblyAI. Los
      * dos puntos de Whisper no lo mandaban y el caso estaba verde. Ahora se
      * mide sobre la lista compartida que recorren los cuatro puntos; que los

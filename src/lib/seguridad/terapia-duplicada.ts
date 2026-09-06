@@ -1,5 +1,5 @@
 /**
- * LA MISMA SUSTANCIA, DOS VECES — REG-524.
+ * LA MISMA SUSTANCIA, DOS VECES — REG-528.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *
@@ -38,7 +38,7 @@
  * - No suma dosis por kilo ni renglones sin frecuencia legible: el aviso de
  *   duplicado sale igual, sin la cifra.
  * - No bloquea. Es un aviso de nivel «revisa», como el resto de la revisión de
- *   dosis (decisión del dueño del 5-ago; D-032 lo confirma para las alertas).
+ *   dosis (decisión del dueño del 5-ago; D-033 lo confirma para las alertas).
  *
  * Módulo PURO.
  */

@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     if (veredicto.camino === 'bloqueo') {
       const marca = marcaDeBloqueo({ ahoraMs: Date.now(), uid: acceso.uid!, solicitudId, motivo })
       /**
-       * Y EL PORTAL SE APAGA EN EL MISMO ACTO — D-034 · REG-522.
+       * Y EL PORTAL SE APAGA EN EL MISMO ACTO — D-035 · REG-526.
        *
        * El bloqueo dejaba el expediente marcado y daba de baja el WhatsApp,
        * pero el magic-link del paciente seguía vivo hasta caducar: su agenda,

@@ -1,5 +1,5 @@
 /**
- * AL CLIENTE NO SE LE SIRVE EL ERROR CRUDO — REG-530.
+ * AL CLIENTE NO SE LE SIRVE EL ERROR CRUDO — REG-534.
  *
  * ── EL HUECO ─────────────────────────────────────────────────────────────────
  *

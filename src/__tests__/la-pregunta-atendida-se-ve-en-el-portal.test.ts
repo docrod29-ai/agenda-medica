@@ -4,15 +4,15 @@ import { join } from 'node:path'
 import { NextRequest } from 'next/server'
 
 /**
- * LA PREGUNTA ATENDIDA SE VE EN EL PORTAL — REG-519 (cierra el bucle de REG-517).
+ * LA PREGUNTA ATENDIDA SE VE EN EL PORTAL — REG-523 (cierra el bucle de REG-521).
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
- * REG-517 hizo que toda pregunta escalada abriera una tarea en `/pendientes`.
+ * REG-521 hizo que toda pregunta escalada abriera una tarea en `/pendientes`.
  * El médico la atiende, la cierra con su decisión… y el portal del paciente
  * seguía diciendo «Tu consultorio la tiene pendiente de revisar» para siempre:
  * `atendidaEn` nacía en `null` y ningún código lo escribía. La rama «ya la
- * revisó» del portal era código muerto (lo declaró el propio REG-517).
+ * revisó» del portal era código muerto (lo declaró el propio REG-521).
  *
  * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
  *
@@ -34,7 +34,7 @@ import { NextRequest } from 'next/server'
  * ── PROBADO AL REVÉS ─────────────────────────────────────────────────────────
  *
  * Sin la ruta este archivo no compila. El guardián de abajo, aplicado al
- * `/pendientes` anterior a REG-519, se pone rojo: no llamaba a nada al cerrar.
+ * `/pendientes` anterior a REG-523, se pone rojo: no llamaba a nada al cerrar.
  *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  *
@@ -127,7 +127,7 @@ beforeEach(() => {
   })
 })
 
-describe('REG-519 · la ruta que marca atendida la pregunta', () => {
+describe('REG-523 · la ruta que marca atendida la pregunta', () => {
   it('1 · EL CASO: el médico la marca → `atendidaEn` deja de ser null, y el portal ya puede decir «ya la revisó»', async () => {
     const r = await POST(peticion({ clinicId: CLINICA, patientId: PACIENTE, preguntaId: PREGUNTA }))
     expect(r.status).toBe(200)
@@ -184,7 +184,7 @@ describe('REG-519 · la ruta que marca atendida la pregunta', () => {
   })
 })
 
-describe('REG-519 · /pendientes marca la pregunta al cerrar SU tarea, y sólo la suya', () => {
+describe('REG-523 · /pendientes marca la pregunta al cerrar SU tarea, y sólo la suya', () => {
   it('`tareaConPregunta` sólo acepta pregunta_paciente con preguntaId', () => {
     expect(tareaConPregunta({ tipo: 'pregunta_paciente', preguntaId: 'p1' })).toBe(true)
     expect(tareaConPregunta({ tipo: 'pregunta_paciente' })).toBe(false)
