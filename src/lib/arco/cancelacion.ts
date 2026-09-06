@@ -59,9 +59,19 @@ export function caminoDeCancelacion(notasFirmadas: number): Veredicto {
   if (n === 0) {
     return {
       camino: 'supresion',
+      /**
+       * DICE TAMBIÉN LO QUE NO SE BORRA (Panel de Lujo ASE-015 · PL-L5 por
+       * omisión). Los cobros son registro fiscal y las citas pasadas ya
+       * ocurrieron: se conservan SIN el nombre ni el teléfono. Callarlo hacía
+       * que «se elimina el expediente completo» sonara a que no quedaba nada.
+       * NEEDS_LEGAL_REVIEW: la política por colección la fija el asesor
+       * fiscal-legal del consultorio; esto es el valor conservador mientras.
+       */
       queOcurre:
-        'Se elimina el expediente completo: datos del paciente, borradores y sus citas. ' +
-        'No hay notas firmadas, así que no hay registro clínico que conservar. Esto no se puede deshacer.',
+        'Se elimina el expediente: datos del paciente, borradores, laboratorios, fotos y sus citas futuras. ' +
+        'No hay notas firmadas, así que no hay registro clínico que conservar. ' +
+        'Los cobros y las citas que ya ocurrieron se conservan sin nombre ni teléfono (registro fiscal y de agenda). ' +
+        'Esto no se puede deshacer.',
       porQueNoSeBorra: '',
     }
   }

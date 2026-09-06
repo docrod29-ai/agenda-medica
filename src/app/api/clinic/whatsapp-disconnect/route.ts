@@ -7,6 +7,7 @@ import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { idDeIndiceDeCanal } from '@/lib/security/indice-canal-whatsapp'
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,7 +41,12 @@ export async function POST(req: NextRequest) {
     // Remove index entries (360dialog indexa por apiKey; Meta por phoneNumberId).
     // Borrar solo por apiKey dejaba un índice ZOMBIE en Meta → el bot seguía
     // respondiendo tras "Desconectar".
-    if (currentApiKey) await adminDb.collection('whatsapp_channels').doc(currentApiKey).delete().catch(() => {})
+    // La api_key indexa por HUELLA (S-004); el id heredado (la llave en claro)
+    // se borra también por si esta clínica no había migrado todavía.
+    if (currentApiKey) {
+      await adminDb.collection('whatsapp_channels').doc(idDeIndiceDeCanal(currentApiKey)).delete().catch(() => {})
+      await adminDb.collection('whatsapp_channels').doc(currentApiKey).delete().catch(() => {})
+    }
     if (currentPhoneNumberId) await adminDb.collection('whatsapp_channels').doc(currentPhoneNumberId).delete().catch(() => {})
     // Borra el token del gestor de secretos: desconectar debe dejar la clínica
     // sin credencial guardada en ninguna parte.

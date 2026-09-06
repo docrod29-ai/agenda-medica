@@ -43,7 +43,6 @@ const HUERFANOS_ACEPTADOS: Record<string, string> = {
   'src/lib/clinical/safety-gate.ts': 'ES el gate del sello clínico: lo ejecuta el CI, no una pantalla. Su sitio es ése.',
   'src/lib/clinical/adr-cobertura.ts': 'Gate de cobertura documental de los motores. Vive en el CI por definición.',
   'src/lib/authz/analisis-estatico.ts': 'Analizador de la frontera de API que usa el guardián de rutas. Herramienta, no función.',
-  'src/lib/security/rutas-privadas.ts': 'Inventario de rutas privadas que consume su propio invariante.',
   // Lo cazó ESTE guardián en cuanto se escribió, que es exactamente su trabajo.
   /**
    * REG-382. Es el censo del programa, y su lector es su propio guardián: lo que

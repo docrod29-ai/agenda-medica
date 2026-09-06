@@ -110,14 +110,22 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'administrativo',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'La agenda es el trabajo de recepción. RESIDUAL ACEPTADO (D4): `motivo` es dato de salud y viaja aquí; la aceptación de E0-06 exige explícitamente que recepción lea la cita.',
+    porQue: 'La agenda es el trabajo de recepción. RESIDUAL ACEPTADO (D4): `motivo` es dato de salud y viaja aquí; la aceptación de E0-06 exige explícitamente que recepción lea la cita. Congelados por campo contra el cliente (S-007, ASC-003): sobreagendada*, telesalud*, googleCalendar* sólo los pone el servidor, y `cobroId`/`cobradoEn` sólo cambian junto con un cobro real de esta cita (existsAfter).',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',
-    guardaEscritura: 'isMember',
-    porQue: 'Directorio del paciente (nombre, teléfono, CURP, seguro): recepción lo necesita para agendar. PENDIENTE Fase B/C: hoy este documento TODAVÍA contiene los campos clínicos de CAMPOS_CLINICOS_PACIENTE, que deben mudarse a la subcolección `clinico`.',
+    /**
+     * `isMedico` y no `isMember`, y hay que decir por qué no es una mentira: la
+     * regla deja a recepción EDITAR el directorio (teléfono, contacto), pero
+     * bloquea por campo todo lo que es clínico (`camposClinicosDelPaciente()`),
+     * `arcoBloqueo` y la revocación del portal. La guarda que se declara es la
+     * del CONTENIDO SENSIBLE que este documento todavía carga (Panel de Lujo
+     * S-002 · S-001); el directorio sigue siendo trabajo de recepción.
+     */
+    guardaEscritura: 'isMedico',
+    porQue: 'Directorio del paciente (nombre, teléfono, CURP, seguro): recepción lo necesita para agendar y lo edita. Los campos CLÍNICOS que todavía viven aquí (CAMPOS_CLINICOS_PACIENTE) sólo los escribe el médico (bloqueo por campo, S-002); `arcoBloqueo` sólo el servidor y `portalTokenVersion` sólo sube, y sólo por el médico (S-001). PENDIENTE Fase B/C: la LECTURA de esos campos sigue siendo de todo el equipo hasta mudarlos a la subcolección `clinico`.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/notas/{notaId}',
@@ -372,8 +380,8 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     ruta: 'clinics/{clinicId}/notification_logs/{docId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',
-    guardaEscritura: 'isMember',
-    porQue: 'Bitácora de recordatorios enviados. Append-only.',
+    guardaEscritura: 'servidor',
+    porQue: 'Bitácora de recordatorios enviados. Append-only y sólo del servidor: ningún código del navegador la escribía, y el `create` abierto sólo servía para fabricar «ya se le avisó» (S-012).',
   },
   {
     ruta: 'clinics/{clinicId}/branches/{branchId}',
@@ -401,14 +409,14 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'financiero',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'Catálogo de planes de membresía. El cobro real pasa por `cobros`, con sus propias reglas anti-fraude.',
+    porQue: 'Catálogo de planes de membresía. El cobro real pasa por `cobros`, con sus propias reglas anti-fraude. Forma congelada y precio numérico no negativo; no se borra (S-009).',
   },
   {
     ruta: 'clinics/{clinicId}/memberships/{membershipId}',
     clase: 'financiero',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'Asignación de plan a paciente. Administrativo-financiero, sin contenido clínico.',
+    porQue: 'Asignación de plan a paciente. Administrativo-financiero, sin contenido clínico. Nace con `creadoPor == uid`; precio, paciente, plan e inicio quedan congelados y sólo cambian el estado y el ciclo de cobro; no se borra: dar de baja es un estado (S-009).',
   },
   {
     ruta: 'clinics/{clinicId}/learning/{uid}',
@@ -436,14 +444,14 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'administrativo',
     guardaLectura: 'publico',
     guardaEscritura: 'isMember',
-    porQue: 'Solo lo PUBLICADO es público; las pendientes y rechazadas solo las ve la clínica. Crear es exclusivo del servidor (/api/public/resena).',
+    porQue: 'Solo lo PUBLICADO es público; las pendientes y rechazadas solo las ve la clínica. Crear es exclusivo del servidor (/api/public/resena). Moderar es decidir el estado, no reescribir: el update sólo toca estado/moderadoPor/moderadoEn/publicadaEn y no se borra (S-008).',
   },
   {
     ruta: 'clinics/{clinicId}/chat/{msgId}',
     clase: 'administrativo',
     guardaLectura: 'isMember',
     guardaEscritura: 'isMember',
-    porQue: 'Chat interno médico↔asistente, mensajes inmutables. RESIDUAL ACEPTADO: el texto libre puede contener referencias clínicas; el canal existe precisamente para que médico y asistente se coordinen.',
+    porQue: 'Chat interno médico↔asistente, mensajes inmutables. El mensaje lleva sólo texto, autor (== uid) y hora; nombre y rol se resuelven desde clinic_members/members al leer, así nadie firma como otro (ZL-012). RESIDUAL ACEPTADO: el texto libre puede contener referencias clínicas; el canal existe precisamente para que médico y asistente se coordinen.',
   },
   {
     ruta: 'clinics/{clinicId}/chat_reads/{uid}',
@@ -527,14 +535,14 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'plataforma',
     guardaLectura: 'publico',
     guardaEscritura: 'isMedico',
-    porQue: 'GET por código aleatorio para que el invitado sin cuenta la vea; LIST cerrado. Solo médico/admin invita, y para invitar `admin` hay que ser admin.',
+    porQue: 'GET por código aleatorio para que el invitado sin cuenta la vea; LIST cerrado. Solo médico/admin invita, y para invitar `admin` hay que ser admin. Forma congelada: autor == uid, nace sin usar y caduca en ≤ 8 días (expiresAtMs) (ZL-011).',
   },
   {
     ruta: 'clinic_members/{uid}',
     clase: 'plataforma',
     guardaLectura: 'isMember',
     guardaEscritura: 'isAdmin',
-    porQue: 'La membresía ES el rol: quien la escriba se auto-asigna privilegios. LIST cerrado (el equipo se sirve por Admin SDK) y el clinicId es inmutable.',
+    porQue: 'La membresía ES el rol: quien la escriba se auto-asigna privilegios. LIST cerrado (el equipo se sirve por Admin SDK) y el clinicId es inmutable. El update sólo toca `role`; el ownerId del consultorio no se borra ni baja de admin (ZL-015).',
   },
   {
     ruta: 'googleTokens/{uid}',
@@ -577,6 +585,118 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     guardaLectura: 'servidor',
     guardaEscritura: 'servidor',
     porQue: 'Metadatos de la plataforma. Solo Admin SDK.',
+  },
+  /**
+   * RAÍZ SÓLO SERVIDOR, DECLARADA (Panel de Lujo S-010 · ASE-017). Catorce
+   * colecciones que escribe el Admin SDK no tenían `match` y por tanto eran
+   * invisibles para esta matriz y para el respaldo. El guardián
+   * `las-colecciones-raiz-que-escribe-el-servidor.test.ts` cruza cada
+   * `adminDb.collection('…')` de primer nivel contra esta lista.
+   */
+  {
+    ruta: 'platform_config/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Configuración de la plataforma (banderas, textos del dueño). Solo Admin SDK.',
+  },
+  {
+    ruta: 'platform_incidentes/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Incidentes operativos de la plataforma. Solo Admin SDK.',
+  },
+  {
+    ruta: 'platform_heartbeats/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Latidos de los cron. Solo Admin SDK.',
+  },
+  {
+    ruta: 'platform_recargas/{docId}',
+    clase: 'financiero',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Recargas de saldo de IA de los consultorios. Dinero de la plataforma; solo Admin SDK.',
+  },
+  {
+    ruta: 'platform_csp/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Reportes de la política de contenido. Solo Admin SDK.',
+  },
+  {
+    ruta: 'errores/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Informes de error del cliente, ya REDACTADOS por /api/errores (mensaje, traza y forma de la ruta pasan por redactarString/redactarRuta). Los lee el dueño por API.',
+  },
+  {
+    ruta: 'soporte/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Buzón de soporte. Se lee desde FUERA del consultorio, así que la prosa del médico pasa por redactarString antes de guardarse (S-003). Solo Admin SDK.',
+  },
+  {
+    ruta: 'rate_limits/{clave}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Ventanas de limitación de tasa. Viven minutos. Solo Admin SDK.',
+  },
+  {
+    ruta: 'oauthStates/{nonce}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Nonces de un solo uso para conectar Google Calendar o WhatsApp. Solo Admin SDK.',
+  },
+  {
+    ruta: 'transcript_owners/{docId}',
+    clase: 'administrativo',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Dueño de cada transcripción en vuelo (uid y consultorio). Efímero; solo Admin SDK.',
+  },
+  {
+    ruta: 'whatsapp_channels/{canalId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Índice canal → consultorio para el webhook. El id de un canal de 360dialog es la HUELLA SHA-256 de la api_key, nunca la llave (S-004); el de Meta es el phoneNumberId. Solo Admin SDK.',
+  },
+  {
+    ruta: 'whatsapp_dedup/{docId}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Marcas anti-duplicado de mensajes entrantes. Efímeras; solo Admin SDK.',
+  },
+  {
+    ruta: 'anticipos_procesados/{docId}',
+    clase: 'financiero',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Idempotencia del webhook de Stripe para anticipos. Solo Admin SDK.',
+  },
+  {
+    ruta: 'recargas_procesadas/{docId}',
+    clase: 'financiero',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Idempotencia de las recargas de IA. Solo Admin SDK.',
+  },
+  {
+    ruta: 'pruebas_estrenadas/{huella}',
+    clase: 'plataforma',
+    guardaLectura: 'servidor',
+    guardaEscritura: 'servidor',
+    porQue: 'Huella SHA-256 del correo que ya estrenó la prueba de 14 días (N-007). No guarda el correo; sólo decide si la prueba se concede. Solo Admin SDK.',
   },
   {
     ruta: '{document=**}',

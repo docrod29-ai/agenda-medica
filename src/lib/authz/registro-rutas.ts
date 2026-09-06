@@ -223,6 +223,9 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   'arco/acceso': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/oponerse': { tipo: 'capacidad', capacidad: 'administrar' },
+  // Ligar una solicitud del portal a un expediente identificado (ASE-010):
+  // mismo responsable que ejecutar la cancelación.
+  'arco/ligar': { tipo: 'capacidad', capacidad: 'administrar' },
 
   /**
    * ASE-009 — FUNDIR DOS EXPEDIENTES REPETIDOS.

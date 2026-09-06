@@ -16,6 +16,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarSuperadmin } from '@/lib/superadmin'
+import { safeLog } from '@/lib/security/sanitize'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { TODOS_LOS_MODULOS } from '@/lib/modulos'
 import { calcularPrecioPaquete } from '@/lib/pricing'
 import { guardarNivelIA } from '@/lib/ai-keys'
@@ -163,7 +165,8 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : 'error' }, { status: 500 })
+    safeLog.error('[superadmin/accion]', e)   // S-006: el texto del proveedor no viaja al cliente
+    return errorAlCliente()
   }
 }
 

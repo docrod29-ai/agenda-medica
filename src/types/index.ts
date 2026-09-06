@@ -266,6 +266,32 @@ export interface Patient {
     fecha: string
     /** uid del médico que lo recabó. */
     medicoId?: string
+    /**
+     * QUIÉN LO OTORGÓ (Panel de Lujo MP-014 · PL-L3b). Un menor no consiente
+     * por sí mismo: lo hace su representante, y el registro tiene que decirlo.
+     * Ausente = se asume el paciente (registros anteriores a este campo).
+     */
+    otorgadoPor?: 'paciente' | 'representante'
+    /** Nombre y parentesco de quien consintió, cuando no fue el paciente. */
+    representante?: { nombre: string; parentesco: string }
+  }
+  /**
+   * EL RESPONSABLE DE UN MENOR (Panel de Lujo MP-014).
+   *
+   * El expediente no guardaba quién responde por el paciente: ni para el
+   * consentimiento de grabación, ni para el consentimiento informado, ni para
+   * saber a quién se le emite el enlace del portal. Es dato ADMINISTRATIVO
+   * (identifica y contacta), así que vive en el directorio y recepción lo
+   * captura. Obligatorio cuando el paciente es menor: esa exigencia la aplica
+   * la pantalla de alta (`construirGuardadoDePaciente`), no este tipo.
+   */
+  responsable?: {
+    nombre: string
+    /** «madre», «padre», «tutor legal», «abuela»… texto libre acotado. */
+    parentesco: string
+    telefono?: string
+    /** Descripción del documento con el que se identificó (INE folio…). */
+    identificacion?: string
   }
   notas?: string
   tags?: PatientTag[]
@@ -370,6 +396,12 @@ export interface ResumenClinicoPaciente {
  * Mientras esta lista no esté vacía en producción, la aceptación de E0-06
  * («recepción no lee alergias») NO se cumple: son exactamente los campos que hoy
  * se sirven bajo `allow read: if isMember`.
+ *
+ * LA ESCRITURA SÍ ESTÁ CERRADA (Panel de Lujo S-002 · PL-S1): `firestore.rules`
+ * repite esta lista en `camposClinicosDelPaciente()` y sólo deja tocarla a
+ * `isMedico`. El guardián `las-alergias-no-las-escribe-recepcion.test.ts`
+ * compara las dos listas: cambiar una sin la otra se pone rojo. Lo que sigue
+ * pendiente es la LECTURA, que es un cambio de modelo de datos (Fase B/C).
  */
 export const CAMPOS_CLINICOS_PACIENTE = [
   'alergias',

@@ -29,6 +29,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { caminoDeCancelacion, marcaDeBloqueo } from '@/lib/arco/cancelacion'
+import { destinoDeCita, citaAnonimizada, cobroAnonimizado } from '@/lib/arco/supresion'
 
 export async function POST(req: NextRequest) {
   let body: { clinicId?: string; patientId?: string; solicitudId?: string; motivo?: string; simular?: boolean; identidadVerificada?: boolean }
@@ -174,6 +175,28 @@ export async function POST(req: NextRequest) {
     const citasSnap = await clinicRef.collection('appointments').where('pacienteId', '==', patientId).get()
 
     /**
+     * LO QUE SE CONSERVA SIN NOMBRE (Panel de Lujo ASE-015 · PL-L5 por omisión).
+     *
+     * Se borraban también las citas PASADAS y los cobros se quedaban con el
+     * nombre. La política vive en `@/lib/arco/supresion`: cita futura → se
+     * borra; cita pasada → se conserva sin nombre, teléfono, motivo ni notas;
+     * cobro → se conserva sin nombre (registro fiscal). Se hace ANTES del
+     * borrado del expediente para que, si algo falla a mitad, lo que quede
+     * sea el dato anonimizado y no el expediente a medias.
+     */
+    const marca = { arcoSuprimidaEn: new Date().toISOString(), arcoSolicitudId: solicitudId }
+    const hoy = marca.arcoSuprimidaEn.slice(0, 10)
+    const citasAConservar = citasSnap.docs.filter(d => destinoDeCita(d.data() as { fechaHora?: string }, hoy) === 'anonimizar')
+    const citasABorrar = citasSnap.docs.filter(d => !citasAConservar.includes(d))
+    const cobrosSnap = await clinicRef.collection('cobros').where('patientId', '==', patientId).get()
+    {
+      const lote = adminDb.batch()
+      for (const d of citasAConservar) lote.set(d.ref, citaAnonimizada(marca), { merge: true })
+      for (const d of cobrosSnap.docs) lote.set(d.ref, cobroAnonimizado(marca), { merge: true })
+      await lote.commit()
+    }
+
+    /**
      * BORRADO EN CASCADA — Firestore NO borra las subcolecciones.
      *
      * Esto borraba las notas, las citas y el documento del paciente con un
@@ -192,7 +215,7 @@ export async function POST(req: NextRequest) {
      * subcolecciones, pero se borran igual por la misma vía para no mantener dos
      * mecanismos de borrado.
      */
-    for (const ref of [...notasSnap.docs.map(d => d.ref), ...citasSnap.docs.map(d => d.ref)]) {
+    for (const ref of [...notasSnap.docs.map(d => d.ref), ...citasABorrar.map(d => d.ref)]) {
       await adminDb.recursiveDelete(ref)
     }
     await adminDb.recursiveDelete(pacienteRef)   // arrastra laboratorios, fotos y clinico
@@ -205,7 +228,11 @@ export async function POST(req: NextRequest) {
     await clinicRef.collection('audit_log').add({
       evento: 'paciente_borrado', clinicId, patientId,
       medicoUid: acceso.uid, medicoEmail: acceso.email ?? '',
-      meta: { accion: 'supresion_arco', solicitudId, notas: notasSnap.size, citas: citasSnap.size, identidadVerificadaPor: acceso.uid },
+      meta: {
+        accion: 'supresion_arco', solicitudId, notas: notasSnap.size, citas: citasABorrar.length,
+        citasAnonimizadas: citasAConservar.length, cobrosAnonimizados: cobrosSnap.size,
+        identidadVerificadaPor: acceso.uid,
+      },
       timestamp: new Date().toISOString(),
     }).catch(() => { /* ídem */ })
 
@@ -213,13 +240,16 @@ export async function POST(req: NextRequest) {
       await clinicRef.collection('arco_requests').doc(solicitudId).set({
         estado: 'resuelta', fechaResolucion: new Date().toISOString(),
         resueltoPor: acceso.uid ?? '',
-        resolucion: 'Cancelación ejecutada por SUPRESIÓN: expediente, notas, citas y todo lo que colgaba de ellos borrados en cascada.',
+        resolucion:
+          'Cancelación ejecutada por SUPRESIÓN: expediente, notas, citas futuras y todo lo que colgaba de ellos borrados en cascada. ' +
+          `Se conservaron sin nombre ${citasAConservar.length} cita(s) pasada(s) y ${cobrosSnap.size} cobro(s) (registro fiscal).`,
       }, { merge: true }).catch(() => { /* ídem */ })
     }
 
     return NextResponse.json({
       ok: true, camino: 'supresion',
-      borradas: { notas: notasSnap.size, citas: citasSnap.size },
+      borradas: { notas: notasSnap.size, citas: citasABorrar.length },
+      anonimizadas: { citas: citasAConservar.length, cobros: cobrosSnap.size },
       queOcurre: veredicto.queOcurre,
     })
   } catch (e) {
