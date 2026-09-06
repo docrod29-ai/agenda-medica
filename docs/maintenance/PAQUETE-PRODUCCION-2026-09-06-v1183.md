@@ -71,5 +71,48 @@ médico. Lo que trae atribución y no es del médico no baja al papel.
 
 ## 5. Lo que pasó de verdad
 
-*(Se rellena tras correr el botón. Si esta sección sigue vacía, el paquete está
-preparado y no publicado.)*
+Se publicó el 6-sep-2026. Los tres pasos salieron en orden y ninguno se repitió.
+
+| Paso | Qué fue | Resultado |
+|---|---|---|
+| 1 | PR #457 — las cuatro reparaciones, el SW a v1183 y esta acta | fusionado, 5 checks en verde |
+| — | Vercel publicó `main` (`078664fe`) por su integración de git | producción pasa a servir `nexusmed-v1183` |
+| 2 | PR #460 — `SHA_AUTORIZADO` repuntado a `078664fe` | fusionado, 5 checks en verde |
+| 3 | Workflow «Despliegue a producción (manual)», ejecución **#23** | `PRODUCTION_RELEASE=SUCCESS` |
+
+Acta que emitió la ejecución #23:
+
+```
+APP_SHA=078664fee86b23f75e9fd45b3390e710ca459e91
+VERSION=nexusmed-v1183
+FIRESTORE_RULES=success
+FIRESTORE_INDICES=success
+FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
+SECURITY_E2E=success
+SMOKE=success
+SMOKE_PORTAL=success
+PRODUCTION_RELEASE=SUCCESS
+```
+
+<https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694>
+
+### El hash de las reglas NO se movió, y eso es lo correcto
+
+`v1183` son reparaciones de la receta, del diagnóstico impreso y de los diálogos:
+**ninguna toca `firestore.rules`**. La ejecución #23 republicó las mismas reglas
+—un no-op del lado de Firebase— y sirve para dejar constancia de que lo que rige
+hoy es lo que el árbol dice. El sha256 del árbol local se comprobó contra el
+valor que emitió el workflow en vez de darse por bueno.
+
+### Lo que esta ejecución NO demuestra
+
+- **Que en un iPhone se vean los botones.** Las cinco reparaciones se verifican
+  con pruebas de FUENTE; el aparato es el único que puede decirlo, y el arnés no
+  corre en uno. Éste es el paquete que MÁS necesita esa comprobación, porque las
+  cuatro quejas salieron de ahí.
+- **Que los índices estén construidos.** `deploy --only firestore:indexes`
+  contesta al enviar, no al terminar.
+- **Que el service worker viejo se haya retirado.** Sube la versión del caché; la
+  retirada ocurre cuando cada cliente recarga. Para probar en el teléfono hay que
+  cerrar Safari del todo y volver a abrir.
+- **Nada del bloque D.** Ninguna cifra clínica se decidió; sigue abierto entero.
