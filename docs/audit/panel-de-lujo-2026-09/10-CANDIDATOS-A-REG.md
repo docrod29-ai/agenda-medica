@@ -106,6 +106,15 @@ se llevan aparte porque son dos capas).
 
 ---
 
+## P1 — Ataques propios del equipo rojo (añadidos tras la oleada de cierre)
+
+| ID | Área | Incidente | Estado | Test / control permanente | Sello propuesto |
+|----|------|-----------|--------|----------------------------|-----------------|
+| REG-PL-44 | PHI / identidad (P1) | Un homónimo que llama con su teléfono se cuelga del expediente del OTRO cuando ese expediente no tiene teléfono; con un segundo homónimo de teléfono contradictorio, el `continue` de `duplicados.ts:465` destruye la evidencia antes del desempate (RT-001; REG-039 cerró sólo el caso espejo) | OPEN — detectado por el Panel de Lujo | `reproducciones/REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts` — falla hoy (SALIDA-ATAQUES: casos A y C) | `src/__tests__/pacientes-duplicados.test.ts` · minCasos ≥ 3 (contradice a propósito su caso de la línea 408: decide el dueño) |
+| REG-PL-45 | Clínico (P1) | «Digoxina 250 mg» y «Enoxaparina 60 mcg» salen impresas sin una sola alerta: la unidad sólo se vigila cuando FALTA, nunca cuando es imposible para ese fármaco (`dosis.ts:470`, y `:411` nombra a digoxina como su motivo de existir) (RT-003) | OPEN — detectado por el Panel de Lujo | `reproducciones/REP-081-unidad-imposible-para-el-farmaco-sale-sin-alerta.test.ts` — falla hoy por los tres caminos | `src/__tests__/clinical-safety-harness.test.ts` · minCasos ≥ 4; las unidades válidas por fármaco son NEEDS_CLINICAL_REVIEW |
+| REG-PL-46 | Clínico-legal (P1) | Una cita inventada («[4]» con dos referencias) entra literal a la nota firmada bajo un bloque «Referencias» real; `citasEnTexto` sólo existe en `/consultor` (`consulta/[patientId]/page.tsx:2329`) (RT-004) | OPEN — detectado por el Panel de Lujo | `reproducciones/REP-082-cita-inventada-entra-a-la-nota-firmada.test.ts` — falla hoy (contrato textual declarado) | `src/__tests__/evidencia-citas-verificadas.test.ts` (nuevo) · minCasos ≥ 2 |
+| REG-PL-47 | Seguridad clínica (P1) | El cross-check alergia↔fármaco no lleva `GUARDA_INYECCION` y delimita con `"""` sin escapar: una frase dicha frente al micrófono cierra la valla (`medical-ner.ts:246`); P1 y no P0 porque la compuerta de firma es determinista (RT-002) | OPEN — detectado por el Panel de Lujo | `reproducciones/REP-083-cross-check-de-alergias-sin-guarda-ni-valla.test.ts` — falla hoy (3 casos, diferencial benigno vs ataque) | `src/__tests__/prompts-guarda-inyeccion.test.ts` (nuevo) · minCasos ≥ 3 |
+
 ## P1 confirmados que NO son defecto — y por eso no son candidatos a REG
 
 Un REG registra una regresión de código. Estos son otra cosa: se reparan, pero

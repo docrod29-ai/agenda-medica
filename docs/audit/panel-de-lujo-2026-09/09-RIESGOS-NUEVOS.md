@@ -609,3 +609,22 @@ residuales de la §8 están **abiertos** hasta que el dueño los firme.
 <!-- LOTE 2 HECHO · 2026-09-06 -->
 <!-- No existían al escribir el lote 2: crudos/R-AS-enfermeria.json · crudos/R-ataques-propios.json · reproducciones/SALIDA-ASISTENTES.txt (ninguna salida de ejecución para REP-030/031/032/070, que sí aparecieron durante la escritura) -->
 
+
+
+## Lote 3 — ataques propios del equipo rojo y oleada de cierre
+
+Escrito por el orquestador al cierre, con el mismo criterio de los lotes 1 y 2. Un control que nadie ejecuta no es un control. **Ningún residual se acepta aquí.**
+
+| # | Peligro | Sev | Control actual | Riesgo residual | Estado |
+|---|---|---|---|---|---|
+| R-47 | Nota, receta y cobro en la persona equivocada: un homónimo con teléfono funde con el expediente sin teléfono; un segundo homónimo con teléfono contradictorio elimina la evidencia antes del desempate (RT-001) | 5 | REG-039 cerró el caso espejo (sin teléfono → no funde); el motor `duplicados.ts` pregunta en otros casos | **Alto**: reproducido con el motor real (REP-080); la fusión es silenciosa | Nuevo, no liberable |
+| R-48 | Un factor de mil impreso sin aviso: unidad imposible para el fármaco (digoxina en mg, enoxaparina en mcg) pasa los tres caminos de verificación (RT-003) | 5 | La compuerta de unidad sólo vigila la unidad AUSENTE; «metformina 850 g» sí alerta | **Alto**: reproducido (REP-081); las unidades válidas por fármaco son decisión clínica (NEEDS_CLINICAL_REVIEW) | Nuevo, no liberable |
+| R-49 | Evidencia alucinada con aspecto de fuente en la nota firmada: una cita «[n]» sin referencia entra literal al bloque «Referencias» (RT-004) | 4 | `citasEnTexto` y `verificarAfirmaciones` existen, pero sólo corren en `/consultor` y en `expediente/evidencia`, no en el camino de la consulta | **Medio-alto**: reproducido (REP-082); lo que el modelo afirma queda con cédula debajo | Nuevo, no liberable |
+| R-50 | El cruce alergia↔fármaco se apaga con una frase dicha en voz alta: prompt sin guarda anti-inyección y delimitador cerrable desde el dictado (RT-002) | 4 | La compuerta determinista de firma (`nom004.ts`) lee `alergiasDe(patient)` y no depende del modelo | **Medio**: reproducido (REP-083); el aviso del panel puede callar, la firma no | Nuevo |
+| R-51 | «Tus más recetados» prellena la dosis exacta del ÚLTIMO paciente (pediátrica ↔ adulto) con un clic (ZL-001) | 3 | La pantalla de receta reverifica cada renglón contra peso y edad de ESTE paciente (REG-524); los fármacos fuera del catálogo viajan mudos (MP-004) | Medio: el control existe pero tiene el hueco de MP-004 | Nuevo |
+| R-52 | Asientos que dicen «impreso» sin impresión: `receta_generada`/`orden_generada` y el aprendizaje se registran antes de que la impresión ocurra, sin reconciliación (ZL-002) | 2 | Ninguno | Bajo-medio: la bitácora afirma un hecho medicolegal que puede no haber ocurrido | Nuevo |
+| R-53 | El export FHIR atribuye todas las notas a la cédula de `config/main` ignorando `nota.firma`, con tres llamadores y una ruta HTTP (ZL-003; hermano de REG-025) | 3 | `receta-certificado.ts:50-59` ya hace lo correcto para el QR | Medio: el arreglo existe al lado y no se usa | Nuevo |
+
+Verificado en positivo y que NO entra al registro: `paquetes_visita` no expone borradores (un DRAFT ni siquiera se persiste; `liberar()` lanza sin `approvedBy`), el aislamiento entre consultorios resistió 13 de 13 intentos con las reglas reales, y las 29 rutas que aceptan `clinicId` en el cuerpo lo atan a la sesión.
+
+<!-- LOTE 3 HECHO · 2026-09-06 -->

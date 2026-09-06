@@ -1034,3 +1034,27 @@ process.stdout.write(JSON.stringify({
   crudos_salida: todos, verificados_salida: noRefutados.map((h) => { const { evidencia_rojo, ...resto } = h; return resto; }),
 }, null, 1));
 ```
+
+
+## Adenda — oleada de cierre (Fase 5, segunda pasada)
+
+Las 119 piezas sin auditor de la primera pasada se auditaron en una oleada de cierre y pasaron por equipo rojo:
+
+| Pieza | Sin auditor (1.ª pasada) | Cubiertas por la oleada de cierre | Sin cubrir al final |
+|---|---:|---:|---:|
+| Módulos de `src/lib` | 52 | 52 (`Z-cierre-lib.json`, archivo por archivo) | 0 |
+| Colecciones de `firestore.rules` | 18 | 18 (`Z-cierre-lib.json`: tres sitios, `hasOnly`, lectura) | 0 |
+| Componentes de `src/components` | 49 | 49 (`Z-cierre-componentes.json`) | 0 |
+
+Lo que sigue siendo verdad tras la adenda: 54 rutas de API y 21 pantallas públicas tienen **un solo auditor**; los recorridos de confirmar por WhatsApp, consulta y pago no se hicieron en vivo; y la profundidad declarada como no alcanzada por cada auditor (sección f) no cambia.
+
+Números finales tras la oleada de cierre y los ataques propios del equipo rojo (script `consolidar.mjs`, corrido al cierre sobre `crudos/`; `01-HALLAZGOS-CRUDOS.json` y `02-HALLAZGOS-VERIFICADOS.json` regenerados con ellos):
+
+| Concepto | Valor |
+|---|---:|
+| Hallazgos crudos | 493 |
+| Con veredicto del equipo rojo | 493 (los 8 de ataques propios se auto-verifican con salida literal) |
+| Confirmados / parciales / refutados | 370 / 95 / 28 (5,7 % refutado) |
+| P0 / P1 / P2 / P3 en pie | 4 / 44 / 186 / 231 |
+| Por tipo (en pie) | defecto 227 · fricción 117 · mejora 66 · botón muerto 30 · innecesario 25 |
+| Reproducciones que fallan hoy | 43 archivos · 103 casos rojos · 83 controles verdes · 0 importes rotos (`reproducciones/SALIDA-FINAL.txt`) |

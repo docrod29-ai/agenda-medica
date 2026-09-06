@@ -4,7 +4,7 @@
   "salida": "docs/audit/panel-de-lujo-2026-09/",
   "rama": "claude/medical-app-audit-team-8c37y7",
   "aprobado_por_dueno": "2026-09-06",
-  "fase_actual": 1,
+  "fase_actual": 7,
   "fases": {
     "0_linea_base": {
       "estado": "hecha",
@@ -35,68 +35,63 @@
       }
     },
     "2_refutacion": {
-      "estado": "en_curso",
-      "hechos": [
-        "S",
-        "B",
-        "N",
-        "MI",
-        "MP",
-        "A",
-        "C",
-        "D",
-        "MG",
-        "MC",
-        "MO",
-        "AS-mensajeria",
-        "AS-expedientes",
-        "P-gineco"
-      ],
-      "relanzados_tras_limite": [
-        "AS-recepcion",
-        "AS-cobros",
-        "AS-enfermeria",
-        "P-pediatria",
-        "P-interna",
-        "P-cirugia",
-        "P-ortopedia"
-      ],
-      "pendiente": [
-        "ataques-propios"
-      ]
+      "estado": "hecha",
+      "archivos": 24,
+      "nota": "incluye oleada de cierre; ataques propios auto-verificados"
     },
     "3_reproduccion": {
-      "estado": "parcial — P0 y P1 de oleadas 1-2 hechos; faltan los de asistentes/pacientes tras refutación",
-      "reproducciones": [
-        "REP-001 MP-005",
-        "REP-002 N-001",
-        "REP-003 N-002",
-        "REP-010",
-        "REP-011",
-        "REP-012",
-        "REP-013",
-        "REP-014",
-        "REP-015",
-        "REP-016",
-        "REP-017",
-        "REP-018",
-        "REP-019",
-        "REP-020"
-      ]
+      "estado": "hecha",
+      "archivos": 43,
+      "casos_rojos": 103,
+      "controles_verdes": 83,
+      "salida": "reproducciones/SALIDA-FINAL.txt"
     },
     "4_riesgo": {
-      "estado": "lote 1 hecho (54 filas); lote 2 (asistentes y pacientes) pendiente"
+      "estado": "hecha",
+      "lotes": 3,
+      "filas_nuevas": "R-01…R-53 en 09-RIESGOS-NUEVOS.md (numeración propia del archivo; se integra a RISK_REGISTER cuando el dueño decida)"
     },
     "5_completitud": {
-      "estado": "pendiente"
+      "estado": "hecha",
+      "cobertura_final": "506/506 piezas con ≥1 auditor tras la oleada de cierre; 54 rutas y 21 públicas con un solo auditor"
     },
     "6_mejoras": {
-      "estado": "pendiente"
+      "estado": "hecha",
+      "archivo": "08-MEJORAS-CLASE-MUNDIAL.md"
     },
     "7_entrega": {
-      "estado": "pendiente"
+      "estado": "hecha",
+      "entregables": [
+        "00",
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12",
+        "13",
+        "reproducciones/",
+        "crudos/"
+      ]
     }
   },
-  "actualizado": "2026-09-06T07:50Z",
-  "incidente": "2026-09-06 ~04:30Z: límite de sesión (429) tumbó 10 agentes; el contenedor se reinició; todos los archivos escritos antes del corte estaban completos y válidos; relanzados a las 07:45Z"
+  "actualizado": "2026-09-06T09:05Z",
+  "incidente": "2026-09-06 ~04:30Z: límite de sesión (429) tumbó 10 agentes; el contenedor se reinició; todos los archivos escritos antes del corte estaban completos y válidos; relanzados a las 07:45Z",
+  "numeros_finales": {
+    "crudos": 493,
+    "confirmados": 370,
+    "parciales": 95,
+    "refutados": 28,
+    "P0": 4,
+    "P1": 44,
+    "P2": 186,
+    "P3": 231
+  },
+  "ejecuciones_de_agente": 61
 }
