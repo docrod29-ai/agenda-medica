@@ -5,7 +5,8 @@ del `const CACHE`.
 
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep 23:28 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #22).
+El paquete y lo que declara viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
 
 **1 commit desde v1181** · texto y una prueba · cero código de producto, cero

@@ -3,6 +3,15 @@
 > **Estado: PREPARADO, NO PUBLICADO.** Sigue el ciclo que el dueño autorizó el
 > 5-sep-2026 para este trabajo. Se escribe ANTES de fusionar.
 
+> **SUPERADO — 5-sep-2026 23:28 UTC. PUBLICADO Y VERIFICADO.** Vercel publicó
+> `main` por su integración de git al fusionarse #455, y el botón corrió sobre
+> `e9cf6d38`: ejecución
+> [#22](https://github.com/docrod29-ai/agenda-medica/actions/runs/33998676281),
+> en verde, con la Compuerta 3 midiendo `nexusmed-v1182` contra el sitio vivo.
+> La línea de arriba no se borra: era verdad cuando se escribió. Lo que pasó de
+> verdad está en la última sección. (Este aviso lo escribió la sesión que cerró
+> v1181, al encontrarse el acta abierta con la versión ya publicada.)
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1181` → **`nexusmed-v1182`** |
@@ -43,3 +52,42 @@ mudó de `CAPACIDADES_DEL_PACIENTE`. Probado al revés: con el texto viejo caen
 - No audita el resto de la guía. Se corrigieron las afirmaciones sobre **dónde
   están** las cosas —las que caducan al mover una pantalla—; el resto del texto
   (qué hace cada función) sigue sin guardián y puede tener otras frases viejas.
+
+## Lo que pasó de verdad
+
+Se publicó el 5-sep-2026. Los tres pasos salieron en el orden previsto.
+
+| Paso | Qué fue | Resultado |
+|---|---|---|
+| 1 | PR #455 — service worker a v1182 y esta acta | fusionado, 5 checks de CI en verde |
+| — | Vercel publicó `main` (`e9cf6d38`) por su integración de git | producción pasa a servir `nexusmed-v1182` |
+| 2 | PR #456 — `SHA_AUTORIZADO` repuntado a `e9cf6d38` | fusionado, 5 checks en verde |
+| 3 | Workflow «Despliegue a producción (manual)», ejecución **#22** | `PRODUCTION_RELEASE=SUCCESS` |
+
+Acta que emitió la ejecución #22:
+
+```
+PRODUCTION_URL=https://agenda-medica-one.vercel.app
+APP_SHA=e9cf6d38c274d19d31441d92a6147645abae279c
+VERSION=nexusmed-v1182
+VERCEL_PROJECT=agenda-medica
+FIRESTORE_RULES=success
+FIRESTORE_INDICES=success
+FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
+SECURITY_E2E=success
+SMOKE=success
+SMOKE_PORTAL=success
+PRODUCTION_RELEASE=SUCCESS
+```
+
+<https://github.com/docrod29-ai/agenda-medica/actions/runs/33998676281>
+
+### Lo que esta ejecución NO demuestra
+
+- **Reglas e índices**: se reenviaron sin cambio. El hash es el que dejó #18
+  (`1d91d707…`); no había ninguna regla nueva que publicar.
+- **Que el service worker viejo se haya retirado de los navegadores.** Sube la
+  versión del caché; la retirada ocurre cuando cada cliente recarga.
+- **La pantalla de `/guia` en un navegador**, igual que decía la sección
+  anterior. Publicar no la miró.
+
