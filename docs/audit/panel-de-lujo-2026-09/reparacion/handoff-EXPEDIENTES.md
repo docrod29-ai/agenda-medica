@@ -18,6 +18,22 @@ quedarse con las dos partes.
 | `scripts/design/techos-de-diseno.json` | UI-CONFIG | `tamanosFueraDeEscala` **bajó** de 1868 a 1860 (`node scripts/design/trinquete-de-diseno.mjs --actualizar`). El guardián exige que el techo sea la medida de hoy, sin holgura. | Quedarse con el número **más bajo** y volver a correr `--actualizar`. |
 | `docs/design/SCREEN_INVENTORY.md` | UI-CONFIG | Regenerado con `node scripts/design/inventario-de-pantallas.mjs` (sale de un script, no se edita a mano). | Regenerar tras integrar: `node scripts/design/inventario-de-pantallas.mjs`. |
 
+### Las cuatro reproducciones movidas
+
+`docs/audit/panel-de-lujo-2026-09/reproducciones/` **no existe en el árbol
+versionado**: vive sólo en el checkout compartido del orquestador. Las cuatro
+reproducciones de esta rebanada se copiaron a `src/__tests__/` con su cabecera
+golden reescrita (qué fallaba en pasado, la reparación, y qué NO cubre), pero
+**no se pudieron borrar del origen** — no están en este worktree. Al integrar,
+retirar estos cuatro archivos del checkout compartido:
+
+| Reproducción | Dónde vive ahora |
+|---|---|
+| `REP-037-el-vacio-del-servidor-pisa-el-acierto-local.test.ts` | `src/__tests__/el-vacio-del-servidor-no-pisa-el-acierto-local.test.ts` |
+| `REP-038-fecha-de-nacimiento-cruda-en-la-importacion.test.ts` | `src/__tests__/la-fecha-del-archivo-llega-en-iso-al-expediente.test.ts` |
+| `REP-039-apellidos-en-columnas-separadas-se-pierden.test.ts` | `src/__tests__/los-apellidos-en-columnas-separadas-llegan-al-nombre.test.ts` |
+| `REP-080-homonimo-con-telefono-funde-con-expediente-sin-telefono.test.ts` | `src/__tests__/un-homonimo-no-se-cuelga-del-expediente-sin-telefono.test.ts` |
+
 ---
 
 ## 1. RECETA-DOCS
