@@ -81,6 +81,18 @@ const enDias = (n) => {
   d.setUTCDate(d.getUTCDate() + n)
   return enZona(d)
 }
+/**
+ * Marca de tiempo COMPLETA a n días de hoy — no una fecha suelta.
+ *
+ * `enDias` devuelve «2026-09-02», que es lo que quiere una cita (vive en un día
+ * del calendario del consultorio). Una tarea clínica no: `venceEn` y `creadaEn`
+ * los escribe el producto con `toISOString()`, y `estaVencida` los compara
+ * contra `Date.now()`. Sembrar la fecha suelta las fijaría en medianoche UTC, o
+ * sea SIEMPRE en el pasado — una tarea que vence hoy se pintaría «venció» en
+ * rojo y se colaría en el grupo de escalar. El arnés enseñaría más urgencia de
+ * la que hay.
+ */
+const isoEnDias = (n) => new Date(hoy.getTime() + n * 86_400_000).toISOString()
 
 /**
  * Los pacientes. Cada uno existe para forzar un caso, no para rellenar.
@@ -671,6 +683,129 @@ async function main() {
    * queda escrita con esa palabra dentro, que es exactamente el fallo mudo que
    * hizo que las siete primeras capturas fueran siete fotos del mismo modal.
    */
+  /**
+   * ── PENDIENTES CLÍNICOS ─────────────────────────────────────────────────
+   *
+   * `/pendientes` es la pantalla de trabajo del médico y **no se podía juzgar**:
+   * la siembra no escribía ni una tarea, así que salía siempre en su estado
+   * vacío. Un arnés que sólo sabe pintar el caso feliz no sirve para auditar la
+   * pantalla que existe para los cabos sueltos.
+   *
+   * `pesoUrgencia` SE DERIVA, no se escribe a mano. El modelo dice que «lo
+   * escribe `crearTareas` —la única puerta— y nadie se lo pasa desde fuera», y
+   * sembrar directo a Firestore se salta esa puerta: sin el peso, el worklist no
+   * puede ordenarse por urgencia y lo crítico deja de ir primero. Es la misma
+   * lección que REG-440, donde la siembra escribía los contadores de un no-show
+   * y no la `ultimaCita` que deja una cita atendida.
+   *
+   * La escalera se copia del producto y un guardián comprueba que las dos
+   * coincidan: `ESCALERA_DE_URGENCIA` en `lib/tareas-clinicas/modelo.ts`.
+   */
+  const ESCALERA_DE_URGENCIA = { critica: 0, alta: 10, normal: 20 }
+  const pesoDeUrgencia = (prioridad) => ESCALERA_DE_URGENCIA[prioridad] ?? 99
+
+  /**
+   * Los casos DUROS, que son los que rompen la pantalla — no tres pendientes
+   * cómodos. V10 §39: si el caso difícil no está sembrado, la auditoría visual
+   * miente por omisión.
+   */
+  /**
+   * Los casos DUROS, y uno por CADA grupo de la pantalla.
+   *
+   * `/pendientes` agrupa por estado de acción (`estado-de-accion.ts`): vencidos,
+   * necesita revisión, esperando resultado, necesita agendar, esperando al
+   * paciente, otros — más «cerrados recientemente», que es una lectura aparte.
+   * Sembrar tres pendientes cómodos dejaría cuatro de esos grupos sin pintar, y
+   * un grupo que no se pinta no se puede juzgar: la auditoría visual mentiría
+   * por omisión y diría que la pantalla está bien porque lo poco que enseñó
+   * estaba bien.
+   *
+   * `naceHace` y `vence` van en días respecto de ahora. Las edades son
+   * distintas a propósito: dentro de un mismo grupo el worklist pone lo más
+   * viejo arriba (`ordenWorklist`), y con todas nacidas el mismo día ese orden
+   * no se vería.
+   */
+  const TAREAS = [
+    {
+      id: 'tarea-001', pac: 'pac-001', tipo: 'resultado_por_revisar',
+      titulo: 'Potasio 6.2 mEq/L — resultado crítico sin revisar',
+      detalle: 'Química sanguínea de hoy. Valor fuera del rango de referencia del laboratorio.',
+      prioridad: 'critica', estado: 'solicitada',
+      /* SIN DUEÑO a propósito: es la consulta de primera clase del modelo
+         —«son las que se pierden»—, y escala por prioridad SIN estar vencida,
+         que es el motivo de escalación que el otro caso no enseña. */
+      dueno: null, naceHace: 0, vence: 1,
+    },
+    {
+      id: 'tarea-002', pac: 'pac-004', tipo: 'estudio_pendiente',
+      titulo: 'Radiografía de tórax — pedida hace seis días',
+      detalle: 'Disnea de medianos esfuerzos. No ha llegado el resultado.',
+      /* El paciente del nombre más largo, en la fila más cargada de la pantalla:
+         una fila de vencido lleva además la píldora roja y el motivo. */
+      prioridad: 'alta', estado: 'aceptada', dueno: 'medica', naceHace: 6, vence: -2,
+    },
+    {
+      id: 'tarea-003', pac: 'pac-002', tipo: 'seguimiento',
+      titulo: 'Control en dos semanas tras ajuste de dosis',
+      prioridad: 'normal', estado: 'agendada', dueno: 'medica', naceHace: 5, vence: 9,
+    },
+    {
+      id: 'tarea-004', pac: 'pac-005', tipo: 'receta_por_entregar',
+      titulo: 'Receta sin entregar al paciente',
+      detalle: 'Se cierra cuando el paciente la tiene.',
+      prioridad: 'normal', estado: 'solicitada', dueno: null, naceHace: 2, vence: 3,
+    },
+    {
+      id: 'tarea-005', pac: 'pac-003', tipo: 'seguimiento',
+      titulo: 'Revaloración tras el cambio de antihipertensivo',
+      prioridad: 'alta', estado: 'solicitada', dueno: null, naceHace: 3, vence: 5,
+    },
+    {
+      id: 'tarea-006', pac: 'pac-002', tipo: 'estudio_pendiente',
+      titulo: 'Perfil tiroideo — pedido ayer',
+      prioridad: 'normal', estado: 'aceptada', dueno: 'medica', naceHace: 1, vence: 6,
+    },
+    {
+      /* `reconciliacion_medicamento` cae en «Otros pendientes» a propósito, y
+         ese grupo tampoco se había visto nunca. */
+      id: 'tarea-007', pac: 'pac-001', tipo: 'reconciliacion_medicamento',
+      titulo: 'El paciente dice que dejó el losartán y la lista lo tiene vigente',
+      detalle: 'Confirmar con el paciente antes de tocar la lista.',
+      prioridad: 'alta', estado: 'solicitada', dueno: null, naceHace: 4, vence: 2,
+    },
+    {
+      /* Una CERRADA para que «Ver cerrados recientemente» tenga qué desplegar:
+         ese bloque tampoco se podía mirar. */
+      id: 'tarea-008', pac: 'pac-003', tipo: 'resultado_por_revisar',
+      titulo: 'Biometría hemática — revisada y comentada con el paciente',
+      prioridad: 'normal', estado: 'cerrada', dueno: 'medica', naceHace: 12, vence: -3,
+      cerradaHaceDias: 1,
+    },
+  ]
+
+  for (const t of TAREAS) {
+    const pac = PACIENTES.find(x => x.id === t.pac)
+    await escribir(`clinics/${CLINICA}/tareas_clinicas/${t.id}`, {
+      clinicId: CLINICA,
+      patientId: t.pac,
+      patientNombre: pac.nombre,
+      notaId: t.pac === 'pac-001' ? 'nota-demo-001' : undefined,
+      tipo: t.tipo,
+      titulo: t.titulo,
+      detalle: t.detalle,
+      prioridad: t.prioridad,
+      pesoUrgencia: pesoDeUrgencia(t.prioridad),
+      ...(t.dueno === 'medica' ? { ownerUid: uid, ownerNombre: 'Dra. Ximena Alcántara Robledo' } : {}),
+      estado: t.estado,
+      creadaEn: isoEnDias(-t.naceHace),
+      venceEn: isoEnDias(t.vence),
+      ...(t.cerradaHaceDias
+        ? { cerradaEn: isoEnDias(-t.cerradaHaceDias), cerradaPor: uid }
+        : {}),
+      origen: 'nota',
+    })
+  }
+
   await writeFile(
     new URL('./arnes-sesion.json', import.meta.url),
     JSON.stringify({ uid, correo: CORREO, clave: CLAVE, clinica: CLINICA, proyecto: PROYECTO }, null, 2) + '\n',
@@ -683,6 +818,7 @@ async function main() {
     médica       Dra. Ximena Alcántara Robledo (sintética)
     pacientes    ${PACIENTES.length}
     cobros       ${COBROS.length}\n    citas        ${CITAS.length}  (${CITAS.filter(c => !c.dia).length} hoy, ${dia})
+    pendientes   ${TAREAS.length}  (${TAREAS.filter(t => t.estado !== 'cerrada').length} vivos, ${TAREAS.filter(t => !t.dueno && t.estado !== 'cerrada').length} sin dueño)
 
     entrar con   ${CORREO} / ${CLAVE}
     la app       npm run arnes:dev   →  http://localhost:3200

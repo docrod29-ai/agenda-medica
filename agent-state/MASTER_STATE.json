@@ -23,14 +23,21 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M src/__tests__/que-va-en-la-receta.test.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/expediente/extraction-schema.ts",
-    " M src/lib/expediente/prompt-version.ts",
-    " M src/lib/expediente/prompts.ts",
-    " M src/lib/expediente/que-va-en-la-receta.ts",
-    " M src/types/expediente.ts"
+    "M  agent-state/MASTER_STATE.json",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
+    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
+    "M  scripts/design/sembrar-emulador.mjs",
+    "A  src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts",
+    "A  src/__tests__/la-vista-previa-del-papel-se-media-contra-una-constante.test.ts",
+    "M  src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+    "M  src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    "M  src/components/RecetaPreviewWrapper.tsx",
+    "M  src/lib/calidad/familias-de-defecto.ts",
+    "M  src/lib/clinical/invariantes-clinicos.json"
   ],
   "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +73,10 @@
   ],
   "ramaActual": "claude/chat-pendientes-m4f9p9",
   "derivado": {
-    "regsEnElLedger": 307,
+    "regsEnElLedger": 309,
     "ultimaREG": "REG-515",
-    "archivosDePrueba": 935,
-    "casosDePrueba": 11339,
+    "archivosDePrueba": 937,
+    "casosDePrueba": 11359,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1182"
