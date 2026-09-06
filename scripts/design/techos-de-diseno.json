@@ -3,8 +3,8 @@
   "techos": {
     "respaldosDeToken": 0,
     "hexEnLinea": 320,
-    "tamanosFueraDeEscala": 1869,
-    "radiosFueraDeEscala": 600,
+    "tamanosFueraDeEscala": 1868,
+    "radiosFueraDeEscala": 599,
     "sombrasEnLinea": 19,
     "gradientes": 11,
     "cristal": 14,
@@ -55,14 +55,14 @@
       "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
       "respaldos": 0,
       "hex": 5,
-      "tam": 84,
-      "rad": 29,
+      "tam": 83,
+      "rad": 28,
       "sombras": 1,
       "gradientes": 0,
       "cristal": 0,
       "halos": 0,
       "lienzos": 0,
-      "total": 119
+      "total": 117
     },
     {
       "archivo": "src/app/demo/interactivo/page.tsx",

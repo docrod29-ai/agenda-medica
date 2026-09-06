@@ -76,9 +76,61 @@ export function alFirmar(avisos: readonly AvisoConsulta[]): AvisoConsulta[] {
  * Cuenta y enumera; no juzga. El médico ya sabe qué hacer con cada uno — lo que
  * no tenía era el momento adecuado para verlos.
  */
+/**
+ * Cuántos avisos del MISMO origen hacen falta para resumirlos en una línea.
+ *
+ * Tres, no dos: con dos, verlos enteros todavía informa. A partir de tres son
+ * la misma frase repetida con distinto relleno, y lo que aporta es la CUENTA.
+ */
+const REPETIDOS_QUE_SE_RESUMEN = 3
+
+/** Cómo se lee un grupo resumido. Sin esto, el resumen diría «3 sin_respaldo…». */
+const EN_PLURAL: Partial<Record<AvisoConsulta['origen'], string>> = {
+  sin_respaldo_en_el_dictado: 'frases de la nota no salieron del dictado',
+}
+
+/**
+ * ── EL DIÁLOGO DE FIRMAR NO ES UN INFORME — REG-517 ─────────────────────────
+ *
+ * QUÉ PASABA. Esta función listaba ocho avisos ENTEROS y luego «…y N más». Con
+ * una consulta larga eso son ocho párrafos de texto legal seguidos, y casi
+ * todos la misma frase: «Esto no salió del dictado: «…». Nadie dijo: …».
+ *
+ * El dueño, viéndolo en su iPhone: «esta madre sale al final y no está bien […]
+ * quiero quitarle, me caga». Y tenía razón sobre el efecto, aunque el arreglo no
+ * sea quitarlo: un muro de texto antes de firmar no se lee — se salta. Un aviso
+ * que nadie lee no protege a nadie, que es el mismo fallo que este repositorio
+ * ya reparó en los avisos clínicos.
+ *
+ * LA REGLA. Lo que se repite se cuenta; lo que es único se dice entero. Tres o
+ * más avisos del mismo origen se colapsan en una línea con su número y a dónde
+ * ir a verlos. Los demás siguen apareciendo literales, porque cada uno dice algo
+ * distinto.
+ *
+ * LO QUE NO CAMBIA, y conviene decirlo: no se descarta ni un aviso. La cuenta
+ * total sigue siendo la real, todos siguen estando en la nota con su ancla, y
+ * ninguno bloqueaba firmar antes ni bloquea ahora. Lo que cambia es cuánto hay
+ * que leer para enterarse.
+ */
 export function comoSeDicenAlFirmar(avisos: readonly AvisoConsulta[]): string {
-  const lista = avisos.slice(0, 8).map(a => `· ${a.texto}`).join('\n')
-  const mas = avisos.length > 8 ? `\n…y ${avisos.length - 8} más.` : ''
+  const porOrigen = new Map<AvisoConsulta['origen'], AvisoConsulta[]>()
+  for (const a of avisos) {
+    const g = porOrigen.get(a.origen) ?? []
+    g.push(a)
+    porOrigen.set(a.origen, g)
+  }
+
+  const lineas: string[] = []
+  for (const [origen, grupo] of porOrigen) {
+    if (grupo.length >= REPETIDOS_QUE_SE_RESUMEN && EN_PLURAL[origen]) {
+      lineas.push(`· ${grupo.length} ${EN_PLURAL[origen]} — revísalas en la nota.`)
+    } else {
+      for (const a of grupo) lineas.push(`· ${a.texto}`)
+    }
+  }
+
+  const lista = lineas.slice(0, 8).join('\n')
+  const mas = lineas.length > 8 ? `\n…y ${lineas.length - 8} más.` : ''
   const n = avisos.length
   return `${n} ${n === 1 ? 'cosa por revisar' : 'cosas por revisar'} antes de firmar:\n\n${lista}${mas}`
 }

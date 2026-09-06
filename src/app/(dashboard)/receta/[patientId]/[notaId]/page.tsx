@@ -44,6 +44,7 @@ import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quant
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { auth } from '@/lib/firebase'
 import { registrarRecetados, cargarRecetasFrecuentes, type MedRecetado } from '@/lib/learning'
+import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, FileText,
   AlertTriangle, Lock, Droplet, Ban, Scale, Lightbulb, Scissors,
@@ -273,10 +274,10 @@ export default function GeneradorRecetaPage() {
          */
         setMedicamentos(medicamentosDeLaReceta(n.medicamentos ?? [])
           .map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
-        // Diagnóstico principal: primero activo de tipo definitivo, o el primero
-        const dxs = n.diagnosticos ?? []
-        const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
-        if (principal) setDiagnostico(principal.descripcion + (principal.codigoCIE10 ? ` (${principal.codigoCIE10})` : ''))
+        // UNO solo, el principal, y nunca un código CIE-10 huérfano. La regla
+        // vive en `diagnosticoParaImprimir` porque esta misma composición
+        // estaba copiada aquí y en /orden: arreglar una dejaba la otra rota.
+        setDiagnostico(diagnosticoParaImprimir(n.diagnosticos))
       }
       setLoading(false)
     }).catch(() => setLoading(false))
@@ -899,7 +900,6 @@ export default function GeneradorRecetaPage() {
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
                   numPages={numPages}
-                  maxWidth={380}
                   maxHeight={600}
                 >
                   <RecetaDocumento

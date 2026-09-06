@@ -432,7 +432,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * borrar la comprobación. Se ve una sola vez: cuando corre en otra parte.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 513, 518, 519],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 515, 519, 524, 525],
   },
   {
     clave: 'se_contradice',
@@ -567,7 +567,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
      * algo; filtrar un token entrega el acceso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 515, 516, 517],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516, 521, 522, 523],
   },
   {
     clave: 'habla_real',
@@ -796,7 +796,29 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no. Un instrumento que sólo cuenta no sustituye a mirar — es la mitad del
      * método, no el método.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 514, 520, 521, 522, 523, 524, 525, 526],
+    /**
+     * 514 es esta familia mordiéndose la cola: el defecto estaba **en el
+     * instrumento**, y era el de creerse medido. La sonda guardaba un archivo
+     * llamado `…-completa.png` que salía byte a byte idéntico al del pliegue —
+     * el cascarón scrollea un `<main>` de dentro, así que `fullPage` no tenía
+     * documento que extender— y publicaba un alto de 844 para pantallas de
+     * 1 627 a 3 094 px. Cuatro pantallas de la rama se declararon vistas
+     * habiendo visto el primer tercio.
+     *
+     * 437 dejó dicho que contar no sustituye a mirar. Esto es el escalón
+     * siguiente: **mirar tampoco basta si lo que te enseñan no es la pantalla**.
+     * Y lo que lo delató no fue un guardián, fue sembrar la única pantalla que
+     * faltaba y no reconocer lo que salía.
+     *
+     * La segunda mitad es de la forma de 342 —el instrumento que no puede
+     * fallar por la razón correcta—: la cuenta de objetivos táctiles medía
+     * CAJAS, y en `/pendientes` denunciaba 7 de 7 que el pseudo de REG-442 ya
+     * cubría. Cien por cien ruido. Al reescribirla para medir el área de golpe,
+     * la primera versión del barrido aceptaba al ancestro y absolvía de más:
+     * una medición que aprueba de sobra esconde, mientras que la que grita en
+     * falso sólo molesta.
+     */
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 520, 526, 527, 528, 529, 530, 531, 532],
   },
   {
     clave: 'hueco_como_dato',
@@ -964,7 +986,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
      * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390],
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518],
   },
   {
     clave: 'perdida',

@@ -3,14 +3,14 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1182 — el carril de excelencia de producto: doce encargos, medidos en un navegador
+## v1184 — el carril de excelencia de producto: doce encargos, medidos en un navegador
 
 El paquete completo, declarado antes de fusionar, en
-[`PAQUETE-PRODUCCION-2026-09-06-v1182.md`](PAQUETE-PRODUCCION-2026-09-06-v1182.md).
+[`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
 
-**16 commits desde v1181** (15 de trabajo + 1 de fusión) · 139 archivos ·
+**17 commits desde v1183** (15 de trabajo + 1 de fusión) · 139 archivos ·
 +5 498 / −186 · **39 de código de producto** · 14 regresiones cerradas
-(REG-513 … REG-526) · 0 rutas nuevas · 0 pantallas nuevas · reglas e índices de
+(REG-519 … REG-532) · 0 rutas nuevas · 0 pantallas nuevas · reglas e índices de
 Firestore **sin cambios**.
 
 Lo que más se nota, en el teléfono: **Finanzas dejó de esconder la tarjeta de
@@ -21,6 +21,31 @@ otra cosa** —medido, borraba la cita—, y **las tardes dejaron de envejecer u
 día a todo el que se hubiera atendido ese día**.
 
 No prueba iPhone: no hay WebKit en el entorno de medición.
+
+## v1182 — la guía dejó de describir un menú que ya no existe
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
+
+**1 commit desde v1181** · texto y una prueba · cero código de producto, cero
+rutas, cero pantallas, `firestore.rules` sin tocar.
+
+La guía de la app le decía al médico que en el menú estaban «Dashboard, Citas,
+Consulta, **Hospitalización, Consultor IA**…» y que el Consultor se abría «en el
+menú». Las dos frases eran falsas: el menú son cinco destinos desde V15-IA-001,
+el Consultor se mudó al expediente del paciente en RTC-09, y Hospitalización
+entró en pausa ayer (D-030).
+
+Una guía falsa es peor que ninguna: la lee justamente quien ya está perdido. Y
+no la cazó ninguna prueba porque **el texto no se rompe** — cada reforma de menú
+la dejaba un poco más mentirosa sin que nada fallara.
+
+Ahora el paso «Reconoce el menú» se compara contra los destinos que `FlowRail`
+declara de verdad, contra lo que está en pausa y contra lo que se mudó al
+paciente. Si el riel cambia, la prueba cae. El tema de Hospitalización, además,
+dice que el módulo está en pausa y cómo se llega igualmente.
+
+---
 
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
@@ -3483,3 +3508,16 @@ arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
 
 Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
+
+## v1183 — 6-sep-2026
+
+Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
+auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime
+antecedentes; la atribución manda sobre la etiqueta del modelo), REG-516 (un
+código CIE-10 sin diagnóstico ya no sale impreso, y la regla deja de estar
+duplicada), REG-517 (el diálogo de firmar deja de esconder sus botones y de ser
+un muro de texto), REG-518 (tres diálogos más con la misma herida, un patrón
+compartido y un guardián) y D-032 (la caja ámbar se retira; sólo la caja).
+
+Primer paquete de la sesión que sale de uso real en un aparato real. Ninguna de
+las cuatro la había cazado el arnés, que corre en Chromium a 390 px.

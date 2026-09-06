@@ -14,7 +14,7 @@ TESTS_FAILED=1
 KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes y el proxy del contenedor rechaza al instante. Es intermitente: en una corrida de la suite entera pasó. NO tocar la aserción.
 BUILD=compila
 BLOCKED_EXTERNAL=iPhone/WebKit real · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
-DO_NOT_REGRESS=REG-513…REG-526
+DO_NOT_REGRESS=REG-519…REG-532
 ```
 
 ### La fusión, y lo que enseñó
@@ -39,7 +39,7 @@ guardianes que no son de este carril. Concretamente:
 
 De este lado se conserva lo que valía por su cuenta y no chocaba: la píldora y
 la barra usan ahora el **vocabulario común** (`rotulo`, `reloj`) en vez de dos
-`padStart` propios — la regla de REG-515, que aquel cambio no había alcanzado.
+`padStart` propios — la regla de REG-521, que aquel cambio no había alcanzado.
 
 **Los REG de este carril se renumeraron 417→513 … 430→526**: `main` había usado
 417-430 para regresiones distintas. Se renumeró sólo lo que no existía en
@@ -68,10 +68,10 @@ la barra usan ahora el **vocabulario común** (`rotulo`, `reloj`) en vez de dos
 ### La lección que se repitió
 
 Un guardián puede estar escrito, correr y salir verde sin vigilar nada: porque
-pregunta del lado equivocado de la frontera (REG-521), porque mira una carpeta
-de menos (REG-524), porque prueba una forma del dato que nadie envía y a una
-hora en la que el defecto no se asoma (REG-525), porque mide la pantalla en un
-estado en el que nadie trabaja (REG-526), o porque su localizador nunca casa y
+pregunta del lado equivocado de la frontera (REG-527), porque mira una carpeta
+de menos (REG-530), porque prueba una forma del dato que nadie envía y a una
+hora en la que el defecto no se asoma (REG-531), porque mide la pantalla en un
+estado en el que nadie trabaja (REG-532), o porque su localizador nunca casa y
 mide la pantalla de otra cosa (el tour, arriba). **Visitar la ruta no es
 medirla.**
 

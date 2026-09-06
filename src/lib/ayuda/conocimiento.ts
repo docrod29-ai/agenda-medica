@@ -43,7 +43,7 @@ export const GUIA: SeccionGuia[] = [
     intro: 'Lo mínimo para arrancar el primer día.',
     pasos: [
       { t: 'Entra con tu correo', d: 'Abre la app, escribe tu correo y contraseña (o entra con Google). Al entrar con Google, elige SIEMPRE el correo correcto en el selector — si eliges otro, verás una cuenta vacía distinta.' },
-      { t: 'Reconoce el menú', d: 'A la izquierda (o abajo en el celular) están las secciones: Dashboard, Citas, Consulta, Hospitalización, Consultor IA, etc. Arriba, la flecha "← Atrás" te regresa a donde estabas.' },
+      { t: 'Reconoce el menú', d: 'A la izquierda (o abajo en el celular) hay cinco destinos y nada más: Hoy (tu día), Paciente, Encuentro (la consulta abierta), Seguimiento (lo que quedó pendiente) y Operaciones (la administración del consultorio). Arriba, la flecha "← Atrás" te regresa a donde estabas, y la lupa (o ⌘K) busca pacientes y acciones sin salir de donde estés.' },
       { t: 'Elige tu modo', d: 'Si eres médico, abajo del menú puedes cambiar entre "Médico" y "Recepción" según lo que hagas.' },
       { t: 'Configura lo básico', d: 'Configuración → Datos del consultorio y Horario de atención. Con eso ya puedes agendar.' },
     ],
@@ -109,7 +109,7 @@ export const GUIA: SeccionGuia[] = [
     id: 'consultor', titulo: 'Consultor de IA (evidencia médica)', roles: ['medico'],
     intro: 'Pregúntale cualquier duda clínica y te responde con evidencia real y citas.',
     pasos: [
-      { t: 'Abre el Consultor', d: 'En el menú, "Consultor IA". Es un chat clínico tipo OpenEvidence.' },
+      { t: 'Abre el Consultor', d: 'Desde el expediente del paciente, en "Herramientas": el Consultor se abre ya sabiendo de quién hablas, así no tienes que repetirlo. También llegas con la lupa (⌘K) si prefieres preguntar sin paciente. Es un chat clínico tipo OpenEvidence.' },
       { t: 'Haz tu pregunta', d: 'Escribe tu duda ("mejor antibiótico para… en paciente con…", dosis, esquemas). Presiona Enter.' },
       { t: 'Respuesta con evidencia', d: 'Busca en PubMed (NEJM, JAMA, Cochrane, Lancet) y responde citando los artículos [n] que la respaldan, más dosis oficiales (FDA) y la guía mexicana (GPC/CENETEC) cuando aplica.' },
       { t: 'Segunda opinión automática', d: 'Una inteligencia redacta la respuesta y otra, independiente, la revisa contra la MISMA evidencia antes de enseñártela. Verás en pantalla que pasó por las dos.' },
@@ -158,7 +158,7 @@ export const GUIA: SeccionGuia[] = [
   },
   {
     id: 'hospital', titulo: 'Hospitalización', roles: ['medico', 'enfermeria'],
-    intro: 'Censo, indicaciones/MAR, interconsultas, signos y egreso.',
+    intro: 'Censo, indicaciones/MAR, interconsultas, signos y egreso. Hoy este módulo NO aparece en el menú —la prioridad es la consulta y su agenda—: sigue funcionando y se entra escribiendo /hospitalizacion, o desde un paciente internado.',
     pasos: [
       { t: 'Ingresar', d: 'Hospitalización → "Ingresar": paciente, servicio y cama. Queda como episodio activo en el censo.' },
       { t: 'La ficha', d: 'Toca al paciente del censo: pestañas Notas, Indicaciones · MAR, Signos, Laboratorio, Enfermería, Interconsultas.' },

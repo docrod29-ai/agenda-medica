@@ -272,6 +272,26 @@ export const RespuestaExtraccion = z.object({
      * es lo mismo que ninguno de los dos valores. Ver `que-va-en-la-receta.ts`.
      */
     procedenciaClinica: z.enum(['ya_lo_toma', 'se_prescribe_hoy']).optional(),
+    /**
+     * QUIÉN LO DIJO — el mismo defecto que el de arriba, un campo más allá.
+     *
+     * `procedenciaClinica` se declaró aquí porque `z.object` borraba la clave y
+     * los antecedentes acababan impresos. `speaker` seguía borrándose, y es el
+     * dato que de verdad separa las dos cosas:
+     *
+     *   · un ANTECEDENTE lo dice el paciente — «tomo metformina»
+     *   · un PLAN lo dice el médico          — «le voy a dar amoxicilina»
+     *
+     * Sin él, la única defensa del papel era creerle a la etiqueta que el propio
+     * modelo se pone. Cuando el modelo etiqueta mal un antecedente como
+     * `se_prescribe_hoy`, no había nada más que lo parara. Ver REG-515.
+     *
+     * Sin `.default()` a propósito, igual que su vecino: la AUSENCIA significa
+     * «no se sabe quién lo dijo», que no es lo mismo que «lo dijo el médico».
+     */
+    speaker: Hablante.optional(),
+    /** La frase de la que salió. Es lo que hace auditable la atribución. */
+    source_quote: z.string().optional(),
   })).optional().default([]),
   alergias: z.array(z.object({
     alergeno:   z.string(),

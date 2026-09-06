@@ -30,6 +30,7 @@ import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarPaginasComoPDF } from '@/lib/pdf-download'
 import { descargarRecetaWord } from '@/lib/receta-word'
+import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import {
   ArrowLeft, Download, Loader2, Plus, Trash2, Printer, Settings, AlertCircle, ChevronDown, FileText, Check, Scissors,
   AlertTriangle,
@@ -410,9 +411,8 @@ export default function GeneradorOrdenPage() {
       setNota(n)
       setPatient(ps)
       if (n) {
-        const dxs = n.diagnosticos ?? []
-        const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
-        if (principal) setDiagnostico(principal.descripcion + (principal.codigoCIE10 ? ` (${principal.codigoCIE10})` : ''))
+        // Misma regla que /receta, en un solo sitio. Ver REG-516.
+        setDiagnostico(diagnosticoParaImprimir(n.diagnosticos))
         // Estudios pre-poblados por la nota (p. ej. valoración del inmunocomprometido)
         if (Array.isArray(n.estudiosOrden) && n.estudiosOrden.length) setEstudios(n.estudiosOrden)
       }
@@ -788,7 +788,6 @@ export default function GeneradorOrdenPage() {
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
                   numPages={numPages}
-                  maxWidth={380}
                   maxHeight={600}
                 >
                   <RecetaDocumento

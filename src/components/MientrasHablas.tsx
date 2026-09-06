@@ -40,7 +40,7 @@
 import { Mic, Pause, Play, Square, Loader2 } from 'lucide-react'
 /* El reloj sale del vocabulario común: esta pantalla llevaba su propio
    `mmss` mientras la píldora y la franja decían lo mismo con otro formato.
-   Cuatro relojes, dos formatos, un solo estado. Ver REG-515. */
+   Cuatro relojes, dos formatos, un solo estado. Ver REG-521. */
 import { reloj } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 export type EstadoDeLaBarra = 'listo' | 'grabando' | 'pausado' | 'procesando'
