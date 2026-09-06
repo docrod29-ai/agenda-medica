@@ -553,23 +553,23 @@ export default function PacientesPage() {
             <Spinner center label="Revisando los dos expedientes…" />
           ) : (
             <div style={{ display: 'grid', gap: 12 }}>
-              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
                 Se queda el expediente de{' '}
                 <strong style={{ color: 'var(--text)' }}>
                   {[porFundir.par.a, porFundir.par.b].find(p => p.id === porFundir.plan!.sobreviveId)?.nombre}
                 </strong>{' '}
                 y absorbe al otro. {porFundir.plan.porQueSobreviveEse}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
                 Se mudan sus notas —con su firma y su hash intactos—, laboratorios, fotos, citas y cobros.
               </div>
               {Object.keys(porFundir.plan.rellena).length > 0 && (
-                <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, padding: 10, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, padding: 10, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10 }}>
                   <strong>Se rellenan huecos:</strong>{' '}
                   {Object.entries(porFundir.plan.rellena).map(([k, v]) => `${k} → ${v}`).join(' · ')}
                 </div>
               )}
-              <div style={{ fontSize: 12.5, lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 8, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
+              <div style={{ fontSize: 12, lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 10, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
                 <strong style={{ color: 'var(--text)' }}>Lo que se pierde:</strong>
                 <ul style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--text2)' }}>
                   {loQueSePierde(porFundir.plan).map((l, i) => <li key={i}>{l}</li>)}
@@ -1381,7 +1381,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
                 Enseñarlo antes de guardar es lo que convierte «12345» en un
                 error que se ve, y no en un recordatorio que nunca sale.
               */}
-              <p id="p-telefono-ayuda" style={{ fontSize: 11, margin: '4px 0 0', color: revisionTelefono.valido ? 'var(--text3)' : 'var(--red)' }}>
+              <p id="p-telefono-ayuda" style={{ fontSize: 12, margin: '4px 0 0', color: revisionTelefono.valido ? 'var(--text3)' : 'var(--red)' }}>
                 {!revisionTelefono.valido
                   ? revisionTelefono.problema
                   : revisionTelefono.vacio
@@ -1403,7 +1403,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
               <label className="label" htmlFor="p-edad">Edad {f.fechaNacimiento ? '' : '*'}</label>
               <input id="p-edad" className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130}
                 readOnly={!!f.fechaNacimiento} />
-              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
                 {f.fechaNacimiento
                   ? 'Se calcula sola desde la fecha de nacimiento y se mantiene al día. La usan la dosis pediátrica, los percentiles y las escalas de riesgo.'
                   : 'Si sabes su fecha de nacimiento, ponla abajo: la edad se calcula sola y no se queda vieja.'}
@@ -1412,7 +1412,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
             <div className="form-group">
               <label className="label" htmlFor="p-fecha-nacimiento">Fecha de nacimiento</label>
               <input id="p-fecha-nacimiento" className="input" type="date" value={f.fechaNacimiento} onChange={setFechaNacimiento} />
-              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
                 Las farmacias la piden para dispensar: sale impresa en la receta.
               </p>
             </div>

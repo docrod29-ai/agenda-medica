@@ -453,7 +453,7 @@ export default function MigracionPage() {
                   minutos se lee como que se colgó, y cerrar la pestaña a mitad
                   deja media importación. */}
               {progreso && (
-                <span role="status" style={{ alignSelf: 'center', fontSize: 12.5, color: 'var(--text2)' }}>
+                <span role="status" style={{ alignSelf: 'center', fontSize: 12, color: 'var(--text2)' }}>
                   {progreso.hechos} de {progreso.total} · no cierres esta pestaña
                 </span>
               )}
@@ -477,18 +477,18 @@ export default function MigracionPage() {
                     marginBottom: 12, padding: '10px 13px', borderRadius: 10,
                     border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
                       <AlertTriangle size={15} style={{ color: 'var(--amber)' }} />
                       {descartadas.length === 1
                         ? 'Hay 1 columna del archivo que no vamos a guardar'
                         : `Hay ${descartadas.length} columnas del archivo que no vamos a guardar`}
                     </div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.7 }}>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
                       {descartadas.map(c => (
                         <li key={c.encabezado}><strong>{c.encabezado}</strong> — por ejemplo «{c.ejemplo}»</li>
                       ))}
                     </ul>
-                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
                       Si alguna de ellas es parte del nombre, renómbrala en el archivo a «Apellido paterno»
                       o «Apellidos» y vuelve a analizarlo: entonces sí entra.
                     </div>
@@ -507,11 +507,11 @@ export default function MigracionPage() {
                     marginBottom: 12, padding: '10px 13px', borderRadius: 10,
                     border: '1px solid var(--border)', background: 'var(--s2)',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
                       <Info size={15} style={{ color: 'var(--nexus)' }} />
                       ¿Cómo vienen las fechas de este archivo?
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 8 }}>
                       {fechasAmbiguas === 1
                         ? 'Hay 1 fecha que puede leerse de dos maneras'
                         : `Hay ${fechasAmbiguas} fechas que pueden leerse de dos maneras`}
@@ -527,7 +527,7 @@ export default function MigracionPage() {
                           aria-pressed={ordenDeFecha === clave}
                           className="nx-chip nx-chip--relleno"
                           style={{
-                            padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                            padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                             color: ordenDeFecha === clave ? '#fff' : 'var(--text2)',
                             border: `1px solid ${ordenDeFecha === clave ? 'var(--nexus-solido)' : 'var(--border)'}`,
                           }}>{etiqueta}</button>
@@ -544,7 +544,7 @@ export default function MigracionPage() {
                     {conteo.duplicado} ya los tienes (se omiten)
                   </span>
                   {conteo.conReparos > 0 && (
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
                       {conteo.conReparos} entran con algo sin guardar
                     </span>
                   )}
@@ -570,7 +570,7 @@ export default function MigracionPage() {
                             {entra
                               ? <CheckCircle2 size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
                               : <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
-                            <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
+                            <span style={{ flex: 1, fontSize: 14, color: 'var(--text)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
                             <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.fila.telefono || '—'}</span>
                           </div>
                           {/*
@@ -582,7 +582,7 @@ export default function MigracionPage() {
                           */}
                           {c.estado === 'duplicado' && c.coincide && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, marginLeft: 25 }}>
-                              <span style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+                              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
                                 {forzada ? 'Se va a crear igual. ' : 'Se omite: '}
                                 coincide con <strong style={{ color: 'var(--text2)' }}>{c.coincide.nombre || 'otra fila de este mismo archivo'}</strong>
                                 {' '}— {c.coincide.motivo.toLowerCase()}
@@ -594,7 +594,7 @@ export default function MigracionPage() {
                                 return s2
                               })} style={{
                                 background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
-                                fontSize: 11.5, color: 'var(--text3)', textDecoration: 'underline',
+                                fontSize: 12, color: 'var(--text3)', textDecoration: 'underline',
                               }}>
                                 {forzada ? 'Mejor omitirla' : 'Es otra persona — impórtala'}
                               </button>
@@ -609,7 +609,7 @@ export default function MigracionPage() {
                           {(c.fila.reparos?.length ?? 0) > 0 && (
                             <ul style={{ margin: '4px 0 0 25px', padding: 0, listStyle: 'none' }}>
                               {c.fila.reparos!.map((r, k) => (
-                                <li key={k} style={{ fontSize: 11.5, color: r.gravedad === 'descartado' ? 'var(--amber)' : 'var(--text3)', lineHeight: 1.5 }}>
+                                <li key={k} style={{ fontSize: 12, color: r.gravedad === 'descartado' ? 'var(--amber)' : 'var(--text3)', lineHeight: 1.5 }}>
                                   {r.gravedad === 'descartado' ? '⚠️' : 'ℹ️'} {r.campo === 'fechaNacimiento' ? 'Fecha de nacimiento' : r.campo === 'curp' ? 'CURP' : 'Sexo'}
                                   {' «'}{r.valor}{'» — '}{r.motivo}
                                 </li>
@@ -646,12 +646,12 @@ export default function MigracionPage() {
                 */}
                 {reporte.fallidas.length > 0 && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--amber)', marginBottom: 6 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--amber)', marginBottom: 6 }}>
                       {reporte.fallidas.length === 1
                         ? 'Este expediente no se pudo crear:'
                         : `Estos ${reporte.fallidas.length} expedientes no se pudieron crear:`}
                     </div>
-                    <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.7 }}>
+                    <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
                       {reporte.fallidas.slice(0, 20).map((f, i) => (
                         <li key={i}><strong>{f.nombre}</strong>{f.telefono ? ` · ${f.telefono}` : ''} — {f.motivo}</li>
                       ))}
@@ -660,7 +660,7 @@ export default function MigracionPage() {
                     <Button size="sm" variant="secondary" icon={<Download size={14} />} onClick={() => descargarFallidas(reporte.fallidas)}>
                       Descargar las que fallaron (CSV)
                     </Button>
-                    <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
                       El contenido que pegaste sigue arriba: corrígelo y vuelve a analizar. Lo que ya se
                       importó saldrá marcado como repetido, así que no se creará dos veces.
                     </div>

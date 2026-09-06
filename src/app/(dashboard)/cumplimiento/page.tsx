@@ -430,8 +430,20 @@ export default function CumplimientoPage() {
 
     setEjecutando(true)
     try {
-      if (estado === 'resuelta' && req.tipo === 'acceso') { await entregarAcceso(req); setPorResolver(null); return }
-      if (estado === 'resuelta' && req.tipo === 'oposicion') { await ejecutarOposicion(req); setPorResolver(null); return }
+      /**
+       * El ACCESO no se resuelve escribiendo: se ejecuta y se entrega (REG-154).
+       * Rechazarlo sí sigue siendo un texto — una negativa es una decisión con
+       * su fundamento, no una operación de datos —, y por eso el textarea de
+       * arriba es obligatorio en los dos casos pero sólo aquí se ejecuta algo.
+       */
+      if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); setPorResolver(null); return }
+      /**
+       * La OPOSICIÓN tampoco: apaga el contacto. El paciente que ejercía su
+       * derecho por escrito seguía recibiendo recordatorios mientras el que
+       * contestaba «BAJA» por WhatsApp sí dejaba de recibirlos — la vía formal
+       * era la única que no servía.
+       */
+      if (req.tipo === 'oposicion' && estado === 'resuelta') { await ejecutarOposicion(req); setPorResolver(null); return }
       /**
        * ASE-012 — LA REVOCACIÓN DEL CONSENTIMIENTO APAGA EL CONTACTO.
        *
@@ -573,10 +585,10 @@ export default function CumplimientoPage() {
       >
         {porResolver && (
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text)' }}>{ARCO_TIPO_LABEL[porResolver.req.tipo]}</strong>
               {' · '}{porResolver.req.solicitante.nombre}
-              <div style={{ marginTop: 6, padding: 8, background: 'var(--s2)', borderRadius: 6, fontSize: 12.5 }}>
+              <div style={{ marginTop: 6, padding: 8, background: 'var(--s2)', borderRadius: 6, fontSize: 12 }}>
                 {porResolver.req.descripcion}
               </div>
             </div>
@@ -588,7 +600,7 @@ export default function CumplimientoPage() {
               queda la constancia de qué se cambió.
             */}
             {porResolver.estado === 'resuelta' && porResolver.req.tipo === 'rectificacion' && porResolver.req.patientId && (
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--border)', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--border)', borderRadius: 10 }}>
                 Corrige el dato en el expediente y vuelve aquí a dejar constancia de qué cambiaste
                 (antes → después).{' '}
                 <a href={`/pacientes?editar=${encodeURIComponent(porResolver.req.patientId)}`} target="_blank" rel="noreferrer"
@@ -599,7 +611,7 @@ export default function CumplimientoPage() {
             )}
 
             {porResolver.estado === 'resuelta' && porResolver.req.tipo === 'revocacion' && (
-              <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 8, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 10, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
                 Al resolver se dará de baja su contacto: dejan de salirle recordatorios y mensajes.
                 Lo que el sistema no pueda apagar solo se te dirá para que lo hagas a mano.
               </div>
@@ -619,14 +631,14 @@ export default function CumplimientoPage() {
                   ? 'Por ejemplo: no se acreditó la identidad del titular tras dos requerimientos.'
                   : 'Por ejemplo: se corrigió la fecha de nacimiento de 1980-03-15 a 1980-05-13.'}
               />
-              <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
                 Esto es la constancia de cómo se atendió el derecho. Se guarda en la solicitud y
                 queda en la bitácora con tu nombre y la fecha.
               </p>
             </div>
 
             {porResolver.estado === 'resuelta' && (
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer' }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={identidadOk} onChange={e => setIdentidadOk(e.target.checked)} style={{ marginTop: 3 }} />
                 <span>
                   Verifiqué la identidad del titular (o de su representante) por un medio fiable.
@@ -693,7 +705,7 @@ export default function CumplimientoPage() {
               El médico afirma que verificó al titular, y esa afirmación queda
               en la bitácora con su nombre.
             */}
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={identidadOk}
@@ -1154,11 +1166,11 @@ function ArcoPanel({ requests, loading, onResolver, onLigar }: { requests: ArcoR
                   */}
                   {!r.patientId ? (
                     <>
-                      <span style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 380, lineHeight: 1.5 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.5 }}>
                         Llegó sin expediente ligado: el formulario público dice quién <em>dice</em> ser
                         el solicitante, no a qué expediente corresponde.
                       </span>
-                      <button onClick={() => onLigar(r)} className="btn btn-primary" style={{ fontSize: 11.5, padding: '4px 10px' }}>
+                      <button onClick={() => onLigar(r)} className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }}>
                         Ligar expediente…
                       </button>
                     </>
@@ -1170,7 +1182,7 @@ function ArcoPanel({ requests, loading, onResolver, onLigar }: { requests: ArcoR
                       contacto o suprimía un expediente. Un botón que hace algo
                       irreversible tiene que decirlo antes.
                     */
-                    <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 11.5, padding: '4px 10px' }}>
+                    <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }}>
                       {r.tipo === 'acceso' ? 'Entregar su expediente…'
                         : r.tipo === 'cancelacion' ? 'Ejecutar cancelación…'
                         : r.tipo === 'oposicion' ? 'Ejecutar oposición…'
@@ -1329,9 +1341,9 @@ function LigarExpedienteModal({ req, clinicId, ejecutando, onCerrar, onLigar }: 
     >
       <div style={{ display: 'grid', gap: 12 }}>
         {noSePuede && (
-          <div style={{ fontSize: 12.5, color: 'var(--amber)' }}>{noSePuede}</div>
+          <div style={{ fontSize: 12, color: 'var(--amber)' }}>{noSePuede}</div>
         )}
-        <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
           Quien llenó el formulario dijo llamarse <strong>{req.solicitante.nombre}</strong>
           {req.solicitante.telefono ? ` · ${req.solicitante.telefono}` : ''}
           {req.solicitante.curp ? ` · CURP ${req.solicitante.curp}` : ''}.
@@ -1362,7 +1374,7 @@ function LigarExpedienteModal({ req, clinicId, ejecutando, onCerrar, onLigar }: 
             />
             {busqueda.resultados.slice(0, 6).map(p => (
               <button key={p.id} type="button" onClick={() => setElegido({ id: String(p.id), nombre: p.nombre })}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4, fontSize: 12.5, minHeight: 44 }}>
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4, fontSize: 12, minHeight: 44 }}>
                 {p.nombre}{p.telefono ? ` · ${p.telefono}` : ''}
               </button>
             ))}
@@ -1388,7 +1400,7 @@ function LigarExpedienteModal({ req, clinicId, ejecutando, onCerrar, onLigar }: 
             placeholder="INE folio 1234567890"
             style={{ width: '100%' }}
           />
-          <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.5 }}>
             Se guarda el texto que escribas, nunca una imagen del documento. Queda en la bitácora
             con tu nombre: es lo que sostiene que la entrega —o la supresión— se hizo a su titular.
           </p>

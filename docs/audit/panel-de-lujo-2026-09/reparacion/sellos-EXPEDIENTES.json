@@ -1,0 +1,57 @@
+[
+  {
+    "archivo": "src/__tests__/un-homonimo-no-se-cuelga-del-expediente-sin-telefono.test.ts",
+    "minCasos": 6,
+    "hallazgos": ["RT-001"]
+  },
+  {
+    "archivo": "src/__tests__/la-fecha-del-archivo-llega-en-iso-al-expediente.test.ts",
+    "minCasos": 4,
+    "hallazgos": ["ASE-003"]
+  },
+  {
+    "archivo": "src/__tests__/los-apellidos-en-columnas-separadas-llegan-al-nombre.test.ts",
+    "minCasos": 4,
+    "hallazgos": ["ASE-004"]
+  },
+  {
+    "archivo": "src/__tests__/lo-que-entra-por-la-importacion-se-mira-antes-de-escribirse.test.ts",
+    "minCasos": 14,
+    "hallazgos": ["A-013", "ASE-003", "ASE-005", "ASE-007", "ASE-025"]
+  },
+  {
+    "archivo": "src/__tests__/la-pantalla-de-migracion-ensena-lo-que-no-guarda.test.ts",
+    "minCasos": 14,
+    "hallazgos": ["ASE-003", "ASE-004", "ASE-006", "ASE-007", "ASE-008", "ASE-019", "ASE-027"]
+  },
+  {
+    "archivo": "src/__tests__/el-vacio-del-servidor-no-pisa-el-acierto-local.test.ts",
+    "minCasos": 9,
+    "hallazgos": ["ASE-001"]
+  },
+  {
+    "archivo": "src/__tests__/el-alta-de-un-paciente-revisa-lo-que-guarda.test.ts",
+    "minCasos": 20,
+    "hallazgos": ["ASM-001", "ASE-020", "ASR-020", "MP-017", "C-023", "D-002"]
+  },
+  {
+    "archivo": "src/__tests__/una-solicitud-arco-real-se-puede-ejecutar.test.ts",
+    "minCasos": 18,
+    "hallazgos": ["ASE-010", "ASE-011", "ASE-012", "ASE-026", "C-007", "D-008"]
+  },
+  {
+    "archivo": "src/__tests__/los-ultimos-signos-dicen-de-donde-salieron.test.ts",
+    "minCasos": 17,
+    "hallazgos": ["ASN-007", "ASN-008"]
+  },
+  {
+    "archivo": "src/__tests__/el-expediente-recuerda-donde-estabas.test.ts",
+    "minCasos": 8,
+    "hallazgos": ["D-023", "PG-012", "PI-022"]
+  },
+  {
+    "archivo": "src/__tests__/dos-expedientes-de-la-misma-persona-se-pueden-juntar.test.ts",
+    "minCasos": 16,
+    "hallazgos": ["ASE-009"]
+  }
+]
