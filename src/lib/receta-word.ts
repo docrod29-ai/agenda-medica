@@ -303,7 +303,7 @@ export async function abrirRecetaParaImprimir(
   const html = construirRecetaHTML(data, config, recetaConfig, membreteResuelto)
   const win = window.open('', '_blank', 'width=900,height=1000')
   if (!win) {
-    const msg = 'No se pudo abrir la ventana para imprimir (el navegador la bloqueo). ' +
+    const msg = 'No se pudo abrir la ventana para imprimir (el navegador la bloqueó). ' +
       'Permite las ventanas emergentes de este sitio, o usa «Descargar» para guardar el archivo.'
     if (onError) onError(msg)
     // eslint-disable-next-line no-alert
@@ -314,14 +314,14 @@ export async function abrirRecetaParaImprimir(
   win.document.write(html)
   win.document.close()
   win.onafterprint = () => { try { win.close() } catch { /* — */ } }
-  // Un respiro para que el navegador maquete antes del dialogo; si no llega a
+  // Un respiro para que el navegador maquete antes del diálogo; si no llega a
   // tiempo, la ventana queda abierta con el documento y el paciente imprime
-  // desde el menu. Nunca se cierra sola sin haber ensenado nada.
+  // desde el menú. Nunca se cierra sola sin haber enseñado nada.
   setTimeout(() => { try { win.focus(); win.print() } catch { /* — */ } }, 250)
   return 'abierta'
 }
 
 export const POR_QUE_NO_BASTA_EL_DOC =
   'Porque el paciente no necesita editar su receta: necesita verla y ' +
-  'ensenarla. Un formato editable que su telefono no abre es, para el, un ' +
+  'enseñarla. Un formato editable que su teléfono no abre es, para él, un ' +
   'archivo roto.'
