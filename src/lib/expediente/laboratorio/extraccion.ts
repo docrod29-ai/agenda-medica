@@ -26,6 +26,14 @@ export interface FilaCruda {
   valor?: string | number
   unidad?: string
   referencia?: string
+  /**
+   * DE QUÉ MUESTRA ES, tal como está IMPRESO en la hoja — REG-456, §27.3.
+   *
+   * Sale de la cabecera («Examen general de orina») o del rótulo del renglón. La
+   * lectura de la hoja NO lo deduce del analito ni del valor: si no está impreso,
+   * viene vacío y manda el nombre del renglón, como antes.
+   */
+  muestra?: string
 }
 
 /** Un resultado ya validado y listo para graficar. */
@@ -138,7 +146,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
     const num = aNumero(fila.valor)
     if (!estudio) continue
 
-    const a: Analito | null = analitoDe(estudio, fila.unidad?.trim())
+    const a: Analito | null = analitoDe(estudio, fila.unidad?.trim(), fila.muestra)
     /**
      * ── EL ORDEN DEL §28, Y POR QUÉ IMPORTA (REG-451) ────────────────────────
      *

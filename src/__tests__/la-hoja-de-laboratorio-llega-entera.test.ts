@@ -130,13 +130,15 @@ function medirElFoso(hojas: readonly Hoja[]): LoMedido & { filas: number; llegan
      *  2. La segunda ya usaba `analitoDe`, pero SIN la unidad — y en cuanto
      *     REG-450 hizo que la unidad desambiguara el diferencial leucocitario,
      *     «Neutrófilos %» volvió a contarse como inventado.
+     *  3. La tercera, sin la MUESTRA — y en cuanto REG-456 la añadió, las ocho
+     *     filas de las hojas de orina y LCR se contaron como inventadas.
      *
      * La lección es la misma las dos veces: el medidor tiene que llamar al mapeo
      * canónico **con las mismas entradas que usa producción**. Uno con su propia
      * idea de qué es un analito mide otra cosa que el producto.
      */
     const clavesDeLaHoja = new Set(
-      h.filas.map(f => analitoDe(String(f.estudio ?? ''), f.unidad?.trim())?.clave).filter(Boolean),
+      h.filas.map(f => analitoDe(String(f.estudio ?? ''), f.unidad?.trim(), f.muestra)?.clave).filter(Boolean),
     )
     inventadas += panel.resultados.filter(r => !clavesDeLaHoja.has(r.clave)).length
   }
@@ -163,10 +165,16 @@ function medirElFoso(hojas: readonly Hoja[]): LoMedido & { filas: number; llegan
 }
 
 describe('EL CONJUNTO EXISTE — antes decía «no existe»', () => {
-  it('8 hojas, 46 filas, y ninguna es de un paciente real', () => {
+  it('10 hojas, 54 filas, y ninguna es de un paciente real', () => {
+    /**
+     * Eran 8 y 46. REG-456 añadió dos: un examen general de orina y un LCR, los
+     * dos con la muestra en la CABECERA y los renglones llamándose igual que los
+     * de una química sanguínea. Ése era el caso que el nombre del renglón no
+     * podía resolver, declarado como hueco desde REG-453.
+     */
     const hojas = corpus()
-    expect(hojas).toHaveLength(8)
-    expect(hojas.reduce((n, h) => n + h.filas.length, 0)).toBe(46)
+    expect(hojas).toHaveLength(10)
+    expect(hojas.reduce((n, h) => n + h.filas.length, 0)).toBe(54)
     for (const h of hojas) {
       expect(h.contexto.length, h.id).toBeGreaterThan(40)
       expect(h.filas.length, h.id).toBeGreaterThan(0)
@@ -200,7 +208,7 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(lectura.ejes.map(e => e.umbral)).toEqual([0, 0, 0.05])
   })
 
-  it('las 46 filas llegan al panel: 0 %', () => {
+  it('las 54 filas llegan al panel: 0 %', () => {
     /**
      * LA HISTORIA DE ESTE NÚMERO, QUE ES LO QUE HACE HONESTO EL CERO:
      *
@@ -209,11 +217,13 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
      *  · 2-sep (REG-451): 0 de 46 — pero NO porque se recuperara nada más, sino
      *    porque su §1 dice que la fila fuera de rango se acepta provisionalmente
      *    en vez de tirarse. Cambió la política, no sólo el número.
+     *  · 2-sep (REG-456): 0 de 54. El corpus creció con un examen general de
+     *    orina y un LCR, y los dos entran enteros.
      *
      * Por eso justo debajo se mide lo OTRO: cuántas llegan sin gráfica.
      */
     const m = medirElFoso(corpus())
-    expect(m.filas).toBe(46)
+    expect(m.filas, 'REG-456 añadió dos hojas: orina y LCR').toBe(54)
     expect(m.perdidas).toBe(FILAS_QUE_NO_LLEGAN)
 
     const lectura = aplicarUmbral(UMBRAL, m)

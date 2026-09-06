@@ -313,8 +313,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * fábrica y no daba forma de ejercer la distinción: la fila del diagnóstico
      * enseñaba descripción, código y borrar.
      */
+    /**
+     * 456 es esta familia sobre un dato que la HOJA sí traía. El examen general
+     * de orina y el líquido cefalorraquídeo llaman a sus renglones igual que
+     * una química sanguínea —glucosa, proteínas, leucocitos— y lo que los
+     * distingue está en la cabecera. La lectura de la hoja no la pedía, así que
+     * una glucosuria de 250 se archivaba como glucemia: una urgencia diabética
+     * que nadie tuvo, con una cifra perfectamente plausible en suero.
+     *
+     * Ningún rango la caza, porque el rango compara magnitudes y lo que dice
+     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-451.
+     */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 420, 422, 423, 426, 427, 429, 431, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 447, 448, 449, 450, 451, 452, 453],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 420, 422, 423, 426, 427, 429, 431, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 447, 448, 449, 450, 451, 452, 453, 456],
   },
   {
     clave: 'se_contradice',

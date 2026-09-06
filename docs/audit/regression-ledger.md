@@ -17820,6 +17820,119 @@ se llama.
 
 ---
 
+## REG-456 — la cabecera dice de qué muestra es, y nadie la estaba leyendo
+
+**Eje.** Laboratorio · §27.3 de D-032 · regla 4 de seguridad clínica.
+**Fecha.** 5-sep-2026.
+**Prueba.** `src/__tests__/la-muestra-viene-de-la-cabecera.test.ts` (15 casos).
+
+### El hueco que REG-453 dejó declarado
+
+REG-453 decidió la muestra sobre el **nombre del renglón** y dejó escrito, con
+todas las letras, lo que esa regla no podía resolver:
+
+> Una hoja que pone «Examen general de orina» en la cabecera y luego escribe
+> «Glucosa» a secas sigue cayendo en la serie de suero.
+
+No es un caso raro: **es el caso normal.** Un examen general de orina y un
+líquido cefalorraquídeo llaman a sus renglones igual que una química sanguínea
+—glucosa, proteínas, leucocitos, creatinina—. Lo que los distingue está arriba,
+en la cabecera, y hasta hoy la extracción no lo miraba.
+
+### Medido antes de tocar nada — las ocho filas de las dos hojas mudas
+
+| Renglón de la hoja | Sin el campo | Con el campo |
+|---|---|---|
+| «Glucosa» 250 mg/dL (orina) | `glucosa` · **suero** | `glucosaUrinaria` |
+| «Creatinina» 85 mg/dL (orina) | `creatinina` · **suero** | `creatinina_orina` |
+| «Glucosa» 35 mg/dL (LCR) | `glucosa` · **suero** | `lcrGlucosa` |
+| «Leucocitos» 320 células/µL (LCR) | `leucocitos` · **suero** | `lcrLeucocitos` |
+| «Proteína» 120 mg/dL (orina) | **perdida** | `proteinaUrinaria` |
+| «Densidad» 1,025 (orina) | **perdida** | `densidadUrinaria` |
+| «pH» 6,0 (orina) | **perdida** | `phUrinario` |
+| «Proteínas» 180 mg/dL (LCR) | **perdida** | `lcrProteinas` |
+
+Cuatro archivadas en la serie equivocada, cuatro perdidas. Las dos primeras son
+las que duelen:
+
+- Una **glucosuria de 250** archivada como glucemia es una urgencia diabética
+  que nadie tuvo, con una cifra perfectamente plausible en suero.
+- Una **glucosa de LCR de 35** —hipoglucorraquia, meningitis bacteriana—
+  archivada como glucemia es una cifra baja sin importancia.
+
+Ninguna de las dos la caza un rango de plausibilidad, porque **ambas son
+plausibles en suero**. Es el mismo patrón de REG-451: el rango compara
+magnitudes; lo que dice qué significa la magnitud está fuera del número.
+
+### La regla que hace seguro el campo nuevo
+
+El campo **sólo rellena el hueco. Nunca contradice.**
+
+Si el nombre del renglón nombra una muestra —«glucosa urinaria», «LCR
+proteínas»—, ésa manda y el campo no puede cambiarla. El campo decide sólo
+cuando el nombre calla.
+
+Es monótono a propósito: puede **añadir** información donde no había, nunca
+quitarla ni darle la vuelta. Un campo capaz de contradecir al nombre convertiría
+un error de lectura del modelo en una glucosa urinaria archivada como glucemia
+—o sea, reabriría por la puerta de atrás justo el defecto que REG-453 cerró—.
+
+Además la muestra pasa por **lista blanca cerrada** (`suero`, `orina`, `lcr`,
+`liquido`): cualquier otra cosa que devuelva el modelo se trata como si no
+hubiera venido.
+
+### Y no rompe el foso de «sólo transcribe»
+
+La muestra está **impresa** en el documento, igual que la unidad o la fecha.
+Pedirla es transcribir. Lo que el prompt prohíbe con todas las letras es
+**deducirla**:
+
+> NO lo deduzcas del nombre del estudio, ni del valor, ni de las unidades. Una
+> glucosa no es de orina por ser alta.
+
+Si no está escrita, se devuelve vacía y manda el nombre del renglón, como antes.
+
+### La cautela mal puesta que esto destapó
+
+`patronPelado` descartaba los nombres de menos de **tres** caracteres, para no
+crear un patrón que enganchara medio mundo. Con eso, `pH` no podía existir como
+renglón pelado y el pH urinario se perdía.
+
+La cautela estaba mal colocada: el patrón pelado **sólo se consulta después del
+filtro de espécimen**, entre los doce analitos de orina, donde «ph» no es
+ambiguo. Baja a dos caracteres. El guardián que lo prueba al revés vuelve a
+poner el corte de tres y comprueba que el pH se pierde otra vez.
+
+### El resultado sobre el corpus
+
+| | REG-455 | REG-456 |
+|---|---|---|
+| Hojas · filas | 8 · 46 | **10 · 54** |
+| Filas que llegan al panel | 46/46 | **54/54** |
+| Filas que entran a la gráfica | 45 | **53** |
+
+La única que sigue fuera es la PCR de 840 mg/L, y por el motivo ya nombrado en
+REG-455: nuestro rango llega a 600 y el del catálogo del dueño a 1000. Sigue
+pendiente de su decisión, atada a dejar de graficar la hoja muda.
+
+### Probado al revés cinco veces
+
+El campo gana al nombre (vuelve el defecto de REG-453) · se acepta una muestra
+cruda sin lista blanca · el prompt deja de prohibir deducir · el campo sale del
+prompt · vuelve el corte de tres caracteres.
+
+### Lo que esta unidad **NO** cierra
+
+- **No comprueba que el modelo lea bien la cabecera.** Comprueba que el prompt
+  la pida como transcripción y que el código trate la respuesta con
+  desconfianza. Lo otro necesita imágenes y llamadas de API.
+- **No hay campo de confianza** (§32): «la hoja no lo dijo» y «el modelo no lo
+  leyó» llegan igual, como muestra vacía.
+- **La muestra es por renglón, no por hoja.** Una hoja mixta —química y orina en
+  el mismo papel— depende de que cada renglón traiga la suya.
+- **LOINC/UCUM sigue abierto** (§27.2, §35): 218 conceptos sin código. No se
+  asignan de memoria.
+
 ## REG-455 — los factores de conversión se calculan, no se teclean
 
 **Eje.** Laboratorio · regla 1 de seguridad clínica. **Fecha.** 2-sep-2026.

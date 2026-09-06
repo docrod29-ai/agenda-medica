@@ -20,17 +20,18 @@
   "ultimaVersionEnRepo": "nexusmed-v1169 (v1169 = REG-307/308; commiteada, SIN desplegar — §6 del charter V10)",
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
-    " M src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts",
-    " M src/__tests__/el-numero-correcto-en-otra-unidad.test.ts",
+    " M src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts",
     " M src/__tests__/la-hoja-de-laboratorio-llega-entera.test.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/laboratorio/unidades.ts",
+    " M src/lib/expediente/laboratorio/analitos.ts",
+    " M src/lib/expediente/laboratorio/extraccion.ts",
+    " M src/lib/expediente/laboratorio/vision.ts",
     " M src/lib/programa/requisitos.ts",
-    "?? src/__tests__/el-factor-no-se-teclea-se-calcula.test.ts",
-    "?? src/lib/expediente/laboratorio/masa-molar.ts"
+    " M synthetic-data/laboratorio-hojas/HOJAS.jsonl",
+    "?? src/__tests__/la-muestra-viene-de-la-cabecera.test.ts"
   ],
-  "actualizado": "2026-09-04",
+  "actualizado": "2026-09-05",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -64,10 +65,10 @@
   ],
   "ramaActual": "claude/ausculta-master-completion-4clx9v",
   "derivado": {
-    "regsEnElLedger": 306,
+    "regsEnElLedger": 307,
     "ultimaREG": "REG-503",
-    "archivosDePrueba": 875,
-    "casosDePrueba": 11040,
+    "archivosDePrueba": 876,
+    "casosDePrueba": 11055,
     "lint": "ver scripts/lint-trinquete.mjs"
   }
 }

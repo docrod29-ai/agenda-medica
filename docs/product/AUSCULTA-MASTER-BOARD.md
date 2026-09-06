@@ -138,8 +138,8 @@ trabajo interno se acabó.
 | Compuerta | Techo o cota derivada | Cómo se repite |
 |---|---|---|
 | Trinquete de lint | **95** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
-| Casos declarados en el árbol | **11040** en 875 archivos | `node scripts/agent-state/actualizar.mjs` |
-| Sellado clínico | **462 archivos · 6715 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
+| Casos declarados en el árbol | **11055** en 876 archivos | `node scripts/agent-state/actualizar.mjs` |
+| Sellado clínico | **463 archivos · 6730 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
 | Última reparación en el ledger | **REG-503** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |

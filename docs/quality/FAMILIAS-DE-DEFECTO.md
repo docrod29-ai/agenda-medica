@@ -43,10 +43,19 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 98 de 306, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 99 de 307, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-442** (31-ago-2026), y con él son **cinco este
+El miembro más reciente es **REG-456** (5-sep-2026), y es la subespecie en la que
+el dato **venía impreso en el papel** y la lectura no lo pedía. Un examen general
+de orina llama a sus renglones igual que una química sanguínea —glucosa,
+proteínas, leucocitos— y lo que los distingue está en la cabecera: una
+glucosuria de 250 se archivaba como glucemia, con una cifra perfectamente
+plausible en suero que ningún rango puede cazar. El hueco no era desconocido —
+REG-453 lo había dejado escrito con todas las letras al cerrar la mitad que sí
+podía cerrar. Escribir un hueco no lo tapa.
+
+Antes que él, **REG-442** (31-ago-2026), y con él son **cinco ese
 mes** de la misma subespecie. `lo-que-cabe-en-un-episodio.ts` terminaba diciendo,
 con estas palabras, que los tres arrays sin tope quedan «como riesgo NOMBRADO…
 un riesgo declarado **se puede vigilar**». Nadie lo vigilaba: no había un solo

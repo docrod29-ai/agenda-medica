@@ -270,7 +270,17 @@ function patronPelado(nombre: string, especimen: Especimen): { patronEnSuMuestra
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/\b(lcr|urinari[oa]s?|en\s+(el\s+)?liquido|de\s+orina|en\s+orina)\b/g, ' ')
     .replace(/\s+/g, ' ').trim()
-  if (pelado.length <= 2) return null
+  /**
+   * REG-456: el corte estaba en «más de dos caracteres» y dejaba fuera el pH
+   * urinario, que es un renglón de verdad de un examen general de orina.
+   *
+   * Aquel corte protegía de un patrón de dos letras casando con demasiado — y
+   * ese riesgo no existe aquí: `patronEnSuMuestra` sólo se consulta DESPUÉS del
+   * filtro de muestra, o sea entre los doce analitos de orina, donde «ph»
+   * identifica sin ambigüedad. La cautela estaba puesta contra un peligro que la
+   * capa de al lado ya había quitado.
+   */
+  if (pelado.length < 2) return null
   return { patronEnSuMuestra: new RegExp(`\\b(${pelado.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'i') }
 }
 
@@ -418,10 +428,48 @@ export const LO_QUE_LA_MUESTRA_NO_RESUELVE =
   + 'cabecera y «Glucosa» a secas en el renglón sigue cayendo en la serie de '
   + 'suero. Necesita el espécimen como campo desde la lectura de la hoja (§27.3).'
 
-/** De qué muestra habla el nombre de un estudio. Sin marca, es de suero/sangre. */
-export function especimenDe(nombre: string): Especimen {
+/**
+ * LO QUE LA HOJA DECLARA COMO MUESTRA — REG-456.
+ *
+ * La lectura de la hoja puede traer ahora un campo `muestra` por renglón, sacado
+ * de lo que está IMPRESO (la cabecera «Examen general de orina», el rótulo
+ * «LCR»). Llega de un modelo de lenguaje, así que no se usa en crudo: se mapea
+ * contra esta lista cerrada, y lo que no case es como si no viniera.
+ */
+const MUESTRA_DECLARADA: readonly { readonly especimen: Especimen; readonly patron: RegExp }[] = Object.freeze([
+  { especimen: 'orina', patron: /^(orina|urinari[oa]|urine|ego)$/i },
+  { especimen: 'lcr', patron: /^(lcr|liquido cefalorraquideo|cefalorraquideo|csf)$/i },
+  { especimen: 'liquido', patron: /^(liquido|liquido (pleural|ascitico|peritoneal|sinovial|pericardico)|derrame)$/i },
+  { especimen: 'suero', patron: /^(suero|sangre|plasma|serum)$/i },
+])
+
+export function especimenDeclarado(muestra: string | undefined | null): Especimen | null {
+  const m = normalizarNombre(muestra ?? '')
+  if (!m) return null
+  return MUESTRA_DECLARADA.find(x => x.patron.test(m))?.especimen ?? null
+}
+
+/**
+ * De qué muestra habla un renglón. Sin ninguna señal, es de suero/sangre.
+ *
+ * ── EL CAMPO SÓLO RELLENA EL HUECO. NUNCA CONTRADICE — REG-456 ─────────────
+ *
+ * Si el NOMBRE del renglón nombra una muestra («Creatinina urinaria»), ésa
+ * manda, y el campo declarado no puede cambiarla. El campo sólo decide cuando el
+ * nombre calla — que es justo el caso que faltaba: la hoja que pone «Examen
+ * general de orina» en la cabecera y luego escribe «Glucosa» a secas.
+ *
+ * Es una regla monótona a propósito: el campo puede AÑADIR información donde no
+ * había, nunca quitarla ni darle la vuelta. Un campo que pudiera contradecir al
+ * nombre convertiría un error de lectura del modelo en una glucosa urinaria
+ * archivada como glucemia — el defecto que REG-453 vino a cerrar, reabierto por
+ * la puerta de atrás.
+ */
+export function especimenDe(nombre: string, muestraDeclarada?: string | null): Especimen {
   const n = normalizarNombre(nombre)
-  return MARCAS_DE_ESPECIMEN.find(m => m.patron.test(n))?.especimen ?? 'suero'
+  const porElNombre = MARCAS_DE_ESPECIMEN.find(m => m.patron.test(n))?.especimen
+  if (porElNombre) return porElNombre
+  return especimenDeclarado(muestraDeclarada) ?? 'suero'
 }
 
 /** Normaliza texto: minúsculas, sin acentos. */
@@ -443,12 +491,12 @@ function norm(s: string): string {
  * Cuando el analito declara `exigeUnidad`, la unidad decide. Si no viene
  * unidad, **no se adivina**: devuelve `null` y la fila se conserva como texto.
  */
-export function analitoDe(nombre: string, unidad?: string): Analito | null {
+export function analitoDe(nombre: string, unidad?: string, muestraDeclarada?: string | null): Analito | null {
   const n = norm(nombre)
   if (!n) return null
   const u = norm(unidad ?? '')
   /** La muestra primero: un renglón de orina no puede caer en una serie de suero. */
-  const muestra = especimenDe(nombre)
+  const muestra = especimenDe(nombre, muestraDeclarada)
   return ANALITOS.find(a => {
     if (a.especimen !== muestra) return false
     /** El nombre pelado sólo se acepta DENTRO de la muestra, nunca fuera. */

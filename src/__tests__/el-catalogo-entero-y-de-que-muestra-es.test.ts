@@ -116,12 +116,18 @@ describe('LA MUESTRA — el defecto que estaba vivo', () => {
       expect(a.patron.test('glucosa'), a.clave).toBe(false)
     }
     /**
-     * El único sin nombre pelado es `pH urinario`: quitarle «urinario» deja
-     * «pH», dos caracteres. Un patrón de dos letras casa con demasiado, así que
-     * el constructor lo descarta a propósito. Esa hoja tendrá que escribir «pH
-     * urinario» entero, y eso es señalar de menos y declararlo.
+     * ── LA EXCEPCIÓN DESAPARECIÓ EN REG-456, Y ESTABA MAL PUESTA ────────────
+     *
+     * Aquí decía que `pH urinario` se quedaba sin nombre pelado porque «pH» son
+     * dos caracteres y un patrón de dos letras casa con demasiado.
+     *
+     * Aquel riesgo no existía: el pelado sólo se consulta DESPUÉS del filtro de
+     * muestra, o sea entre los doce analitos de orina, donde «ph» identifica sin
+     * ambigüedad. La cautela estaba puesta contra un peligro que la capa de al
+     * lado ya había quitado — y dejaba fuera un renglón que trae cualquier examen
+     * general de orina.
      */
-    expect(sinPelado).toEqual(['phUrinario'])
+    expect(sinPelado).toEqual([])
   })
 
   it('la prosa se sigue leyendo con los 32 de siempre, y se declara', () => {
