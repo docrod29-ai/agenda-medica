@@ -29,7 +29,7 @@ import { permiteFallbackUnicoTenant } from '@/lib/whatsapp/tenant'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import {
   esPalabraBaja, esPalabraAlta, registrarBaja, registrarAlta,
-  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK, normalizarTelefonoWa,
+  MENSAJE_BAJA_OK, MENSAJE_ALTA_OK, claveTelefonoWa,
 } from '@/lib/whatsapp/consent'
 import { registrarEntrante } from '@/lib/whatsapp/contacts'
 import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
@@ -94,7 +94,7 @@ async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre
     const candidatos = candidatosDeTelefono(telefonoRaw)
     // El primero de la lista es siempre la forma de 10 dígitos, que es como
     // guarda el panel y como se guarda un paciente nuevo.
-    const diez = candidatos[0] ?? normalizarTelefonoWa(telefonoRaw)
+    const diez = candidatos[0] ?? claveTelefonoWa(telefonoRaw)
     const pRef = adminDb.collection('clinics').doc(clinicId).collection('patients')
     // `limit(10)` y no `limit(1)`: una familia comparte el WhatsApp de la casa, y
     // con un solo documento se decidía sobre el primero que devolviera el índice.
@@ -266,7 +266,7 @@ function clinicSessions(clinicId: string) {
  * 24 h, usándolo como ID del documento para que no puedan existir duplicados.
  */
 function claveSesion(telefono: string): string {
-  return normalizarTelefonoWa(telefono)
+  return claveTelefonoWa(telefono)
 }
 
 async function getSession(clinicId: string, telefono: string): Promise<(Session & { id: string }) | null> {
