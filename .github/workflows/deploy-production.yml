@@ -117,6 +117,7 @@ jobs:
           ES_ANCESTRO="$ES_ANCESTRO" \
           COMMITS_DETRAS="$COMMITS_DETRAS" \
           node "$RUNNER_TEMP/arbol-autorizado.mjs"
+
       # ─────────────────────────────────────────────────────────────────────
       # LA VERSIÓN SALE DEL ÁRBOL AUTORIZADO, NO DE UNA SEGUNDA COPIA A MANO.
       #
