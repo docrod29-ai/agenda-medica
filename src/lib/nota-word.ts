@@ -13,6 +13,10 @@ import type { ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { TIPO_NOTA_LABEL } from '@/types/expediente'
 import { fondoWord, imagenADataUri, WORD_HTML_NS } from '@/lib/word-membrete'
+import {
+  TITULO_OTORGAMIENTO, DECLARACION_OTORGAMIENTO, RENGLONES_DE_FIRMA,
+  RENGLON_LUGAR_FECHA, huellaDelTextoAceptado,
+} from '@/lib/consentimiento-impreso'
 
 function esc(s: string | undefined | null): string {
   return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -73,6 +77,28 @@ export function construirNotaHTML(nota: NotaMedica, config: ClinicConfig | null,
     ? `<div style="margin-bottom:8pt;"><div style="font-weight:bold;text-transform:uppercase;border-bottom:0.5pt solid #999;font-size:10.5pt;margin-bottom:2pt;">Plan farmacológico</div><ol style="margin:0;padding-left:16pt;font-size:10.5pt;">${nota.medicamentos.map(m => `<li>${esc([`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · '))}${m.indicacion ? ` — ${esc(m.indicacion)}` : ''}</li>`).join('')}</ol></div>`
     : ''
 
+  /**
+   * MC-003 — el consentimiento lo firma QUIEN CONSIENTE.
+   *
+   * Hasta aquí, una nota tipo `consentimiento` salía con el mismo bloque único
+   * de firma que una nota de evolución: el del médico. El acto de otorgamiento
+   * —paciente o representante, testigos, lugar y fecha, y la huella del texto
+   * aceptado— no existía en el papel. Las palabras vienen de
+   * `consentimiento-impreso.ts` para que la hoja impresa y este .doc digan lo
+   * mismo.
+   */
+  const renglon = (etiqueta: string) =>
+    `<div style="margin-top:26pt;"><div style="border-top:1pt solid #1a1a1a;width:300pt;padding-top:3pt;font-size:9.5pt;">${esc(etiqueta)}</div></div>`
+  const otorgamiento = nota.tipo === 'consentimiento'
+    ? `<div style="margin-top:20pt;">
+        <div style="font-weight:bold;text-transform:uppercase;border-bottom:0.5pt solid #999;font-size:10.5pt;margin-bottom:4pt;">${esc(TITULO_OTORGAMIENTO)}</div>
+        <div style="font-size:10.5pt;">${esc(DECLARACION_OTORGAMIENTO)}</div>
+        ${RENGLONES_DE_FIRMA.map(renglon).join('')}
+        ${renglon(RENGLON_LUGAR_FECHA)}
+        <div style="margin-top:10pt;font-size:8.5pt;color:#666;">${esc(huellaDelTextoAceptado(nota.metadata.hashIntegridad))}</div>
+      </div>`
+    : ''
+
   const firma = `<div style="margin-top:34pt;text-align:center;">
     <div style="border-top:1pt solid #1a1a1a;width:240pt;margin:0 auto;padding-top:3pt;font-size:10.5pt;">
       <b>${esc(medico)}</b><br/>${esc(especialidad)}<br/>${cedula ? 'Cédula Profesional ' + esc(cedula) : '<span style="color:#b91c1c;font-weight:bold;">[FALTA CÉDULA PROFESIONAL]</span>'}
@@ -102,6 +128,7 @@ body { font-family:'Times New Roman', Georgia, serif; font-size:11pt; color:#1a1
   ${secciones}
   ${dx}
   ${meds}
+  ${otorgamiento}
   ${firma}
   <div style="margin-top:14pt;font-size:8.5pt;color:#666;text-align:center;">Documento EDITABLE exportado de Ausculta. La versión con validez legal es la nota firmada (con sello SHA-256) impresa o en PDF. Conforme a NOM-004-SSA3-2012.</div>
 </div></body></html>`

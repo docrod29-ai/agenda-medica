@@ -45,6 +45,8 @@ import { alergiasDe } from '@/lib/seguridad/alergias'
 import { revisarDosis, revisarUnidadDosis, extraerMg, extraerTomasDia, esDosisPorKg, type AlertaDosis } from '@/lib/seguridad/dosis'
 import { evaluarFuncionRenal, ajusteRenalFarmacos } from '@/lib/expediente/funcion-renal'
 import { edadParaDosificar, AVISO_SIN_EDAD_PARA_DOSIFICAR } from '@/lib/seguridad/edad-para-dosificar'
+import { pesoParaDosificar, AVISO_SIN_PESO_PARA_DOSIFICAR } from '@/lib/receta-peso-para-dosificar'
+import { revisionGestacionalDeLaReceta } from '@/lib/receta-revision-gestacional'
 // E0-05: `kg` se importa con alias porque en este archivo `mg` ya es una variable
 // local del bucle de dosis; el alias evita cualquier sombra accidental.
 import { mgPorDl, kg as kgMasa, cantidad, valorEn } from '@/types/clinical-quantity'
@@ -193,23 +195,44 @@ export default function GeneradorRecetaPage() {
   )
   const pesoDeLaNota = nota?.signosVitales?.peso
 
+  /**
+   * EL PESO QUE FALTA SE DICE — MP-007.
+   *
+   * Vive FUERA del memo a propósito: antes `esPediatrico` y `pesoParaDosis`
+   * eran variables internas del `useMemo`, así que ninguna rama de render podía
+   * leerlas y el aviso de peso ausente no existía ni podía existir. La receta
+   * avisaba por la edad (REG-524) y callaba por el peso, con el mismo modo de
+   * fallo: sin peso, la comprobación mg/kg no corre y la ausencia de alerta se
+   * lee como dosis revisada.
+   */
+  /**
+   * EMBARAZO Y LACTANCIA — MG-002.
+   *
+   * Esta pantalla revisaba unidad, mg/kg, techos, alergias, duplicidad,
+   * interacciones, controlados y riñón, y NUNCA la tabla de embarazo. El
+   * enalapril añadido aquí —sin pasar por la consulta— se imprimía sin una sola
+   * señal. Se llama al MISMO motor que el copiloto, no a una copia de su tabla.
+   *
+   * Los diagnósticos son los de la nota más el que el médico escriba en esta
+   * pantalla, que a menudo es donde aparece «Embarazo de 10 semanas».
+   */
+  const dxParaGestacional = [
+    ...(nota?.diagnosticos ?? []),
+    ...(diagnostico.trim() ? [{ descripcion: diagnostico }] : []),
+  ]
+  const avisosGestacionales = revisionGestacionalDeLaReceta({
+    sexo: patient?.sexo,
+    edad: edadPaciente ?? undefined,
+    diagnosticos: dxParaGestacional,
+    medicamentos: medsDelCuadro,
+  })
+
+  const esPediatrico = edadPaciente != null && edadPaciente < 18
+  const pesoDosis = pesoParaDosificar(esPediatrico, pesoDeLaNota, pesoKg)
+  const pesoParaDosis = pesoDosis.peso
+
   const alertasDosis = useMemo(() => {
     const out: { med: string; alertas: AlertaDosis[] }[] = []
-    // PESO para la verificación mg/kg PEDIÁTRICA (antes NO se pasaba → la red de
-    // seguridad más importante en niños estaba muerta: solo corrían topes de adulto).
-    // Se toma el peso de la nota (signos) y, si no, el que el médico teclee para el
-    // cálculo renal. Solo se aplica a pacientes < 18 años.
-    const esPediatrico = edadPaciente != null && edadPaciente < 18
-    const pesoNota = Number(pesoDeLaNota ?? 0)
-    // El comentario de arriba prometía «y si no, el que el médico teclee», y el
-    // código no lo cumplía: sólo miraba la nota. En un niño sin peso en signos
-    // vitales, la comprobación mg/kg —la red de seguridad más importante que hay
-    // en pediatría— corría con topes de adulto aunque el peso estuviera escrito
-    // dos centímetros más abajo, en el bloque renal.
-    const pesoTecleado = parseFloat(pesoKg)
-    const pesoParaDosis = !esPediatrico ? undefined
-      : pesoNota > 0 ? pesoNota
-      : (pesoTecleado > 0 ? pesoTecleado : undefined)
     for (const m of medicamentos) {
       if (!m.nombre?.trim()) continue     // renglón en blanco que se está escribiendo
       /**
@@ -248,7 +271,7 @@ export default function GeneradorRecetaPage() {
      */
     out.push(...terapiaDuplicadaDeLaLista(medicamentos, vigentes.map(v => v.medicamento)))
     return out
-  }, [medicamentos, edadPaciente, pesoDeLaNota, pesoKg, vigentes])
+  }, [medicamentos, edadPaciente, pesoParaDosis, vigentes])
 
   // Función renal — opcional: el médico teclea creatinina (y peso opcional)
   // y se calcula TFG + ajuste de antimicrobianos por depuración (PROA).
@@ -276,13 +299,35 @@ export default function GeneradorRecetaPage() {
       peso > 0 ? kgMasa(peso) : undefined,
     )
   }, [crDosis, pesoKg, edadPaciente, patient])
-  const alertasRenales = useMemo(() => {
+  /**
+   * EL AJUSTE RENAL TAMBIÉN MIRA LO QUE EL PACIENTE YA TOMA — MI-001.
+   *
+   * REG-527 trajo a esta pantalla el cuadro completo (`medsDelCuadro`) y la
+   * creatinina del expediente, pero dejó al motor RENAL comiendo sólo de la
+   * receta de HOY. Consecuencia medida por el equipo rojo: paciente de 78 años,
+   * 62 kg, creatinina 1.9 (CrCl ≈ 28); hoy se receta ciprofloxacino y la
+   * metformina crónica está vigente en el expediente. El bloque de
+   * interacciones SÍ veía la metformina —viene de `medsDelCuadro`— y el bloque
+   * renal NO, así que la regla de metformina con CrCl < 30 (funcion-renal.ts,
+   * acidosis láctica) no disparaba en la pantalla donde se imprime lo que se
+   * dispensa. Dos entradas distintas al mismo motor, en la misma pantalla.
+   *
+   * No cambia ningún umbral ni añade ninguna cifra: cambia QUÉ LISTA entra.
+   * Y el aviso dice de dónde sale cada fármaco, como ya hace el de
+   * interacciones con `introducidaHoy`: un fármaco vigente no se puede
+   * des-prescribir desde aquí, pero el médico tiene que verlo.
+   *
+   * En el cuerpo y no en un `useMemo`, por la misma razón que `interacciones`:
+   * `medsDelCuadro` se recalcula en cada render y memorizarlo no ahorra nada.
+   */
+  const alertasRenales = (() => {
     // En <18 años (adulto no aplica) o creatinina implausible (probable error de
     // unidad): no se ajusta por ese valor — daría alertas renales falsas.
     if (!renal || renal.noAplicablePorEdad || renal.datoImplausible) return []
     if (!renal.depuracionParaDosis) return []
-    return ajusteRenalFarmacos(meds, renal.depuracionParaDosis)
-  }, [renal, meds])
+    return ajusteRenalFarmacos(medsDelCuadro, renal.depuracionParaDosis)
+      .map(a => ({ ...a, deHoy: medsDelCuadro.find(m => m.nombre === a.farmaco)?.deHoy !== false }))
+  })()
 
   useEffect(() => {
     if (!clinicId || !patientId || !notaId) return
@@ -526,9 +571,10 @@ export default function GeneradorRecetaPage() {
     )
   }
 
-  const descargarPDF = async () => {
+  /** Devuelve `true` sólo si el PDF llegó a generarse (ZL-002). */
+  const descargarPDF = async (): Promise<boolean> => {
     const el = document.getElementById('receta-doc')
-    if (!el) return
+    if (!el) return false
     setDescargando(true)
     try {
       // El PDF usa el tamaño FÍSICO de la hoja que sale de la impresora
@@ -548,9 +594,11 @@ export default function GeneradorRecetaPage() {
         altoMm: host.heightMm,
         onAvisoPapeleria: (m) => toast(m, 'error'),
       })
+      return true
     } catch (e) {
       console.error('PDF error:', e)
       toast('No se pudo generar el PDF. Intenta con Imprimir → Guardar como PDF.', 'error')
+      return false
     } finally {
       setDescargando(false)
     }
@@ -698,12 +746,12 @@ export default function GeneradorRecetaPage() {
         <div className="actions-row" style={{ display: 'flex', gap: 8 }}>
           {/* La primaria va PRIMERO, como en /nota: las dos pantallas de la
               familia documental hablan el mismo orden. onClick/disabled intactos. */}
-          <button onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); descargarPDF() }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
+          <button onClick={() => { if (configError || descargando || recetaVacia) return; /* ZL-002 — el PDF puede lanzar (papelería, canvas): se asienta cuando la descarga terminó, no cuando se pulsó. */ void descargarPDF().then(ok => { if (!ok) return; logAudit({ evento: 'receta_descargada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta() }) }} disabled={descargando || !!configError || recetaVacia} className="btn btn-primary">
             {descargando
               ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Generando…</>
               : <><Download size={14} /> Descargar PDF</>}
           </button>
-          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta(); const h = dimensionesImpresion(recetaConfigOri); imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }) }} className="btn btn-secondary">
+          <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; const h = dimensionesImpresion(recetaConfigOri); const resultado = imprimirElemento(document.getElementById('receta-doc'), 'Receta', { anchoMm: h.widthMm, altoMm: h.heightMm, hojaExacta: true, onError: (m) => toast(m, 'error') }); /* ZL-002 — el asiento va DESPUÉS de que la ventana se abre: antes la bitácora decía «receta emitida» aunque el navegador bloqueara la impresión, y el aprendizaje contaba una receta que no salió. */ if (resultado === 'abierta') { logAudit({ evento: 'receta_generada', clinicId: clinicId ?? '', patientId, notaId, meta: huellaImpreso(medicamentos, { folio, indicaciones, diagnostico }) }).catch(() => {}); aprenderDeReceta() } }} className="btn btn-secondary">
             <Printer size={14} /> Imprimir
           </button>
           <button disabled={recetaVacia} onClick={() => { if (configError || descargando || recetaVacia) return; descargarWord() }} className="btn btn-secondary" title="Documento editable para tu membrete">
@@ -768,6 +816,20 @@ export default function GeneradorRecetaPage() {
             </div>
           )}
 
+          {/* MP-007 — el hermano del aviso de edad: con edad y SIN peso, la
+              comprobación mg/kg tampoco corre, y eso no se decía. */}
+          {pesoDosis.falta && (
+            <div role="status" style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
+              fontSize: 12, color: 'var(--text)', lineHeight: 1.45,
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+            }}>
+              <Scale size={15} className="ds-icon" style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+              <span>{AVISO_SIN_PESO_PARA_DOSIFICAR}</span>
+            </div>
+          )}
+
           {alertasDosis.length > 0 && (
             <div style={{
               padding: '10px 14px', borderRadius: 8,
@@ -788,6 +850,26 @@ export default function GeneradorRecetaPage() {
               ))}
               <div className="nx-meta" style={{ marginTop: 4, color: 'var(--text2)' }}>
                 Verificación automática de apoyo. <strong>No sustituye tu criterio</strong>; la ausencia de alerta no garantiza que la dosis sea correcta.
+              </div>
+            </div>
+          )}
+
+          {/* ⚠️ Embarazo y lactancia — MG-002: la misma revisión que el copiloto */}
+          {avisosGestacionales.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'var(--badge-red-b, rgba(220,38,38,0.10))', border: '2px solid var(--badge-red-t)',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--badge-red-t)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={15} className="ds-icon" /> Embarazo y lactancia — revisa antes de imprimir
+              </div>
+              {avisosGestacionales.map(a => (
+                <div key={a.id} style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.45, marginBottom: 3 }}>
+                  <strong>{a.titulo}</strong> — {a.detalle}
+                </div>
+              ))}
+              <div className="nx-meta" style={{ marginTop: 4, color: 'var(--text2)' }}>
+                Misma revisión que el copiloto de la consulta. Apoyo decisional; no sustituye tu criterio.
               </div>
             </div>
           )}
@@ -885,7 +967,8 @@ export default function GeneradorRecetaPage() {
                     color: 'var(--text)',
                     display: 'flex', alignItems: 'center', gap: 6,
                   }}>
-                    {a.severidad === 'evitar' ? <Ban size={13} className="ds-icon" /> : <Scale size={13} className="ds-icon" />}{a.mensaje}
+                    {a.severidad === 'evitar' ? <Ban size={13} className="ds-icon" /> : <Scale size={13} className="ds-icon" />}
+                    <span>{a.mensaje}{!a.deHoy && <span style={{ color: 'var(--text3)' }}> · no es de esta receta: ya lo toma según su expediente</span>}</span>
                   </div>
                 ))}
               </div>

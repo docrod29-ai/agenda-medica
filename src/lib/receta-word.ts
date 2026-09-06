@@ -16,6 +16,7 @@
 import type { ClinicConfig, RecetaConfig } from '@/types'
 import type { Medicamento } from '@/types/expediente'
 import { SIN_REGISTRO_DE_ALERGIAS } from '@/lib/impreso-medico'
+import { marcaDelRenglonImpreso } from '@/lib/receta-renglon-impreso'
 
 export interface RecetaWordData {
   tipo: 'receta' | 'orden'
@@ -103,11 +104,18 @@ export function construirRecetaHTML(
   // Cuerpo: medicamentos (receta) o estudios (orden)
   let cuerpo = ''
   if (data.tipo === 'receta' && data.medicamentos?.length) {
-    cuerpo = `<ol style="margin:0;padding-left:18pt;">` + data.medicamentos.map(m => `
+    // MP-005 — si al renglón le falta la concentración (o la unidad, o la
+    // cantidad), la marca viaja con el documento: el .doc se reenvía por
+    // WhatsApp y se enseña en el mostrador, donde nadie ve la pantalla del
+    // médico.
+    cuerpo = `<ol style="margin:0;padding-left:18pt;">` + data.medicamentos.map(m => {
+      const marca = marcaDelRenglonImpreso(m)
+      return `
       <li style="margin-bottom:6pt;">
-        <b>${esc(m.nombre)}${m.dosis ? ' ' + esc(m.dosis) : ''}</b>${m.via ? ' · ' + esc(m.via) : ''}<br/>
+        <b>${esc(m.nombre)}${m.dosis ? ' ' + esc(m.dosis) : ''}</b>${m.via ? ' · ' + esc(m.via) : ''}${marca ? ` <span style="color:#b91c1c;font-weight:bold;">· ${esc(marca)}</span>` : ''}<br/>
         <span style="font-size:10.5pt;">${esc(m.frecuencia)}${m.duracion ? ' por ' + esc(m.duracion) : ''}${m.indicacion ? ' — ' + esc(m.indicacion) : ''}</span>
-      </li>`).join('') + `</ol>`
+      </li>`
+    }).join('') + `</ol>`
   } else if (data.tipo === 'orden' && data.estudios?.length) {
     cuerpo = `<div style="font-weight:bold;margin-bottom:4pt;">Estudios solicitados:</div>
       <ol style="margin:0;padding-left:18pt;">` + data.estudios.map(e => `<li style="margin-bottom:3pt;">${esc(e)}</li>`).join('') + `</ol>`

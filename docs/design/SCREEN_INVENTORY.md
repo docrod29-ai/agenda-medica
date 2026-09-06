@@ -68,13 +68,13 @@
 | `/migracion` | medico | ✅ | 417 | 0 | — | ✅ | — |
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
-| `/nota/[patientId]/[notaId]` | medico | ✅ | 1020 | 2 | — | ✅ | — |
+| `/nota/[patientId]/[notaId]` | medico | ✅ | 1047 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 536 | 1 | — | ✅ | — |
-| `/orden/[patientId]/[notaId]` | medico | ✅ | 863 | 2 | — | ✅ | — |
+| `/orden/[patientId]/[notaId]` | medico | ✅ | 1006 | 2 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1240 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 791 | 3 | — | ✅ | ✅ |
 | `/reactivacion` | medico | ✅ | 365 | 0 | — | ✅ | — |
-| `/receta/[patientId]/[notaId]` | medico | ✅ | 1171 | 2 | — | ✅ | — |
+| `/receta/[patientId]/[notaId]` | medico | ✅ | 1258 | 2 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 297 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |

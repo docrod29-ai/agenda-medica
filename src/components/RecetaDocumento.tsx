@@ -29,6 +29,17 @@ import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/rece
 import type { Medicamento } from '@/types/expediente'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { alergiasParaElPapel } from '@/lib/impreso-medico'
+import { marcaDelRenglonImpreso } from '@/lib/receta-renglon-impreso'
+
+/**
+ * El rojo de los avisos del PAPEL, en un solo sitio.
+ *
+ * Literal y no token a propósito (ver la nota de arriba: el papel se rasteriza
+ * sobre un clon donde las variables CSS no resuelven). Una constante en vez de
+ * seis copias: el mismo argumento que el sistema de diseño hace con los tokens,
+ * aplicado a la superficie donde los tokens no pueden usarse.
+ */
+const ROJO_DEL_PAPEL = '#b91c1c'
 
 /**
  * EN EL PAPEL NO SE USAN VARIABLES DE COLOR — Y ES DELIBERADO.
@@ -512,6 +523,11 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
           <li key={i} style={{ marginBottom: 4, breakInside: 'avoid' }}>
             <strong>{m.nombre}{m.dosis ? ` ${m.dosis}` : ''}</strong>
             {m.via && <span> · {etiquetaVia(m.via)}</span>}
+            {/* MP-005 — el hueco del renglón viaja con el papel, no se queda en
+                la pantalla del médico: quien surte también tiene que verlo. */}
+            {marcaDelRenglonImpreso(m) && (
+              <span style={{ color: ROJO_DEL_PAPEL, fontWeight: 700 }}> · {marcaDelRenglonImpreso(m)}</span>
+            )}
             <br />
             <span style={{ fontSize: fontSize - 0.5 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -537,6 +553,10 @@ function CuerpoRx({ medicamentos, fontSize, startIndex, variant = 'plano', accen
             <div style={{ fontSize: fontSize + 0.5, fontWeight: 700, color: '#111', lineHeight: 1.25 }}>
               {m.nombre}{m.dosis ? ` ${m.dosis}` : ''}
               {m.via && <span style={{ fontWeight: 500, color: '#666', fontSize: fontSize - 1 }}> · {etiquetaVia(m.via)}</span>}
+              {/* MP-005 — ver la nota de la variante «plano». */}
+              {marcaDelRenglonImpreso(m) && (
+                <span style={{ color: ROJO_DEL_PAPEL, fontSize: fontSize - 1 }}> · {marcaDelRenglonImpreso(m)}</span>
+              )}
             </div>
             <div style={{ fontSize: fontSize - 0.5, color: '#444', lineHeight: 1.4, marginTop: 1 }}>
               {[m.frecuencia, m.duracion && `por ${m.duracion}`, m.indicacion].filter(Boolean).join(' · ')}
@@ -769,7 +789,7 @@ function HojaCustom({
             */}
             {recetaConfig.mostrarAlergias !== false && alergiasParaImpreso(data.paciente) && (
               <div style={{
-                border: '1px solid #b91c1c', color: '#b91c1c',
+                border: `1px solid ${ROJO_DEL_PAPEL}`, color: ROJO_DEL_PAPEL,
                 padding: '2px 6px', borderRadius: 3,
                 fontSize: fontSize - 1, fontWeight: 700, marginBottom: 6,
               }}>
@@ -967,8 +987,8 @@ function HojaGenerada({
           {/* Alergias destacadas */}
           {recetaConfig.mostrarAlergias !== false && (
             <div style={{
-              border: '1.2px solid #b91c1c',
-              color: '#b91c1c',
+              border: `1.2px solid ${ROJO_DEL_PAPEL}`,
+              color: ROJO_DEL_PAPEL,
               borderRadius: 4,
               padding: '3px 8px',
               fontSize: 10,
@@ -1049,7 +1069,7 @@ function HojaGenerada({
                   de maquetación y no la ausencia de un dato obligatorio. */}
               {cedula !== '—'
                 ? <>Cédula Prof. {cedula}</>
-                : <span style={{ color: '#b91c1c' }}>[FALTA CÉDULA PROFESIONAL]</span>}
+                : <span style={{ color: ROJO_DEL_PAPEL }}>[FALTA CÉDULA PROFESIONAL]</span>}
               {recetaConfig.registroDGP && <><br />Reg. DGP/SSA {recetaConfig.registroDGP}</>}
             </div>
           </div>
