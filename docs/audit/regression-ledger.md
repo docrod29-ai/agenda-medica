@@ -19689,3 +19689,46 @@ verdes.
   respuesta): se buscó y hoy no hay ninguna en un `NextResponse.json`, pero el
   guardián sólo vigila `String(…)`.
 - No ejecuta las rutas: es de fuente.
+
+## REG-530 · La receta contaba su propia nota como «lo que el paciente ya toma» y se avisaba a sí misma
+
+**CÓMO SE DESCUBRIÓ.** **Mirando la pantalla**, no leyendo el código. Sonda
+`scripts/ausculta-transformacion/mirar-la-receta-con-expediente.mjs` sobre el
+arnés de emuladores (5-sep-2026), con el paciente sintético `pac-006` sembrado
+para ver los avisos de REG-517/520/521. En la captura a 1440: «Ketorolaco ya
+figura como vigente en el expediente («Ketorolaco 10 mg cada 8 horas») y hoy
+se receta «Ketorolaco 10 mg cada 8 horas»», en rojo, en cada renglón. Las 33
+pruebas de REG-520 y REG-521 estaban en verde.
+
+**LO QUE PASABA.** La receta se abre desde una nota YA FIRMADA. REG-520 le
+hizo cargar las notas firmadas para cruzar lo de hoy con lo que ya toma, y la
+nota que se está imprimiendo es una de ellas: entraba en «lo vigente». La
+consulta tiene el mismo camino cuando se reabre una nota firmada (adenda).
+
+### La causa raíz
+
+Correcto por dentro, insoportable por fuera: cada motor hacía su trabajo con
+la entrada que se le dio, y la entrada incluía al propio sujeto. Ninguna
+prueba ejercitaba «la nota que se imprime también está firmada», porque las
+pruebas de REG-520 miraban helpers puros y fuente.
+
+### El arreglo
+
+Al construir «lo vigente» se excluye la nota abierta: `n.id !== notaId` en la
+receta, `n.id !== notaIdRef.current` en la consulta. Lo que ella receta es «lo
+de hoy»; el resto de firmadas es «lo que ya toma». La sonda vuelve a correr y
+el aviso propio desaparece; los demás siguen (warfarina vigente + ketorolaco
+de hoy, Tempra vigente + paracetamol de hoy, creatinina caduca, edad que falta).
+
+### Prueba
+
+`src/__tests__/la-receta-no-se-cruza-consigo-misma.test.ts` (3 casos): fuente
+de la receta y de la consulta, y el falso positivo reproducido con los motores
+puros (con la nota de hoy entre las firmadas, Ketorolaco «ya vigente»; sin
+ella, nada). **Probado al revés**: con la receta como estaba, caso 1 rojo.
+Verificación en navegador: `docs/product/AUSCULTA-ULTRA-READINESS.md` §8.
+
+### Qué NO cubre
+
+- Una nota firmada duplicada con otro id seguiría cruzándose.
+- No renderiza; la sonda del arnés es la que mira, y no corre en CI.

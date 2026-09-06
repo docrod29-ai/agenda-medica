@@ -1047,7 +1047,13 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
      * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390],
+    /**
+     * 530: la receta contaba su propia nota firmada como «lo que ya toma» y se
+     * avisaba a sí misma en rojo, renglón por renglón. Cada motor correcto;
+     * la entrada incluía al sujeto. Se vio mirando la pantalla en el arnés,
+     * con 33 pruebas en verde.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 530],
   },
   {
     clave: 'perdida',

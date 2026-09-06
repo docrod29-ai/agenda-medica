@@ -36,14 +36,14 @@
 
 ## 1 · Compuertas, medidas en esta rama (5-sep-2026)
 
-| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…529 |
+| Compuerta | Antes del tramo (main `e78e1242`) | Tras REG-512…530 |
 |---|---|---|
-| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 752 pasan · 1 falla (entorno)** tras REG-529 (951 archivos); cada slice anota la suya en su commit |
+| `npx vitest run` | **12 598 pasan · 1 falla · 1 skip** (934 archivos, 253 s) | **12 755 pasan · 1 falla (entorno)** tras REG-530 (952 archivos); cada slice anota la suya en su commit |
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-517 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **475 · 6 601** |
-| Ledger | 305 REG · última REG-511 | **323 · REG-529** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **476 · 6 604** |
+| Ledger | 305 REG · última REG-511 | **324 · REG-530** |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
@@ -185,6 +185,7 @@ Zero-Friction (`DEFERRED_BY_OWNER_TEMPORARILY`). No se desarrolla nada nuevo ah�
 | **527** | `sanitize` prometía redactar nombres y llaves de API; no cazaba el nombre ni Stripe | `el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts` (5) | con el módulo como estaba, cuatro rojos |
 | **528** | `reclamarCanal` sin transacción: dos consultorios a la vez podían quedarse el mismo canal | `dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts` (6) | la carrera provocada en el arnés la gana el segundo (caso 3 rojo) |
 | **529** | Cuarenta rutas devolvían `String(err)` al cliente (46 sitios, un redirect, dos avisos) | `el-error-crudo-no-sale-al-cliente.test.ts` (5) | con `src/app/api` como estaba, el barrido lista los 46 |
+| **530** | La receta contaba su propia nota firmada como «ya lo toma» y se avisaba a sí misma | `la-receta-no-se-cruza-consigo-misma.test.ts` (3) | con la receta como estaba, caso 1 rojo; **se vio en el navegador**, no en las pruebas |
 
 Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 (`docs/maintenance/`), no aquí de memoria.
@@ -193,12 +194,41 @@ Compuertas tras REG-512: se anotan en el commit y en la bitácora de sesión
 
 ## 8 · Verificación en navegador
 
-**Ninguna en esta rama todavía.** GP-FINAL (74 casos, Chromium, 1-sep) es el
-último recorrido completo, sobre otro árbol. Con el emulador comprobado hoy, el
-recorrido se repite en esta rama cuando haya un cambio de pantalla que lo pida;
-REG-512 es de servidor y se midió ejecutando la ruta.
+**Una, el 5-sep-2026, sobre el arnés de emuladores en este contenedor** (B-12
+ya no bloquea): emuladores de auth y Firestore + `arnes:sembrar` + `arnes:dev`,
+Chromium a 390 y a 1440. La siembra ganó un paciente sintético, `pac-006`,
+hecho para que los avisos nuevos de la receta se puedan MIRAR: sin fecha de
+nacimiento, con un panel de creatinina de hace 25 días, con warfarina y Tempra
+vigentes en una nota firmada previa, y una nota de hoy con ketorolaco y
+paracetamol.
 
----
+Sonda: `scripts/ausculta-transformacion/mirar-la-receta-con-expediente.mjs`.
+Comprueba en el DOM que el médico ve, no en el código:
+
+| Aviso | 390 | 1440 |
+|---|---|---|
+| «Falta la edad» y el aviso de dosificación sin edad (REG-517) | ✔ | ✔ |
+| Creatinina 2.1 del expediente con fecha, marcada `STALE_RENAL_FUNCTION` (REG-520) | ✔ | ✔ |
+| Anticoagulante + AINE con la warfarina VIGENTE, introducida hoy (REG-520) | ✔ | ✔ |
+| «Paracetamol ya figura como vigente («Tempra 500 mg…»)» (REG-521) | ✔ | ✔ |
+| La receta NO se cruza consigo misma (REG-530) | ✔ | ✔ |
+| Errores de consola | 0 | 0 |
+
+**Y lo que las pruebas no vieron: REG-530.** En la primera captura la receta
+decía «Ketorolaco ya figura como vigente… y hoy se receta Ketorolaco»: contaba
+su propia nota firmada como «lo que ya toma». Arreglado en la receta y en la
+consulta (adenda), sonda en verde después. Es exactamente lo que
+`design-system.md` dice: un `git diff` que se ve bien no es una pantalla que
+funciona.
+
+**Lo que NO se miró**: la consulta con `pac-006` (la barra de avisos con
+`yaToma`), el flujo con teclado, el tema claro, la impresión real del PDF. Las
+capturas no se guardan en el repositorio (viven en el scratchpad de la sesión);
+lo que queda es esta tabla y la sonda, que cualquiera puede volver a correr.
+GP-FINAL (74 casos, Chromium, 1-sep) sigue siendo el recorrido de referencia
+del producto entero. Nota de entorno: `arnes:emuladores` asume `brew`; aquí se
+arrancan con `npx firebase emulators:start --only auth,firestore --project
+demo-nexusmed-v10`.
 
 ## 9 · Decisiones que sólo puede tomar el dueño (nuevas hoy)
 
@@ -229,9 +259,12 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
 tres validadores sin llamador esperan decisión del dueño (§3, §9). El port de
 #442 está hecho (REG-522, 523), los tres del test-the-test también (REG-524,
 525, 526) y de los cuatro de seguridad, tres cerrados (REG-527, 528, 529) y
-uno es decisión del dueño (D-E). **Lo reportado el 5-sep está agotado.** Lo
-que sigue: (1) la verificación en navegador (§8) con el arnés de emulador,
-que hoy arranca aquí — recorrer consulta → receta con paciente sintético y
-mirar que REG-517/520/521 se VEAN (la regla de diseño: no se aprueba una
-interfaz leyendo el código); (2) las decisiones del dueño pendientes en §9
-(D-D, D-E); (3) los 215 guardianes de texto puros, cuando se toquen.
+uno es decisión del dueño (D-E). **Lo reportado el 5-sep está agotado**, y la
+verificación en navegador (§8) está hecha: destapó y cerró REG-530.
+
+Lo que sigue: (1) **mirar la consulta con `pac-006`** con la misma sonda
+(barra de avisos con `yaToma`, tema claro, teclado) y anotar en §8; (2) los
+215 guardianes de texto puros del test-the-test, uno por uno cuando se toquen,
+empezando por los sellados; (3) las decisiones del dueño pendientes en §9
+(D-D, D-E). Y lo que sólo el dueño puede hacer: reglas de Firestore, PR,
+producción.

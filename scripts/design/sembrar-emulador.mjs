@@ -626,6 +626,72 @@ async function main() {
     ],
   })
 
+  /**
+   * ── UN PACIENTE PARA VER LA RECETA CON EL EXPEDIENTE DETRÁS (REG-517/520/521) ──
+   *
+   * `pac-006` existe para que tres avisos de la pantalla de receta se puedan
+   * MIRAR, no sólo leer en el código:
+   *
+   *   · no tiene fecha de nacimiento ni edad → «Falta la edad» (REG-517);
+   *   · tiene un panel de laboratorio con creatinina de hace 25 días → la
+   *     receta la precarga con su fecha y la marca caduca a 7 días (REG-520);
+   *   · tiene una nota firmada previa con warfarina y Tempra vigentes, y la
+   *     nota de hoy receta ketorolaco y paracetamol → interacción con lo que ya
+   *     toma (REG-520) y «la misma sustancia dos veces» (REG-521).
+   *
+   * Va FUERA de `PACIENTES` a propósito: ese bucle escribe `fechaNacimiento`
+   * siempre, y aquí la ausencia es el caso. Las cifras son sintéticas y sirven
+   * para disparar los avisos, no para afirmar nada clínico.
+   */
+  const NOTA_BASE_006 = (id, fecha, medicamentos) => ({
+    id, clinicId: CLINICA, pacienteId: 'pac-006', pacienteNombre: 'Benjamín Sotomayor Uriarte',
+    tipo: 'seguimiento', estado: 'firmada', fechaConsulta: fecha, firmadaEn: `${fecha}T15:00:00.000Z`,
+    medicoNombre: 'Dra. Ximena Alcántara Robledo (sintética)',
+    metadata: {
+      id, tipoNota: 'seguimiento', clinicId: CLINICA, pacienteId: 'pac-006', medicoId: uid,
+      cedulaProfesional: 'CED-SINTETICA-0000', especialidad: 'Medicina Interna (sintética)',
+      establecimiento: 'Consultorio sintético de medición',
+      fechaCreacion: `${fecha}T15:00:00.000Z`, fechaModificacion: `${fecha}T15:00:00.000Z`,
+      hashIntegridad: '', version: 1, estado: 'firmada', fuenteGeneracion: 'manual',
+    },
+    firma: {
+      nombreMedico: 'Dra. Ximena Alcántara Robledo (sintética)', cedulaProfesional: 'CED-SINTETICA-0000',
+      especialidad: 'Medicina Interna (sintética)', timestamp: `${fecha}T15:00:00.000Z`, hashFirma: '',
+    },
+    secciones: [
+      { key: 'subjetivo', label: 'Subjetivo', value: 'Contenido sintético de medición. No corresponde a ninguna persona.' },
+      { key: 'plan', label: 'Plan', value: 'Contenido sintético de medición.' },
+    ],
+    diagnosticos: [],
+    medicamentos,
+  })
+  await escribir(`clinics/${CLINICA}/patients/pac-006`, {
+    nombre: 'Benjamín Sotomayor Uriarte',
+    telefono: '5555010606',
+    sexo: 'Masculino',
+    alergias: '',
+    seguroMedico: '',
+    notas: 'Sin fecha de nacimiento a propósito (arnés REG-517).',
+    noShowCount: 0, cancelacionCount: 0,
+    createdAt: iso(hoy), updatedAt: iso(hoy),
+  })
+  await escribir(`clinics/${CLINICA}/patients/pac-006/notas/nota-previa-006`, NOTA_BASE_006('nota-previa-006', enDias(-60), [
+    { nombre: 'Warfarina', dosis: '5 mg', via: 'oral', frecuencia: 'cada 24 horas', duracion: 'crónico', procedenciaClinica: 'se_prescribe_hoy', estado: 'activa' },
+    { nombre: 'Tempra', dosis: '500 mg', via: 'oral', frecuencia: 'cada 8 horas', duracion: 'crónico', procedenciaClinica: 'se_prescribe_hoy', estado: 'activa' },
+  ]))
+  await escribir(`clinics/${CLINICA}/patients/pac-006/notas/nota-hoy-006`, NOTA_BASE_006('nota-hoy-006', dia, [
+    { nombre: 'Ketorolaco', dosis: '10 mg', via: 'oral', frecuencia: 'cada 8 horas', duracion: '3 días', procedenciaClinica: 'se_prescribe_hoy', estado: 'activa' },
+    { nombre: 'Paracetamol', dosis: '1 g', via: 'oral', frecuencia: 'cada 8 horas', duracion: '5 días', procedenciaClinica: 'se_prescribe_hoy', estado: 'activa' },
+  ]))
+  await escribir(`clinics/${CLINICA}/patients/pac-006/laboratorios/lab-006`, {
+    fecha: enDias(-25),
+    resultados: [{ clave: 'creatinina', etiqueta: 'Creatinina', valor: 2.1, unidad: 'mg/dL' }],
+    fuente: 'manual',
+    createdAt: iso(hoy), creadoPor: uid,
+    pacienteId: 'pac-006', clinicId: CLINICA,
+    sujeto: { veredicto: 'coincide', confirmadoPorMedico: true, verificadoEn: iso(hoy) },
+  })
+
   // ── Agenda ────────────────────────────────────────────────────────────────
   for (const c of CITAS) {
     const p = PACIENTES.find(x => x.id === c.pac)

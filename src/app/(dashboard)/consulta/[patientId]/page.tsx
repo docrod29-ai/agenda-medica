@@ -1958,7 +1958,12 @@ export default function ConsultaActivaPage() {
          * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
          */
         setHistorialTruncado(truncada)
-        const firmadas = ns.filter(n => n.estado === 'firmada')
+        /**
+         * SIN LA NOTA ABIERTA — REG-530. Una nota firmada se puede reabrir aquí
+         * (adenda); entraba en «lo vigente» y la barra decía «ya figura como
+         * vigente» de lo que ella misma receta. Se vio primero en la receta.
+         */
+        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,

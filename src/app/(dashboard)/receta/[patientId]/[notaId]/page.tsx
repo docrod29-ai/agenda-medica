@@ -351,7 +351,13 @@ export default function GeneradorRecetaPage() {
     listarNotasCompat(clinicId, patientId)
       .then(({ notas: ns, truncada }) => {
         setHistorialTruncado(truncada)
-        const firmadas = ns.filter(n => n.estado === 'firmada')
+        /**
+         * SIN LA NOTA QUE SE ESTÁ IMPRIMIENDO — REG-530. Esta nota ya está
+         * firmada, así que entraba en «lo vigente» y la receta decía
+         * «Ketorolaco ya figura como vigente… y hoy se receta Ketorolaco»: se
+         * cruzaba consigo misma. Se vio en el navegador, no en las pruebas.
+         */
+        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaId)
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
@@ -360,7 +366,7 @@ export default function GeneradorRecetaPage() {
         setVigentes([...estadoDeMedicamentos(firmadas, new Date().toISOString(), { historialIncompleto: truncada }).vigentes])
       })
       .catch(e => console.error('medicación vigente:', e))
-  }, [clinicId, patientId])
+  }, [clinicId, patientId, notaId])
 
   // Learning Engine: carga "tus más recetados" del propio médico (fail-safe).
   useEffect(() => {
