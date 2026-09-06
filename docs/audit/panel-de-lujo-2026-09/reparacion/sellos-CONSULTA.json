@@ -1,0 +1,63 @@
+[
+  {
+    "archivo": "src/__tests__/el-primer-signo-vital-no-pierde-su-segunda-cifra.test.ts",
+    "minCasos": 15,
+    "hallazgos": ["ASN-001"]
+  },
+  {
+    "archivo": "src/__tests__/los-signos-capturados-se-preguntan-no-se-tragan.test.ts",
+    "minCasos": 15,
+    "hallazgos": ["ASN-002", "ASN-005"]
+  },
+  {
+    "archivo": "src/__tests__/el-peso-de-signos-pasa-por-la-guarda-de-unidad.test.ts",
+    "minCasos": 4,
+    "hallazgos": ["MP-006"]
+  },
+  {
+    "archivo": "src/__tests__/consultorio-la-correccion-automatica-se-ve-y-se-deshace.test.ts",
+    "minCasos": 7,
+    "hallazgos": ["D-001"]
+  },
+  {
+    "archivo": "src/__tests__/la-cita-sin-fuente-se-marca-y-no-se-borra.test.ts",
+    "minCasos": 6,
+    "hallazgos": ["RT-004"]
+  },
+  {
+    "archivo": "src/__tests__/la-cita-del-analisis-se-comprueba-antes-de-la-nota.test.ts",
+    "minCasos": 5,
+    "hallazgos": ["RT-004"]
+  },
+  {
+    "archivo": "src/__tests__/el-sello-de-motor-sin-validar-se-pinta.test.ts",
+    "minCasos": 4,
+    "hallazgos": ["MI-003"]
+  },
+  {
+    "archivo": "src/__tests__/el-consentimiento-dice-donde-va-el-audio.test.ts",
+    "minCasos": 7,
+    "hallazgos": ["PG-003", "PI-003", "PO-016", "PP-009", "PC-012", "PI-008"]
+  },
+  {
+    "archivo": "src/__tests__/cirugia-programada-y-anticoagulante-se-cruzan.test.ts",
+    "minCasos": 9,
+    "hallazgos": ["MC-015"]
+  },
+  {
+    "archivo": "src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts",
+    "minCasos": 20,
+    "hallazgos": [
+      "MC-007", "MC-008", "MC-013", "MC-014", "MC-017", "MC-018",
+      "MG-009", "MG-011", "MG-017", "MG-022",
+      "MP-002", "MP-008", "MP-011",
+      "C-014",
+      "ZC-002", "ZC-014", "ZC-015", "ZC-016", "ZC-017"
+    ]
+  },
+  {
+    "archivo": "src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts",
+    "minCasos": 13,
+    "hallazgos": ["MC-002", "PO-004", "PG-002", "MO-004", "ASN-003", "ASN-012", "D-005"]
+  }
+]
