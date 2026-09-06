@@ -4,14 +4,12 @@
 > 6-sep-2026 («desplegando y subiendo a producción, no quiero atascadero»). Se
 > escribe ANTES de fusionar.
 
-> **SUPERADO — 6-sep-2026 02:04 UTC. PUBLICADO Y VERIFICADO.** Vercel publicó
-> `main` por su integración de git al fusionarse #459, y el botón corrió sobre
-> `8fe45415`: ejecución
-> [#24](https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180),
-> en verde, con la Compuerta 3 midiendo `nexusmed-v1184` contra el sitio vivo.
-> La línea de arriba no se borra: era verdad cuando se escribió. Lo que pasó de
-> verdad está en la última sección. (Este aviso lo escribió la sesión que cerró
-> v1181, al encontrarse el acta abierta con la versión ya publicada.)
+> **SUPERADO — 6-sep-2026 02:04 UTC. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `c49c3a25`: ejecución [#24](https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1184` contra el sitio vivo. Lo escrito debajo no se
+> reescribe: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó).
 
 | | |
 |---|---|
@@ -84,41 +82,3 @@ Decisiones del dueño escritas en el código: **D-033** (alergia crítica sólo 
 - **Las cabeceras de seguridad contra producción** (`e2e:seguridad:prod`) se comprueban después de publicar, no antes: el CI del PR mide el build del PR.
 - **Dos decisiones del dueño siguen abiertas** y no bloquean: D-D (tres validadores viejos sin conectar) y D-E (la llave de 360dialog como id de documento).
 - **No es un iPhone**: la verificación en navegador fue Chromium.
-
-## Lo que pasó de verdad
-
-Se publicó el 6-sep-2026. Los tres pasos salieron en el orden previsto.
-
-| Paso | Qué fue | Resultado |
-|---|---|---|
-| 1 | PR #459 — service worker a v1184 y esta acta | fusionado, 5 checks de CI en verde |
-| — | Vercel publicó `main` (`8fe45415`) por su integración de git | producción pasa a servir `nexusmed-v1184` |
-| 2 | PR #463 — `SHA_AUTORIZADO` repuntado a `8fe45415` | fusionado, 5 checks en verde |
-| 3 | Workflow «Despliegue a producción (manual)», ejecución **#24** | `PRODUCTION_RELEASE=SUCCESS` (02:04 UTC) |
-
-Acta que emitió la ejecución #24:
-
-```
-PRODUCTION_URL=https://agenda-medica-one.vercel.app
-APP_SHA=8fe45415217ca5379b1914339f04848160741306
-VERSION=nexusmed-v1184
-VERCEL_PROJECT=agenda-medica
-FIRESTORE_RULES=success
-FIRESTORE_INDICES=success
-FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
-SECURITY_E2E=success
-SMOKE=success
-SMOKE_PORTAL=success
-PRODUCTION_RELEASE=SUCCESS
-```
-
-<https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180>
-
-### Lo que esta ejecución NO demuestra
-
-- **Reglas e índices**: se reenviaron sin cambio. El hash es el que dejó #18
-  (`1d91d707…`); no había ninguna regla nueva que publicar.
-- **Que el service worker viejo se haya retirado de los navegadores.** Sube la
-  versión del caché; la retirada ocurre cuando cada cliente recarga.
-- Nada de lo que la sección anterior declara sin verificar. Publicar no lo
-  verificó.

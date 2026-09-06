@@ -251,7 +251,15 @@ Las anteriores (C-1…C-6, O-1…O-4, E-2, N-1, N-2, D-08) siguen en
   516). Lo que queda son los hallazgos de receta reportados y sin verificar
   (§3), y los guardianes de texto del test-the-test.
 - **Lo que se vende (Practice)** sigue siendo lo que GP-FINAL recorrió el 1-sep.
-- **Este programa no despliega ni fusiona.** Llega a rama + commit + PR + CI.
+- **Este programa no despliega ni fusiona por su cuenta.** Llega a rama + commit +
+  PR + CI. El 6-sep-2026 el dueño autorizó explícitamente fusionar y publicar
+  («desplegando y subiendo a producción, no quiero atascadero»): PR #459 fusionado
+  (`8fe45415`), pin del botón en PR #463 (`c49c3a25`), y la ejecución
+  [#24](https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180) del botón cerró en `PRODUCTION_RELEASE=SUCCESS` con la
+  Compuerta 3 midiendo `nexusmed-v1184` contra el sitio vivo. **Todo lo de este
+  programa (REG-519…535) está en producción.** Las actas v1180…v1184 quedaron
+  cerradas con su SUPERADO en el mismo ciclo (tres de ellas eran de otra sesión y
+  seguían diciendo «no publicado»: B-13).
 
 ## 11 · Siguiente slice
 
@@ -266,5 +274,5 @@ Lo que sigue: (1) **mirar la consulta con `pac-006`** con la misma sonda
 (barra de avisos con `yaToma`, tema claro, teclado) y anotar en §8; (2) los
 215 guardianes de texto puros del test-the-test, uno por uno cuando se toquen,
 empezando por los sellados; (3) las decisiones del dueño pendientes en §9
-(D-D, D-E). Y lo que sólo el dueño puede hacer: reglas de Firestore, PR,
-producción.
+(D-D, D-E). Producción ya está al día (v1184, §10); lo que sigue pendiente del dueño son las
+decisiones D-D y D-E, y el pentest y el WebKit real de §5.

@@ -1,18 +1,13 @@
 # Paquete de producción — `nexusmed-v1183`
 
-> **Estado: PREPARADO, NO PUBLICADO** era lo que esta acta declaraba al nacer:
-> no en una cabecera como las demás, sino en su §5, que decía literalmente «se
-> rellena tras correr el botón; si esta sección sigue vacía, el paquete está
-> preparado y no publicado». Se deja dicho aquí porque el guardián
-> `el-tablero-del-loop-no-miente` exige que el estado original no se borre.
-
-> **SUPERADO — 6-sep-2026 01:32 UTC. PUBLICADO Y VERIFICADO.** Vercel publicó
-> `main` por su integración de git al fusionarse #457, y el botón corrió sobre
-> `078664fe`: ejecución
-> [#23](https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694),
-> en verde, con la Compuerta 3 midiendo `nexusmed-v1183` contra el sitio vivo.
-> Lo que pasó de verdad está en el §5. (Este aviso lo escribió la sesión que
-> cerró v1181, al encontrarse el acta abierta con la versión ya publicada.)
+> **SUPERADO — 6-sep-2026. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `182d8c78`: ejecución [#23](https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1183` contra el sitio vivo. Lo escrito debajo no se
+> reescribe: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó). Esta acta nació sin la línea «Estado: PREPARADO, NO PUBLICADO» que
+> llevan las demás —la escribió otra sesión, antes de correr el botón—; se deja dicho
+> aquí, no se le inventa arriba.
 
 **Fecha:** 6-sep-2026 · **Autoriza:** el dueño («sigue y desplegando y subiendo a
 producción, no quiero atascadero»).
@@ -76,42 +71,5 @@ médico. Lo que trae atribución y no es del médico no baja al papel.
 
 ## 5. Lo que pasó de verdad
 
-*(Al nacer, esta sección decía: «Se rellena tras correr el botón. Si esta
-sección sigue vacía, el paquete está preparado y no publicado».)*
-
-Se publicó el 6-sep-2026. Los tres pasos salieron en el orden previsto.
-
-| Paso | Qué fue | Resultado |
-|---|---|---|
-| 1 | PR #457 — service worker a v1183 y esta acta | fusionado, 5 checks de CI en verde |
-| — | Vercel publicó `main` (`078664fe`) por su integración de git | producción pasa a servir `nexusmed-v1183` |
-| 2 | PR #460 — `SHA_AUTORIZADO` repuntado a `078664fe` | fusionado, 5 checks en verde |
-| 3 | Workflow «Despliegue a producción (manual)», ejecución **#23** | `PRODUCTION_RELEASE=SUCCESS` (01:32 UTC) |
-
-Acta que emitió la ejecución #23:
-
-```
-PRODUCTION_URL=https://agenda-medica-one.vercel.app
-APP_SHA=078664fee86b23f75e9fd45b3390e710ca459e91
-VERSION=nexusmed-v1183
-VERCEL_PROJECT=agenda-medica
-FIRESTORE_RULES=success
-FIRESTORE_INDICES=success
-FIRESTORE_RULES_SHA256=1d91d7077e616e2a600a0f0526d79c46b85d5ffe9d7d5bffd0d8b157923d2df7
-SECURITY_E2E=success
-SMOKE=success
-SMOKE_PORTAL=success
-PRODUCTION_RELEASE=SUCCESS
-```
-
-<https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694>
-
-### Lo que esta ejecución NO demuestra
-
-- **Reglas e índices**: se reenviaron sin cambio. El hash es el que dejó #18
-  (`1d91d707…`); no había ninguna regla nueva que publicar.
-- **Que el service worker viejo se haya retirado de los navegadores.** Sube la
-  versión del caché; la retirada ocurre cuando cada cliente recarga.
-- Nada de lo que la sección anterior declara sin verificar. Publicar no lo
-  verificó.
-
+*(Se rellena tras correr el botón. Si esta sección sigue vacía, el paquete está
+preparado y no publicado.)*
