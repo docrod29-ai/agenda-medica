@@ -1,0 +1,1166 @@
+{
+  "rol": "design-systems-lead",
+  "fecha": "2026-09-06",
+  "revisado": [
+    {
+      "pieza": "src/app/(dashboard)/dashboard/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: quién sigue ahora y qué pide atención hoy. Cabecera declara zonas NOW → NEEDS ATTENTION → TODAY → CONTINUITY (líneas 21-31); guardián la-pantalla-de-hoy-no-es-un-tablero.test.ts. Ya está bien: una primaria, no inventario."
+    },
+    {
+      "pieza": "src/app/(dashboard)/citas/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: la lista de citas del día para confirmar, mover, cancelar. Estado (fecha, filtro, búsqueda) ya vive en la URL (:105,:124,:125) — el P2-10 de NAVIGATION_STATE_AUDIT está cerrado. Menú contextual cierra con Escape (:130)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/calendario/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: la semana completa y los bloqueos. Bloques de cita usan activable() (:553,:668,:874) → teclado y nombre accesible resueltos."
+    },
+    {
+      "pieza": "src/app/(dashboard)/asistente/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: dar una cita en un par de frases. Flechas de mes 34×34 (D-006)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/pacientes/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: encontrar al paciente y abrir su expediente. X de limpiar búsqueda sin nombre (D-002); alta de paciente con 3 campos sin etiqueta programática (D-003)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/expediente/[patientId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: el expediente longitudinal de un paciente. Filtro y nota abierta se reinician al volver (:96-97, D-023). Procedencia sí (ProcedenciaDeLaNota)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/expedientes/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Redirección a /pacientes por marcadores viejos (:15). Patrón correcto; D-015 propone lo mismo para /corte-caja."
+    },
+    {
+      "pieza": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: dictar y firmar la nota sin dejar de mirar al paciente. 7 567 líneas, 45 <button>, 82 useState. Correcciones automáticas aplicadas sin panel visible ni deshacer (D-001). 8 campos de receta sólo con placeholder (D-005). Acción central de la barra inferior se enlaza a sí misma (D-013). Lo que ya está bien: useSmartBack (:391), useAvisoAlSalirGrabando (REG-303), textarea de alergias con placeholder guardado por prueba, scroll restaurado."
+    },
+    {
+      "pieza": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: leer, imprimir y adendar la nota firmada. Adenda ya usa Modal (:776-783). Sin procedencia en el documento (D-022)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/nota/[patientId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Ruta de rescate de URLs malformadas (:3-9). Dejar."
+    },
+    {
+      "pieza": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: generar e imprimir la receta de una nota firmada. Primaria primero (:695-696), familia documental coherente."
+    },
+    {
+      "pieza": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: generar la orden de estudios de una nota. Mismo orden que /nota y /receta (:607-608)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/referencia/[patientId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: redactar la carta de referencia de un paciente. Un solo <h1> real (comentario de cabecera)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/pendientes/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: todo lo que quedó abierto, en un solo sitio (cabecera). 0 violaciones axe en línea base."
+    },
+    {
+      "pieza": "src/app/(dashboard)/operaciones/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: índice de lo administrativo. Jerarquía plana A PROPÓSITO y declarada (:11-13, §11 V15); enPausa() oculta Hospital/UCI (D-030). No es inventario por descuido: es índice por decisión."
+    },
+    {
+      "pieza": "src/app/(dashboard)/configuracion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: configurar el consultorio. 17 pestañas en 2 684 líneas + 4 archivos de secciones; «Entregas de WhatsApp» es bitácora, no ajuste (D-016). 8 campos sin etiqueta programática aquí + 12 en secciones-recetas + 3 en secciones-comunicacion + 1 en secciones-cuenta (D-003)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/chat/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: mensajes con pacientes y equipo. 1 campo sin etiqueta (:172, D-003)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/consultor/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: consultar evidencia sobre un caso. Se alcanza desde Herramientas del expediente (contextos.ts:41-46)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/antibiograma/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: interpretar un antibiograma. 3 <select> sin etiqueta (:386,:399,:410, D-003); botón 30 px de alto (:436, D-006)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/corte-caja/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: el corte del día — ya vive como pestaña de /finanzas (D-015)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/finanzas/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: cobros, corte y cómo va el mes. Pestaña en URL (:131-132). Importa CorteCajaContenido desde otra page.tsx (:30) — ver D-015."
+    },
+    {
+      "pieza": "src/app/(dashboard)/crm/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: de dónde llegan los pacientes. Sólo lectura. Violeta literal #a855f7 (:188, D-020)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/resenas/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: lo que escriben los pacientes y pedirlo cuando toca. 104 líneas."
+    },
+    {
+      "pieza": "src/app/(dashboard)/reactivacion/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: avisar a quien lleva meses sin volver."
+    },
+    {
+      "pieza": "src/app/(dashboard)/lista-espera/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: quién entra si se libera un hueco."
+    },
+    {
+      "pieza": "src/app/(dashboard)/membresias/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: planes recurrentes de pacientes y su cobro."
+    },
+    {
+      "pieza": "src/app/(dashboard)/farmacia/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: existencias del consultorio. 2 campos sin etiqueta (:492,:531, D-003)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: NOM-024/LFPDPPP, bitácora, ARCO — «concentra en un solo lugar» (cabecera): tres trabajos, pero enlazados como índice. Badge RECHAZADA #9ca3af 2.54:1 en tema claro (:965, D-008)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/motores/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: hoja de revisión clínica de los 89 motores. Enlazada desde /cumplimiento:602."
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/retencion/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: pacientes cerca de los 5 años NOM-004."
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/seguridad/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: 2FA de la cuenta. QR generado localmente (cabecera :43-49) — ya está bien."
+    },
+    {
+      "pieza": "src/app/(dashboard)/motores/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: ver los motores de seguridad corriendo en vivo. Ninguna pantalla la enlaza (D-009)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/guia/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Propósito: cómo se hace cada cosa. Duplica el chat de ayuda del FAB (D-017)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/legal/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: consentimientos y formatos que firma el paciente."
+    },
+    {
+      "pieza": "src/app/(dashboard)/migracion/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: traer y sacar expedientes. Usa PageHeader."
+    },
+    {
+      "pieza": "src/app/(dashboard)/hospitalizacion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo hospital (en pausa D-030). Propósito: censo de internados. 3 campos sin etiqueta (D-004)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo hospital. Propósito: el episodio de un internado. 9 campos sin etiqueta + 19 sólo placeholder (D-004); Tailwind fuera de sistema (:63, D-019)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/hospitalizacion/camas/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo hospital. Propósito: tablero de camas. 3 campos sin etiqueta (D-004); violeta literal (:24, D-020)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/hospitalizacion/indicadores/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "modulo hospital. Propósito: indicadores del servicio. 101 líneas."
+    },
+    {
+      "pieza": "src/app/(dashboard)/hospitalizacion/unidades/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo hospital. Propósito: unidades del hospital. 2 campos sin etiqueta (D-004)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/uci/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo uci. Propósito: el pase de UCI con cálculo en vivo. 1 campo sin etiqueta (:104), 2 botones < 44 (:907,:957). Aquí SÍ se pinta CambiosCifrasPanel — la consulta ambulatoria no (D-001)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/uci/antimicrobianos/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo uci. Dos trabajos en una pantalla por confesión propia (D-018); 17 campos sin etiqueta, el archivo peor de toda la aplicación (D-004)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/uci/dosificacion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo uci. Propósito: consultar y validar reglas de dosis. 4 campos sin etiqueta (D-004)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/uci/benchmark/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modulo uci. Botón 36 px (:127, D-006)."
+    },
+    {
+      "pieza": "src/app/(dashboard)/uci/enfermeria/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "modulo uci. Propósito: hoja de enfermería. PanelEnfermeria.tsx trae 4 campos sin etiqueta (D-004)."
+    },
+    {
+      "pieza": "src/app/mi/[token]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Propósito: lo que el paciente necesita de su visita. ViaDeUrgencia inmediatamente bajo el <h1> (:496-508). 0 campos sin etiqueta (el único aviso del escáner era un comentario JSX en :1161). Compuerta A11Y-GATE-001 vigente."
+    },
+    {
+      "pieza": "src/app/privacidad/[clinicId]/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Superficie del paciente. Contador de caracteres #9ca3af a 10.5 px (:218, D-007) — la compuerta mide pares de tokens, no literales."
+    },
+    {
+      "pieza": "src/app/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Landing. FAQ con aria-expanded/aria-controls (:328-333). 0 degradados, 0 cristal."
+    },
+    {
+      "pieza": "src/app/login/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "CTA minHeight 48 (:219-220); radial-gradient decorativo con token (:152), contado por el trinquete."
+    },
+    {
+      "pieza": "src/app/registro/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Mismo patrón que login (:163, :360-366)."
+    },
+    {
+      "pieza": "src/app/reservar/[clinicId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "aria-busy en el envío (:340). Compuerta del paciente en 0."
+    },
+    {
+      "pieza": "src/app/dr/[clinicId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Servidor, sin degradados ni cristal."
+    },
+    {
+      "pieza": "src/app/precios/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "1 píldora con token (:37)."
+    },
+    {
+      "pieza": "src/components/BottomNav.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Móvil del médico: 4 contextos + acción central = 5 destinos (:75-80). Barra de asistente: 3 + 1 + central = 5 (:63-67,:123-125). Dentro de la regla 4-5. Etiquetas 10-10.5 px con --nexus/--text3 sobre --s1: 6.23/5.61 oscuro, 7.00/5.76 claro — AA. Hallazgos: enlace a sí misma en consulta (D-013), nombres distintos por barra (D-014)."
+    },
+    {
+      "pieza": "src/components/Sidebar.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Sólo lo ve quien NO es médico real (layout.tsx:702 + ModeContext.tsx:33). 11 entradas modos:medico que ese usuario nunca puede ver (D-025). Etiqueta «Consulta» para /pacientes (:32, D-014)."
+    },
+    {
+      "pieza": "src/components/FlowRail.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Escritorio del médico: 5 contextos (:221-236), aria-label en riel y enlaces. Ya está bien."
+    },
+    {
+      "pieza": "src/components/ui/Modal.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "role=dialog, aria-modal, aria-labelledby, Escape, foco atrapado y devuelto vía useDialogoDeTeclado (:39,:66-68). 16 consumidores. Ya está bien."
+    },
+    {
+      "pieza": "src/components/ui/Table.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Filas clicables con activable() (:60)."
+    },
+    {
+      "pieza": "src/components/AppointmentModal.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Usa Modal (:482). 8 campos con <label> hermano sin htmlFor (D-003) + 5 sólo placeholder."
+    },
+    {
+      "pieza": "src/components/CobrarModal.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Usa Modal (:253). 4 campos sin asociación (D-003)."
+    },
+    {
+      "pieza": "src/components/CorreccionesPanel.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "return null en /consulta/ (:46, D-001)."
+    },
+    {
+      "pieza": "src/components/CambiosCifrasPanel.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "return null en /consulta/ (:47, D-001)."
+    },
+    {
+      "pieza": "src/components/AlertasDictado.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Lo que el guardián NO dejó pasar; role=alert, abierto y sin cerrar (:9-13). Ya está bien."
+    },
+    {
+      "pieza": "src/components/DeDondeSalioEsto.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "PROCEDENCIA: frase → fragmento → EscucharElMomento (segundo exacto). Cerrado por defecto, sin porcentaje (:33-40). Patrón único reutilizado por ProcedenciaDeLaNota."
+    },
+    {
+      "pieza": "src/components/SelloProcedencia.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Tira de origen por campo, detalle en LenteContextual, aria-expanded corregido (:18-21)."
+    },
+    {
+      "pieza": "src/components/expediente/ProcedenciaDeLaNota.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Conecta (no reinventa) las dos piezas en /expediente (:13-18). Cobertura: 3 de 6 superficies (D-022)."
+    },
+    {
+      "pieza": "src/components/EscucharElMomento.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Un solo <audio>, URL pedida al pulsar (REG-249/250)."
+    },
+    {
+      "pieza": "src/components/lente/VolverALaFuente.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Regreso determinista con contrato; declina si no cuadra (:22-27)."
+    },
+    {
+      "pieza": "src/components/RevisionPanel.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Botón «ver la frase» 32×32 (:171, D-006)."
+    },
+    {
+      "pieza": "src/components/Copiloto.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Botones minHeight 36 (:103,:145, D-006)."
+    },
+    {
+      "pieza": "src/components/QueNotaEs.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Botones minHeight 40 (:118,:162, D-006)."
+    },
+    {
+      "pieza": "src/components/laboratorio/PanelLaboratorios.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Diálogo de revisión con role/aria-modal/labelledby y useDialogoDeTeclado (:287-291); su X de cerrar sin nombre (:298, D-002)."
+    },
+    {
+      "pieza": "src/components/DoctorOnboarding.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "0 consumidores; Tailwind fuera de sistema (D-010)."
+    },
+    {
+      "pieza": "src/components/pacientes/ValoracionInmuno.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "Clases Tailwind (rounded-full ×4, :44,:55,:67) mezcladas con tokens (D-019); 2 campos sin etiqueta (D-003)."
+    },
+    {
+      "pieza": "src/components/DoctorFilter.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Telón de cierre sin foco (correcto según activable.ts:30-34) + useCerrarConEscape (:73)."
+    },
+    {
+      "pieza": "src/components/PaletteBusqueda.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "useDialogoDeTeclado; telón sin foco por diseño."
+    },
+    {
+      "pieza": "src/components/OnboardingTour.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "role=dialog aria-modal aria-label (:112-114), useDialogoDeTeclado."
+    },
+    {
+      "pieza": "src/components/BotonAyuda.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Panel con role=dialog aria-label y teclado (:94-120). Duplica AsistenteChat con /guia (D-017)."
+    },
+    {
+      "pieza": "src/components/ThemeToggle.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "aria-label presente (:38) — el FAB sin nombre de la línea base de ACCESSIBILITY.md está cerrado."
+    },
+    {
+      "pieza": "src/components/AutoLogout.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Escucha EVENTO_GRABANDO (:122) — el P0-3 de NAVIGATION_STATE_AUDIT está cerrado."
+    },
+    {
+      "pieza": "src/components/ServiceWorkerRegister.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "controllerchange → reload sin condición (:25-28). Con beforeunload en useGrabacionAudio.ts:1283 el audio ya sobrevive; el P1-4 queda mitigado, no eliminado."
+    },
+    {
+      "pieza": "src/components/ui/{Alert,Badge,Button,Card,EmptyState,Field,PageHeader,Skeleton,Spinner,Tabs}.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "Primitivos presentes; adopción sigue baja (Field: 1 importador contra 406 <input|textarea|select> crudos)."
+    },
+    {
+      "pieza": "src/lib/navegacion/contextos.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Una sola tabla ruta→contexto (:66-97), con guardián. Ya está bien."
+    },
+    {
+      "pieza": "src/lib/navegacion/modulos-en-pausa.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "D-030 implementado con guardián bidireccional (:22-24)."
+    },
+    {
+      "pieza": "src/lib/nav/{capacidades-del-paciente,encuentro-abierto,paciente-de-la-ruta}.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Los tres con consumidores (2/2/1)."
+    },
+    {
+      "pieza": "src/lib/ui/activable.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "role+tabIndex+onKeyDown+aria-label en una llamada (:53-63). Lo usan calendario y ui/Table. Ya está bien."
+    },
+    {
+      "pieza": "src/lib/ui/{continuidad,el-dedo-manda,movimiento,regreso-a-la-fuente,traer-a-la-vista,vacio-de-una-lista}.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Consumidores 11/2/17/2/1/4."
+    },
+    {
+      "pieza": "src/lib/mobile/consulta-cierre.ts",
+      "veredicto": "con hallazgos",
+      "nota": "0 consumidores (D-012)."
+    },
+    {
+      "pieza": "src/lib/mobile/{local-drafts,notif-privacidad}.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Consumidores 2/1."
+    },
+    {
+      "pieza": "src/lib/i18n.ts",
+      "veredicto": "con hallazgos",
+      "nota": "0 consumidores (D-011)."
+    },
+    {
+      "pieza": "src/lib/texto-es.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "conMayusculaInicial, 7 consumidores."
+    },
+    {
+      "pieza": "src/app/globals.css",
+      "veredicto": "sin hallazgo",
+      "nota": "5 577 líneas. @theme inline ahora expone 34 tokens (:371-430; la auditoría V9 contaba 4). Contrastes calculados y anotados en ambos temas (--text3 5.18-6.00 oscuro, 4.79-5.76 claro, verificado). :focus-visible global (:599) + .btn (:2537). pointer:coarse eleva a 44 px (:1691-1710). No hay tailwind.config.* (Tailwind v4, correcto)."
+    },
+    {
+      "pieza": "scripts/design/techos-de-diseno.json + trinquete-de-diseno.mjs",
+      "veredicto": "sin hallazgo",
+      "nota": "Corrido hoy en modo medición: 9/9 contadores en su techo, «Sin deuda de diseño nueva». gradientes 11 (vs 16 el 13-ago), cristal 14 (vs 16), sombras 19 (vs 28), hex 320 (vs 1 205 en V9)."
+    },
+    {
+      "pieza": "src/hooks/{useGrabacionAudio,useAvisoAlSalirGrabando,useSmartBack,useDialogoDeTeclado}.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "Los tres P0 de NAVIGATION_STATE_AUDIT están cerrados: borrarChunks(clave, desde) (:408-414, :1803-1869); beforeunload (:1283); aviso al navegar grabando (REG-303)."
+    },
+    {
+      "pieza": "docs/design/{GENERIC_AI_AESTHETIC_AUDIT,ACCESSIBILITY,ANTI_PATTERNS,NAVIGATION_STATE_AUDIT,SCREEN_INVENTORY}.md",
+      "veredicto": "sin hallazgo",
+      "nota": "Leídos completos y contrastados con el código de hoy."
+    }
+  ],
+  "hallazgos": [
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "R-01",
+        "REG-303",
+        "agent-state/DECISION_LOG.md (sin fila GP4/GP12)"
+      ],
+      "id": "D-001",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "severidad": 4,
+      "probabilidad": "alta",
+      "prioridad": "P1",
+      "titulo": "En la consulta ambulatoria las correcciones automáticas de cifras, unidades, siglas y fármacos se aplican al dictado sin que el médico pueda verlas ni deshacerlas",
+      "archivo": "src/components/CambiosCifrasPanel.tsx",
+      "linea": 47,
+      "evidencia": "CambiosCifrasPanel.tsx:47 `if (pathname.startsWith('/consulta/')) return null` · CorreccionesPanel.tsx:46 idem · consulta/[patientId]/page.tsx:5939-5960 sí monta ambos paneles con onRevertir, pero el componente se apaga a sí mismo por la ruta · sellado por src/__tests__/consultorio-ledgers-tecnicos-no-se-muestran.test.ts:19-26 («GP4/GP12 — provenance sí, plumbing técnico no») · el módulo que produce esos cambios dice lo contrario: src/lib/asr/cambios-visibles.ts:18-24 «una corrección que el médico no puede ver ni revertir es una edición que alguien le hizo a su dictado sin decírselo… la de cifras y unidades es la que toca dosis. Eso se enseña, y él decide» · commit 118ce84 (orquestador autónomo #390); no hay fila en agent-state/DECISION_LOG.md que lo respalde.",
+      "reproduccion": "En /consulta/<paciente sintético>, dictar «amoxicilina quinientos miligramos cada ocho horas». El pipeline normaliza a «500 mg c/8 h» (normalizacion.ts) y, si el fármaco se corrigió por diccionario, también eso. En /consulta no aparece ningún panel de cambios; en /uci con el mismo dictado sí aparece (uci/page.tsx monta CambiosCifrasPanel sin filtro).",
+      "impacto": {
+        "paciente": "Una normalización equivocada de cifra o unidad («dos» que era «dos veces», «g» leído por «mg») llega a la receta sin que nadie la haya visto como cambio.",
+        "medico": "Firma un texto que no es literalmente lo que dictó y no tiene forma de saber qué se tocó; en una discusión medicolegal no puede reconstruirlo desde la pantalla (transcripcionMotor sí queda archivada, pero no se enseña aquí).",
+        "negocio": "Contradice de frente la regla 3 de seguridad clínica y el principio REVERSIBILIDAD que el propio producto anuncia como diferencial."
+      },
+      "control_existente": "Parcial: corrector-vigilado.ts impide que una cifra desaparezca o cambie de unidad y AlertasDictado enseña lo que NO se aplicó (abierto, sin cerrar); motivosDictado pregunta ante ambigüedad crítica. Lo que se aplicó «como seguro» queda invisible.",
+      "propuesta": "Quitar el filtro por ruta de los dos paneles (o invertirlo: mostrarlos plegados, con el conteo «3 cambios», abiertos sólo si algún cambio toca cifra — cuantosTocanCifra ya existe). Si el dueño decidió de verdad ocultarlos en consulta (GP4/GP12 no consta en DECISION_LOG), registrarlo como decisión con su porqué y dejar al menos el acceso desde la LenteContextual.",
+      "prueba_que_faltaria": "Prueba que monte CambiosCifrasPanel con pathname=/consulta/x y cambios=[{antes:\"dos gramos\",despues:\"2 g\"}] y exija un botón «Deshacer» en el DOM. Hoy falla (return null); la prueba consultorio-ledgers-tecnicos-no-se-muestran.test.ts exige justo lo contrario y habría que retirarla o invertirla.",
+      "que_no_cubre": "No cubre las correcciones que el médico hace con «Corregir con IA» (deshacerCorreccion :4636 sí existe y sí es visible) ni los cambios que ocurren en el sesgo de vocabulario antes de transcribir (ésos no son correcciones sobre texto)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-235",
+        "REG-331"
+      ],
+      "id": "D-002",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "severidad": 2,
+      "probabilidad": "alta",
+      "prioridad": "P2",
+      "titulo": "Dos botones sólo-icono del flujo clínico no tienen nombre accesible: la X de limpiar búsqueda en Pacientes y la X que cierra la revisión de laboratorios",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 460,
+      "evidencia": "pacientes/page.tsx:460-462 `<button onClick={() => setSearch('')} style={{…}}>\\n <X size={14} />\\n</button>` — sin aria-label ni title · laboratorio/PanelLaboratorios.tsx:298 `<button onClick={() => setRevision(null)} style={{…}}><X size={18} /></button>` dentro de un role=\"dialog\" (:289). Barrido con analizador de etiqueta de apertura sobre 224 TSX, comentarios excluidos: 5 aciertos, de los que 3 son falsos positivos (renderizan una variable de texto); quedan estos 2.",
+      "reproduccion": "Lector de pantalla en /pacientes con texto en el buscador: el botón se anuncia «botón» sin nombre. En la consulta, tras subir un laboratorio y abrir la revisión: la X de cerrar se anuncia «botón».",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Quien navega con lector o por voz no sabe qué hace el control; la compuerta de diseño lo lista como fallo.",
+        "negocio": "Reaparición de la familia que REG-235 dio por cerrada («+1 botón sin nombre» en /citas): mismo defecto, otras dos pantallas."
+      },
+      "control_existente": "Ninguno fuera de las 10 superficies del paciente (la compuerta A11Y-GATE-001 no cubre el dashboard).",
+      "propuesta": "aria-label=\"Limpiar búsqueda\" y aria-label=\"Cerrar revisión\" (o className=\"btn btn-icon\" que además fija 44×44 en táctil).",
+      "prueba_que_faltaria": "Extender la regla botonSoloIconoSinNombre de scripts/design/lib/a11y-jsx.mjs a src/app/(dashboard) como trinquete (techo 2, sólo baja).",
+      "que_no_cubre": "Botones cuyo nombre viene de una variable no verificada aquí (mi/[token]:1179 {s}, page.tsx:328 {f.q}, demo/interactivo:629 {q}): tienen texto, no son hallazgo."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-235",
+        "REG-331",
+        "V10-DEBT-005"
+      ],
+      "id": "D-003",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "severidad": 3,
+      "probabilidad": "alta",
+      "prioridad": "P2",
+      "titulo": "111 campos de formulario sin ninguna asociación programática (ni label, ni aria, ni id, ni placeholder), 46 de ellos en Practice; los rótulos existen pero son hermanos sin htmlFor",
+      "archivo": "src/components/AppointmentModal.tsx",
+      "linea": 513,
+      "evidencia": "AppointmentModal.tsx:512-513 `<label className=\"label\">Médico *</label>\\n<select className=\"input\" value={medicoId} …>` (ni htmlFor ni id; 8 campos así: :513,:533,:541,:550,:556,:570,:579,:654) · CobrarModal.tsx:368-369 `<label style={lbl}>Médico *</label>\\n<select value={medicoElegido}` (:369,:388,:407,:439) · pacientes/page.tsx:1191-1192 `<label className=\"label\">Edad *</label>\\n<input className=\"input\" type=\"number\"` (:1192,:1202,:1209) · antibiograma:386,:399,:410 · farmacia:492,:531 · chat:172 · configuracion/page.tsx ×8 (:769,:1115,:1121,:2033,:2199,:2203,:2207,:2347) · secciones-recetas.tsx ×12 · secciones-comunicacion.tsx ×3 · secciones-cuenta.tsx ×1 · ValoracionInmuno ×2. Método: analizador de etiqueta de apertura con comentarios excluidos, descartando los envueltos en <label> (la trampa que REG-235 documentó: 371 por grep → 20 en navegador).",
+      "reproduccion": "Abrir «Nueva cita» desde la agenda con lector de pantalla: el <select> Médico se anuncia «cuadro combinado» sin nombre. axe (regla label) lo marca como critical porque no hay placeholder que lo rescate.",
+      "impacto": {
+        "paciente": "Una cita agendada al médico equivocado por una asistente con baja visión que no oye a qué campo está contestando.",
+        "medico": "Los formularios de cita y cobro —los dos que más se usan al día— no son operables con tecnología de apoyo.",
+        "negocio": "REG-235 midió sólo 4 pantallas con la app servida y con los modales cerrados; los modales nunca se midieron."
+      },
+      "control_existente": "Parcial: `.label` es visible; los campos envueltos en <label> ya están bien en el resto de la app (descartados aquí). El guardián a11y-flujo-central-etiquetas.test.ts cubre sólo las textareas de la nota.",
+      "propuesta": "En los tres formularios de Practice (AppointmentModal, CobrarModal, alta de paciente) usar el primitivo Field de components/ui (1 importador hoy) o useId + htmlFor. Después, trinquete sobre el resto.",
+      "prueba_que_faltaria": "campoSinEtiqueta de scripts/design/lib/a11y-jsx.mjs aplicada a AppointmentModal.tsx y CobrarModal.tsx exigiendo 0; hoy daría 8 y 4.",
+      "que_no_cubre": "Los 116 campos que sólo tienen placeholder (D-005) ni los de Hospital/UCI (D-004)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-235",
+        "D-030"
+      ],
+      "id": "D-004",
+      "modulo": "hospital",
+      "tipo": "defecto",
+      "severidad": 3,
+      "probabilidad": "media",
+      "prioridad": "P2",
+      "titulo": "Hospital y UCI concentran 58 de los 111 campos sin etiqueta programática; /uci/antimicrobianos con 17 es el archivo peor de toda la aplicación",
+      "archivo": "src/app/(dashboard)/uci/antimicrobianos/page.tsx",
+      "linea": 289,
+      "evidencia": "uci/antimicrobianos ×17 (:289,:299,:301,:303,:307,:309,:313,:558,:562,:565,:567,:571,:573,:577,:579,:583,:585) · hospitalizacion/[internamientoId] ×9 (:1063,:1102,:1107,:1167,:1348,:1350,:1657,:1702,:1706) · uci/dosificacion ×4 · hospital/PanelEnfermeria.tsx ×4 · hospitalizacion/page ×3 · camas ×3 · unidades ×2 · uci/page:104. Son los campos donde se cargan topes de antimicrobianos y dosis: el mismo tipo de campo que la regla clínica trata como crítico.",
+      "reproduccion": "Recorrido con lector en /uci/antimicrobianos: dieciséis campos consecutivos anunciados como «cuadro de edición» sin nombre.",
+      "impacto": {
+        "paciente": "Un tope cargado en el campo equivocado por no saber cuál es cuál.",
+        "medico": "Formularios densos sin nombre en la superficie con más cifras de la app.",
+        "negocio": "Módulos en pausa (D-030): no bloquea Practice; se registra para cuando vuelvan."
+      },
+      "control_existente": "Ninguno; REG-235 declaró UCI y hospitalización «limpios» midiendo sólo el censo, no el episodio ni antimicrobianos.",
+      "propuesta": "Al reactivar los módulos, mismo tratamiento que D-003 (Field/useId). No retirar nada: D-030 es pausa.",
+      "prueba_que_faltaria": "Trinquete campoSinEtiqueta por archivo con techo actual (17, 9, 4…) que sólo baje.",
+      "que_no_cubre": "Contraste ni tamaño táctil de esas mismas pantallas (no medidos aquí)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "V10-DEBT-005"
+      ],
+      "id": "D-005",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "severidad": 2,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "Los campos de la receta dentro de la consulta (Medicamento, Dosis, Frecuencia, Duración) sólo se nombran por placeholder, que desaparece al escribir",
+      "archivo": "src/app/(dashboard)/consulta/[patientId]/page.tsx",
+      "linea": 6933,
+      "evidencia": "consulta/[patientId]/page.tsx:6933 `<input value={m.nombre} disabled={firmada} placeholder=\"Medicamento\"` · :6936 placeholder=\"Dosis\" · :6976 \"Frecuencia\" · :6979 \"Duración\" · :6844 \"Diagnóstico\" · :6857 \"CIE-10\" · :7436. En total 116 campos en 40 archivos sólo con placeholder; axe los da por buenos (comprobación non-empty-placeholder), WCAG 3.3.2 no del todo: con la fila llena no queda rótulo.",
+      "reproduccion": "Sintético: fila de medicamento llena («Amoxicilina | 500 mg | c/8 h | 7 d»): al revisar antes de firmar no hay ningún texto que diga cuál columna es la dosis; con lector, el nombre accesible sigue siendo el placeholder, que sí se anuncia.",
+      "impacto": {
+        "paciente": "Bajo: el orden visual es estable.",
+        "medico": "Al revisar con cansancio, una fila sin rótulos se lee por posición, no por nombre.",
+        "negocio": "Ninguno directo."
+      },
+      "control_existente": "Placeholder como nombre accesible (axe pasa); orden fijo de columnas.",
+      "propuesta": "Un encabezado de columna una sola vez encima de la lista (Medicamento · Dosis · Frecuencia · Duración) y aria-label por campo. No cambiar el diseño de la fila.",
+      "prueba_que_faltaria": "Ninguna hoy: la regla campoSinEtiqueta acepta placeholder. Añadir variante «sóloPlaceholder» informativa, sin techo.",
+      "que_no_cubre": "Los 111 campos sin nada (D-003/D-004)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "V10-AGENDA-001"
+      ],
+      "id": "D-006",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "severidad": 2,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "Quince botones fijan un alto entre 30 y 40 px; en táctil el CSS los sube a 44 de alto pero no de ancho, y tres quedan a 32-34 px de ancho",
+      "archivo": "src/components/RevisionPanel.tsx",
+      "linea": 171,
+      "evidencia": "RevisionPanel.tsx:171-172 `padding: 8, minHeight: 32, minWidth: 32` (ojo «ver la frase», en la consulta) · asistente/page.tsx:655-663 flechas de mes 34×34 · Copiloto.tsx:103,:145 minHeight 36 · QueNotaEs.tsx:118,:162 minHeight 40 · antibiograma:436 h30 · uci:907,:957 · uci/benchmark:127 · hospitalizacion:293 · unidades:142. globals.css:1704-1710 `@media (pointer: coarse) { … button:not(.mobile-topbar-btn) { min-height: 44px !important } }` — sólo `.btn-icon` recibe también min-width (:1706).",
+      "reproduccion": "Teléfono, /consulta, panel de revisión: el ojo de «ver la frase» mide 44 de alto por 32 de ancho.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Toques fallidos en los controles pequeños del panel de revisión y del navegador de mes.",
+        "negocio": "Cumple WCAG 2.2 AA (24×24); no cumple la regla propia del sistema (44×44)."
+      },
+      "control_existente": "La regla pointer:coarse de globals.css cubre el alto de todos los <button>.",
+      "propuesta": "Añadir min-width: 44px a la misma regla de pointer:coarse para botones sin texto, o usar .btn-icon en los tres iconos.",
+      "prueba_que_faltaria": "Medición axe target-size en 390 px sobre /consulta con panel de revisión abierto (hoy no está en el golden flow).",
+      "que_no_cubre": "Enlaces (<a>) pequeños; sólo se contaron <button>."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-331",
+        "REG-549"
+      ],
+      "id": "D-007",
+      "modulo": "portal",
+      "tipo": "defecto",
+      "severidad": 2,
+      "probabilidad": "alta",
+      "prioridad": "P2",
+      "titulo": "En la solicitud ARCO del paciente, el contador de caracteres usa un gris literal a 2.4:1 sobre fondo claro, y la compuerta del paciente no lo ve porque mide tokens, no literales",
+      "archivo": "src/app/privacidad/[clinicId]/page.tsx",
+      "linea": 218,
+      "evidencia": "privacidad/[clinicId]/page.tsx:218 `<div id=\"arco-descripcion-cuenta\" aria-live=\"polite\" style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right' }}>` — #9ca3af sobre #FFFFFF = 2.54:1, sobre --bg claro #FAFAF7 = 2.43:1 (calculado con la fórmula WCAG). scripts/design/medir-a11y-superficies-paciente.mjs:205-211 sólo evalúa pares de variables de globals.css; grep de 9ca3af en el medidor: 0.",
+      "reproduccion": "Abrir /privacidad/<clinicId> en tema claro, escribir en la descripción: «12 de 1000 caracteres» a 10.5 px gris claro.",
+      "impacto": {
+        "paciente": "Un paciente de 70 años no lee cuánto le queda; es texto informativo, no bloquea.",
+        "medico": "Ninguno.",
+        "negocio": "Primer literal de color fuera de token que se cuela en una superficie del paciente después de A11Y-GATE-001: enseña el hueco de la compuerta."
+      },
+      "control_existente": "La compuerta cubre los pares de tokens (34) y la estructura; no los hex en línea de esas 10 páginas.",
+      "propuesta": "Cambiar a `color: 'var(--text3)'` (5.51:1 sobre --bg claro) y añadir al medidor una regla que prohíba `#`-literales en las 10 superficies del paciente (allí el número es 0 y es prohibición, como dice ACCESSIBILITY.md).",
+      "prueba_que_faltaria": "a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts con un contador «hexEnLineaEnSuperficieDelPaciente» = 0; hoy daría ≥1.",
+      "que_no_cubre": "El contraste pintado sobre imágenes o degradados (sigue siendo axe en navegador)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-549",
+        "REG-234"
+      ],
+      "id": "D-008",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "severidad": 1,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "Dos grises literales en pantallas del médico caen por debajo de 3:1 en tema claro: el badge RECHAZADA de cumplimiento y el rótulo de la simulación del botón flotante",
+      "archivo": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "linea": 965,
+      "evidencia": "cumplimiento/page.tsx:965 `rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' }` → 2.54:1 sobre blanco (los otros tres estados usan var(--blue)/var(--amber)) · configuracion/page.tsx:2551 `<div style={{ fontSize: 11, color: '#999', … }}>↓ Simulación del botón flotante</div>` sobre background '#fafafa' (:2550) → 2.85:1. Son 2 de los 3 grises literales de toda la app (el tercero es D-007).",
+      "reproduccion": "Tema claro, /cumplimiento con una solicitud ARCO rechazada sintética; /configuracion › Portal con botón flotante.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Un estado de solicitud ARCO que se lee mal es precisamente el que más conviene leer bien.",
+        "negocio": "REG-549 ya cerró «dos defectos de contraste que sólo existían en tema claro»; éstos son de la misma familia."
+      },
+      "control_existente": "El trinquete de diseño cuenta hexEnLinea (320) pero no evalúa su contraste.",
+      "propuesta": "Sustituir por var(--text3) y var(--badge-gris-t)/--badge-gris-b, que ya existen medidos (globals.css:316).",
+      "prueba_que_faltaria": "Regla del trinquete: hex gris (#9…–#b…) en `color:` sobre superficie clara → contraste calculado ≥ 4.5.",
+      "que_no_cubre": "Los 320 hex restantes: sólo se calcularon los grises claros en `color:`."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "PRACTICE-GA-005"
+      ],
+      "id": "D-009",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P2",
+      "titulo": "La pantalla /motores («Lo que te protege, funcionando»), que el dueño pidió para VER las defensas, no está enlazada desde ninguna pantalla ni desde la paleta",
+      "archivo": "src/app/(dashboard)/motores/page.tsx",
+      "linea": 3,
+      "evidencia": "motores/page.tsx:3-9 «tras quince versiones… el dueño dijo: “no he visto ningún cambio en la aplicación”. Y tenía razón» · grep de `'/motores'` en src/app y src/components: 0 archivos (sólo src/__tests__/lo-que-hace-si-como-lo-hace-no.test.ts) · no está en Sidebar.NAV, ni en operaciones GRUPOS (:81-162), ni en contextos.ts, ni en lib/ayuda/conocimiento.ts · /cumplimiento/motores sí está enlazada (cumplimiento/page.tsx:602).",
+      "reproduccion": "Buscar cómo llegar a /motores desde la app sin escribir la URL: no hay camino.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Lo que se construyó para enseñarle que las defensas existen es, para él, una pantalla que no existe.",
+        "negocio": "La pantalla-demostración para vender seguridad no se puede enseñar en una demo sin conocer la URL."
+      },
+      "control_existente": "Ninguno (SCREEN_INVENTORY la lista con Nav: 0 salidas, y ninguna entrada).",
+      "propuesta": "Enlazarla desde /cumplimiento/motores (son las dos mitades del mismo sello: la lista y la prueba en vivo) y desde Operaciones › Sistema; o fusionar ambas en una. No retirar.",
+      "prueba_que_faltaria": "Guardián: toda page.tsx de (dashboard) fuera de la lista de redirecciones/rescates tiene ≥1 Link entrante en src/app o src/components (hoy falla para /motores y /corte-caja).",
+      "que_no_cubre": "Si /motores debe seguir existiendo aparte de /cumplimiento/motores es decisión de producto."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "modulos-sin-conectar.test.ts"
+      ],
+      "id": "D-010",
+      "modulo": "nucleo",
+      "tipo": "innecesario",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "DoctorOnboarding.tsx: 169 líneas sin ningún consumidor, y el único archivo del producto escrito con Tailwind de plantilla (rounded-xl, text-white, focus:outline-none)",
+      "archivo": "src/components/DoctorOnboarding.tsx",
+      "linea": 139,
+      "evidencia": "DoctorOnboarding.tsx:139 `className=\"w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-teal-400/50 resize-none\"` · consumidores en src/app|components|hooks: 0 · declarado en src/__tests__/modulos-sin-conectar.test.ts:120 «escrita, sin pantalla que la monte todavía» · es el origen de los conteos residuales de GENERIC_AI_AESTHETIC: rounded-xl 2/2, rounded-2xl 1/1 y el único focus:outline-none del repo.",
+      "reproduccion": "grep -rl DoctorOnboarding src/app src/components → vacío.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Ninguno hoy; si algún día se monta, llega con colores quemados (blanco sobre negro) que ignoran el tema claro.",
+        "negocio": "Código muerto que cuenta en los medidores de «cara de plantilla»."
+      },
+      "control_existente": "HUERFANOS_ACEPTADOS lo congela para que no crezcan los huérfanos.",
+      "propuesta": "Retirar (el alta guiada real vive en /setup y OnboardingTour), o reescribir con tokens antes de conectarlo. Recomendación: retirar.",
+      "prueba_que_faltaria": "Bajar la lista HUERFANOS_ACEPTADOS en una entrada.",
+      "que_no_cubre": "ValoracionInmuno y el episodio de hospitalización también usan clases Tailwind (D-019), pero sí tienen consumidores."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "modulos-sin-conectar.test.ts"
+      ],
+      "id": "D-011",
+      "modulo": "nucleo",
+      "tipo": "mejora",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "La regla «texto fuera del componente desde el primer día» no se cumple: 44 de 45 pantallas llevan el texto en el JSX y lib/i18n.ts no lo importa nadie",
+      "archivo": "src/lib/i18n.ts",
+      "linea": 44,
+      "evidencia": "src/lib/i18n.ts: 0 consumidores en src/app|components|hooks (sólo tests; modulos-sin-conectar.test.ts:118) · :44 `'app.name': 'Agenda Médica'` — nombre de marca desactualizado · :3-7 «los strings están en sus componentes» · texto-es.ts la usan 7 archivos · conteo de literales en español en JSX por page.tsx del dashboard: 44/45 (la excepción es /expedientes, que no pinta nada) · design-system.md: «retroajustar i18n a 78 pantallas es el trabajo que nadie hace nunca».",
+      "reproduccion": "grep -rl \"lib/i18n\" src/app src/components → vacío (la única mención en mi/[token]:1071 es un comentario que lo reconoce).",
+      "impacto": {
+        "paciente": "Ninguno hoy (es-MX).",
+        "medico": "Ninguno hoy.",
+        "negocio": "en-US y el resto están «arquitectados» sólo en el papel: el diccionario tiene 18 claves y el producto miles de cadenas."
+      },
+      "control_existente": "Ninguno.",
+      "propuesta": "No retroajustar 78 pantallas. Decidir: (a) retirar i18n.ts y aceptar es-MX como única lengua hasta que haya cliente; o (b) exigir el patrón sólo en pantallas NUEVAS y en las 10 del paciente (donde el texto más importa). Recomendación: (b), con guardián sólo para archivos nuevos.",
+      "prueba_que_faltaria": "Guardián que cuente literales en JSX en las 10 superficies del paciente y sólo baje.",
+      "que_no_cubre": "Formatos de fecha/número por locale (fecha-local.ts, timezone.ts ya los centralizan)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "modulos-sin-conectar.test.ts"
+      ],
+      "id": "D-012",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "lib/mobile/consulta-cierre.ts (151 líneas, con pruebas) lleva desde la iteración 4 esperando una interfaz que nunca lo llamó",
+      "archivo": "src/lib/mobile/consulta-cierre.ts",
+      "linea": 1,
+      "evidencia": "consulta-cierre.ts:1-6 «Núcleo VERIFICABLE de la Iteración 4… §4.2 Resumen fijo: qué datos críticos mostrar arriba (alergia, función renal…)» · consumidores en src/app|components|hooks: 0 · modulos-sin-conectar.test.ts:101 «dos funciones puras esperando su interfaz» · el cierre real de la consulta lo hacen hoy ComoCerrarLaConsulta.tsx, CierreAlPulgar.tsx y AntesDeFirmar.tsx sin pasar por él.",
+      "reproduccion": "grep -rl consulta-cierre src/app src/components src/hooks → vacío.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Ninguno.",
+        "negocio": "Dos fuentes de verdad potenciales para «qué va arriba al cerrar»: una viva (los tres componentes) y una muerta con pruebas verdes."
+      },
+      "control_existente": "HUERFANOS_ACEPTADOS.",
+      "propuesta": "Retirar junto con su prueba, o conectar su regla de «resumen fijo» a CierreAlPulgar si aporta algo que éste no tenga. Recomendación: retirar.",
+      "prueba_que_faltaria": "Bajar HUERFANOS_ACEPTADOS en una entrada.",
+      "que_no_cubre": "Los demás huérfanos aceptados de esa lista, que no son de mi rebanada."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-303",
+        "REG-295",
+        "REG-296",
+        "NAVIGATION_STATE_AUDIT §3 nº15"
+      ],
+      "id": "D-013",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "severidad": 3,
+      "probabilidad": "baja",
+      "prioridad": "P2",
+      "titulo": "Durante una consulta, la acción central de la barra inferior es un enlace a la misma URL, exento del aviso de «estás grabando»; si Next la remonta, la grabación muere sin aviso",
+      "archivo": "src/components/BottomNav.tsx",
+      "linea": 87,
+      "evidencia": "BottomNav.tsx:87-90 `const m = pathname.match(/^\\/(?:expediente|consulta)\\/([^/]+)/)\\n if (m) return { label: 'Consulta', href: `/consulta/${m[1]}`, kind: 'consulta' }` · :171-172 se pinta como <Link href={accion.href}> coronado · REG-303: el hook useAvisoAlSalirGrabando «no se mete… [en un] enlace a la pantalla en la que ya se está, que es lo que hace el botón central de la barra inferior durante una consulta» · NAVIGATION_STATE_AUDIT.md §3 nº 15 y §6.1: «Si remonta, el nº 15 sube a P0». (dashboard)/template.tsx sigue desmontando la página en cada navegación.",
+      "reproduccion": "SUPUESTO, NO VERIFICADO (esta pasada no ejecuta la app): en /consulta/<id> grabando, tocar el botón central «Consulta». Comprobar en navegador si el componente se desmonta (MientrasHablas desaparece) — es la comprobación que NAVIGATION_STATE_AUDIT dejó abierta en agosto y sigue sin acta.",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Si remonta: 20 minutos de dictado se cortan por tocar un botón que no lleva a ningún sitio; el audio queda en IndexedDB pero hay que descubrir el cartel de recuperar.",
+        "negocio": "Un botón coronado (la emisión máxima de la barra) que en su contexto más importante no hace nada es, en el mejor caso, un botón muerto."
+      },
+      "control_existente": "Trozos en IndexedDB + cartel de recuperación; beforeunload no aplica a router.push.",
+      "propuesta": "Verificar en navegador. Independientemente del resultado: en /consulta/<id> la acción central debería ser otra cosa (p. ej. «Firmar» o desplazar a #cierre-de-la-consulta) o pintarse como aria-current sin href, en vez de enlazar a sí misma.",
+      "prueba_que_faltaria": "Arnés de navegador (scripts/design/arnes-grabacion-v15.sh) que grabe, toque el botón central y afirme que el MediaRecorder sigue vivo.",
+      "que_no_cubre": "El botón «atrás» del navegador (popstate), declarado fuera de alcance en REG-303."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [],
+      "id": "D-014",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "El mismo destino se llama distinto según la barra: /pacientes es «Consulta», «Pacientes» o «Paciente»; /dashboard es «Dashboard», «Inicio» u «Hoy»",
+      "archivo": "src/components/Sidebar.tsx",
+      "linea": 32,
+      "evidencia": "Sidebar.tsx:32 `{ href: '/pacientes', label: 'Consulta', …}` · BottomNav.tsx:66 `label: 'Pacientes'` · BottomNav.tsx:77 `label: 'Paciente'` · FlowRail.tsx:223 «Paciente» · Sidebar.tsx:28 'Dashboard' · BottomNav.tsx:64 'Inicio' · BottomNav.tsx:76 y FlowRail.tsx:221 'Hoy'. Una asistente y su médico, con el mismo teléfono, ven nombres distintos para la misma pantalla; y «Consulta» en el Sidebar apunta a la lista de pacientes, no a una consulta.",
+      "reproduccion": "Entrar como rol secretaria (Sidebar/BottomNav heredado) y como médico (FlowRail/BottomNav V15) y comparar las etiquetas de /pacientes y /dashboard.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Explica dos vocabularios a su asistente; «Consulta» promete un encuentro y abre una lista.",
+        "negocio": "Principio CONTINUIDAD: el mismo objeto con el mismo nombre en todas las vistas."
+      },
+      "control_existente": "v15-bottom-nav-cinco-contextos.test.ts compara hrefs entre FlowRail y BottomNav V15, no etiquetas, ni con Sidebar.",
+      "propuesta": "Una sola tabla de nombres por ruta (contextos.ts ya es la tabla de pertenencia: añadirle la etiqueta) y que las tres barras lean de ahí.",
+      "prueba_que_faltaria": "Guardián: para cada href presente en dos barras, la etiqueta coincide.",
+      "que_no_cubre": "Los títulos <h1> de cada pantalla (no se compararon con las barras)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [],
+      "id": "D-015",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "severidad": 1,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "/corte-caja sigue siendo una pantalla completa aunque su contenido ya es una pestaña de /finanzas; una page.tsx importa componentes de otra page.tsx",
+      "archivo": "src/app/(dashboard)/finanzas/page.tsx",
+      "linea": 30,
+      "evidencia": "finanzas/page.tsx:30 `import { CorteCajaContenido } from '../corte-caja/page'` · :228 «Pestañas: Reportes · Corte de caja (antes eran 2 entradas de menú)» · contextos.ts:33-39 «la ruta sigue viva por si hay marcadores» · enlaces entrantes a '/corte-caja' en app/components: 1 · /expedientes resolvió el mismo caso con un redirect de 17 líneas (expedientes/page.tsx:13-16).",
+      "reproduccion": "Abrir /corte-caja y /finanzas?tab=corte: el mismo contenido en dos rutas con distinto marco.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Dos sitios para lo mismo; el riel marca Operaciones en los dos (contextos.ts ya lo cubre).",
+        "negocio": "Una pantalla más que auditar, sembrar y mantener."
+      },
+      "control_existente": "contextos.ts la mapea para que el riel conteste «dónde estoy».",
+      "propuesta": "Fusionar: mover CorteCajaContenido a src/components (o lib) y convertir /corte-caja en redirect a /finanzas?tab=corte, como /expedientes.",
+      "prueba_que_faltaria": "Ninguna: es simplificación. Conservar la prueba de que /corte-caja responde (redirige).",
+      "que_no_cubre": "Si el corte debe ser pantalla propia para la asistente (rol) es decisión de producto."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "VISUAL_DEBT.md"
+      ],
+      "id": "D-016",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "severidad": 1,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "Configuración tiene 17 pestañas y una de ellas, «Entregas de WhatsApp», no configura nada: es una bitácora operativa escondida entre ajustes",
+      "archivo": "src/app/(dashboard)/configuracion/page.tsx",
+      "linea": 297,
+      "evidencia": "configuracion/page.tsx:286-324 declara 17 pestañas · :297 `{ key: 'entregas', label: 'Entregas de WhatsApp' }` · :1057 `{tab === 'entregas' && <EntregasWhatsAppTab clinicId={clinicId} />}` · secciones-comunicacion.tsx:16 «Entregas de WhatsApp (Iter. 7 · DELIVERY_DASHBOARD)» · el archivo es el peor del trinquete de diseño (techos-de-diseno.json peores[0]: 163 puntos, 95 tamaños fuera de escala, 41 radios).",
+      "reproduccion": "Buscar «¿le llegó el recordatorio a este paciente?»: la respuesta vive en Configuración › Entregas de WhatsApp.",
+      "impacto": {
+        "paciente": "Un recordatorio no entregado que nadie revisa porque está donde nadie mira a diario.",
+        "medico": "La pregunta operativa del día se contesta en la pantalla de ajustes.",
+        "negocio": "Ninguno directo."
+      },
+      "control_existente": "Ninguno.",
+      "propuesta": "Mover la pestaña a Operaciones › Comunicación (junto a Chat) o a la ficha de la cita; dejar Configuración sólo con ajustes. Candidatas a revisar con el dueño: «Bot de preguntas frecuentes» y «Médicos (ilimitados)» como pestañas separadas.",
+      "prueba_que_faltaria": "Ninguna: es reubicación.",
+      "que_no_cubre": "El tamaño del archivo en sí (2 684 líneas) — deuda conocida en VISUAL_DEBT.md."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [],
+      "id": "D-017",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "El chat de ayuda vive dos veces: en el FAB global y otra vez dentro de /guia",
+      "archivo": "src/app/(dashboard)/guia/page.tsx",
+      "linea": 42,
+      "evidencia": "guia/page.tsx:42 `<AsistenteChat alto={220} />` · BotonAyuda.tsx:150 `<AsistenteChat alto={320} />` · ambos hablan con /api/ayuda-bot (AsistenteChat.tsx:36) y leen lib/ayuda/conocimiento.ts (guia/page.tsx:4). BotonAyuda está montado en el shell, así que en /guia hay dos cajas de chat idénticas a la vez.",
+      "reproduccion": "Abrir /guia y pulsar el FAB de ayuda: dos conversaciones con el mismo bot en pantalla.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Dos sitios para preguntar lo mismo; el historial no se comparte.",
+        "negocio": "Consumo de IA duplicado por sesión de ayuda."
+      },
+      "control_existente": "Ninguno.",
+      "propuesta": "Dejar en /guia sólo las secciones y el buscador; que el botón «Preguntar» abra el panel del FAB (ya tiene teclado y foco resueltos, BotonAyuda.tsx:94-120).",
+      "prueba_que_faltaria": "Ninguna.",
+      "que_no_cubre": "Si /guia entera debe existir aparte del FAB es decisión de producto."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "D-030"
+      ],
+      "id": "D-018",
+      "modulo": "uci",
+      "tipo": "friccion",
+      "severidad": 1,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "/uci/antimicrobianos hace dos trabajos en una pantalla por confesión propia: probar un caso y cargar los topes",
+      "archivo": "src/app/(dashboard)/uci/antimicrobianos/page.tsx",
+      "linea": 2,
+      "evidencia": "uci/antimicrobianos/page.tsx:2-3 «MOTOR DE ANTIMICROBIANOS V4 — probar un caso y cargar los topes. Dos cosas en una pantalla porque son la misma conversación». Es la única de las 45 cuyo propósito no cabe en una frase sin «y».",
+      "reproduccion": "Recorrido: la parte de arriba es un formulario de caso; la de abajo, la tabla de límites editable (17 campos sin nombre, D-004).",
+      "impacto": {
+        "paciente": "Editar un tope creyendo que se prueba un caso.",
+        "medico": "Dos modos mentales (consultar / administrar) en el mismo scroll.",
+        "negocio": "Módulo en pausa; no bloquea Practice."
+      },
+      "control_existente": "Ninguno.",
+      "propuesta": "Al reactivar UCI: partir en «Probar un caso» y «Topes» (pestaña o ruta), con la carga de topes detrás de una acción explícita.",
+      "prueba_que_faltaria": "Ninguna.",
+      "que_no_cubre": "El motor en sí."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "GENERIC_AI_AESTHETIC_AUDIT §0 corrección RT-01"
+      ],
+      "id": "D-019",
+      "modulo": "hospital",
+      "tipo": "mejora",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "Tres archivos mezclan clases Tailwind de plantilla con los tokens del sistema; concentran los 13 rounded-full y los rounded-md de toda la app",
+      "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",
+      "linea": 63,
+      "evidencia": "hospitalizacion/[internamientoId]/page.tsx:63 `const inputCls = 'w-full rounded-md border px-2.5 py-2 text-sm bg-transparent'` · ValoracionInmuno.tsx:44 `const inputCls = 'w-full rounded-md border px-2.5 py-1.5 text-sm bg-transparent'`, :55 y :67 `rounded-full` · DoctorOnboarding.tsx (D-010). Conteo global: rounded-full 13 usos en exactamente estos 3 archivos; el resto de la app usa var(--r-pill) (136 usos en 70 archivos).",
+      "reproduccion": "grep -rlE \"rounded-full|rounded-xl\" src/app src/components → 3 archivos.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Campos con radio y borde distintos al resto en el episodio hospitalario y en la valoración inmuno.",
+        "negocio": "Es la señal residual de «SaaS de plantilla» que la auditoría V9 dio por inexistente porque medía sólo Tailwind."
+      },
+      "control_existente": "El trinquete mide valores CSS, no clases Tailwind: no lo ve.",
+      "propuesta": "Sustituir inputCls por className=\"input\" (ya tiene foco, altura táctil y tema) y rounded-full por var(--r-pill).",
+      "prueba_que_faltaria": "Contador «clasesTailwindDePlantilla» en trinquete-de-diseno.mjs con techo 13, sólo baja.",
+      "que_no_cubre": "Otras utilidades Tailwind sin firma de plantilla (flex, gap…)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "RT-01 (V15_ORIGINALITY_REDTEAM_VEREDICTO.md)"
+      ],
+      "id": "D-020",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "severidad": 1,
+      "probabilidad": "baja",
+      "prioridad": "P3",
+      "titulo": "Cuatro archivos llevan violeta/lila en hex literal como color de dato, aunque GENERIC_AI_AESTHETIC afirma que «el último literal violeta murió con RT-01»",
+      "archivo": "src/app/(dashboard)/crm/page.tsx",
+      "linea": 188,
+      "evidencia": "crm/page.tsx:188 `<PipeStep label=\"En sala / consulta\" … color=\"#a855f7\" />` · hospitalizacion/camas/page.tsx:24 `reservada: '#7c3aed'` · configuracion/secciones-cuenta.tsx:666 `secretaria: '#a78bfa', … laboratorio: '#7c3aed'` · consulta/[patientId]/consulta-ui.tsx:14 `COLOR_HABLANTE = ['var(--nexus)', '#10b981', '#f59e0b', '#a855f7', …]`. Ninguno es degradado ni cromo de IA; son colores de categoría. Existen tokens --purple y --badge-purple-* en ambos temas (globals.css:315, :2358, :2371).",
+      "reproduccion": "grep -rEin \"#(7c3aed|8b5cf6|a855f7|a78bfa)\" src/app src/components.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "En tema claro #a855f7 como texto de hablante 4 queda por debajo de AA (no medido aquí en su fondo exacto).",
+        "negocio": "Afirmación del documento de diseño que ya no es verdad: conviene corregirla para que la compuerta compare contra un número real (4 archivos)."
+      },
+      "control_existente": "hexEnLinea del trinquete (320) los tolera.",
+      "propuesta": "Sustituir por var(--purple)/var(--badge-purple-t) y actualizar la frase de GENERIC_AI_AESTHETIC_AUDIT.md.",
+      "prueba_que_faltaria": "Regla del trinquete: 0 hex en la familia violeta fuera de globals.css.",
+      "que_no_cubre": "Los 316 hex restantes."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-331",
+        "REG-235",
+        "V10-A11Y-001"
+      ],
+      "id": "D-021",
+      "modulo": "nucleo",
+      "tipo": "mejora",
+      "severidad": 2,
+      "probabilidad": "alta",
+      "prioridad": "P2",
+      "titulo": "Fuera de las 10 superficies del paciente no hay red automática de accesibilidad: 111 campos y 2 botones sin nombre no disparan nada, y RISK_REGISTER no tiene fila de accesibilidad",
+      "archivo": "docs/design/ACCESSIBILITY.md",
+      "linea": 263,
+      "evidencia": "ACCESSIBILITY.md:263-266 «En el resto de la aplicación esta unidad no toca nada… El barrido al resto es trabajo aparte, y su forma natural es la del trinquete: contar, sellar, y que el número sólo baje» — desde el 27-ago no hay trinquete · agent-state/RISK_REGISTER.md: filas R-01…R-08, ninguna de accesibilidad · scripts/design/lib/a11y-jsx.mjs ya tiene las 15 reglas y sólo se aplica a 10 rutas (medir-a11y-superficies-paciente.mjs:79-80 y vecinas) · arneses axe (tests/visual/arnes-a11y.mjs) «corren cuando alguien se acuerda» (ACCESSIBILITY.md:193-196).",
+      "reproduccion": "Añadir hoy un <input> sin etiqueta a AppointmentModal: vitest, trinquete y build siguen en verde.",
+      "impacto": {
+        "paciente": "Indirecto: la asistente que agenda por él.",
+        "medico": "Los defectos D-002/D-003 pueden crecer sin que nadie lo note, como pasó entre REG-235 (20 medidos) y hoy (111 estáticos).",
+        "negocio": "El documento de diseño lo declara como P0 desde V9 («No hay red de seguridad automática»); sigue abierto para el 90 % de la app."
+      },
+      "control_existente": "Compuerta del paciente (0 y prohibición) + guardián de 4 textareas de la nota + line base axe manual.",
+      "propuesta": "Correr a11y-jsx.mjs sobre src/app/(dashboard) y src/components con techo sellado por regla (campoSinEtiqueta 111, botonSoloIconoSinNombre 2, …) que sólo baje — el patrón del trinquete de diseño, sin dependencias nuevas. Añadir R-09 «accesibilidad del flujo clínico» al RISK_REGISTER.",
+      "prueba_que_faltaria": "a11y-el-dashboard-no-pierde-terreno.test.ts, probado al revés añadiendo un campo sin etiqueta.",
+      "que_no_cubre": "Contraste pintado, orden de foco y lector real: siguen necesitando navegador."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-213",
+        "REG-250",
+        "REG-278"
+      ],
+      "id": "D-022",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "severidad": 1,
+      "probabilidad": "media",
+      "prioridad": "P3",
+      "titulo": "PROCEDENCIA tiene forma estable (un patrón, tres piezas reutilizadas) pero cubre 3 de 6 superficies: la nota firmada, la receta y la orden no enseñan de dónde salió nada",
+      "archivo": "src/components/expediente/ProcedenciaDeLaNota.tsx",
+      "linea": 7,
+      "evidencia": "ProcedenciaDeLaNota.tsx:7-10 «Estaba en 2 de 6 superficies: /consulta y /pendientes. Esta pieza la lleva a /expediente, la tercera» · grep de SelloProcedencia|DeDondeSalioEsto|ProcedenciaDeLaNota|EscucharElMomento en nota/[notaId]/page.tsx: 0, receta: 0, orden: 0 · lo positivo: es UN patrón (SelloProcedencia + DeDondeSalioEsto + EscucharElMomento en LenteContextual) reutilizado sin reescribir, no tres formas distintas.",
+      "reproduccion": "Abrir /nota/<paciente>/<nota firmada>: el documento no ofrece ver la frase del dictado que sostiene cada línea; hay que ir al expediente.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "La pantalla donde imprime y adenda —la del día de la discusión— es la que no enseña la fuente.",
+        "negocio": "El diferencial anunciado (Linked Evidence) no está donde se enseña el documento."
+      },
+      "control_existente": "Disponible en /expediente para la misma nota (ProcedenciaDeLaNota).",
+      "propuesta": "Montar ProcedenciaDeLaNota (ya sabe qué puede afirmar con lo archivado) bajo el documento en /nota; receta y orden pueden enlazar a la nota.",
+      "prueba_que_faltaria": "medir-procedencia-expediente-v15.mjs extendido a /nota.",
+      "que_no_cubre": "UCI y hospitalización (0 también; en pausa)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "NAVIGATION_STATE_AUDIT §3 nº12, 14, 16",
+        "REG-303"
+      ],
+      "id": "D-023",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "De NAVIGATION_STATE_AUDIT siguen vivos tres puntos menores: el expediente reinicia filtro y nota abierta al volver, el scroll sólo se restaura en la consulta, y la pestaña «Agenda» de la asistente se ilumina en /citas pero navega a /calendario",
+      "archivo": "src/app/(dashboard)/expediente/[patientId]/page.tsx",
+      "linea": 96,
+      "evidencia": "expediente/[patientId]/page.tsx:96-97 `const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('consulta')` / `const [expandida, setExpandida] = useState<string | null>(null)` (sin URL ni contexto) · restauración de scroll: sólo consulta/[patientId]/page.tsx y tareas/PorQueEstaAqui.tsx · BottomNav.tsx:65 `{ href: '/calendario', label: 'Agenda', …, active: p => contextoDeRuta(p) === 'hoy' && p !== '/dashboard' }`. Lo cerrado desde agosto y verificado hoy: P0-1/P0-2/P0-3 del audio, P1-5 (useSmartBack en consulta:391), P1-6 (beforeunload), P2-10 (agenda en URL).",
+      "reproduccion": "Expediente › filtro «todas» › abrir una nota › ir a Hoy › volver con el riel: filtro en «consulta» y nota cerrada.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Renavegar tras cada ida y vuelta; menor que en agosto.",
+        "negocio": "Ninguno."
+      },
+      "control_existente": "useSmartBack y el contrato de regreso (regreso-a-la-fuente.ts) cubren el camino consulta→pendientes.",
+      "propuesta": "Filtro y nota abierta a searchParams, como ya hizo /citas (:105,:124-125).",
+      "prueba_que_faltaria": "Prueba de que /expediente/<id>?f=todas&n=<nota> restaura ambos.",
+      "que_no_cubre": "El comportamiento de history.state.idx tras recarga (§6.5 del documento, sigue sin acta)."
+    },
+    {
+      "panel": "diseno",
+      "rol": "design-systems-lead",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "RTC-09",
+        "V15-SHELL-GREYBOX-001"
+      ],
+      "id": "D-024",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "severidad": 1,
+      "probabilidad": "alta",
+      "prioridad": "P3",
+      "titulo": "El Sidebar declara 11 entradas modos:medico que ningún usuario puede ver: el médico real ya no usa el Sidebar y quien lo usa nunca está en modo médico",
+      "archivo": "src/components/Sidebar.tsx",
+      "linea": 22,
+      "evidencia": "Sidebar.tsx:22-37 once entradas `modos: 'medico'` (/uci, /consultor, /antibiograma, /crm, /resenas, /reactivacion, /farmacia, /finanzas, /cumplimiento, /legal, /migracion) · (dashboard)/layout.tsx:702 `const navPrimaria = esMedicoReal && mode === 'medico'` y :717 `{navPrimaria ? <FlowRail /> : <Sidebar />}` · ModeContext.tsx:33 `const mode: AppMode = esMedicoReal ? modePersistido : 'secretaria'` → el Sidebar sólo se pinta cuando mode !== 'medico' o el rol no es médico, y en ambos casos las entradas 'medico' se filtran.",
+      "reproduccion": "Rol secretaria: Sidebar con 9 entradas (las «ambos», menos hospital en pausa). Médico real en modo secretaria: lo mismo. Nadie ve las 11.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Ninguno.",
+        "negocio": "Una segunda copia de la navegación del médico (la primera es FlowRail + operaciones GRUPOS) que ya divergió: RTC-09 quitó /consultor y /antibiograma de GRUPOS y aquí siguen."
+      },
+      "control_existente": "hospital-y-uci-en-pausa.test.ts vigila sólo la pausa.",
+      "propuesta": "Recortar Sidebar a las entradas de la asistente y leerlas de la misma tabla que operaciones (D-014), o dejar documentado que el Sidebar es «barra de la asistente».",
+      "prueba_que_faltaria": "Guardián: toda entrada del Sidebar es visible para al menos un rol real.",
+      "que_no_cubre": "El caso de un rol futuro (enfermería/farmacia) que sí pudiera necesitarlas."
+    }
+  ]
+}
