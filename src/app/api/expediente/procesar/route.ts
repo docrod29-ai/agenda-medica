@@ -12,6 +12,7 @@
 
 import { revalidarCitas } from '@/lib/ia/revalidar-citas'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { tieneGuia } from '@/lib/expediente/guias-de-especialidad'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
@@ -687,11 +688,11 @@ export async function POST(req: NextRequest) {
     try {
       return fallbackVisible(
         transcripcion, tipo,
-        `Error interno al llamar la IA de estructura: ${String(err).slice(0, 100)}.`,
+        `Error interno al llamar la IA de estructura: ${redactarString(String(err)).slice(0, 100)}.`,
         'excepcion',
       )
     } catch {
-      return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+      return errorAlCliente()
     }
   } finally {
     /**

@@ -88,6 +88,17 @@ export type TipoTarea =
    * anticoagulante es un acto médico (§C3: no elegir la verdad automáticamente).
    */
   | 'reconciliacion_medicamento'
+  /**
+   * REG-521 — el paciente preguntó desde su portal y el motor determinista
+   * lo ESCALÓ (o lo marcó urgente). Es un hecho real, no derivado del plan:
+   * hay un humano esperando a otro humano. La escribe SÓLO el servidor
+   * (`/api/portal`, acción `preguntar`), con id derivado de la pregunta, y
+   * lleva `preguntaId` para que cerrarla pueda marcar la pregunta como
+   * atendida. Antes de esto la pregunta se guardaba en `preguntas_paciente`
+   * y salía un WhatsApp al consultorio — y sin teléfono configurado no salía
+   * nada ni quedaba rastro en ninguna pantalla.
+   */
+  | 'pregunta_paciente'
   | 'otra'
 
 export type Prioridad = 'critica' | 'alta' | 'normal'
@@ -228,8 +239,16 @@ export interface TareaClinica {
   cerradaEn?: string
   cerradaPor?: string
   motivoCancelacion?: string
-  /** Quién o qué la creó: 'nota', 'laboratorio', 'manual'. */
+  /** Quién o qué la creó: 'nota', 'laboratorio', 'manual', 'portal:pregunta'. */
   origen: string
+  /**
+   * Sólo en `pregunta_paciente` (REG-521): el documento de
+   * `patients/{patientId}/preguntas_paciente/{preguntaId}` del que nació. Es
+   * la traza hacia atrás, y lo que permite que cerrar la tarea marque la
+   * pregunta como atendida en vez de dejarla «pendiente de revisar» para
+   * siempre en el portal del paciente.
+   */
+  preguntaId?: string
   /**
    * QUÉ SE DECIDIÓ, QUÉ SE HIZO Y SI SE LE AVISÓ AL PACIENTE (REG-360).
    *
@@ -516,6 +535,7 @@ export const ETIQUETA_TIPO: Record<TipoTarea | string, string> = {
   receta_por_entregar: 'Receta',
   indicacion_paciente: 'Indicación',
   reconciliacion_medicamento: 'Reconciliar',
+  pregunta_paciente: 'Pregunta',
   otra: 'Pendiente',
 }
 

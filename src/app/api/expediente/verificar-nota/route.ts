@@ -16,6 +16,7 @@
  */
 import { segmentarParaRevision, unirHallazgos } from '@/lib/ia/segmentar-revision'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -177,7 +178,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, modelo: usado, hallazgos, tramos: tramos.length })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

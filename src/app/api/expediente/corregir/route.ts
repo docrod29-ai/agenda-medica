@@ -10,6 +10,7 @@
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString } from '@/lib/security/sanitize'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { verificarModuloIA } from '@/lib/auth-server'
@@ -196,7 +197,7 @@ export async function POST(req: NextRequest) {
       ultimoDebug = 'parse-fail: ' + texto.slice(0, 150)
       continue
     } catch (e) {
-      ultimoDebug = 'red: ' + String(e).slice(0, 120)
+      ultimoDebug = 'red: ' + redactarString(String(e)).slice(0, 120)
       continue
     }
   }

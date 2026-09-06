@@ -23,26 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
+    "M  .github/workflows/ci.yml",
     "M  .github/workflows/deploy-production.yml",
     "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/BLOCKERS.md",
     "M  agent-state/MASTER_STATE.json",
     "M  docs/audit/lane-product-excellence.md",
+    "M  docs/audit/lint-techo.json",
     "M  docs/audit/regression-ledger.md",
     "MM docs/data-room/INDICE.md",
     "MM docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1182.md",
-    "A  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
-    "R  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1182.md -> docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1184.md",
+    "A  docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
+    "R  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1184.md -> docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1185.md",
     "M  docs/maintenance/sw-changelog.md",
+    "MM docs/ops/inventario-de-entorno.json",
+    "A  docs/product/AUSCULTA-ULTRA-READINESS.md",
     "M  docs/product/DECISION_REGISTER.md",
     "MM docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  docs/whatsapp/policy-risk-register.md",
     "M  public/sw.js",
-    "M  public/version.txt",
-    "M  scripts/ausculta-transformacion/el-area-de-golpe-de-una-fila-de-cita.mjs",
-    "M  scripts/ausculta-transformacion/mirar-la-consulta.mjs",
-    "M  scripts/carril-excelencia/el-dia-de-un-medico.mjs",
-    "M  scripts/design/sembrar-emulador.mjs",
-    "M  scripts/design/techos-de-diseno.json"
+    "M  public/version.txt"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -78,11 +78,11 @@
   ],
   "ramaActual": "claude/ausculta-product-excellence-52rqck",
   "derivado": {
-    "regsEnElLedger": 326,
-    "ultimaREG": "REG-532",
-    "archivosDePrueba": 952,
-    "casosDePrueba": 11470,
+    "regsEnElLedger": 343,
+    "ultimaREG": "REG-555",
+    "archivosDePrueba": 968,
+    "casosDePrueba": 11601,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1184"
+  "versionEnElRepo": "nexusmed-v1185"
 }

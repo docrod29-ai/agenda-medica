@@ -13,6 +13,7 @@
  * Requiere env var: OPENAI_API_KEY
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString } from '@/lib/security/sanitize'
 import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -244,7 +245,7 @@ export async function POST(req: NextRequest) {
       // 5xx, así que un 502 pasajero de gpt-4o-transcribe ya no tumba la nota.
     } catch (err) {
       safeLog.error(`[transcribir] ${model} error de red:`, err)
-      ultimoError = String(err).slice(0, 300)
+      ultimoError = redactarString(String(err)).slice(0, 300)
     }
   }
   // Aquí solo se llega si TODOS los modelos de OpenAI fallaron (outage real).

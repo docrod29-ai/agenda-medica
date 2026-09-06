@@ -484,7 +484,7 @@ export async function POST(req: NextRequest) {
       _verificacion: verificacion,
     })
   } catch (e) {
-    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
+    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'No se pudo analizar la evidencia. Muestro los artículos encontrados.' })
   }
 
   } catch (fatal) {

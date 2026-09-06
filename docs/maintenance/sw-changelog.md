@@ -3,14 +3,14 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1184 — el carril de excelencia de producto: doce encargos, medidos en un navegador
+## v1185 — el carril de excelencia de producto: doce encargos, medidos en un navegador
 
 El paquete completo, declarado antes de fusionar, en
-[`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
+[`PAQUETE-PRODUCCION-2026-09-06-v1185.md`](PAQUETE-PRODUCCION-2026-09-06-v1185.md).
 
-**17 commits desde v1183** (15 de trabajo + 1 de fusión) · 139 archivos ·
+**17 commits desde v1184** (15 de trabajo + 1 de fusión) · 139 archivos ·
 +5 498 / −186 · **39 de código de producto** · 14 regresiones cerradas
-(REG-519 … REG-532) · 0 rutas nuevas · 0 pantallas nuevas · reglas e índices de
+(REG-542 … REG-555) · 0 rutas nuevas · 0 pantallas nuevas · reglas e índices de
 Firestore **sin cambios**.
 
 Lo que más se nota, en el teléfono: **Finanzas dejó de esconder la tarjeta de
@@ -21,6 +21,36 @@ otra cosa** —medido, borraba la cita—, y **las tardes dejaron de envejecer u
 día a todo el que se hubiera atendido ese día**.
 
 No prueba iPhone: no hay WebKit en el entorno de medición.
+
+## v1184 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
+
+**Diecisiete cortes desde v1182, fusionados sobre v1183** (17 cortes + fusión + contabilidad) · 40 rutas de
+API, 5 pantallas, 8 módulos nuevos, 17 pruebas nuevas · `firestore.rules` sin
+tocar.
+
+Un día de auditoría con seis frentes en paralelo (API, voz, medicación,
+test-the-test, seguridad, experiencia del paciente), verificado hallazgo por
+hallazgo antes de tocar nada, y diecisiete cortes chicos, cada uno con su
+prueba que falla sin el arreglo (REG-519 a REG-535). Lo que más pesa para el
+médico: la **receta** ahora cruza lo de hoy con la medicación vigente y la
+creatinina del expediente (REG-527), avisa cuando la misma sustancia va dos
+veces —«Paracetamol» y «Tempra»— con la suma contra el techo del catálogo
+(REG-528), y no supone adulto cuando falta la edad (REG-524). Para el
+paciente: el enlace revocado ya no abre la sala de video (REG-519), la
+cancelación ARCO apaga su portal (REG-526), y su pregunta escalada llega a
+alguien aunque el consultorio no tenga teléfono (REG-521, REG-523). Para la
+seguridad: cuarenta rutas dejan de devolver el error crudo (REG-534), el
+redactor de logs cumple lo que prometía (REG-532) y el candado del canal de
+WhatsApp resiste una carrera (REG-533).
+
+Y una lección que queda escrita: la primera verificación en navegador de la
+rama destapó REG-535 con las 33 pruebas de la receta en verde. Un `git diff`
+que se ve bien no es una pantalla que funciona.
+
+---
 
 ## v1182 — la guía dejó de describir un menú que ya no existe
 

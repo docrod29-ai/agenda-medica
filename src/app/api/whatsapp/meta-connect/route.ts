@@ -18,6 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { reclamarCanal } from '@/lib/whatsapp/reclamar-canal'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
@@ -245,6 +246,6 @@ export async function POST(req: NextRequest) {
         error: 'Meta no respondió a tiempo. No se cambió nada: vuelve a intentar la conexión.',
       }, { status: 504 })
     }
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

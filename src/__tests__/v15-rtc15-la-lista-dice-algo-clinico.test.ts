@@ -161,7 +161,7 @@ describe('RTC-15 — el estado clínico de una fila', () => {
      * caracteres, sin hora y sin zona. Con hora completa la cuenta acertaba y
      * sin ella no, así que este caso estuvo verde mientras el producto decía
      * «visto ayer» de un paciente atendido esa misma mañana — a partir de las
-     * 18:00 hora del consultorio, todas las tardes. Es REG-531.
+     * 18:00 hora del consultorio, todas las tardes. Es REG-554.
      *
      * Se conservan las marcas completas (también llegan) y se añade la forma
      * que manda la lista. El caso a fondo vive en

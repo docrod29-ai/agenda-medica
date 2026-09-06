@@ -79,6 +79,7 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { edadParaDosificar } from '@/lib/seguridad/edad-para-dosificar'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
 import {
   vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
@@ -1997,7 +1998,12 @@ export default function ConsultaActivaPage() {
          * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
          */
         setHistorialTruncado(truncada)
-        const firmadas = ns.filter(n => n.estado === 'firmada')
+        /**
+         * SIN LA NOTA ABIERTA — REG-535. Una nota firmada se puede reabrir aquí
+         * (adenda); entraba en «lo vigente» y la barra decía «ya figura como
+         * vigente» de lo que ella misma receta. Se vio primero en la receta.
+         */
+        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
@@ -4820,7 +4826,7 @@ export default function ConsultaActivaPage() {
         const hayAlergias = alergenosDelPaciente.length > 0
         /* `flex-start` y no `center`: el campo de alergias crece a varias líneas
            cuando la lista es larga, y centrado deja el rótulo «Alergias:» a
-           media altura de un bloque de tres renglones. La clase es de REG-526. */
+           media altura de un bloque de tres renglones. La clase es de REG-549. */
         return (
       <div className="nx-franja-alergias" style={{
         display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
@@ -4894,7 +4900,7 @@ export default function ConsultaActivaPage() {
           disabled={firmada}
           /**
            * Las dos cosas, que no se estorban: **crece con el contenido** (esta
-           * rama, REG-520: a 390 px una lista de tres alérgenos se recortaba) y
+           * rama, REG-543: a 390 px una lista de tres alérgenos se recortaba) y
            * **no baja de 44 px** (main: 244×24 medido en el teléfono — es un
            * campo editable de verdad, y el más importante de la pantalla).
            */
@@ -6313,8 +6319,12 @@ export default function ConsultaActivaPage() {
            * cuando el paciente ya se había ido con la receta en la mano.
            */
           dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
-            edadAnios: patient?.edad ?? undefined,
+            // REG-524: la fecha de nacimiento manda sobre la edad congelada, y
+            // sin ninguna se pasa `undefined` — nunca se supone adulto.
+            edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
+            // REG-528: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
+            yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
             med: d.med,
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),
@@ -7528,7 +7538,7 @@ export default function ConsultaActivaPage() {
               el `@keyframes pulse` local que se retiró de esta pantalla. */}
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--nexus)', flexShrink: 0, animation: 'nx-escuchando-latido 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {/* El rótulo y el reloj salen del vocabulario común (REG-521): esta
+            {/* El rótulo y el reloj salen del vocabulario común (REG-544): esta
                 línea llevaba su propio `padStart` mientras la franja de arriba
                 decía lo mismo con otro formato. Cuatro relojes, dos formatos. */}
             {rotulo('grabando', modoVoz === 'vivo' ? voz.duracion : audio.duracion)}

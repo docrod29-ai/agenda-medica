@@ -8,6 +8,7 @@
  * clinic_members) se cobra con el precio por asiento. Miembro del consultorio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     await adminDb.collection('clinics').doc(clinicId).set({ medicosContratados: st.medicos }, { merge: true })
     return NextResponse.json({ ok: true, ...(await estado(clinicId)) })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 220) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

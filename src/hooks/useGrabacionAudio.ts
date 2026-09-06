@@ -524,9 +524,7 @@ async function intentarDiarizar(
      * corre. Es el mismo fallo de la v981 un nivel más arriba: el trabajo estaba
      * hecho y no llegaba al único sitio donde cambia lo que se OYE.
      */
-    for (const [k, v] of [['medicamentos', ctx.medicamentos], ['problemas', ctx.problemas], ['alergias', ctx.alergias], ['aprendidas', ctx.aprendidas], ['especialidades', ctx.especialidades]] as const) {
-      if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
-    }
+    anexarSesgoDelPaciente(fd, ctx)
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
     if (!res.ok) {
       // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
@@ -626,14 +624,7 @@ async function intentarDiarizarLargo(
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       // Igual que el camino corto: sin esto, las consultas LARGAS —las que más
       // términos traen— se quedaban con el sesgo genérico.
-      body: JSON.stringify({
-        audioUrl: url,
-        medicamentos: ctx.medicamentos ? [...ctx.medicamentos] : undefined,
-        problemas: ctx.problemas ? [...ctx.problemas] : undefined,
-        alergias: ctx.alergias ? [...ctx.alergias] : undefined,
-        aprendidas: ctx.aprendidas ? [...ctx.aprendidas] : undefined,
-        especialidades: ctx.especialidades ? [...ctx.especialidades] : undefined,
-      }),
+      body: JSON.stringify({ audioUrl: url, ...sesgoDelPacienteComoJson(ctx) }),
     })
     if (!res.ok) {
       const d = await res.json().catch(() => null)
@@ -699,7 +690,7 @@ let motivoFalloTranscripcion = ''
  * Transcribe un blob vía OpenAI. NUNCA lanza: ante 413/500/HTML devuelve ''.
  * (Antes, res.json() sobre una página de error HTML tiraba SyntaxError.)
  */
-interface CtxDictado {
+export interface CtxDictado {
   /**
    * Segundos grabados, medidos por el propio grabador.
    *
@@ -729,15 +720,57 @@ interface CtxDictado {
   alergias?: readonly string[]
 }
 
+/**
+ * LAS CLAVES DE SESGO DEL PACIENTE — UNA LISTA, CUATRO PUNTOS DE ENVÍO (REG-520).
+ *
+ * El vocabulario de ESTE paciente sale del navegador por cuatro sitios: la
+ * transcripción final de Whisper, los trozos en vivo de Whisper, y los dos
+ * caminos de la diarización (multipart corto y JSON largo). Hasta hoy cada uno
+ * llevaba SU lista de claves escrita a mano, y las listas no coincidían: los
+ * dos caminos de AssemblyAI mandaban `alergias` y los dos de Whisper no. Las
+ * rutas de Whisper sí las leían (REG-232) — y recibían `[]` siempre.
+ *
+ * Consecuencia: en todo dictado que va directo a Whisper (evolución
+ * hospitalaria, pase de UCI) y en toda consulta donde la diarización se cae al
+ * repuesto, el prompt de 224 tokens salía SIN un solo alérgeno. Un alérgeno
+ * mal oído es un cruce alergia↔fármaco que nunca salta.
+ *
+ * Es la cuarta vez de «dos motores, un mismo contrato» (`voice-asr.md`). Las
+ * tres anteriores se cerraron añadiendo la clave que faltaba a la lista que
+ * faltaba; ésta se cierra dejando UNA lista. Añadir una clave aquí la lleva a
+ * los cuatro puntos, y el guardián comprueba que las tres rutas la lean.
+ *
+ * `contexto` (el módulo: uci, hospitalización…) NO está aquí a propósito: hoy
+ * sólo lo leen las rutas de Whisper. Que llegue también a la diarización es
+ * trabajo con nombre, declarado en el ledger de REG-520.
+ */
+export const CLAVES_DE_SESGO_DEL_PACIENTE = ['aprendidas', 'especialidades', 'medicamentos', 'problemas', 'alergias'] as const
+
+/** Las listas del paciente al formulario multipart, una por clave, sólo si traen algo. */
+export function anexarSesgoDelPaciente(fd: FormData, c: CtxDictado): void {
+  for (const k of CLAVES_DE_SESGO_DEL_PACIENTE) {
+    const v = c[k]
+    if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
+  }
+}
+
+/** Las mismas listas como cuerpo JSON (camino largo de la diarización). Ausente = `undefined`, como siempre. */
+export function sesgoDelPacienteComoJson(c: CtxDictado): Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined> {
+  const out = {} as Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined>
+  for (const k of CLAVES_DE_SESGO_DEL_PACIENTE) {
+    const v = c[k]
+    out[k] = v ? [...v] : undefined
+  }
+  return out
+}
+
 /** Añade el vocabulario del paciente al formulario, si lo hay. */
 function anexarContexto(fd: FormData, c: CtxDictado): void {
   // Los minutos son lo que se cobra en transcripción: sin ellos el servidor no
   // puede asentar el costo del dictado.
   if (typeof c.duracionSeg === 'number' && c.duracionSeg > 0) fd.append('duracionSeg', String(Math.round(c.duracionSeg)))
   if (c.contexto) fd.append('contexto', c.contexto)
-  for (const [k, v] of [['aprendidas', c.aprendidas], ['especialidades', c.especialidades], ['medicamentos', c.medicamentos], ['problemas', c.problemas]] as const) {
-    if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
-  }
+  anexarSesgoDelPaciente(fd, c)
 }
 
 async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDictado = {}): Promise<string> {
@@ -1328,14 +1361,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       if (contextoRef.current.contexto) fd.append('contexto', contextoRef.current.contexto)
       // Y el vocabulario del paciente: el texto en vivo alimenta la nota
       // preliminar y es el último recurso si la transcripción final falla.
-      for (const [k, v] of [
-        ['aprendidas', contextoRef.current.aprendidas],
-        ['especialidades', contextoRef.current.especialidades],
-        ['medicamentos', contextoRef.current.medicamentos],
-        ['problemas', contextoRef.current.problemas],
-      ] as const) {
-        if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
-      }
+      // Por la MISMA lista que los otros tres puntos de envío (REG-520): aquí
+      // faltaban los alérgenos.
+      anexarSesgoDelPaciente(fd, contextoRef.current)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       if (!res.ok) {
         // Un trozo perdido deja de ser invisible: el contador se ve en pantalla

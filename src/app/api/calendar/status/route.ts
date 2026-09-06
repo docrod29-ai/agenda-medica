@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { rellenarVinculoSiFalta } from '@/lib/calendario/ligar-en-servidor'
@@ -46,6 +47,6 @@ export async function DELETE(req: NextRequest) {
     await adminDb.collection('googleTokens').doc(acc.uid).delete()
     return NextResponse.json({ success: true })
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

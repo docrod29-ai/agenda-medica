@@ -2,7 +2,7 @@
   "sellado": "2026-09-02",
   "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
   "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
-  "totalCasos": 6641,
+  "totalCasos": 6772,
   "archivos": [
     {
       "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -293,6 +293,10 @@
       "minCasos": 61
     },
     {
+      "archivo": "src/__tests__/dos-consultorios-no-reclaman-el-mismo-canal-a-la-vez.test.ts",
+      "minCasos": 6
+    },
+    {
       "archivo": "src/__tests__/dos-escritores-no-pueden-dar-el-mismo-numero.test.ts",
       "minCasos": 7
     },
@@ -425,6 +429,14 @@
       "minCasos": 14
     },
     {
+      "archivo": "src/__tests__/el-enlace-revocado-no-abre-la-sala.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/el-error-crudo-no-sale-al-cliente.test.ts",
+      "minCasos": 5
+    },
+    {
       "archivo": "src/__tests__/el-error-de-la-ia-no-nombra-al-proveedor.test.ts",
       "minCasos": 6
     },
@@ -463,6 +475,10 @@
     {
       "archivo": "src/__tests__/el-llm-no-calcula-en-ninguna-nota.test.ts",
       "minCasos": 10
+    },
+    {
+      "archivo": "src/__tests__/el-log-no-guarda-el-nombre-del-paciente-ni-la-llave-de-stripe.test.ts",
+      "minCasos": 5
     },
     {
       "archivo": "src/__tests__/el-medico-elige-el-tipo-de-su-diagnostico.test.ts",
@@ -523,6 +539,10 @@
     {
       "archivo": "src/__tests__/el-programa-no-pierde-requisitos.test.ts",
       "minCasos": 14
+    },
+    {
+      "archivo": "src/__tests__/el-prompt-no-ordena-aritmetica-con-otras-palabras.test.ts",
+      "minCasos": 7
     },
     {
       "archivo": "src/__tests__/el-prompt-no-se-contradice.test.ts",
@@ -833,6 +853,10 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/la-cancelacion-arco-apaga-el-portal.test.ts",
+      "minCasos": 5
+    },
+    {
       "archivo": "src/__tests__/la-captura-completa-ensenaba-un-tercio-de-la-pantalla.test.ts",
       "minCasos": 15
     },
@@ -861,6 +885,10 @@
       "minCasos": 4
     },
     {
+      "archivo": "src/__tests__/la-csp-del-artefacto-se-comprueba-despues-del-build.test.ts",
+      "minCasos": 3
+    },
+    {
       "archivo": "src/__tests__/la-direccion-de-las-dependencias.test.ts",
       "minCasos": 8
     },
@@ -875,6 +903,10 @@
     {
       "archivo": "src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-edad-que-falta-se-dice-no-se-supone-adulto.test.ts",
+      "minCasos": 9
     },
     {
       "archivo": "src/__tests__/la-evidencia-no-aplica-a-cualquiera.test.ts",
@@ -909,6 +941,10 @@
       "minCasos": 3
     },
     {
+      "archivo": "src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts",
       "minCasos": 10
     },
@@ -931,6 +967,14 @@
     {
       "archivo": "src/__tests__/la-matriz-de-evidencia-no-promete-lo-que-no-hay.test.ts",
       "minCasos": 6
+    },
+    {
+      "archivo": "src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts",
+      "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-misma-sustancia-dos-veces-se-dice.test.ts",
+      "minCasos": 17
     },
     {
       "archivo": "src/__tests__/la-navegacion-devuelve-el-contexto.test.ts",
@@ -973,8 +1017,16 @@
       "minCasos": 15
     },
     {
+      "archivo": "src/__tests__/la-pregunta-atendida-se-ve-en-el-portal.test.ts",
+      "minCasos": 9
+    },
+    {
       "archivo": "src/__tests__/la-pregunta-del-paciente-la-clasifica-el-servidor.test.ts",
       "minCasos": 22
+    },
+    {
+      "archivo": "src/__tests__/la-pregunta-escalada-llega-al-worklist.test.ts",
+      "minCasos": 8
     },
     {
       "archivo": "src/__tests__/la-pregunta-no-es-un-antecedente.test.ts",
@@ -1001,8 +1053,16 @@
       "minCasos": 31
     },
     {
+      "archivo": "src/__tests__/la-receta-no-se-cruza-consigo-misma.test.ts",
+      "minCasos": 3
+    },
+    {
       "archivo": "src/__tests__/la-receta-se-recortaba-seis-pixeles-en-el-telefono.test.ts",
       "minCasos": 8
+    },
+    {
+      "archivo": "src/__tests__/la-receta-ve-el-expediente-completo.test.ts",
+      "minCasos": 16
     },
     {
       "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
@@ -1201,6 +1261,10 @@
       "minCasos": 11
     },
     {
+      "archivo": "src/__tests__/los-alergenos-llegan-tambien-a-whisper.test.ts",
+      "minCasos": 8
+    },
+    {
       "archivo": "src/__tests__/los-cabos-sueltos-del-paciente.test.ts",
       "minCasos": 17
     },
@@ -1303,6 +1367,10 @@
     {
       "archivo": "src/__tests__/origen-del-dictado.test.ts",
       "minCasos": 13
+    },
+    {
+      "archivo": "src/__tests__/paciente-equivocado-guardia.test.ts",
+      "minCasos": 6
     },
     {
       "archivo": "src/__tests__/pase-uci-conserva-el-dictado.test.ts",

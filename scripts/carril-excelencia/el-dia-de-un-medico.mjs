@@ -9,7 +9,7 @@
  * fin sin quedarse atascado?** Eso sólo se sabe recorriéndolo.
  *
  * Y recorriéndolo aparecieron cosas que ninguna medición por pantalla iba a
- * dar: la barra de voz se iba de la pantalla al bajar por la nota (REG-532), y
+ * dar: la barra de voz se iba de la pantalla al bajar por la nota (REG-555), y
  * la consulta sólo se estaba midiendo EN REPOSO, que es un estado en el que
  * nadie trabaja.
  *

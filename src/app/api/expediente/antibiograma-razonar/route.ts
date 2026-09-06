@@ -10,6 +10,7 @@
  * Output: { ok, razonamiento, segundaOpinion?, modelos } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -58,7 +59,7 @@ async function claude(key: string, modelos: string[], system: string, user: stri
         reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'antibiograma-razonar', status: res.status })
         return { error: avisoAlMedico(clase, quien, 'anthropic').texto }
       }
-    } catch (e) { return { error: String(e).includes('timeout') ? 'la IA tardó demasiado' : 'error de red' } }
+    } catch (e) { return { error: e instanceof Error && e.message.includes('timeout') ? 'la IA tardó demasiado' : 'error de red' } }
   }
   return { error: 'ningún modelo disponible' }
 }
@@ -193,6 +194,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     safeLog.error('[antibiograma-razonar] Exception:', err)
-    return NextResponse.json({ ok: false, error: `Error al razonar: ${String(err).slice(0, 120)}` }, { status: 500 })
+    return errorAlCliente('No se pudo razonar el antibiograma. Intenta de nuevo.')
   }
 }

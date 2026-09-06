@@ -8,6 +8,7 @@
  * Colección `soporte`. El cliente NO puede leer el buzón (solo enviar).
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 160) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     const mensajes = snap.docs.map(d => ({ id: d.id, ...(d.data() as Any) }))
     return NextResponse.json({ ok: true, mensajes })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 160) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 
@@ -73,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     }, { merge: true })
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 160) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

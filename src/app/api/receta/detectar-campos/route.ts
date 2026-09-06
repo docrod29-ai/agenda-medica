@@ -1,6 +1,7 @@
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, gateCreditos, registrarCreditos } from '@/lib/ai-keys'
@@ -134,6 +135,6 @@ export async function POST(req: NextRequest) {
     void registrarCreditos(clinicId, COSTO_CREDITOS.recetaVision)
     return NextResponse.json({ ok: true, campos, cuerpo })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: 'Error al detectar', detalle: String(e).slice(0, 200) }, { status: 500 })
+    return errorAlCliente('No se pudieron detectar los campos del papel. Intenta con otra imagen.')
   }
 }

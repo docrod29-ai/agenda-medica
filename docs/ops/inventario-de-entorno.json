@@ -1,6 +1,6 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
-  "generado": "2026-09-05",
+  "generado": "2026-09-06",
   "total": 130,
   "variables": [
     {
@@ -543,6 +543,7 @@
       "defectoLiteral": "",
       "defectoDe": "src/app/api/telesalud/sala/route.ts",
       "archivos": [
+        "src/__tests__/el-enlace-revocado-no-abre-la-sala.test.ts",
         "src/__tests__/telesalud-sala-or.test.ts",
         "src/app/api/telesalud/sala/route.ts"
       ]
@@ -1332,6 +1333,7 @@
       "defectoDe": "src/lib/receta-diseno-token.ts",
       "archivos": [
         "scripts/carril-excelencia/token-del-portal.mjs",
+        "src/__tests__/la-pregunta-escalada-llega-al-worklist.test.ts",
         "src/__tests__/receta-token.test.ts",
         "src/lib/patient-token.ts",
         "src/lib/receta-diseno-token.ts",
