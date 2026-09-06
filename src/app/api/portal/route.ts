@@ -584,17 +584,32 @@ export async function POST(req: NextRequest) {
          * al guardián mirando la rama equivocada mientras la ruta lee notas.
          */
         const sinAlcanceClinico = alcance !== 'clinico'
+        /**
+         * Y EL ENLACE DE UN SOLO DOCUMENTO TAMBIÉN ENTRA AQUÍ — PP-005.
+         *
+         * `inicio` es la ÚNICA petición que hace la pantalla al abrirse. Si esta
+         * rama sólo mirara el alcance clínico, el enlace que el paciente le
+         * mandó a la guardería abriría un portal con la pestaña de documentos
+         * vacía: el documento existe, el token lo nombra, y no llegaría. Es
+         * literalmente «el dato tiene que LLEGAR» — la acción `documentos` lo
+         * servía bien y la pantalla ya no la llama.
+         *
+         * Lee las notas y se queda con LA del token, que es lo mismo que hace
+         * `documentos`. No abre paquetes ni preguntas: eso sigue siendo clínico.
+         */
+        const soloEsteDocumento = alcance === 'documento' ? String(documentoDelEnlace ?? '') : ''
+        const puedeVerDocumentos = !sinAlcanceClinico || !!soloEsteDocumento
         const base = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId)
 
         /* `null` = no se pudo leer. `[]` = se leyó y no hay. La pantalla los
            distingue, y de esa distinción depende que no diga «no tienes
            recetas» sobre un fallo de red. */
-        let documentos: unknown[] | null = sinAlcanceClinico ? [] : null
+        let documentos: unknown[] | null = puedeVerDocumentos ? null : []
         let paquetes: unknown[] | null = sinAlcanceClinico ? [] : null
         let preguntas: unknown[] | null = sinAlcanceClinico ? [] : null
         let alergias = ''
 
-        if (!sinAlcanceClinico) {
+        if (puedeVerDocumentos) {
           try {
             const snapNotas = await base.collection('notas').where('estado', '==', 'firmada').get()
             alergias = pacienteLeido ? alergiasParaImpreso(paciente) : ''
@@ -612,14 +627,18 @@ export async function POST(req: NextRequest) {
                 medicamentos: recetados,
               }))
               .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+              /* Con un enlace de documento, SÓLO el que el token nombra. */
+              .filter(d => !soloEsteDocumento || d.id === soloEsteDocumento)
             asentar(clinicId, 'portal_documentos_leidos', {
               patientId,
-              meta: { origen: 'portal-paciente', alcance, cuantos: documentos.length, cuidadorId: cuidadorId ?? '', documentoId: '' },
+              meta: { origen: 'portal-paciente', alcance, cuantos: documentos.length, cuidadorId: cuidadorId ?? '', documentoId: soloEsteDocumento },
             })
           } catch (e) {
             safeLog.error(`[portal] ${clinicId}: no se pudieron leer las notas firmadas`, e)
           }
+        }
 
+        if (!sinAlcanceClinico) {
           try {
             const snapPaq = await base.collection('paquetes_visita').get()
             paquetes = snapPaq.docs

@@ -182,6 +182,34 @@ describe('PP-005 · PO-009 — compartir UNA receta no es compartir el expedient
     expect(docs.documentos).toHaveLength(2)
   })
 
+  /**
+   * EL DATO TIENE QUE LLEGAR — y la pantalla ya no llama a `documentos`.
+   *
+   * Desde PC-006 el portal abre con UNA sola petición (`inicio`). Un enlace de
+   * documento que sólo funcionara en la acción `documentos` sería un enlace que
+   * pasa las pruebas y le enseña a la guardería una pestaña vacía: el documento
+   * existe, el token lo nombra, y no llega. Por eso este caso va por la acción
+   * que de verdad usa la pantalla.
+   */
+  it('y llega por `inicio`, que es la petición que hace la pantalla', async () => {
+    const res = await POST(req({ action: 'compartir-documento', token: clinico(), documentoId: NOTA_A }))
+    const compartido = String((await res.json()).url).split('/mi/')[1]
+    const d = await (await POST(req({ action: 'inicio', token: compartido }))).json()
+    expect(d.alcance).toBe('documento')
+    expect(d.documentos, 'el documento compartido no llegó a la pantalla').toHaveLength(1)
+    expect(d.documentos[0].id).toBe(NOTA_A)
+    // Y nada más: el plan y las preguntas no viajan con un enlace acotado.
+    expect(d.paquetes).toEqual([])
+    expect(d.preguntas).toEqual([])
+    expect(d.citas).toEqual([])
+  })
+
+  it('control: con el enlace clínico, `inicio` trae las dos notas y el resto', async () => {
+    const d = await (await POST(req({ action: 'inicio', token: clinico() }))).json()
+    expect(d.documentos).toHaveLength(2)
+    expect(d.alcance).toBe('clinico')
+  })
+
   it('un enlace de documento NO abre el plan de cuidado, ni las preguntas, ni las citas', async () => {
     const res = await POST(req({ action: 'compartir-documento', token: clinico(), documentoId: NOTA_A }))
     const compartido = String((await res.json()).url).split('/mi/')[1]
