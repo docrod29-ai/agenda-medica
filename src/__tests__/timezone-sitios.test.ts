@@ -144,8 +144,17 @@ describe('zona horaria · el cliente ya recibe la zona del consultorio', () => {
      * El tope existe para que el número esté A LA VISTA y no se confunda «no
      * falla» con «aquí no hay nada».
      */
+    /**
+     * 40 → 43 (Panel de Lujo, C-015, sep-2026). Los tres nuevos son la fecha
+     * del NOMBRE DE ARCHIVO de la receta, la orden y la carta de referencia, y
+     * la de los dos exportadores a Word. No son deuda nueva: **sustituyen** a
+     * `new Date().toISOString().slice(0, 10)`, que daba el día en UTC y fechaba
+     * los archivos con el día de mañana a partir de las 18:00 en México. Pasar
+     * de UTC a la zona del consultorio es exactamente lo que este guardián
+     * quiere; el contador sube porque ahora esas líneas EXISTEN como llamadas.
+     */
     const cliente = sitiosSinZona(r => !esServidor(r))
     expect(cliente.length).toBeGreaterThan(0)
-    expect(cliente.length, `Llamadas de cliente:\n${cliente.join('\n')}`).toBeLessThanOrEqual(40)
+    expect(cliente.length, `Llamadas de cliente:\n${cliente.join('\n')}`).toBeLessThanOrEqual(43)
   })
 })
