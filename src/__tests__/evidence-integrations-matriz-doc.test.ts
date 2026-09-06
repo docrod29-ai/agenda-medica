@@ -35,6 +35,7 @@ import { readFileSync, existsSync } from 'node:fs'
 // `allowJs` e infiere sus tipos, así que NO hace falta silenciar nada — y poner
 // un `@ts-expect-error` de más rompería el build con TS2578.
 import { generarMatriz, DESTINO } from '../../scripts/evidence/matriz-proveedores.mjs'
+import { HOSTS_DE_EVIDENCIA } from '@/lib/evidence-integrations/de-donde-se-baja'
 import {
   CATALOGO_DE_EVIDENCIA, CAMPOS_DE_LA_MATRIZ, REVISADO_EN, UNVERIFIABLE,
   estaVerificado,
@@ -63,7 +64,7 @@ describe('el documento de la matriz está sincronizado con el catálogo', () => 
   })
 
   it('coincide byte a byte con lo que produce el generador', () => {
-    const esperado = generarMatriz(catalogoPlano())
+    const esperado = generarMatriz(catalogoPlano(), HOSTS_DE_EVIDENCIA)
     const real = readFileSync(DESTINO, 'utf8')
     expect(real, `${DESTINO} está DESINCRONIZADO. Regenera con: node scripts/evidence/matriz-proveedores.mjs`).toBe(esperado)
   })

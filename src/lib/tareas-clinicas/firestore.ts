@@ -22,6 +22,17 @@ import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_clinicas')
 
 /**
+ * El id que tendrá la tarea nacida de un hecho que no es una nota.
+ *
+ * Exportada porque la necesitan los DOS extremos: quien crea la tarea y quien
+ * después tiene que encontrarla con el id del hecho en la mano. Dos definiciones
+ * de esto serían dos tareas para la misma interconsulta.
+ */
+export function idDeTareaDeOrigen(origen: string, origenId: string): string | null {
+  return origenId ? `${origen}-${origenId}`.replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 200) : null
+}
+
+/**
  * IDENTIDAD DE UNA TAREA DERIVADA, para no duplicarla.
  *
  * Una tarea que nace de un HECHO —«se pidió esta biometría en esta nota»— es la
@@ -32,8 +43,29 @@ const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_cl
  * El id se deriva de la nota y del título, así que la segunda escritura
  * SOBREESCRIBE la primera en vez de sumarse.
  */
-function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
-  if (!t.notaId) return null
+/**
+ * ── Y LO QUE NO NACE DE UNA NOTA (REG-570) ──────────────────────────────────
+ *
+ * `origenId` es el hecho de origen cuando no es una consulta — hoy, el id de una
+ * interconsulta dentro de un episodio. Sin él, la única forma de darle identidad
+ * estable a una interconsulta era meter su id en `notaId`, y eso rompe a todo el
+ * que lo lee esperando una nota.
+ *
+ * ── POR QUÉ ÉSE NO LLEVA EL TÍTULO Y EL DE LA NOTA SÍ ──────────────────────
+ *
+ * Porque no son la misma relación. Una NOTA produce MUCHAS tareas —tres
+ * estudios, un seguimiento, una receta— y sin el título todas colapsarían en un
+ * documento. Un `origenId` es el hecho mismo: **una interconsulta, una tarea**.
+ *
+ * Y esa diferencia no es cosmética. Con el título dentro, el id sólo se puede
+ * reconstruir si se conoce el título —o sea, la especialidad—, y entonces quien
+ * contesta la interconsulta no puede encontrar su tarea con el id que tiene en
+ * la mano. Un identificador que hay que adivinar no identifica.
+ */
+export function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
+  /* Se sanea: `origen` y `origenId` son cadenas del llamador y un `/` partiría
+     la ruta del documento. `notaId` ya es un id de Firestore y no lo necesita. */
+  if (!t.notaId) return t.origenId ? idDeTareaDeOrigen(t.origen, t.origenId) : null
   const clave = `${t.tipo}:${t.titulo}`
     .toLowerCase()
     .normalize('NFD')
@@ -44,11 +76,13 @@ function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
   return clave ? `${t.notaId}__${clave}` : null
 }
 
+
 /**
  * Crea las tareas de golpe. Devuelve cuántas entraron.
  *
- * Las que traen `notaId` van con id DERIVADO y `merge`: repetir la acción que
- * las origina —volver a imprimir la orden, reprocesar la nota— no las duplica.
+ * Las que traen `notaId` —o, desde REG-570, `origenId`— van con id DERIVADO y
+ * `merge`: repetir la acción que las origina —volver a imprimir la orden,
+ * reprocesar la nota, reintentar la interconsulta— no las duplica.
  * `merge` y no `set` a secas para no pisar el estado de una tarea que el médico
  * ya movió: si la aceptó o la cerró, volver a imprimir la orden no puede
  * devolverla a «solicitada».
@@ -339,6 +373,24 @@ export async function tareasDePaciente(clinicId: string, patientId: string): Pro
   return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
 }
 
+/**
+ * UNA tarea por su id.
+ *
+ * Hace falta porque `cambiarEstado` necesita la tarea ENTERA —su estado actual y
+ * su registro de transiciones—, y quien conoce el id derivado de un hecho (una
+ * interconsulta, REG-570) no tiene la tarea en la mano. Leerla antes de moverla
+ * es además lo que evita pisar el trabajo de otra pestaña.
+ */
+export async function tareaPorId(clinicId: string, tareaId: string): Promise<TareaClinica | null> {
+  if (!clinicId || !tareaId) return null
+  try {
+    const snap = await getDoc(doc(COL(clinicId), tareaId))
+    return snap.exists() ? ({ ...(snap.data() as TareaClinica), id: snap.id }) : null
+  } catch {
+    return null
+  }
+}
+
 export interface ResultadoCambio { ok: boolean; motivo: string }
 
 /**
@@ -352,10 +404,25 @@ export async function cambiarEstado(
   clinicId: string,
   tarea: TareaClinica,
   nuevo: EstadoTarea,
-  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea> } = {},
+  extra: { motivoCancelacion?: string; cierre?: Partial<CierreDeTarea>; citaId?: string } = {},
 ): Promise<ResultadoCambio> {
   const v = puedeTransicionar(tarea.estado, nuevo)
   if (!v.permitido) return { ok: false, motivo: v.motivo }
+  /**
+   * REG-585 · no se declara «agendada» sin decir CUÁL cita.
+   *
+   * Sin el identificador, `agendada` era una declaración que nadie podía
+   * contrastar: si la cita se cancelaba o el paciente no venía, el pendiente
+   * seguía esperando a nadie. Casarla después por paciente y fecha sería
+   * adivinar cuál de sus citas era.
+   *
+   * Se exige sólo en la transición NUEVA. Las tareas que ya están en `agendada`
+   * sin él se leen como «no se puede saber» — reescribirlas sería inventarles
+   * una cita.
+   */
+  if (nuevo === 'agendada' && !String(extra.citaId ?? '').trim()) {
+    return { ok: false, motivo: 'Marcar un pendiente como agendado exige decir a qué cita.' }
+  }
   if (nuevo === 'cancelada' && !String(extra.motivoCancelacion ?? '').trim()) {
     // Cancelar sin motivo convierte «ya no aplica» en «lo quité de la lista».
     return { ok: false, motivo: 'Cancelar un pendiente exige decir por qué.' }
@@ -370,6 +437,7 @@ export async function cambiarEstado(
       patch.ownerNombre = auth.currentUser?.displayName || auth.currentUser?.email || ''
     }
   }
+  if (nuevo === 'agendada') patch.citaId = String(extra.citaId).trim()
   if (nuevo === 'completada') patch.completadaEn = ahora
   if (nuevo === 'cerrada') {
     /**

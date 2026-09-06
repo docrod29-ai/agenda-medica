@@ -26,6 +26,7 @@
  * escribir/agregar el diagnóstico y seleccionar o teclear el CIE en la UI. Este
  * módulo no inventa un estado paralelo ni eleva una sugerencia por sí solo.
  */
+import { estaVigente } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
 
 /** Normaliza para comparar: sin acentos, sin plurales obvios, sin relleno. */
@@ -207,9 +208,27 @@ export interface DxImprimible {
  * el médico, en vez de enseñarle un código huérfano.
  */
 export function diagnosticoParaImprimir(dxs: readonly DxImprimible[] | undefined): string {
+  /**
+   * ── EL RESPALDO ERA EL DEFECTO (REG-569, portado al fusionar) ─────────────
+   *
+   * Esta función tenía `?? conTexto[0]`: sin ningún `definitivo`, cogía el
+   * PRIMERO del dictado sin mirar su `tipo`. Un «embarazo descartado» salía
+   * impreso en la receta como el motivo, con cédula profesional debajo.
+   *
+   * La otra rama cerró el mismo defecto en su propia puerta. Al fusionar gana
+   * ésta —es la única y ya la usan /receta y /orden— y se le porta el filtro:
+   * lo que NO es un problema del paciente no puede representar la visita, así
+   * que un `descartado`, un `diferencial` y un `resuelto` quedan fuera.
+   *
+   * Cuando nada califica se devuelve cadena vacía, y ése es el arreglo entero:
+   * el campo es editable en las dos pantallas. Un campo vacío le cuesta al
+   * médico escribir una línea; el respaldo le costaba no darse cuenta.
+   * Rellenar de menos se ve; rellenar mal, no.
+   */
   const conTexto = (dxs ?? []).filter(d => String(d?.descripcion ?? '').trim())
-  if (!conTexto.length) return ''
-  const principal = conTexto.find(d => d.tipo === 'definitivo') ?? conTexto[0]
+  const vigentes = conTexto.filter(d => estaVigente(d as never))
+  if (!vigentes.length) return ''
+  const principal = vigentes.find(d => d.tipo === 'definitivo') ?? vigentes[0]
   const texto = String(principal.descripcion).trim()
   const codigo = String(principal.codigoCIE10 ?? '').trim()
   return codigo ? `${texto} (${codigo})` : texto

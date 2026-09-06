@@ -180,8 +180,16 @@ describe('ICU-003 · el CABLEADO del panel — escritura doble sin pérdida', ()
   })
 
   it('un fallo de red NO interrumpe: se avisa, no se lanza', () => {
+    /**
+     * Se busca desde la llamada hasta el final de SU cadena, no dentro de una
+     * ventana de N caracteres: documentar la llamada —REG-567 le añadió la razón
+     * de su clave de intención— empujaba el `.catch(` fuera de los 900 y el caso
+     * caía sin que el cableado hubiera cambiado. Una ventana fija vigila cuánto
+     * se ha comentado.
+     */
     const i = panel.indexOf('guardarToma(')
-    const cuerpo = panel.slice(i, i + 900)
+    const fin = panel.indexOf('  }', panel.indexOf('.catch(', i))
+    const cuerpo = panel.slice(i, fin > i ? fin : i + 2000)
     expect(cuerpo).toContain('.catch(')
     expect(cuerpo).toMatch(/toast\(/)
     // Y el mensaje dice la verdad: el dato NO se perdió.

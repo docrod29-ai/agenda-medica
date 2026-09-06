@@ -14,6 +14,7 @@ import { useSmartBack } from '@/hooks/useSmartBack'
 import { imprimirElemento } from '@/lib/print-element'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
+import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 
 type Tipo = 'referencia' | 'contrarreferencia'
 type Urgencia = 'Rutina' | 'Prioritario' | 'Urgente'
@@ -86,7 +87,10 @@ export default function CartaReferenciaPage() {
         notas[0]
       if (nota) {
         setResumen(nota.resumenEjecutivo || nota.secciones.find(s => s.value)?.value || '')
-        setDiagnosticos(nota.diagnosticos.map(d => `${d.descripcion}${d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}`).join('\n'))
+        /* REG-569 — esta lista viaja a OTRO médico. Aquí no se filtra: un
+           descarte documentado le sirve al que recibe. Pero tiene que ir DICIENDO
+           que lo es, y eso lo decide `nombreConCerteza`, no esta pantalla. */
+        setDiagnosticos(nota.diagnosticos.map(d => `${nombreConCerteza(d)}${d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}`).filter(Boolean).join('\n'))
         setTratamiento(nota.medicamentos.map(m => [`${m.nombre}${m.dosis ? ` ${m.dosis}` : ''}`.trim(), m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')).join('\n'))
       }
       setLoading(false)

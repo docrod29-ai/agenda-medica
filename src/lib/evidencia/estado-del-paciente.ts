@@ -60,6 +60,10 @@
  *   un número.
  */
 import { ckdEpi2021, creatininaPlausibleMgDl } from '@/lib/expediente/funcion-renal'
+import {
+  loQueElExpedienteDiceDelEmbarazo, embarazoParaAplicabilidad,
+  type DiagnosticoLeible,
+} from '@/lib/expediente/lo-que-el-expediente-dice-del-embarazo'
 import { mgPorDl, valorEn } from '@/types/clinical-quantity'
 import type { EstadoDelPaciente } from './aplicabilidad'
 
@@ -75,6 +79,11 @@ export interface ContextoDeEvidencia {
   readonly creatinina?: unknown
   /** REG-375: ¿esa creatinina sigue dentro de su ventana de vigencia? */
   readonly funcionRenalVigente?: unknown
+  /**
+   * Los diagnósticos del cuadro, ESTRUCTURADOS —con su `tipo`—, que es la fuente
+   * que este módulo declaraba faltarle para el embarazo. Ver REG-560.
+   */
+  readonly diagnosticos?: unknown
 }
 
 /**
@@ -83,11 +92,14 @@ export interface ContextoDeEvidencia {
  * convierte en un hueco olvidado.
  */
 export const POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE =
-  'Ninguna pantalla expone hoy un booleano de embarazo. Deducirlo del texto de ' +
-  'los diagnósticos es lo que REG-364 y REG-365 midieron fallando: «embarazo ' +
-  'descartado» se convertía en «cursa embarazo». Hasta que exista una fuente ' +
-  'estructurada, la dimensión queda en datos_insuficientes, que es el veredicto ' +
-  'conservador y el correcto.'
+  'NO se deduce del texto, y eso no ha cambiado: deducirlo es lo que REG-364 y ' +
+  'REG-365 midieron fallando, «embarazo descartado» se convertía en «cursa ' +
+  'embarazo». Lo que cambió (REG-560) es que ya existe la fuente ESTRUCTURADA ' +
+  'que este hueco pedía: `lo-que-el-expediente-dice-del-embarazo` lee el `tipo` ' +
+  'del diagnóstico, no su cadena. Sólo un embarazo CONFIRMADO manda true y sólo ' +
+  'uno DESCARTADO manda false; el diferencial y la sospecha llegan como ' +
+  'ausencia, para que el motor conteste datos_insuficientes en vez de afirmar ' +
+  'sobre una duda. Sin diagnósticos estructurados, la dimensión sigue ausente.'
 
 /** ¿Se puede estimar la TFG con lo que hay, sin inventar nada? */
 export function sePuedeEstimarLaTfg(ctx: ContextoDeEvidencia): boolean {
@@ -113,10 +125,23 @@ export function estadoParaAplicabilidad(ctx: ContextoDeEvidencia): EstadoDelPaci
     if (Number.isFinite(valor)) tfg = { valor, vigente: ctx.funcionRenalVigente === true }
   }
 
+  /*
+   * El embarazo, por fin, y por donde toca (REG-560).
+   *
+   * Este módulo declaraba el hueco pidiendo «una fuente estructurada, no un
+   * includes('embarazo')». Esa fuente existe: lee el `tipo` del diagnóstico.
+   * Una sospecha o un diferencial NO afirman nada aquí — llegan como ausencia,
+   * y el motor contesta datos_insuficientes, que es el veredicto conservador.
+   */
+  const dx = Array.isArray(ctx.diagnosticos) ? (ctx.diagnosticos as DiagnosticoLeible[]) : []
+  const embarazo = dx.length > 0
+    ? embarazoParaAplicabilidad(loQueElExpedienteDiceDelEmbarazo(dx))
+    : undefined
+
   return {
     ...(edad !== undefined ? { edadEnAnios: edad } : {}),
     ...(alergenos && alergenos.length > 0 ? { alergenos } : {}),
     ...(tfg ? { tfg } : {}),
-    /* embarazo: a propósito ausente. Ver POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE. */
+    ...(embarazo !== undefined ? { embarazo } : {}),
   }
 }

@@ -136,6 +136,110 @@ export function nombreConCerteza(
   return d.tipo === 'descartado' || d.tipo === 'diferencial' ? `${t} (${d.tipo})` : t
 }
 
+/**
+ * EL DIAGNÓSTICO QUE SE IMPRIME — REG-569.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * La receta y la orden de estudios eligen un diagnóstico principal para
+ * rellenar su campo impreso. Las dos lo hacían con la misma línea, copiada:
+ *
+ *     const principal = dxs.find(d => d.tipo === 'definitivo') ?? dxs[0]
+ *
+ * El respaldo `?? dxs[0]` **no mira `tipo`**. Si ninguno es `definitivo`, coge
+ * el primero de la lista tal cual venga del dictado. Medido:
+ *
+ *     dx: [{ Embarazo, descartado }, { Cefalea tensional, presuntivo }]
+ *     → receta y orden imprimen: «Embarazo»
+ *
+ * «Embarazo descartado» es como se documenta una prueba negativa, y el
+ * extractor lo escribe así (`negaciones.ts` lo reclasifica al oír la negación).
+ * Salía impreso como el motivo de la receta, con cédula profesional debajo.
+ *
+ * Y el comentario de la receta decía «primero activo de tipo definitivo»: el
+ * `estado` tampoco se miraba. El comentario describía un filtro que no existía.
+ *
+ * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
+ *
+ * La misma de REG-364, en dos consumidores a los que aquel arreglo no llegó.
+ * `estaVigente` está escrito, exportado y probado justo arriba, y estas dos
+ * pantallas resolvían la misma pregunta con un criterio propio y más flojo.
+ * Familia «el sistema se contradice a sí mismo».
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * **Lo que no es un problema del paciente no puede representar la visita.** Un
+ * `descartado`, un `diferencial` y un `resuelto` quedan fuera; entre los que
+ * quedan se prefiere el `definitivo`, que es lo que hacía antes.
+ *
+ * ── POR QUÉ `null` Y NO UN RESPALDO ─────────────────────────────────────────
+ *
+ * Cuando nada califica **no se rellena nada**, y ése es el arreglo entero: el
+ * respaldo era el defecto. El campo es editable en las dos pantallas, así que
+ * un campo vacío le cuesta al médico escribir una línea; el respaldo le costaba
+ * no darse cuenta. Rellenar de menos se ve; rellenar mal, no.
+ *
+ * Nótese lo que NO hace: no elige el diagnóstico «correcto» de una consulta ni
+ * ordena por importancia clínica. Descarta lo que no puede serlo y conserva la
+ * preferencia que ya había.
+ *
+ * Módulo PURO.
+ */
+export function diagnosticoQueSeImprime(
+  dxs: readonly Diagnostico[] | undefined,
+): Diagnostico | null {
+  const vigentes = (dxs ?? []).filter(estaVigente)
+  return vigentes.find(d => d.tipo === 'definitivo') ?? vigentes[0] ?? null
+}
+
+export const POR_QUE_NO_HAY_RESPALDO_AL_IMPRIMIR =
+  'Porque el respaldo era el defecto: `?? dxs[0]` cogía el primero del dictado '
+  + 'sin mirar `tipo`, y un «embarazo descartado» salía impreso como el motivo '
+  + 'de la receta. El campo es editable: no rellenarlo le cuesta al médico una '
+  + 'línea, rellenarlo mal le costaba no darse cuenta.'
+
+/**
+ * LO QUE HAY QUE DECIR CUANDO EL HISTORIAL VINO RECORTADO — REG-579.
+ *
+ * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
+ *
+ * REG-405 le dio a problemas y a medicación el mismo sobre que las alergias ya
+ * tenían: `asOf`, `version` y **`historialRecortado`**. El sobre llegaba a las
+ * dos pantallas, y las dos lo tiraban en la puerta:
+ *
+ *   · la consulta se quedaba sólo con `.vigentes` y `.problemas`;
+ *   · el expediente lo guardaba en `proyeccionRecortada` y no lo pintaba en
+ *     ningún sitio.
+ *
+ * Así que las dos escribían debajo de la lista «de lo último que se dijo de cada
+ * problema en sus notas firmadas» —una afirmación sobre el expediente ENTERO—
+ * cuando lo que habían leído era una ventana. Sobre un historial recortado, «no
+ * encontré más» no es «no hay más», y un fármaco anterior al techo desaparece
+ * también de la comprobación de interacciones.
+ *
+ * ── POR QUÉ UNA FRASE Y NO TRES ─────────────────────────────────────────────
+ *
+ * La misma oración estaba escrita a mano **tres veces** en dos pantallas, para
+ * las alergias. Una cuarta y una quinta copia habrían sido la forma habitual de
+ * que la próxima diga algo distinto sin que nadie lo note. Vive aquí, donde vive
+ * la proyección que la hace necesaria.
+ *
+ * Devuelve cadena vacía cuando no hay nada que decir: quien la pinta no tiene
+ * que acordarse de comprobar el booleano.
+ */
+export function avisoDeHistorialRecortado(recortado: boolean): string {
+  return recortado
+    ? 'El historial vino recortado: puede haber más en notas que no se cargaron.'
+    : ''
+}
+
+export const POR_QUE_EL_RECORTE_SE_DICE =
+  'Porque debajo de la lista dice «de lo último que se dijo de cada problema en '
+  + 'sus notas firmadas», y eso es una afirmación sobre el expediente ENTERO. '
+  + 'Sobre una ventana es falsa, y el médico no tiene forma de saberlo mirando la '
+  + 'pantalla. Ausencia de dato no es dato de ausencia, tambien cuando la ausencia '
+  + 'la causo un tope de lectura.'
+
 /** Frase corta para el encabezado de la consulta. */
 export function resumenProblemas(activos: readonly ProblemaVigente[]): string {
   if (!activos.length) return 'Sin problemas registrados'

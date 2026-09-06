@@ -24,7 +24,6 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
-import { where } from 'firebase/firestore'
 import { getAppointments, getWaitlist } from '@/lib/firestore'
 import { listarItems } from '@/lib/farmacia'
 import { hoyISO } from '@/lib/timezone'
@@ -235,7 +234,7 @@ function useEstadoOperativo(clinicId: string | null | undefined) {
     // para tirarlo en el cliente crece con los años del consultorio.
     const desde = hoyISO()
     Promise.all([
-      rescatar(getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]), 'citas'),
+      rescatar(getAppointments(clinicId, { desde: desde + ' 00:00' }), 'citas'),
       rescatar(getWaitlist(clinicId).then(r => r.entradas), 'lista de espera'),
       rescatar(listarItems(clinicId), 'farmacia'),
     ]).then(([citas, listaEspera, farmacia]) => {

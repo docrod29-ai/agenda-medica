@@ -1,6 +1,14 @@
 # Índices compuestos de Firestore — los que hay, y en qué orden se despliega
 
-> **Estado**: **doce** índices declarados, **construidos en producción** y **las
+> ⚠️ **EL TRECE NO ESTÁ CONSTRUIDO.** Al fusionar la rama de laboratorio
+> (6-sep-2026) entra una consulta compuesta nueva —`errores` · `visto` ↑ ·
+> `fecha` ↓, del vigilante— que **Firestore RECHAZA hasta que su índice se
+> construya**. Está declarado en `firestore.indexes.json` y NO desplegado:
+> desplegar índices es acto del dueño (`npx firebase deploy --only
+> firestore:indexes --project nexomed-agenda`). Los doce anteriores siguen
+> construidos y sirviendo.
+>
+> **Estado**: **trece** índices declarados; **doce construidos en producción** y **las
 > consultas ya los usan** (REG-421, REG-422, REG-423).
 >
 > **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** El detalle, con los
@@ -197,11 +205,12 @@ que antes —la fila 2 es real— pero sigue sin cerrar la fila 3. La secuencia
 completa es: fusionar el índice → apretar el botón → **mirar la consola** → y sólo
 entonces fusionar el código que lo usa.
 
-## Los doce, y quién los usa
+## Los trece, y quién los usa
 
 | Colección | Campos | Quién la hace |
 |---|---|---|
 | `appointments` | pacienteId ↑ · fechaHora ↓ | `usePatientAppointments` — las citas del paciente en la consulta |
+| `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-578). **Declarado, aún NO construido.** |
 | `arco_requests` | estado ↑ · fechaSolicitud ↓ | La bandeja de derechos ARCO |
 | `clinic_invitations` | clinicId ↑ · createdAt ↓ | `listarInvitaciones` — invitar a alguien al consultorio |
 | `farmacia` | activo ↑ · nombre ↑ | La lista de la farmacia |
@@ -271,10 +280,12 @@ Regla «el dato tiene que LLEGAR». Sobre datos reales se cuentan **recuentos,
 nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 (`scripts/verificar-invariantes-de-datos.md`):
 
-1. ~~Los **doce** índices, `Enabled` en la consola. No «enviados».~~
-   **HECHO el 2-sep-2026** — ver «CONSTRUIDOS», arriba. La lista exacta es la
-   tabla «Los doce», que sale de `firestore.indexes.json`; este punto **vuelve a
-   abrirse** el día que esa tabla crezca.
+1. Los **trece** índices, `Enabled` en la consola. No «enviados».
+   **REABIERTO el 6-sep-2026**, exactamente como este punto decía que pasaría:
+   «vuelve a abrirse el día que esa tabla crezca». Creció. Doce siguen
+   `Enabled` desde el 2-sep; el trece —`errores` · `visto` ↑ · `fecha` ↓— está
+   declarado y **sin construir**, y hasta que se construya Firestore RECHAZA la
+   consulta del vigilante. Desplegar índices es acto del dueño.
 2. En `waitlist`: cuántas entradas hay, y cuántas tienen `prioridad` **y**
    `createdAt`. Los dos números tienen que ser el mismo. Un `orderBy` de
    Firestore **excluye** los documentos a los que les falta el campo — no los

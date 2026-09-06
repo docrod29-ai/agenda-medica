@@ -57,8 +57,14 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
-archivo coincide con `hashDesplegado` en `firestore.rules.estado.json`.
+**Hoy NO está vacía** (6-sep-2026, al fusionar la rama de laboratorio):
+
+| Regla escrita y sin desplegar | De dónde viene | Qué NO protege mientras tanto |
+|---|---|---|
+| `match /platform_authz_denegadas/{denId}` — `allow read, write: if false` | REG-578, el registro de denegaciones de autorización que lee el vigilante | **Nada, y hay que decirlo con precisión.** Esta regla no ABRE ni CIERRA nada por sí sola: el `match /{document=**}` del final ya deniega todo lo no declarado, así que la colección está cerrada al cliente esté o no desplegada esta regla. Lo que falta es que la regla sea EXPLÍCITA, que es lo que impide que un `match` futuro más laxo la deje al descubierto sin que nadie lo note |
+
+Se despliega con el resto, y **eso es acto del dueño**:
+`npx firebase deploy --only firestore:rules --project nexomed-agenda`.
 
 La última fila que hubo aquí era el `match` de
 `clinics/{id}/patients/{pid}/preguntas_paciente/{doc}` (V9 `PATIENT-AI-001`),

@@ -1,13 +1,19 @@
 # AUSCULTA — Master Completion Loop · estado del programa
 
+> **El contrato del loop vive en
+> [`AUSCULTA_MASTER_LOOP_DIRECTIVO.md`](AUSCULTA_MASTER_LOOP_DIRECTIVO.md)** — los 26
+> apartados íntegros del dueño. Este archivo es sólo el estado operativo; si los dos
+> se contradicen, gana el directivo.
+
 Fuente operativa: [`docs/product/AUSCULTA-MASTER-BOARD.md`](../docs/product/AUSCULTA-MASTER-BOARD.md).
+Los tres programas en vuelo: [`docs/product/PROGRAMAS-EN-VUELO.md`](../docs/product/PROGRAMAS-EN-VUELO.md).
 Punto de reanudación: [`AUSCULTA_LAST_SAFE_CHECKPOINT.md`](AUSCULTA_LAST_SAFE_CHECKPOINT.md).
 
 ## Rama y candados de escritura
 
 | | |
 |---|---|
-| **Rama** | `claude/ausculta-consultorio-completion-hoahgw` |
+| **Rama** | `claude/ausculta-master-completion-4clx9v` |
 | **Writer** | una sola sesión (Claude). Las 5 auditorías fueron **read-only** y ya terminaron |
 | **Candados vivos** | ninguno en este momento |
 

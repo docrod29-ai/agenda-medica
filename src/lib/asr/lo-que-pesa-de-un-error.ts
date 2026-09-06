@@ -51,6 +51,7 @@
  * las condiciones negadas (con el motor canónico, no con una lista nueva) y las
  * cifras. Las dos ven borrados; el alineador, por diseño, no.
  */
+import type { LoMedido } from '@/lib/ia/contratos-de-evaluacion'
 import {
   PARES_PROHIBIDOS, UNIDADES_CANONICAS, type ClaseErrorCritico,
 } from './politica-critica'
@@ -428,3 +429,127 @@ export const LO_QUE_NO_SE_VIGILA: readonly string[] = Object.freeze([
   'Borrados y añadidos de palabras que no son cifra ni negación: el alineador sólo clasifica sustituciones limpias.',
   'El momento en que se dijo cada cosa: aquí no hay tiempo, sólo texto.',
 ])
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEL MOTOR, NO DE UNA CONSULTA — REG-596.
+
+   La lectura de arriba juzga UNA consulta. El umbral que fijó el médico (D-043) es del
+   MOTOR: se decide mirando muchas consultas juntas, y las tres cuentas se
+   agregan de forma distinta a propósito.
+
+   ── POR QUÉ EL ORDINARIO SE AGREGA Y LOS CRÍTICOS SE CUENTAN ────────────────
+
+    · **ordinario** es una TASA sobre palabras: 5 errores en 532 palabras es
+      0,94 %, y eso significa lo mismo con 12 consultas que con 200. El médico
+      puso el techo en 5 % —tres veces lo medido— porque esto no vigila la
+      calidad de la redacción: vigila un DERRUMBE. Si el proveedor degrada el
+      modelo en silencio (ya pasó: REG-167), esto sube y los críticos no.
+
+    · **criticos** y **sinClasificar** se cuentan por CONSULTA, no por palabra.
+      Meterlos en una tasa sería la penalización que `POR_QUE_NO_SE_PONDERA`
+      rechaza: una tasa se diluye con volumen, y bastarían suficientes consultas
+      limpias para que una dosis cambiada dejara de verse.
+
+   ── EL TRINQUETE, Y POR QUÉ NO ES CERO ──────────────────────────────────────
+
+   Medido el 1-sep-2026 sobre `synthetic-data/dialogos-consulta`: **1 de 12**
+   consultas con un crítico. No es ruido — es un defecto real y tiene nombre:
+
+     DLG-004. El guion dice «Van dos veces este mes» (las caídas que cuenta la
+     hija). El motor se comió la frase ENTERA: se perdió la cifra y se perdió
+     quién la dijo.
+
+   El médico dueño eligió TRINQUETE en vez de rojo (D-043): la cuenta queda
+   sellada en 1 y **sólo puede bajar**. Si mañana son 2, el CI se pone rojo.
+
+   Esto NO es tolerar un error crítico: `politica-critica` sigue diciendo que esa
+   sustitución está prohibida, y la consulta afectada sigue saliendo `aprobada:
+   false`. Lo que el trinquete decide es qué hace el CI **mientras** ese defecto
+   concreto se arregla: dejarlo rojo indefinidamente enseñaría a ignorar el rojo,
+   que es el argumento con el que el propio médico descartó el 0 % en D-042.
+   El defecto no se tapa: queda con nombre aquí, en el ledger y en el censo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+export interface ConsultaMedida {
+  /** Lo que se dijo, según el guion. */
+  readonly gold: string
+  /** Lo que el motor oyó. */
+  readonly oido: string
+}
+
+export interface LecturaDelMotor {
+  readonly consultas: number
+  readonly palabrasDelGold: number
+  readonly ordinarios: number
+  /** Errores ordinarios por palabra del gold. La única de las tres que es tasa. */
+  readonly tasaOrdinaria: number
+  /** Consultas con AL MENOS un crítico. Se cuentan, no se promedian. */
+  readonly conCriticos: number
+  readonly conSinClasificar: number
+  /** Cada consulta, por si hay que ir a ver CUÁL falló. Un número sin el caso no se arregla. */
+  readonly porConsulta: readonly LecturaDeConsulta[]
+  /**
+   * Lo que la compuerta del umbral necesita, con los nombres de eje del
+   * contrato de `transcribir`. La compuerta vive en
+   * `ia/contratos-de-evaluacion.ts` y es la MISMA que juzga la nota: un solo
+   * sitio decide qué es verde.
+   */
+  readonly medido: LoMedido
+}
+
+/** Lee un conjunto de consultas y agrega. No mezcla lo que no se mezcla. */
+export function leerElMotor(consultas: readonly ConsultaMedida[]): LecturaDelMotor {
+  const porConsulta = consultas.map(c => leerConsulta(c.gold, c.oido))
+  let palabras = 0, ordinarios = 0, conCriticos = 0, conSinClasificar = 0
+  for (const l of porConsulta) {
+    palabras += l.palabrasDelGold
+    ordinarios += l.ordinarios
+    if (l.criticos.length > 0) conCriticos += 1
+    if (l.sinClasificar.length > 0) conSinClasificar += 1
+  }
+  const tasaOrdinaria = palabras > 0 ? ordinarios / palabras : 0
+  return {
+    consultas: porConsulta.length,
+    palabrasDelGold: palabras,
+    ordinarios,
+    tasaOrdinaria,
+    conCriticos,
+    conSinClasificar,
+    porConsulta,
+    medido: {
+      hayConjunto: porConsulta.length > 0,
+      ejes: {
+        ordinario: tasaOrdinaria,
+        /* Cuentas, no tasas: el umbral de las dos es cero y una tasa se diluiría. */
+        criticos: conCriticos,
+        sinClasificar: conSinClasificar,
+      },
+      resolucion: {
+        ordinario: palabras > 0 ? 1 / palabras : 1,
+        criticos: 1,
+        sinClasificar: 1,
+      },
+    },
+  }
+}
+
+/**
+ * EL DEFECTO QUE EL TRINQUETE NO TAPA.
+ *
+ * Un trinquete verde con un defecto dentro es exactamente cómo un problema deja
+ * de mirarse. Éste queda escrito, con nombre, y su prueba lo cita.
+ */
+export const EL_CRITICO_QUE_SIGUE_ABIERTO =
+  'DLG-004 (1-sep-2026): el guion dice «Van dos veces este mes» —las caídas que '
+  + 'cuenta la hija— y el motor se comió la frase entera. Se perdió la cifra y se '
+  + 'perdió quién la dijo. El trinquete de D-043 lo sella en 1 para que no suba; '
+  + 'NO lo da por bueno. Sigue abierto y sigue siendo un fallo del motor.'
+
+/** Lo que el conjunto de 12 diálogos NO mide. Declararlo es la regla 5. */
+export const LO_QUE_ESTE_CONJUNTO_NO_MIDE: readonly string[] = Object.freeze([
+  '532 palabras de oro: el escalón mínimo medible en el eje ordinario es 0,19 %. El 5 % sí se ejerce, pero con 12 consultas una sola mala mueve mucho la tasa.',
+  'Son voces actuadas por síntesis, no pacientes. No hay ruido de consultorio, ni acento regional, ni dos personas hablando encima. Un motor puede pasar esto y fallar en la sala.',
+  'El conjunto se armó para probar diarización y negación. No es una muestra representativa de las consultas del Dr.: es una colección de casos difíciles elegidos a mano.',
+  'No mide latencia, ni coste, ni qué pasa cuando el proveedor se cae. Eso lo vigilan otras compuertas.',
+])
+

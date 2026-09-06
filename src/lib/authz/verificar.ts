@@ -21,14 +21,36 @@ import { NextResponse } from 'next/server'
 import { verificarMiembro, verificarModuloIA, type Acceso, type AccesoOk } from '@/lib/auth-server'
 import { safeLog } from '@/lib/security/sanitize'
 import { tieneCapacidad, type Capacidad } from './capabilities'
+import { anotarDenegacion, rutaSinParametros } from '@/lib/ops/lo-que-no-deberia-pasar'
 
 /**
  * 403 uniforme que NOMBRA la capacidad que faltó. El rol NO se incluye en el
  * cuerpo: decir «tu rol (laboratorio) no puede» filtra la composición del equipo a
  * quien sondee la API. El rol sí se anota en el log del servidor.
  */
-function sinCapacidad(capacidad: Capacidad, rol: string | null | undefined): Acceso {
+function sinCapacidad(
+  capacidad: Capacidad,
+  rol: string | null | undefined,
+  quien?: { uid: string; clinicId: string; ruta: string },
+): Acceso {
   safeLog.warn('[authz] capacidad denegada', capacidad, 'rol:', rol ?? '(sin rol)')
+  /**
+   * WS-13 / REG-578 — el log no es una señal: hay que ir a buscarlo sabiendo ya
+   * lo que se busca. Se ANOTA para que el vigilante pueda ver el patrón, que es
+   * lo único que distingue un rol mal puesto de alguien probando dónde entra.
+   *
+   * Sin `quien` no se anota: una denegación sin actor no forma patrón, y
+   * escribirla sería llenar la colección de filas que no dicen nada.
+   */
+  if (quien?.uid) {
+    anotarDenegacion({
+      uid: quien.uid,
+      clinicId: quien.clinicId,
+      capacidad,
+      ruta: rutaSinParametros(quien.ruta),
+      cuando: new Date().toISOString(),
+    })
+  }
   return {
     ok: false,
     response: NextResponse.json(
@@ -49,7 +71,11 @@ export async function verificarCapacidad(
 ): Promise<Acceso> {
   const acceso = await verificarMiembro(req, clinicId)
   if (!acceso.ok) return acceso
-  if (!tieneCapacidad(acceso.role, capacidad)) return sinCapacidad(capacidad, acceso.role)
+  if (!tieneCapacidad(acceso.role, capacidad)) {
+    return sinCapacidad(capacidad, acceso.role, {
+      uid: acceso.uid, clinicId, ruta: req.nextUrl?.pathname ?? '',
+    })
+  }
   return acceso
 }
 

@@ -7,8 +7,28 @@ import { Sparkles, Send, Loader2, FlaskConical, BookOpen, X, UserRound, AlertTri
 import { MiniMarkdown } from '@/components/MiniMarkdown'
 import { useTarea } from '@/context/TareasContext'
 import { comportamientoScroll } from '@/lib/ui/movimiento'
+import { enlaceDoi, disponibilidadDeTextoCompleto } from '@/lib/evidencia/identidad-de-la-publicacion'
 
-interface Articulo { pmid: string; titulo: string; revista: string; anio: string; url: string; tipo?: string; doi?: string }
+/**
+ * REG-581 · cuatro campos que la ruta manda y este tipo borraba.
+ *
+ * `/api/consultor-evidencia` compone `articulosMin` con `revistaAbrev`, `pmcid`,
+ * `accesoAbierto` y `tipoSalvedad`. Los cuatro llegaban al navegador dentro del
+ * `meta` del stream y desaparecían aquí, porque un campo que el tipo no declara
+ * no existe para el render.
+ *
+ * El de `tipoSalvedad` es el caro: es la salvedad de REG-401 —«PubMed no lo
+ * declaró aleatorizado»— y su prueba comprobaba que la RUTA la mandara. Nadie
+ * comprobó que llegara a unos ojos.
+ */
+interface Articulo {
+  pmid: string; titulo: string; revista: string; anio: string; url: string
+  tipo?: string; doi?: string
+  revistaAbrev?: string
+  tipoSalvedad?: string
+  pmcid?: string
+  accesoAbierto?: boolean
+}
 /**
  * El estado REAL de la recuperación (#314), no una interpretación de la lista
  * de artículos. `sin_resultados` («se preguntó y no hay») y `no_consultado`
@@ -295,17 +315,39 @@ export default function ConsultorPage() {
                         {t.articulos.map((a, k) => {
                           const citada = citasEnTexto(t.respuesta).includes(k + 1)
                           const nivel = nivelEvidencia(a.tipo)
+                          const disp = disponibilidadDeTextoCompleto(a)
                           return (
                           <div key={a.pmid} style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 5, lineHeight: 1.45 }}>
                             <div>
-                              [{k + 1}] {a.tipo && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }}>{a.revista}</span> {a.anio}
+                              [{k + 1}] {a.tipo && <span title={a.tipoSalvedad} style={{ fontSize: 10, fontWeight: 700, color: 'var(--teal)', background: 'color-mix(in srgb, var(--nexus) 12%, transparent)', borderRadius: 5, padding: '1px 6px', marginRight: 4 }}>{a.tipo}</span>}<a href={a.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>{a.titulo}</a> · <span style={{ fontStyle: 'italic' }} title={a.revistaAbrev && a.revistaAbrev !== a.revista ? a.revistaAbrev : undefined}>{a.revista}</span> {a.anio}
                               {citada && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 12%, transparent)', borderRadius: 5, padding: '1px 6px' }}>✓ citado</span>}
                             </div>
                             <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                               {nivel && <span style={{ fontWeight: 700, color: nivel.color }}>{nivel.label}</span>}
                               <span>PMID {a.pmid}</span>
-                              {a.doi && <a href={`https://doi.org/${a.doi}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>}
+                              {a.doi && (enlaceDoi(a.doi)
+                                ? <a href={enlaceDoi(a.doi) as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>
+                                : <span title="El DOI que dio la fuente no tiene la forma 10.xxxx/yyy, así que no se enlaza.">DOI: {a.doi}</span>)}
+                              {/**
+                                * REG-581 · «sólo hay resumen» y «hay texto completo y su licencia
+                                * no deja copiarlo aquí» llevan al médico a cosas distintas: en el
+                                * segundo puede ir a leerlo. `licencia-pmc.ts` ya distinguía las
+                                * dos y la distinción se perdía antes de llegar a la pantalla.
+                                *
+                                * Cuando no consta no se dice nada: afirmar «no hay texto
+                                * completo» sobre un artículo que nadie miró sería dato de
+                                * ausencia, y en doce fuentes sería además ruido.
+                                */}
+                              {disp.frase && <span>{disp.frase}</span>}
                             </div>
+                            {/**
+                              * Lo que la etiqueta del diseño NO dice (REG-401), donde se lee.
+                              * «Ensayo clínico» a secas es correcto y aun así el lector da por
+                              * hecha una aleatorización que PubMed no declaró.
+                              */}
+                            {a.tipoSalvedad && (
+                              <div style={{ fontSize: 10.5, color: 'var(--text3)', opacity: 0.85, marginTop: 1 }}>{a.tipoSalvedad}</div>
+                            )}
                           </div>
                         )})}
                       </div>

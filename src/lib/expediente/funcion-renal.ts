@@ -15,7 +15,7 @@
  */
 
 import type { ClinicalQuantity } from '@/types/clinical-quantity'
-import { cantidad, valorEn } from '@/types/clinical-quantity'
+import { cantidad, valorEn, mgPorDl } from '@/types/clinical-quantity'
 
 export type Sexo = 'Masculino' | 'Femenino' | 'Otro' | undefined
 
@@ -155,6 +155,33 @@ export function cockcroftGault(
 }
 
 /** Estadio KDIGO de enfermedad renal por TFG. */
+/**
+ * LA TFG EN UN NÚMERO, PARA QUIEN SÓLO NECESITA EL NÚMERO — REG-575.
+ *
+ * `ckdEpi2021` devuelve una `ClinicalQuantity` con su unidad nombrada, que es lo
+ * correcto y es lo que impide el error de la creatinina en µmol/L. Pero desenvolverla
+ * son tres llamadas encadenadas, y en el árbol ya hay tres copias idénticas de
+ * esa cadena dentro del copiloto.
+ *
+ * Esto la escribe UNA vez. No cambia la aritmética ni el redondeo: llama al mismo
+ * motor canónico y saca el escalar en la unidad de siempre.
+ *
+ * Devuelve `null` cuando no hay con qué calcular. **No es cero**: un cero de TFG
+ * sería una insuficiencia renal terminal inventada.
+ *
+ * (Las tres copias del copiloto siguen ahí a propósito: unificarlas es un cambio
+ * de ese módulo y no de esta unidad.)
+ */
+export function tfgPorCkdEpi(
+  creatininaMgDl: number | undefined,
+  edad: number | undefined,
+  sexo: string | undefined,
+): number | null {
+  if (typeof creatininaMgDl !== 'number' || typeof edad !== 'number') return null
+  if (!creatininaPlausibleMgDl(creatininaMgDl)) return null
+  return valorEn(ckdEpi2021(mgPorDl(creatininaMgDl), edad, !!sexo && /^f/i.test(sexo)), 'mL/min/1.73m²')
+}
+
 export function clasificarTFG(egfr: number): { estadio: string; desc: string } {
   // Guard de finitud (auditoría P1): un TFG NaN/∞/negativo NO debe clasificarse como
   // 'G5 Falla renal' por caer al final de la cascada — sería fabricar el peor

@@ -140,8 +140,14 @@ describe('está conectado de verdad, no sólo escrito', () => {
      * eso depende qué ventana de vigencia se le exige a la creatinina antes de
      * dosificar. Lo que este caso protege sigue siendo lo mismo —que ningún
      * consumidor reciba la lista pelada de hoy— y ahora hay un consumidor más.
+     *
+     * CUATRO desde REG-560: al fusionar, el motor de aplicabilidad pasó a
+     * resolver el embarazo en el SERVIDOR, leyendo el `tipo` del diagnóstico.
+     * Para eso la pantalla le manda los diagnósticos estructurados, que es un
+     * cuarto consumidor de la misma lista y por la misma razón que los otros
+     * tres: nadie recibe la lista pelada.
      */
-    expect(page.split('diagnosticos: dxDelCuadro').length - 1).toBe(3)
+    expect(page.split('diagnosticos: dxDelCuadro').length - 1).toBe(4)
   })
 
   it('a los MOTORES ya no se les pasa la lista pelada de hoy', () => {

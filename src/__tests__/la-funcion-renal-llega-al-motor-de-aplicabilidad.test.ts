@@ -119,10 +119,28 @@ describe('las tres negativas: dónde este módulo se niega a dar una cifra', () 
 })
 
 describe('lo que sigue sin llegar, dicho en voz alta', () => {
-  it('el embarazo NO se deduce, y el motivo sigue escrito', () => {
+  it('el embarazo SIGUE sin deducirse del texto — pero ya llega de la fuente estructurada', () => {
+    /**
+     * PREMISA CAMBIADA EN REG-560, y a mejor.
+     *
+     * Este caso decía «el embarazo NO se deduce, y el motivo sigue escrito».
+     * El motivo pedía, con esas palabras, «una fuente estructurada, no un
+     * includes('embarazo')». Esa fuente existía en la otra rama y las dos se
+     * encontraron al fusionar: `lo-que-el-expediente-dice-del-embarazo` lee el
+     * `tipo` del diagnóstico.
+     *
+     * Lo que NO cambió —y es lo que este caso sigue defendiendo— es que del
+     * TEXTO no se deduce nada. Sin diagnósticos estructurados, ausencia.
+     */
     expect(estadoParaAplicabilidad({ ...RENAL_BAJO }).embarazo).toBeUndefined()
     expect(POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE).toMatch(/REG-364/)
-    expect(POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE).toMatch(/estructurada/)
+    expect(POR_QUE_EL_EMBARAZO_NO_SE_DEDUCE).toMatch(/estructurad/i)
+
+    // Confirmado sí llega; el diferencial NO afirma: llega como ausencia.
+    const conf = estadoParaAplicabilidad({ ...RENAL_BAJO, diagnosticos: [{ descripcion: 'Embarazo de 12 SDG', tipo: 'definitivo' }] })
+    expect(conf.embarazo).toBe(true)
+    const dif = estadoParaAplicabilidad({ ...RENAL_BAJO, diagnosticos: [{ descripcion: 'Embarazo', tipo: 'diferencial' }] })
+    expect(dif.embarazo).toBeUndefined()
   })
 
   it('un estudio que excluye embarazadas sigue saliendo «faltan datos», que es lo conservador', () => {
