@@ -7,8 +7,10 @@
  *  · Conducta ante citología cervical + VPH.
  * Apoyo a la decisión: la conducta la define el médico.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Baby, CalendarDays, HeartPulse, Microscope, Plus, Stethoscope } from 'lucide-react'
+import { SelloMotor } from '@/components/SelloMotor'
+import { hoyISO } from '@/lib/timezone'
 import {
   gestacionPorFUM, gestacionPorUltrasonido, hitosSegunEG,
   aspirinaPreeclampsia, RIESGO_ALTO_PE, RIESGO_MODERADO_PE,
@@ -20,28 +22,65 @@ interface Props {
   sexo?: string
   edadAnios?: number
   onAgregarANota?: (texto: string) => void
+  /**
+   * LA GESTACIÓN NO SE VUELVE A TECLEAR CADA VEZ QUE SE CIERRA EL PANEL — MG-022.
+   *
+   * La FUM vivía sólo en el estado local: cerrar la herramienta la borraba y el
+   * control prenatal de diez minutos empezaba otra vez por la fecha. Con estas
+   * dos props la consulta la conserva mientras dura el encuentro.
+   *
+   * Lo que NO resuelve: persistirla en el expediente para la visita del mes que
+   * viene. Eso necesita un campo en la paciente y está en el handoff.
+   */
+  gestacionInicial?: { metodo?: 'fum' | 'us'; fum?: string; ciclo?: string; fechaUS?: string; semUS?: string; diasUS?: string }
+  onCambioDeGestacion?: (g: { metodo: 'fum' | 'us'; fum: string; ciclo: string; fechaUS: string; semUS: string; diasUS: string }) => void
+  /** Hoy en la zona del consultorio (C-014). Ausente = se calcula aquí. */
+  hoy?: string
   /** Dentro de la barra de herramientas: sin marco ni título propios. */
   embebido?: boolean
 }
 
 type Tab = 'gestacion' | 'preeclampsia' | 'bishop' | 'citologia'
 
-export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props) {
+export function PanelGineco({ sexo, edadAnios, onAgregarANota, gestacionInicial, onCambioDeGestacion, hoy: hoyProp, embebido }: Props) {
   const [tab, setTab] = useState<Tab>('gestacion')
-  const hoy = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  /**
+   * C-014: la fecha del CONSULTORIO, no la del navegador en UTC. Con
+   * `new Date().toISOString()` después de las 18:00 en México ya es «mañana», y
+   * la edad gestacional y la fecha probable de parto se corrían un día — sobre
+   * un dato que decide cuándo se cita a una embarazada.
+   */
+  const hoy = useMemo(() => hoyProp ?? hoyISO(), [hoyProp])
 
   // Gestación
-  const [metodo, setMetodo] = useState<'fum' | 'us'>('fum')
-  const [fum, setFum] = useState('')
-  const [ciclo, setCiclo] = useState('28')
-  const [fechaUS, setFechaUS] = useState('')
-  const [semUS, setSemUS] = useState('')
-  const [diasUS, setDiasUS] = useState('0')
+  const [metodo, setMetodo] = useState<'fum' | 'us'>(gestacionInicial?.metodo ?? 'fum')
+  const [fum, setFum] = useState(gestacionInicial?.fum ?? '')
+  const [ciclo, setCiclo] = useState(gestacionInicial?.ciclo ?? '28')
+  const [fechaUS, setFechaUS] = useState(gestacionInicial?.fechaUS ?? '')
+  const [semUS, setSemUS] = useState(gestacionInicial?.semUS ?? '')
+  const [diasUS, setDiasUS] = useState(gestacionInicial?.diasUS ?? '0')
+
+  /* Lo capturado sube a la consulta para que cerrar la herramienta no lo borre. */
+  useEffect(() => {
+    onCambioDeGestacion?.({ metodo, fum, ciclo, fechaUS, semUS, diasUS })
+  }, [metodo, fum, ciclo, fechaUS, semUS, diasUS, onCambioDeGestacion])
+
+  /**
+   * MG-011 — POR QUÉ NO HAY CÁLCULO, DICHO CON PRECISIÓN.
+   *
+   * `gestacionPorFUM` devuelve `null` tanto si falta la fecha como si la fecha
+   * es posterior a hoy, y el panel contestaba a las dos con «Captura la fecha de
+   * última menstruación» — delante de una fecha ya capturada. Y `Number(ciclo)
+   * || 28` convertía «0», «abc» o vacío en 28 sin decirlo (regla 3).
+   */
+  const cicloNum = Number(ciclo)
+  const cicloValido = Number.isFinite(cicloNum) && cicloNum >= 20 && cicloNum <= 45
+  const fumEnElFuturo = !!fum && fum > hoy
 
   const gest = useMemo(() => {
-    if (metodo === 'fum') return fum ? gestacionPorFUM(fum, hoy, Number(ciclo) || 28) : null
+    if (metodo === 'fum') return fum ? gestacionPorFUM(fum, hoy, cicloValido ? cicloNum : 28) : null
     return fechaUS && semUS !== '' ? gestacionPorUltrasonido(fechaUS, Number(semUS), Number(diasUS) || 0, hoy) : null
-  }, [metodo, fum, ciclo, fechaUS, semUS, diasUS, hoy])
+  }, [metodo, fum, cicloValido, cicloNum, fechaUS, semUS, diasUS, hoy])
 
   // Preeclampsia
   const [altos, setAltos] = useState<Set<string>>(new Set())
@@ -55,7 +94,19 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
   // Citología
   const [cito, setCito] = useState<Citologia>('NILM')
   const [vph, setVph] = useState<EstadoVPH>('desconocido')
-  const cerv = useMemo(() => conductaCervical(cito, vph, edadAnios ?? 35), [cito, vph, edadAnios])
+  /**
+   * MG-009 — SIN EDAD NO HAY CONDUCTA.
+   *
+   * Esto pasaba `edadAnios ?? 35`: una edad INVENTADA. `conductaCervical` decide
+   * por edad (a una de 22 con HSIL le ofrecía el tratamiento escisional
+   * inmediato, que el motor reserva a ≥25) y el botón de pegar lo mandaba a la
+   * nota. Ausencia de dato no es dato de ausencia: sin edad no se calcula, se
+   * dice qué falta y no se puede pegar nada.
+   */
+  const cerv = useMemo(
+    () => (edadAnios != null ? conductaCervical(cito, vph, edadAnios) : null),
+    [cito, vph, edadAnios],
+  )
 
   if (sexo && !/^f/i.test(sexo)) return null
 
@@ -112,8 +163,13 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
           {gest ? (
             <>
               <div style={{ padding: '10px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--rosa) 35%, transparent)', background: 'color-mix(in srgb, var(--rosa) 10%, transparent)', marginBottom: 10 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--rosa)' }}>
-                  {gest.semanas} semanas {gest.dias} días · {gest.trimestre}º trimestre
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--rosa)' }}>
+                    {gest.semanas} semanas {gest.dias} días · {gest.trimestre}º trimestre
+                  </span>
+                  {/* MI-003: el registro clasifica este motor y hasta hoy eso no salía
+                      en ninguna pantalla, aunque /cumplimiento/motores lo promete. */}
+                  <SelloMotor id="gineco-obstetricia" />
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>
                   Fecha probable de parto: <b style={{ color: 'var(--text)' }}>{gest.fpp}</b>
@@ -149,8 +205,18 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
               </div>
             </>
           ) : (
-            <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>
-              {metodo === 'fum' ? 'Captura la fecha de última menstruación.' : 'Captura la fecha del ultrasonido y la edad gestacional que reportó.'}
+            <p style={{ fontSize: 12, color: fumEnElFuturo ? 'var(--amber)' : 'var(--text3)', margin: 0, lineHeight: 1.5 }}>
+              {metodo === 'fum'
+                ? fumEnElFuturo
+                  ? 'La fecha de última menstruación es posterior a hoy: revísala (¿se tecleó el año o el mes cambiado?).'
+                  : 'Captura la fecha de última menstruación.'
+                : 'Captura la fecha del ultrasonido y la edad gestacional que reportó.'}
+            </p>
+          )}
+          {/* Nada cambia en silencio: si el ciclo no sirve, se dice cuál se usó. */}
+          {metodo === 'fum' && ciclo.trim() !== '' && !cicloValido && (
+            <p style={{ fontSize: 11.5, color: 'var(--amber)', margin: '6px 0 0', lineHeight: 1.5 }}>
+              «{ciclo}» no es una duración de ciclo válida: el cálculo usa 28 días. Corrígela si el ciclo de la paciente es otro.
             </p>
           )}
         </div>
@@ -236,6 +302,12 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
             </label>
           </div>
 
+          {!cerv ? (
+            <p style={{ fontSize: 12, color: 'var(--amber)', margin: 0, lineHeight: 1.5 }}>
+              Falta la edad de la paciente en el expediente: la conducta ante la citología depende
+              de ella, así que no se calcula ni se puede pegar a la nota. Captúrala y vuelve aquí.
+            </p>
+          ) : (
           <div style={{
             padding: '10px 12px', borderRadius: 9,
             border: `1px solid ${cerv.urgencia === 'urgente' ? 'color-mix(in srgb, var(--red) 45%, transparent)' : cerv.urgencia === 'colposcopia' ? 'color-mix(in srgb, var(--amber) 40%, transparent)' : 'color-mix(in srgb, var(--rosa) 35%, transparent)'}`,
@@ -255,10 +327,12 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
               )}><Plus size={12} /> Agregar a la nota</button>
             )}
           </div>
+          )}
 
           {edadAnios != null && (
             <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
               <b style={{ color: 'var(--text2)' }}>Tamizaje de rutina a los {edadAnios} años:</b> {tamizajeRutina(edadAnios)}
+              {' '}<SelloMotor id="gineco-obstetricia" />
             </div>
           )}
         </div>

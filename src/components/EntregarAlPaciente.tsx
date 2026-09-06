@@ -253,8 +253,26 @@ export function EntregarAlPaciente(p: EntregarAlPacienteProps) {
               paciente se vaya sin saber cuándo volver.
             */}
             {paquete.warningSigns.length === 0 && (
-              <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text3)' }}>
-                Sin signos de alarma: no se inventan. Si quieres que los lea, escríbelos en tus indicaciones.
+              /**
+               * ── LO QUE SE PROMETE TIENE QUE VIAJAR (PO-004 · PG-002) ──────
+               *
+               * Aquí decía «si quieres que los lea, escríbelos en tus
+               * indicaciones». No era cierto para ESTE camino: el paquete del
+               * portal no lleva las indicaciones de la nota
+               * (`componerPaquete` fija `warningSigns: []` y `NotaParaElPaquete`
+               * ni siquiera tiene el campo), así que el plan de ejercicios o el
+               * retiro de la férula nunca llegaban al teléfono del paciente.
+               *
+               * Se dice la verdad y se nombra el camino por el que SÍ llegan
+               * hoy: la hoja impresa de esta misma consulta, que desde MC-002
+               * pinta «Indicaciones de su médico» con lo que él escribió. Que
+               * viajen también al portal necesita tocar
+               * `src/lib/paciente/paquete-de-visita.ts`, que es de otra
+               * rebanada: queda en el handoff.
+               */
+              <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>
+                Sin signos de alarma: no se inventan. Los que escribas en el plan salen hoy en la
+                <b> hoja impresa</b> de la consulta; a este paquete del portal todavía no viajan.
               </p>
             )}
             {paquete.medicationChanges === null && (

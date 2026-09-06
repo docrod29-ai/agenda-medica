@@ -5,7 +5,7 @@ import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
-import { filtrarHerramientas } from '@/lib/herramientas-por-especialidad'
+import { filtrarHerramientas, troncoDe } from '@/lib/herramientas-por-especialidad'
 import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, identidadDe, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
@@ -226,6 +226,7 @@ import { fechaCorta } from '@/lib/formato/fecha'
 const PanelPediatria = dynamic(() => import('@/components/PanelPediatria').then(m => m.PanelPediatria), { ssr: false })
 const PanelGineco = dynamic(() => import('@/components/PanelGineco').then(m => m.PanelGineco), { ssr: false })
 const PanelCirugia = dynamic(() => import('@/components/PanelCirugia').then(m => m.PanelCirugia), { ssr: false })
+import type { EstadoDelPanelDeCirugia } from '@/components/PanelCirugia'
 const PanelCardiometabolico = dynamic(() => import('@/components/PanelCardiometabolico').then(m => m.PanelCardiometabolico), { ssr: false })
 const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').then(m => m.PanelPreventivo), { ssr: false })
 /**
@@ -360,6 +361,15 @@ function conLaEdadAlDia(p: Patient | null): Patient | null {
   const derivada = edadEnAnios(p.fechaNacimiento)
   return derivada != null && derivada !== p.edad ? { ...p, edad: derivada } : p
 }
+
+/**
+ * LAS SECCIONES QUE SON INDICACIONES PARA EL PACIENTE (MC-002).
+ *
+ * Por clave de la plantilla (`templates.ts`), no por heurística sobre el
+ * rótulo: una plantilla nueva que quiera aparecer en la hoja se añade aquí a
+ * propósito, y ninguna aparece por accidente.
+ */
+const CLAVES_DE_INDICACIONES: readonly string[] = ['planPostop', 'signosAlarma', 'indicacionesAlta', 'indicacionesEgreso', 'planTratamiento', 'plan']
 
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -770,6 +780,19 @@ export default function ConsultaActivaPage() {
    */
   const [pesoPrevio, setPesoPrevio] = useState<{ kg: number; fecha: string } | null>(null)
 
+  /**
+   * MG-022 — lo capturado en el panel de gineco vive aquí mientras dura la
+   * consulta, no dentro del panel: cerrar la herramienta ya no borra la FUM.
+   * (Persistirla en el expediente para la visita siguiente necesita un campo
+   * en la paciente: está en el handoff.)
+   */
+  const [gestacionDeLaConsulta, setGestacionDeLaConsulta] = useState<{
+    metodo: 'fum' | 'us'; fum: string; ciclo: string; fechaUS: string; semUS: string; diasUS: string
+  } | null>(null)
+
+  /** MC-017 — ídem para el panel de cirugía (ASA y factores marcados). */
+  const [estadoDeCirugia, setEstadoDeCirugia] = useState<EstadoDelPanelDeCirugia | null>(null)
+
   const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([])
 
   // El panel perioperatorio solo estorba en una consulta que no es quirúrgica:
@@ -785,7 +808,20 @@ export default function ConsultaActivaPage() {
    * control prenatal · Bishop". Se acota a edad fértil y se exige que el sexo esté
    * capturado: sin dato no se asume.
    */
-  const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10 && (patient?.edad ?? 0) <= 60
+  /**
+   * ── EL PANEL DE GINECO NO SE APAGA A LOS 61 (MG-017) ──────────────────────
+   *
+   * El corte 10-60 era de la pestaña de GESTACIÓN, pero apagaba el panel
+   * entero: a los 61 desaparecían también la citología —cuyo tamizaje llega a
+   * los 65 en el propio motor— y el climaterio, que no tiene tope. Y como la
+   * herramienta ni siquiera entraba en la lista, tampoco la encontraba el
+   * buscador de «Herramientas», que es la salida que el código presume.
+   *
+   * Ahora: pertinencia por sexo capturado y edad mínima (sin dato no se asume);
+   * el tope superior desaparece. La ventana de la gestación la juzga el médico
+   * dentro del panel, que es donde está el contexto.
+   */
+  const esGineco = /^f/i.test(patient?.sexo ?? '') && (patient?.edad ?? 0) >= 10
 
   /**
    * El campo de peso se resincroniza cuando el valor viene de FUERA (respaldo
@@ -917,8 +953,19 @@ export default function ConsultaActivaPage() {
     return true
   }, [toast])
 
+  /**
+   * ── «ES CASO QUIRÚRGICO» LO DECIDE EL TRONCO (MC-008) ─────────────────────
+   *
+   * Aquí había una regex propia SIN frontera de palabra: «neurología» contiene
+   * «urolog» (ne-UROLOG-ía), así que a un neurólogo se le forzaba el panel de
+   * cirugía en cada consulta; y traumatología, coloproctología o angiología no
+   * lo encontraban ni en el buscador. `troncoDe` ya había reparado exactamente
+   * ese defecto en su lado, con `\b` y con esas especialidades dentro. Se usa
+   * ésa, que es la canónica, y se conservan las señales CLÍNICAS —tipo de nota
+   * y diagnóstico—, que son de este encuentro y no de la especialidad.
+   */
   const esCasoQuirurgico = useMemo(() => {
-    const esp = /cirug|ortopedia|ginecolog|urolog|neurocirug|otorrino|oftalmolog|anestesi/i.test(especialidadEfectiva)
+    const esp = troncoDe(especialidadEfectiva) === 'cirugia'
     const tip = /postop|preop|quirurg|anestes|consentimiento/i.test(tipo)
     const dx = diagnosticos.some(d => /cirug|quir[úu]rgic|postoperator|preoperator|hernia|apendic|colecistect|fractura/i.test(d.descripcion))
     return esp || tip || dx
@@ -6747,6 +6794,24 @@ export default function ConsultaActivaPage() {
            * «lunes, 8 de septiembre», no «2026-09-08».
            */
           proximaCita={proximoSeguimiento.trim() ? formatDateMX(proximoSeguimiento) : undefined}
+          /**
+           * ── LAS INDICACIONES DEL MÉDICO, EN LA HOJA (MC-002) ─────────────
+           *
+           * `comoSeLoExplico` tiene el bloque «Indicaciones de su médico» desde
+           * que se escribió, y las pinta LITERALES (sin reescribirlas, que es
+           * donde se colaría un consejo que nadie dio). Tenía cero llamadores:
+           * el cuidado de la herida, los drenajes y los signos de alarma que el
+           * médico escribe en el plan no llegaban al papel que se lleva el
+           * paciente, aunque la pantalla del cierre marcara el paso como hecho.
+           *
+           * La selección es por CLAVE de la plantilla, no por heurística sobre
+           * el texto: sólo entran las secciones que son indicaciones para el
+           * paciente, en el orden en que se escriben.
+           */
+          indicacionesDelMedico={CLAVES_DE_INDICACIONES
+            .map(k => secciones.find(s => s.key === k)?.value?.trim())
+            .filter(Boolean)
+            .join('\n') || undefined}
           onInteraccion={() => setHechosCierre(marcarHechoDeCierre(notaId, 'hoja_del_paciente'))}
         />
       )}
@@ -7086,14 +7151,30 @@ export default function ConsultaActivaPage() {
           edadPaciente={patient?.edad}
           disabled={firmada}
           initialInputs={preop?.inputs}
+          /**
+           * ── LO QUE ESCRIBIÓ EL CIRUJANO NO SE PISA (MC-013) ──────────────
+           *
+           * Esto REEMPLAZABA «Conclusión de riesgo» y «Recomendaciones» sin
+           * preguntar: el párrafo que el médico había escrito a mano
+           * desaparecía al pulsar «Aplicar escalas». El patrón contrario vivía
+           * dos pantallas más arriba, en `agregarASeccion`, que anexa y
+           * deduplica. Se usa ése.
+           */
           onAplicar={(conclusion, recomendaciones, preopData) => {
             setPreop(preopData)
+            let anexado = false
             setSecciones(prev => prev.map(s => {
-              if (s.key === 'conclusionRiesgo') return { ...s, value: conclusion }
-              if (s.key === 'recomendaciones') return { ...s, value: recomendaciones }
-              return s
+              const nuevo = s.key === 'conclusionRiesgo' ? conclusion : s.key === 'recomendaciones' ? recomendaciones : null
+              if (nuevo === null) return s
+              const previo = (s.value ?? '').trim()
+              if (!previo) return { ...s, value: nuevo }
+              if (previo.includes(nuevo.trim())) return s      // ya estaba: no se duplica
+              anexado = true
+              return { ...s, value: `${previo}\n${nuevo}` }
             }))
-            toast('Escalas aplicadas a la nota', 'success')
+            toast(anexado
+              ? 'Escalas añadidas debajo de lo que ya habías escrito (no se borró nada)'
+              : 'Escalas aplicadas a la nota', 'success')
           }}
           onSinDatos={() => toast('Captura al menos una escala antes de aplicar (no se tocó la nota).', 'info')}
         />
@@ -7374,12 +7455,24 @@ export default function ConsultaActivaPage() {
         ...(esCasoQuirurgico ? [{
           id: 'cirugia', nombre: 'Cirugía', color: 'var(--blue)', icono: <Scissors size={14} />,
           para: 'ASA · RCRI · Caprini · Apfel · profilaxis con re-dosis · checklist OMS',
-          contenido: <PanelCirugia embebido onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
+          contenido: <PanelCirugia embebido
+            /* MC-014: el panel ve las alergias del expediente antes de proponer. */
+            alergias={alergenosDe(patient ?? {})}
+            /* MC-017: lo capturado sobrevive a cerrar la herramienta. */
+            estadoInicial={estadoDeCirugia ?? undefined}
+            onCambioDeEstado={setEstadoDeCirugia}
+            /* MC-018: la lista de la OMS, sólo donde hay quirófano. */
+            mostrarChecklist={tipo === 'nota_postoperatoria' || !!internamientoActivo}
+            onAgregarANota={agregarASeccion('perioperatorio', 'Valoración perioperatoria')} />,
         }] : []),
         ...(esGineco ? [{
           id: 'gineco', nombre: 'Gineco-obstetricia', color: '#f472b6', icono: <Stethoscope size={14} />,
           para: 'Gestación · control prenatal · preeclampsia · Bishop · citología',
           contenido: <PanelGineco embebido sexo={patient?.sexo} edadAnios={patient?.edad}
+            hoy={hoyISO()}
+            /* MG-022: la gestación capturada sobrevive a cerrar la herramienta. */
+            gestacionInicial={gestacionDeLaConsulta ?? undefined}
+            onCambioDeGestacion={setGestacionDeLaConsulta}
             onAgregarANota={agregarASeccion('gineco', 'Gineco-obstetricia')} />,
         }] : []),
         ...(esPediatrico ? [{
