@@ -118,7 +118,16 @@ describe('MC-004 · la pantalla escribe y registra', () => {
   })
 
   it('la bitácora no lleva el contenido clínico de la carta, sólo su huella', () => {
-    expect(pagina).toContain('huella: huellaContenido(')
+    // La huella se calcula una vez y sirve para dos cosas: decidir si esto ya
+    // se asentó (si cambió, es otra carta) y viajar en la bitácora.
+    expect(pagina).toContain('const huella = huellaContenido([texto])')
+    expect(pagina).toContain('huella },')
     expect(pagina, 'el motivo clínico no puede viajar en la bitácora').not.toMatch(/meta:\s*\{[^}]*\bmotivo\b/)
+  })
+
+  it('si la carta cambia, se asienta la nueva: el guardián es la huella, no un «ya está»', () => {
+    // Un booleano impedía registrar la carta corregida que sí se imprimió.
+    expect(pagina).toContain('huellaAsentada.current !== huella')
+    expect(pagina).toContain('huellaAsentada.current = huella')
   })
 })

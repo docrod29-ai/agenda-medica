@@ -175,4 +175,11 @@ describe('MO-005 · la orden emitida queda asentada', () => {
   it('y sólo cuando la orden salió de verdad (ZL-002)', () => {
     expect(pagina).toContain("resultado === 'abierta'")
   })
+
+  it('si la orden cambia, se asienta la nueva: el guardián es la huella del contenido', () => {
+    // Un booleano «ya está» impedía registrar la segunda emisión cuando el
+    // médico añadía un estudio: dos órdenes distintas con el mismo folio.
+    expect(pagina).toContain('huellaAsentada.current === huella')
+    expect(pagina).toContain('huellaAsentada.current = huella')
+  })
 })

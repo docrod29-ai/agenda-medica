@@ -34,6 +34,7 @@ import { hoyISO } from '@/lib/timezone'
 import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import { agregarAdenda } from '@/lib/expediente/firestore'
 import { claveDeIntento } from '@/lib/idempotencia'
+import { huellaContenido } from '@/lib/expediente/huella-impreso'
 import { useAuth } from '@/hooks/useAuth'
 import {
   estudiosSinLateralidad, faltaLateralidad, conLateralidad, LADOS,
@@ -423,8 +424,20 @@ export default function GeneradorOrdenPage() {
       medicoNombre: config?.nombreMedico,
     }, ahora), 'orden', { avisar: m => toast(`La orden quedó emitida, pero ${m}`, 'error') })
   }
+  /**
+   * LA HUELLA DE LO ÚLTIMO QUE SE ASENTÓ — no un «ya está».
+   *
+   * Un booleano `asentada` evitaba enmendar dos veces por el mismo papel, pero
+   * también impedía asentar la SEGUNDA emisión cuando el médico añadía un
+   * estudio y volvía a imprimir: dos órdenes distintas con el mismo folio y
+   * ningún rastro de la segunda, que es el defecto que MO-005 denuncia.
+   *
+   * Guardar la huella del CONTENIDO lo resuelve sin estado y sin efecto: si lo
+   * que se va a asentar es idéntico a lo último asentado, no se repite; si
+   * cambió, es otra orden y se asienta.
+   */
+  const huellaAsentada = useRef<string | null>(null)
   const claveAsiento = useRef<string | null>(null)
-  const [asentada, setAsentada] = useState(false)
   const [indicaciones, setIndicaciones] = useState('')
   const [diagnostico, setDiagnostico] = useState('')
   const [descargando, setDescargando] = useState(false)
@@ -530,20 +543,6 @@ export default function GeneradorOrdenPage() {
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
   /**
-   * SI LA ORDEN CAMBIA, ES OTRA ORDEN.
-   *
-   * `asentada` evita enmendar dos veces la misma nota por el mismo papel (un
-   * segundo clic, una reimpresión). Pero si el médico AÑADE un estudio y vuelve
-   * a emitir, eso ya no es la misma orden: el expediente tiene que registrar la
-   * nueva lista, o volveríamos al defecto que MO-005 denuncia —dos órdenes
-   * distintas con el mismo folio y ningún rastro de la segunda—.
-   */
-  useEffect(() => {
-    setAsentada(false)
-    claveAsiento.current = null
-  }, [estudios])
-
-  /**
    * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
    *
    * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
@@ -554,11 +553,13 @@ export default function GeneradorOrdenPage() {
   const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
     if (!clinicId || !estudios.length) return
     if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice
-    if (asentada) return
-    claveAsiento.current ??= claveDeIntento()
+    const texto = textoDeLaOrdenEmitida({ folio, estudios, diagnostico, indicaciones, formato })
+    const huella = huellaContenido([texto])
+    if (huellaAsentada.current === huella) return   // el mismo papel, otra vez
+    if (claveAsiento.current === null || huellaAsentada.current !== null) claveAsiento.current = claveDeIntento()
     try {
       await agregarAdenda(clinicId, patientId, notaId, {
-        texto: textoDeLaOrdenEmitida({ folio, estudios, diagnostico, indicaciones, formato }),
+        texto,
         motivo: motivoDeLaOrdenEmitida(folio, estudios.filter(e => e.trim()).length),
         autorNombre: medicoEnSesion?.nombre || config?.nombreMedico || user?.email || 'Médico',
         autorEmail: user?.email || '',
@@ -566,7 +567,7 @@ export default function GeneradorOrdenPage() {
           ? (medicoEnSesion.cedulaProfesional || undefined)
           : (config?.cedulaProfesional || undefined),
       }, claveAsiento.current)
-      setAsentada(true)
+      huellaAsentada.current = huella
     } catch {
       // REG-411 — la orden ya salió y esto no puede tumbarla; pero perder el
       // asiento sin decirlo es el defecto que se está cerrando.

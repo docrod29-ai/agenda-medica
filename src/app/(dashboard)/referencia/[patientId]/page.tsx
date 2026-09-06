@@ -37,7 +37,6 @@ export default function CartaReferenciaPage() {
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [notaOrigen, setNotaOrigen] = useState<NotaMedica | null>(null)
-  const [asentada, setAsentada] = useState(false)
   const [loading, setLoading] = useState(true)
   const [errorCarga, setErrorCarga] = useState('')
   const { user } = useAuth()
@@ -51,6 +50,12 @@ export default function CartaReferenciaPage() {
     const porCorreo = correo ? activeDoctors.filter(d => (d.email ?? '').trim().toLowerCase() === correo) : []
     return porCorreo.length === 1 ? porCorreo[0] : undefined
   }, [activeDoctors, user?.uid, user?.email])
+  /**
+   * LA HUELLA DE LO ÚLTIMO QUE SE ASENTÓ — misma razón que en la orden emitida
+   * (`orden/[patientId]/[notaId]/page.tsx`): un booleano impediría registrar la
+   * carta corregida que sí se imprimió la segunda vez.
+   */
+  const huellaAsentada = useRef<string | null>(null)
   const claveAsiento = useRef<string | null>(null)
 
   // Campos de la carta
@@ -64,17 +69,6 @@ export default function CartaReferenciaPage() {
   const [tratamiento, setTratamiento] = useState('')
   const [estudios, setEstudios] = useState('')
   const [descargando, setDescargando] = useState(false)
-
-  /**
-   * SI LA CARTA CAMBIA, ES OTRA CARTA — misma razón que en la orden emitida.
-   * `asentada` impide enmendar dos veces por el mismo papel; en cuanto el médico
-   * corrige un campo, el expediente tiene que poder registrar lo que de verdad
-   * se imprimió la segunda vez.
-   */
-  useEffect(() => {
-    setAsentada(false)
-    claveAsiento.current = null
-  }, [tipo, urgencia, destino, institucion, motivo, resumen, diagnosticos, tratamiento, estudios])
 
   /**
    * MC-004 — LA CARTA QUEDA EN EL EXPEDIENTE.
@@ -97,8 +91,9 @@ export default function CartaReferenciaPage() {
     if (!cartaTieneContenido(carta)) return
     const texto = textoDeLaCarta(carta)
     const enNotaFirmada = notaOrigen?.estado === 'firmada'
-    if (enNotaFirmada && !asentada) {
-      claveAsiento.current ??= claveDeIntento()
+    const huella = huellaContenido([texto])
+    if (enNotaFirmada && huellaAsentada.current !== huella) {
+      if (claveAsiento.current === null || huellaAsentada.current !== null) claveAsiento.current = claveDeIntento()
       try {
         await agregarAdenda(clinicId, patientId, notaOrigen.id, {
           texto,
@@ -109,7 +104,7 @@ export default function CartaReferenciaPage() {
             ? (medicoEnSesion.cedulaProfesional || undefined)
             : (config?.cedulaProfesional || undefined),
         }, claveAsiento.current)
-        setAsentada(true)
+        huellaAsentada.current = huella
       } catch {
         toast('La carta salió, pero no se pudo guardar en el expediente. Vuelve a intentarlo.', 'error')
       }
@@ -119,7 +114,7 @@ export default function CartaReferenciaPage() {
       clinicId,
       patientId,
       notaId: notaOrigen?.id,
-      meta: { tipo, urgencia, formato, enExpediente: enNotaFirmada, huella: huellaContenido([texto]) },
+      meta: { tipo, urgencia, formato, enExpediente: enNotaFirmada, huella },
     }).catch(() => {})
   }
 
@@ -250,7 +245,7 @@ export default function CartaReferenciaPage() {
           borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'var(--text)', lineHeight: 1.5,
         }}>
           {notaOrigen?.estado === 'firmada'
-            ? <>Al imprimir o descargar, la carta queda asentada en el expediente como adenda de la nota firmada, y su emisión en la bitácora.{asentada ? ' Ya quedó asentada.' : ''}</>
+            ? <>Al imprimir o descargar, la carta queda asentada en el expediente como adenda de la nota firmada, y su emisión en la bitácora. Si la corriges y vuelves a emitirla, se asienta la nueva.</>
             : <><strong>Esta carta no quedará en el expediente.</strong> No hay una nota firmada de la que colgarla, así que sólo se registrará en la bitácora que se emitió. Firma la nota de la consulta y vuelve a emitirla si necesitas que conste.</>}
         </div>
 

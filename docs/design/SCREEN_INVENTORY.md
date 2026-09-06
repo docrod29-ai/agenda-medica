@@ -70,12 +70,12 @@
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1050 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 536 | 1 | — | ✅ | — |
-| `/orden/[patientId]/[notaId]` | medico | ✅ | 1024 | 3 | — | ✅ | — |
+| `/orden/[patientId]/[notaId]` | medico | ✅ | 1039 | 3 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1240 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 791 | 3 | — | ✅ | ✅ |
 | `/reactivacion` | medico | ✅ | 365 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1310 | 3 | — | ✅ | — |
-| `/referencia/[patientId]` | medico | ✅ | 390 | 0 | — | ✅ | — |
+| `/referencia/[patientId]` | medico | ✅ | 396 | 0 | — | ✅ | — |
 | `/resenas` | medico | ✅ | 105 | 0 | — | ✅ | — |
 | `/hospitalizacion` | alpha | ✅ | 453 | 5 | — | ✅ | — |
 | `/hospitalizacion/[internamientoId]` | alpha | ✅ | 1733 | 4 | — | ✅ | ✅ |
