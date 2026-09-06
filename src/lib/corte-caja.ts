@@ -1,5 +1,5 @@
 import type { Cobro, MetodoPago } from './cobros'
-import { METODO_LABEL } from './cobros'
+import { METODO_LABEL, montoEfectivo } from './cobros'
 import type { Appointment, AppointmentStatus } from '@/types'
 
 /**
@@ -18,17 +18,24 @@ export interface CorteCaja {
   porMetodo: { metodo: MetodoPago; label: string; monto: number; n: number }[]
 }
 
-/** Considera solo cobros NO cancelados. */
+/**
+ * Considera solo cobros NO cancelados.
+ *
+ * ASC-012: una DEVOLUCIÓN (`tipo: 'REFUND'`, monto positivo con traza al cobro
+ * original) resta. El signo lo pone `montoEfectivo`, la única definición que
+ * hay; un monto negativo heredado sigue restando igual que antes.
+ */
 export function corteDeCaja(cobros: Cobro[]): CorteCaja {
   const activos = cobros.filter(c => !c.cancelado)
   const porMetodoMap = new Map<MetodoPago, { monto: number; n: number }>()
   let ingresos = 0, reembolsos = 0, efectivo = 0
   for (const c of activos) {
-    if (c.monto >= 0) ingresos += c.monto
-    else reembolsos += c.monto
-    if (c.metodo === 'efectivo') efectivo += c.monto
+    const monto = montoEfectivo(c)
+    if (monto >= 0) ingresos += monto
+    else reembolsos += monto
+    if (c.metodo === 'efectivo') efectivo += monto
     const m = porMetodoMap.get(c.metodo) ?? { monto: 0, n: 0 }
-    m.monto += c.monto; m.n += 1
+    m.monto += monto; m.n += 1
     porMetodoMap.set(c.metodo, m)
   }
   const porMetodo = Array.from(porMetodoMap.entries())
@@ -89,7 +96,7 @@ function estaSaldada(cita: Appointment, conCobro: ReadonlySet<string>): boolean 
 function citasConCobro(cobros: Cobro[]): Set<string> {
   const s = new Set<string>()
   for (const c of cobros) {
-    if (!c.cancelado && c.monto > 0 && c.citaId && c.concepto !== 'abono') s.add(c.citaId)
+    if (!c.cancelado && montoEfectivo(c) > 0 && c.citaId && c.concepto !== 'abono') s.add(c.citaId)
   }
   return s
 }
@@ -119,8 +126,8 @@ export function embudoCobro(citas: Appointment[], cobros: Cobro[]): Embudo {
   // (La cita sigue contando como no cobrada arriba; son dos preguntas distintas:
   //  cuánto entró vs. qué consultas quedan por saldar.)
   const montoCobrado = cobros
-    .filter(c => !c.cancelado && c.monto > 0 && c.citaId && atendidas.some(a => a.id === c.citaId))
-    .reduce((s, c) => s + c.monto, 0)
+    .filter(c => !c.cancelado && montoEfectivo(c) > 0 && c.citaId && atendidas.some(a => a.id === c.citaId))
+    .reduce((s, c) => s + montoEfectivo(c), 0)
   return {
     agendadas: agendables.length,
     atendidas: atendidas.length,
