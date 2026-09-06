@@ -3,8 +3,8 @@
   "techos": {
     "respaldosDeToken": 0,
     "hexEnLinea": 320,
-    "tamanosFueraDeEscala": 1850,
-    "radiosFueraDeEscala": 590,
+    "tamanosFueraDeEscala": 1857,
+    "radiosFueraDeEscala": 598,
     "sombrasEnLinea": 19,
     "gradientes": 11,
     "cristal": 14,
@@ -16,14 +16,14 @@
       "archivo": "src/app/(dashboard)/configuracion/page.tsx",
       "respaldos": 0,
       "hex": 20,
-      "tam": 94,
+      "tam": 95,
       "rad": 41,
       "sombras": 2,
       "gradientes": 1,
       "cristal": 0,
       "halos": 4,
       "lienzos": 0,
-      "total": 162
+      "total": 163
     },
     {
       "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",

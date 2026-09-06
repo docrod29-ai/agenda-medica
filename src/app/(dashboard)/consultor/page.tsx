@@ -152,7 +152,7 @@ export default function ConsultorPage() {
 
       {/* Chip de paciente en contexto */}
       {pacienteNombre && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'var(--nexus-soft)', border: '1px solid var(--nexus-borde)', fontSize: 12, color: 'var(--nexus)', fontWeight: 600 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 10px', borderRadius: 'var(--r-pill)', background: 'var(--nexus-soft)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--nexus)', fontWeight: 600 }}>
           <UserRound size={13} /> Sobre: {pacienteNombre}
           <button onClick={() => { setPacienteNombre(''); setPacienteCtx('') }} title="Quitar contexto del paciente"
             className="nx-acc-texto"
@@ -282,7 +282,7 @@ export default function ConsultorPage() {
                     )}
                     {t.cenetecUrl && (
                       <a href={t.cenetecUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus)', textDecoration: 'none', background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', borderRadius: 6, padding: '5px 10px' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--nexus)', textDecoration: 'none', background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', borderRadius: 8, padding: '5px 10px' }}>
                         <BookOpen size={12} /> Buscar la guía mexicana (GPC · CENETEC)
                       </a>
                     )}

@@ -132,7 +132,7 @@ export default function PrivacidadGeneralPage() {
         Dudas sobre este aviso o sobre el tratamiento de datos: <strong>{CORREO_PRIVACIDAD}</strong>.
       </Section>
 
-      <p style={{ marginTop: 36, fontSize: 12, color: 'var(--text2)' }}>
+      <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text2)' }}>
         Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
       </main>

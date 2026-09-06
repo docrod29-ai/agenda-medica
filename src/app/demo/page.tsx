@@ -180,7 +180,7 @@ function Mock({ tipo }: { tipo: string }) {
           <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text2)', marginBottom: 7 }}><CheckCircle2 size={14} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} /> {m}</div>
         ))}
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'flex-end', paddingTop: 10 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--s2)', display: 'grid', placeItems: 'center', fontSize: 10.5, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.1 }}>QR<br/>válido</div>
+          <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--s2)', display: 'grid', placeItems: 'center', fontSize: 10.5, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.1 }}>QR<br/>válido</div>
         </div>
       </div>
     )
@@ -357,7 +357,7 @@ function Mock({ tipo }: { tipo: string }) {
         */}
         {[['María Robles', '09:00', true], ['Juan Pérez', '10:30', true], ['Expediente clínico', '', false]].map((r, i) => (
           <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 6,
+            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8,
             marginBottom: 7,
             background: r[2] ? 'var(--s2)' : 'transparent',
             border: r[2] ? '1px solid transparent' : '1px dashed var(--border2)',
@@ -383,8 +383,8 @@ function Mock({ tipo }: { tipo: string }) {
         <div style={{ fontSize: 12, color: 'var(--text2)' }}>Dr. Nombre Apellido · Cardiología</div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--nexus)', border: '1px solid var(--border2)', borderRadius: 6, padding: '7px 0' }}>Reagendar</span>
-        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 6, padding: '7px 0' }}>Mi receta</span>
+        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--nexus)', border: '1px solid var(--border2)', borderRadius: 8, padding: '7px 0' }}>Reagendar</span>
+        <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 0' }}>Mi receta</span>
       </div>
     </div>
   )

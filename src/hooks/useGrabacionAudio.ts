@@ -526,6 +526,17 @@ async function intentarDiarizar(
      * hecho y no llegaba al único sitio donde cambia lo que se OYE.
      */
     anexarSesgoDelPaciente(fd, ctx)
+    /**
+     * B-009 — EL MÓDULO DESDE EL QUE SE DICTA, TAMBIÉN AL MOTOR QUE CORRE.
+     *
+     * `contexto` sólo lo leían las rutas de Whisper, que aquí son el REPUESTO:
+     * o sea que el vocabulario del módulo (UCI, hospitalización) sesgaba
+     * únicamente al motor que entra cuando el bueno se cae. Es la celda que
+     * REG-520 dejó declarada como abierta. La otra mitad —que la ruta lo lea y
+     * lo expanda con `nombresDelModulo()`— es de otra rebanada y va en el
+     * handoff; mandarlo mientras tanto no rompe nada.
+     */
+    if (ctx.contexto) fd.append('contexto', ctx.contexto)
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
     if (!res.ok) {
       // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
@@ -762,8 +773,6 @@ export function anexarSesgoDelPaciente(fd: FormData, c: CtxDictado): void {
     const v = c[k]
     if (v && v.length > 0) fd.append(k, JSON.stringify([...v]))
   }
-  // B-009: el módulo desde el que se dicta, también al motor que de verdad corre.
-  if (c.contexto) fd.append('contexto', c.contexto)
 }
 
 /** Las mismas listas como cuerpo JSON (camino largo de la diarización). Ausente = `undefined`, como siempre. */
@@ -784,8 +793,7 @@ function anexarContexto(fd: FormData, c: CtxDictado): void {
   // Los minutos son lo que se cobra en transcripción: sin ellos el servidor no
   // puede asentar el costo del dictado.
   if (typeof c.duracionSeg === 'number' && c.duracionSeg > 0) fd.append('duracionSeg', String(Math.round(c.duracionSeg)))
-  // `contexto` lo anexa `anexarSesgoDelPaciente` desde B-009: una sola vez y
-  // por los tres caminos (aquí lo duplicaría).
+  if (c.contexto) fd.append('contexto', c.contexto)
   anexarSesgoDelPaciente(fd, c)
 }
 
@@ -1406,7 +1414,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       duracionUltimoTrozoRef.current = duracionRef.current
       if (segTrozo > 0) fd.append('duracionSeg', String(Math.round(segTrozo)))
       if (prevContext) fd.append('prevContext', prevContext)
-      // El módulo y el vocabulario del paciente: el texto en vivo alimenta la nota
+      // El módulo, para que el texto en vivo use el MISMO vocabulario que el
+      // final: en UCI se estaba sesgando con el catálogo de consultorio.
+      if (contextoRef.current.contexto) fd.append('contexto', contextoRef.current.contexto)
+      // Y el vocabulario del paciente: el texto en vivo alimenta la nota
       // preliminar y es el último recurso si la transcripción final falla.
       // Por la MISMA lista que los otros tres puntos de envío (REG-520): aquí
       // faltaban los alérgenos.
