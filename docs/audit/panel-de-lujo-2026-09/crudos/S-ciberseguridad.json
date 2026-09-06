@@ -1,0 +1,987 @@
+{
+  "rol": "ciberseguridad",
+  "fecha": "2026-09-06",
+  "revisado": [
+    {
+      "pieza": "src/app/api/appointments/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — CAMPOS_CITA (route.ts:57) + sobreagendar sólo médico. El hueco vive en la regla, no aquí (S-007)"
+    },
+    {
+      "pieza": "src/app/api/arco/acceso/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — verificarCapacidad(...,administrar)"
+    },
+    {
+      "pieza": "src/app/api/arco/cancelar/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — escribe arcoBloqueo/portalTokenVersion en un documento que el cliente puede reescribir (S-001)"
+    },
+    {
+      "pieza": "src/app/api/arco/oponerse/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/auditoria/registrar/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — devuelve e.message recortado al cliente (línea 109) — S-006"
+    },
+    {
+      "pieza": "src/app/api/ayuda-bot/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a. — no toca datos de consultorio; con freno de tasa"
+    },
+    {
+      "pieza": "src/app/api/calendar/calendars/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a. — recurso del propio uid"
+    },
+    {
+      "pieza": "src/app/api/calendar/callback/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: sí — callback OAuth: nonce de un solo uso en oauthStates, uid nunca del state"
+    },
+    {
+      "pieza": "src/app/api/calendar/connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — emite el nonce ligado al uid"
+    },
+    {
+      "pieza": "src/app/api/calendar/ocupado/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/calendar/status/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — GET/DELETE sobre googleTokens/{uid} propio"
+    },
+    {
+      "pieza": "src/app/api/calendar/sync/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — verificarMiembro; activación de agenda.gestionar pendiente (declarada)"
+    },
+    {
+      "pieza": "src/app/api/clinic/ai-keys/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — POST exige administrar; GET sigue en verificarMiembro con pendiente Q7 declarado"
+    },
+    {
+      "pieza": "src/app/api/clinic/crear/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — aún no hay clínica; devuelve e.message (línea 111) — S-006"
+    },
+    {
+      "pieza": "src/app/api/clinic/exportar-csv/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — export íntegro tras clinico.escribir + asiento en audit_log"
+    },
+    {
+      "pieza": "src/app/api/clinic/exportar-excel/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — misma capacidad que el CSV, a propósito"
+    },
+    {
+      "pieza": "src/app/api/clinic/exportar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — respaldo NDJSON tras administrar"
+    },
+    {
+      "pieza": "src/app/api/clinic/importar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — valida la ruta escrita, no sólo la colección declarada (REG-160)"
+    },
+    {
+      "pieza": "src/app/api/clinic/miembros/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — sustituye al list del cliente, que está cerrado"
+    },
+    {
+      "pieza": "src/app/api/clinic/unirse/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — el usuario aún no es miembro; devuelve e.message CRUDO y sin recortar (línea 95) — S-006"
+    },
+    {
+      "pieza": "src/app/api/clinic/whatsapp-disconnect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/config/imagen/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — path derivado del uid, sólo raster; devuelve e.message de Storage (línea 52) — S-006"
+    },
+    {
+      "pieza": "src/app/api/consultor-evidencia/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — clinicId del uid vía resolverClaveIA, nunca del cuerpo; con freno"
+    },
+    {
+      "pieza": "src/app/api/cron/asientos/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: n.a. · consultorio: n.a. · lista blanca: sí — CRON_SECRET fail-closed (mueve dinero)"
+    },
+    {
+      "pieza": "src/app/api/cron/limpiar-audio/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: n.a. · consultorio: n.a. · lista blanca: n.a. — CRON_SECRET fail-closed"
+    },
+    {
+      "pieza": "src/app/api/cron/reminders/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: n.a. · consultorio: n.a. · lista blanca: sí — CRON_SECRET fail-closed; devuelve err.message en el cuerpo del latido (línea 481) — S-006"
+    },
+    {
+      "pieza": "src/app/api/cron/retencion/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: n.a. · consultorio: n.a. · lista blanca: sí — CRON_SECRET fail-closed"
+    },
+    {
+      "pieza": "src/app/api/cron/vigilante/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: n.a. · consultorio: n.a. · lista blanca: n.a. — CRON_SECRET fail-closed"
+    },
+    {
+      "pieza": "src/app/api/csp-report/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: sí — sin credenciales por especificación; sólo acumula contadores"
+    },
+    {
+      "pieza": "src/app/api/cumplimiento/bitacora/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/demo/evidencia/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: n.a. — sandbox con datos ficticios"
+    },
+    {
+      "pieza": "src/app/api/errores/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: sí — el POST acepta ANÓNIMOS pese a declararse tipo `sesion` en el registro de rutas (S-005); redacta con redactarString"
+    },
+    {
+      "pieza": "src/app/api/expediente/antibiograma-razonar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — entitlement + clinicId del uid"
+    },
+    {
+      "pieza": "src/app/api/expediente/antibiograma-vision/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/atribuir-roles/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/corregir/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/evidencia/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/exportar/[patientId]/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — clinico.escribir, no clinico.leer, para un export íntegro"
+    },
+    {
+      "pieza": "src/app/api/expediente/extraer-entidades/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/laboratorio-vision/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/paquete-de-visita/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — capacidad `firmar`: liberar no es escribir"
+    },
+    {
+      "pieza": "src/app/api/expediente/pregunta-atendida/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — dos campos, nunca ...body"
+    },
+    {
+      "pieza": "src/app/api/expediente/procesar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — clinicId del uid; reserva de créditos por clínica"
+    },
+    {
+      "pieza": "src/app/api/expediente/transcribir-chunk/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/transcribir-diarizado/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — el GET comprueba transcript_owners contra el clinicId del uid (línea 454)"
+    },
+    {
+      "pieza": "src/app/api/expediente/transcribir/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/expediente/verificar-nota/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/facturacion/descargar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — capacidad facturar"
+    },
+    {
+      "pieza": "src/app/api/facturacion/pagos/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — verificarMiembro con estrechamiento a `cobrar` declarado pendiente"
+    },
+    {
+      "pieza": "src/app/api/facturacion/solicitar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — idempotente por transacción sobre cfdiUuid (línea 115)"
+    },
+    {
+      "pieza": "src/app/api/fhir/paciente/[patientId]/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — clinico.escribir, no clinico.leer"
+    },
+    {
+      "pieza": "src/app/api/health/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: n.a. — sólo booleanos, latencias y versión; sin PHI ni claves"
+    },
+    {
+      "pieza": "src/app/api/hl7/convertir/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — verificarMiembro; estrechamiento a clinico.leer declarado pendiente"
+    },
+    {
+      "pieza": "src/app/api/hospital/alerta/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — modulo: hospital"
+    },
+    {
+      "pieza": "src/app/api/hospital/mutar/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — patch() por acción en el servidor; el catch final devuelve e.message crudo (línea 573) — S-006. modulo: hospital"
+    },
+    {
+      "pieza": "src/app/api/inmuno/redactar/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/mantenimiento/backfill-contadores/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — ningún llamador en app/hooks/components; e.message al cliente (59, 96) — S-013 y S-006"
+    },
+    {
+      "pieza": "src/app/api/payment/create-checkout/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: token · consultorio: sí · lista blanca: sí — monto y moneda del servidor; comprueba revocación y titularidad de la cita"
+    },
+    {
+      "pieza": "src/app/api/planes/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: n.a. — precios de lista, públicos por definición"
+    },
+    {
+      "pieza": "src/app/api/portal/link/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — alcance clinico cobra `firmar`; agenda sigue en verificarMiembro (declarado)"
+    },
+    {
+      "pieza": "src/app/api/portal/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: token · consultorio: sí · lista blanca: sí — token HMAC + revocación + tres frenos; listas blancas de entrada y de salida"
+    },
+    {
+      "pieza": "src/app/api/public/availability/[clinicId]/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: n.a. — sólo huecos libres"
+    },
+    {
+      "pieza": "src/app/api/public/booking/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: sí · lista blanca: sí — clinicId es el del perfil público; dos frenos de tasa; validación de día y horario en servidor"
+    },
+    {
+      "pieza": "src/app/api/public/clinic/[clinicId]/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: n.a. · lista blanca: n.a. — sólo datos ya publicados"
+    },
+    {
+      "pieza": "src/app/api/public/resena/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: sí · lista blanca: sí — token de un solo uso en transacción; freno ESTRICTO; error genérico"
+    },
+    {
+      "pieza": "src/app/api/receta/detectar-campos/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/receta/diseno-url/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — clinicId canónico de clinic_members; sólo paths de la propia clínica"
+    },
+    {
+      "pieza": "src/app/api/receta/diseno/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: capacidad HMAC · consultorio: sí · lista blanca: n.a. — capacidad liga version+path+ownerUid+clinicId+exp; falla cerrado sin secreto"
+    },
+    {
+      "pieza": "src/app/api/receta/verificacion-url/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — capacidad firmar; emisor y folio derivados de la nota (v2)"
+    },
+    {
+      "pieza": "src/app/api/seguridad/csp-estado/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/soporte/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: no · lista blanca: parcial — guarda 3000 caracteres de prosa del médico SIN redactar en una colección RAÍZ de plataforma, y el clinicId sale del cuerpo sin validar — S-003"
+    },
+    {
+      "pieza": "src/app/api/stripe/asientos/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — POST exige administrar; GET con pendiente Q7 declarado"
+    },
+    {
+      "pieza": "src/app/api/stripe/checkout/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/stripe/portal/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/stripe/recarga/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/stripe/webhook/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: firma Stripe · consultorio: n.a. · lista blanca: sí — constructEvent + marcas de idempotencia (anticipos_procesados, recargas_procesadas, platform_payments por invoice.id)"
+    },
+    {
+      "pieza": "src/app/api/superadmin/accion/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — patch construido en servidor por acción; devuelve e.message crudo (línea 166) — S-006"
+    },
+    {
+      "pieza": "src/app/api/superadmin/clientes/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a. — devuelve e.message crudo (198), sólo al dueño"
+    },
+    {
+      "pieza": "src/app/api/superadmin/contabilidad/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/superadmin/costos/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/superadmin/csp/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/superadmin/incidentes/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/superadmin/onboarding/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: n.a."
+    },
+    {
+      "pieza": "src/app/api/superadmin/paquetes/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí — devuelve e.message crudo (90, 137), sólo al dueño"
+    },
+    {
+      "pieza": "src/app/api/superadmin/planes/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/superadmin/simulador/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: n.a. · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/telesalud/sala/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: token o capacidad · consultorio: sí · lista blanca: sí — token evaluado primero, 404 sin confirmar existencia; revocación comprobada (REG-519)"
+    },
+    {
+      "pieza": "src/app/api/telesalud/token/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — clinico.escribir"
+    },
+    {
+      "pieza": "src/app/api/uci/copilot/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — clinicId de la sesión (acceso.clinicId). modulo: uci"
+    },
+    {
+      "pieza": "src/app/api/uci/estancia/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí — GET clinico.leer / POST clinico.escribir. modulo: uci"
+    },
+    {
+      "pieza": "src/app/api/voz/comandos-config/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-callback/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: no · consultorio: sí · lista blanca: sí — clinicId del nonce de un solo uso, nunca de la URL"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/360dialog-webhook/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: api key del canal · consultorio: sí · lista blanca: n.a. — la credencial viva es el ID del documento de índice (whatsapp_channels/{apiKey}) — S-004; sin freno de tasa"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/entregas/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — verificarMiembro; estrechamiento declarado pendiente"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/manual-connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/meta-connect/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/plantillas-config/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: sí"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/waitlist-notify/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sesión: sí · consultorio: sí · lista blanca: n.a. — manda WhatsApp a pacientes sin freno de tasa propio; la única contención es la marca `contactado` dentro de ofrecerHuecoLiberado — S-014"
+    },
+    {
+      "pieza": "src/app/api/whatsapp/webhook/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sesión: firma x-hub-signature-256 · consultorio: sí · lista blanca: sí — fail-closed sin META_APP_SECRET; dedup por wamid"
+    },
+    {
+      "pieza": "firestore.rules",
+      "veredicto": "con hallazgos",
+      "nota": "68 colecciones, 8 usos de hasOnly. Congelan la forma: asr_aprendizaje, members, clinic_invitations, clinic_review_requests, icu_observations, signos, hospital_alertas. patients, appointments, reviews, memberships, membership_plans, waitlist, time_blocks, branches, notification_logs, camas, unidades, doctors, dosing_validations y antimicrobial_limits NO la congelan (S-001, S-007, S-008, S-009, S-012). clinics y cobros usan congelado POR CAMPO, no hasOnly, y está razonado."
+    },
+    {
+      "pieza": "src/lib/authz/matriz-acceso.ts",
+      "veredicto": "con hallazgos",
+      "nota": "69 entradas, una por cada match de las reglas; los guardianes cruzan las tres listas. No cubre las 14 colecciones RAÍZ que sólo existen bajo el catch-all (S-010). Declara por escrito el residual de `patients` (S-002)."
+    },
+    {
+      "pieza": "src/lib/clinica/respaldo.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "44 colecciones + 3 raíz + exclusiones con motivo. Coincide con los match de las reglas; las raíz no respaldadas están declaradas en RAIZ_EXCLUIDAS."
+    },
+    {
+      "pieza": "src/lib/authz/registro-rutas.ts",
+      "veredicto": "con hallazgos",
+      "nota": "las 100 rutas declaradas, sin zombis, con motivo obligatorio. El guardián de las de tipo `sesion` sólo comprueba la PRESENCIA textual de verificarUsuario( (S-005)."
+    },
+    {
+      "pieza": "src/lib/authz/capabilities.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "catálogo cerrado, falla cerrado ante rol ausente o desconocido; puente probado con rolesDe() de la matriz."
+    },
+    {
+      "pieza": "src/lib/authz/verificar.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "el 403 nombra la capacidad y NO el rol; la asimetría fail-OPEN de entitlement queda anotada en el log."
+    },
+    {
+      "pieza": "src/lib/auth-server.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "verifica el ID-token antes de todo; lee sign_in_second_factor; fail-CLOSED para módulos opt-in y fail-OPEN declarado para los de consulta."
+    },
+    {
+      "pieza": "src/lib/rate-limit.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "dos políticas explícitas: limitarOResponder (fail-open) y limitarEstricto (503 si el freno no pudo contar)."
+    },
+    {
+      "pieza": "src/lib/patient-token.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "HMAC sobre {c: clinicId, p: patientId, e: exp, a: alcance, v: versión}; 7 días; alcance falla cerrado a `agenda`; revocable por portalTokenVersion. El campo que lo revoca vive en un documento reescribible desde el cliente (S-001)."
+    },
+    {
+      "pieza": "src/lib/receta-token.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "no lleva NINGÚN dato del paciente; liga la huella del contenido y la de la nota firmada; dominio separado por el prefijo \"receta:\"; TTL 2 años justificado. No es revocable — es un certificado de autenticidad, no una credencial de acceso."
+    },
+    {
+      "pieza": "src/lib/receta-diseno-token.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "capacidad versionada que liga path+ownerUid+clinicId+exp, TTL 15 min, comparación en tiempo constante, compatibilidad sin firma muerta en producción."
+    },
+    {
+      "pieza": "src/lib/security/sanitize.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "safeLog + redactarString + redactarRuta; se usa en todas las rutas salvo un console.error en stripe/webhook:482 (ids de Stripe, no PHI)."
+    },
+    {
+      "pieza": "src/lib/security/error-al-cliente.ts",
+      "veredicto": "con hallazgos",
+      "nota": "el helper no recibe el error a propósito, pero quedan 7 sitios que devuelven e.message al cliente pese a REG-534 (S-006)."
+    },
+    {
+      "pieza": "src/lib/security/rutas-privadas.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "fuente única de RE_RUTAS_PRIVADAS y RE_RUTAS_PACIENTE que consume next.config.ts."
+    },
+    {
+      "pieza": "src/lib/security/csp-observacion.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "decide el paso a enforce con criterios escritos; hoy no se puede verificar desde el repositorio si CSP_MODE=enforce está puesto en Vercel (S-011)."
+    },
+    {
+      "pieza": "src/lib/superadmin.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "exige email_verified, pertenencia a SUPERADMIN_EMAILS y segundo factor si hay factores enrolados, con 503 fail-closed si no se puede comprobar."
+    },
+    {
+      "pieza": "next.config.ts",
+      "veredicto": "con hallazgos",
+      "nota": "cabeceras completas (HSTS, nosniff, Permissions-Policy, COOP, X-Frame-Options por zona, no-referrer en rutas de token). CSP en report-only por defecto y con unsafe-inline/unsafe-eval (S-011)."
+    },
+    {
+      "pieza": "middleware.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "NO EXISTE. Toda la autorización vive en cada route handler y en firestore.rules; no hay una capa intermedia que pueda quedarse desincronizada del árbol de rutas."
+    },
+    {
+      "pieza": "src/lib/whatsapp-send.ts",
+      "veredicto": "con hallazgos",
+      "nota": "findClinicByDialog360ApiKey lee whatsapp_channels/{apiKey}: la credencial es el nombre del recurso (S-004)."
+    }
+  ],
+  "hallazgos": [
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-001",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "Cualquier miembro del consultorio puede borrar desde el navegador el bloqueo ARCO de un paciente y resucitar sus enlaces revocados, sin dejar rastro",
+      "archivo": "firestore.rules",
+      "linea": 174,
+      "evidencia": "match /patients/{docId} {\n  allow read: if isMember(clinicId);\n  // La asistente puede EDITAR datos del paciente (contacto, demografía).\n  allow update: if isMember(clinicId);",
+      "reproduccion": "1) El responsable ejecuta POST /api/arco/cancelar con identidadVerificada:true sobre un expediente sintético con notas firmadas. La ruta escribe {arcoBloqueo: marca, portalTokenVersion: n+1} (src/app/api/arco/cancelar/route.ts:113). 2) Con la sesión de un rol `secretaria` o `laboratorio` del MISMO consultorio, desde la consola del navegador: updateDoc(doc(db,'clinics/CID/patients/PID'), { arcoBloqueo: null, portalTokenVersion: 0 }). La regla lo acepta: sólo pide isMember y no congela ningún campo. 3) estaBloqueadoArco() (src/lib/arco/cancelacion.ts:111) vuelve a devolver false y el paciente reentra en reactivacion.ts; tokenVigente() (src/lib/patient-token.ts:164) vuelve a aceptar todos los magic-links emitidos antes de la revocación. 4) audit_log tiene create: if false, así que la escritura del cliente no deja ni un asiento.",
+      "impacto": {
+        "paciente": "Un derecho ARCO ya ejercido —el paciente pidió que no lo contacten y que se bloquee su expediente— se deshace con una escritura, y vuelve a recibir campañas. Y todo enlace del portal que se había revocado por teléfono perdido o mensaje reenviado vuelve a abrir su agenda, sus documentos y su sala de teleconsulta.",
+        "medico": "El responsable del tratamiento de los datos no puede confiar en que una ejecución ARCO permanezca ejecutada, ni demostrar quién la deshizo.",
+        "negocio": "Incumplimiento LFPDPPP demostrable ante el INAI: el control existe, se ejecuta, y se puede revertir sin rastro desde una cuenta de mostrador."
+      },
+      "severidad": 4,
+      "probabilidad": "baja",
+      "control_existente": "La ejecución del derecho sí pasa por servidor y sí deja asiento; nada impide la reversión desde el cliente.",
+      "prioridad": "P1",
+      "propuesta": "Congelar los campos server-authoritative de `patients` en la regla, igual que ya se hace con los de facturación en `clinics` (firestore.rules:117-131): exigir request.resource.data.get('arcoBloqueo', null) == resource.data.get('arcoBloqueo', null) y request.resource.data.get('portalTokenVersion', 0) >= resource.data.get('portalTokenVersion', 0) en el allow update. La revocación del portal es monótona por diseño (tokenVigente compara con >=), así que el >= es el invariante correcto y no rompe el incremento legítimo desde /expediente/[patientId]:665.",
+      "prueba_que_faltaria": "Prueba de reglas (emulador o el banco de reglas existente) con dos casos que hoy PASAN y deben fallar: (a) miembro rol secretaria pone arcoBloqueo:null sobre un paciente bloqueado → debe denegar; (b) miembro pone portalTokenVersion:0 sobre un paciente con versión 3 → debe denegar. Y un control positivo: el mismo miembro editando `telefono` sigue permitido.",
+      "que_no_cubre": "No cubre la reversión desde el servidor: un rol con capacidad `administrar` puede llamar a una ruta y volver a escribir el documento. Tampoco cubre los demás campos server-authoritative de `patients` que aparezcan mañana; el arreglo por campo hay que ampliarlo a mano cada vez, y por eso la solución de fondo es S-012.",
+      "relacionado": [
+        "REG-331",
+        "REG-519",
+        "REG-526",
+        "R-06"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-002",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La recepción lee y ESCRIBE las alergias del paciente, de las que dependen la compuerta de la receta y el cruce de la nota",
+      "archivo": "src/types/index.ts",
+      "linea": 371,
+      "evidencia": "/**\n * Mientras esta lista no esté vacía en producción, la aceptación de E0-06\n * («recepción no lee alergias») NO se cumple: son exactamente los campos que hoy\n * se sirven bajo `allow read: if isMember`.\n */\nexport const CAMPOS_CLINICOS_PACIENTE = ['alergias','alergiasEstructuradas','notas','txValoracion','txValoracionAt','txValoracionHist']",
+      "reproduccion": "Con una sesión de rol `secretaria` (o `laboratorio`, `farmacia`): getDoc(doc(db,'clinics/CID/patients/PID')) devuelve `alergias` y `alergiasEstructuradas` — la regla de firestore.rules:172 sólo pide isMember. Y updateDoc del mismo documento con {alergias:''} se acepta (firestore.rules:174). alergiasParaImpreso() (src/lib/seguridad/alergias.ts), que alimenta la receta del médico y la del portal del paciente (src/app/api/portal/route.ts:1066), leerá ese campo vaciado como verdad del expediente.",
+      "impacto": {
+        "paciente": "Una alergia documentada puede desaparecer del expediente sin acto médico y sin aviso; la receta siguiente se imprime sin ella y el cruce alergia↔fármaco no salta. Y su dato de salud lo ve un rol que la NOM-004 mantiene fuera del secreto médico.",
+        "medico": "Confía en un campo que no controla; la compuerta de seguridad de la receta hereda la integridad del documento más flojo del expediente.",
+        "negocio": "Dato sensible LFPDPPP accesible a un rol no clínico, con la aceptación de una unidad ya cerrada (E0-06) declarada incumplida por escrito en el propio repositorio."
+      },
+      "severidad": 4,
+      "probabilidad": "media",
+      "control_existente": "Existe la subcolección `patients/{id}/clinico` con guarda isMedico y el splitter de escritura; la migración de los campos está declarada pendiente en matriz-acceso.ts y en types/index.ts. Ningún control impide hoy el acceso.",
+      "prioridad": "P1",
+      "propuesta": "Cerrar la Fase B/C ya declarada: terminar de mudar CAMPOS_CLINICOS_PACIENTE a `patients/{id}/clinico/resumen` (que ya tiene guarda isMedico, firestore.rules:381), dejar en `patients` sólo el directorio, y añadir a la regla de update de `patients` un `!request.resource.data.diff(resource.data).affectedKeys().hasAny(CAMPOS_CLINICOS_PACIENTE)` mientras dure la convivencia. No proponemos ningún criterio clínico nuevo: la lista de campos ya está escrita y probada en compilación.",
+      "prueba_que_faltaria": "Prueba de reglas: un miembro rol `secretaria` que hace get de patients/{id} no debe recibir `alergias`; y su update con {alergias: \"...\"} debe denegarse. Hoy las dos pasan. Y una prueba de datos (recuentos, nunca contenido) que cuente cuántos documentos `patients` conservan alguno de los seis campos, para saber cuándo la migración terminó de verdad.",
+      "que_no_cubre": "No resuelve que `appointments.motivo` sea texto clínico bajo isMember — eso es un residual ACEPTADO por decisión (D4, matriz-acceso.ts) y no se toca aquí.",
+      "relacionado": [
+        "R-05"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-003",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El buzón de soporte guarda sin redactar la prosa que el médico escribe —donde caben nombre, teléfono y motivo de consulta— en una colección de plataforma que se lee desde fuera del consultorio",
+      "archivo": "src/app/api/soporte/route.ts",
+      "linea": 28,
+      "evidencia": "const mensaje = String(body.mensaje ?? '').trim().slice(0, 3000)\n...\nawait adminDb.collection('soporte').add({\n  uid: acceso.uid,\n  ...\n  clinicId: String(body.clinicId ?? ''),\n  tipo,\n  mensaje,",
+      "reproduccion": "POST /api/soporte con sesión válida y body {tipo:'falla', mensaje:'No me guarda la nota de <NOMBRE SINTÉTICO>, tel <TELÉFONO SINTÉTICO>, vino por dolor torácico', clinicId:'otra-clinica'}. El documento queda íntegro en la colección raíz `soporte`, que GET /api/soporte sirve completa al superadmin (línea 56), con el clinicId que el cliente eligió.",
+      "impacto": {
+        "paciente": "Sus datos de salud salen del consultorio hacia una colección de plataforma sin que nadie lo decida ni lo redacte, por el canal donde una persona escribe en prosa y por tanto donde más probable es que aparezcan.",
+        "medico": "Describir bien una falla y proteger a su paciente entran en conflicto sin que el producto le avise.",
+        "negocio": "Transferencia de datos sensibles fuera del ámbito del responsable sin base declarada; y el contraste con la ruta hermana lo hace difícil de defender: /api/errores redacta EXACTAMENTE por este motivo y lo dice por escrito («esta colección es RAÍZ — se lee desde fuera del consultorio», src/app/api/errores/route.ts:60-64)."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "Freno de tasa por uid y tope de 3000 caracteres. Ninguna redacción, ningún aviso al que escribe.",
+      "prioridad": "P2",
+      "propuesta": "Pasar `mensaje`, `nombre` y `email` por redactarString() antes del add, igual que hace /api/errores; tomar el clinicId de clinic_members/{uid} y no del cuerpo; y poner en el formulario de soporte una línea que diga que no se escriban datos del paciente. La redacción no impide describir la falla: quita el identificador, no el síntoma.",
+      "prueba_que_faltaria": "Prueba de la ruta que mande un mensaje con un teléfono y un correo sintéticos y compruebe que el documento escrito NO los contiene (y que sí conserva el resto del texto). Hoy fallaría. Y una prueba de que el clinicId guardado es el de la membresía y no el del cuerpo.",
+      "que_no_cubre": "No cubre el nombre del paciente escrito sin patrón reconocible («la señora del martes»): la redacción por patrones no lo alcanza, y por eso hace falta además el aviso en el formulario.",
+      "relacionado": [
+        "REG-534"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-004",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La llave viva de WhatsApp del consultorio se usa como NOMBRE de un documento de plataforma, justo lo que el gestor de secretos existe para evitar",
+      "archivo": "src/lib/whatsapp-send.ts",
+      "linea": 366,
+      "evidencia": "export async function findClinicByDialog360ApiKey(apiKey: string): Promise<string | null> {\n  try {\n    const snap = await adminDb.collection('whatsapp_channels').doc(apiKey).get()",
+      "reproduccion": "Estático. El callback de alta escribe el índice con la llave como id (src/app/api/whatsapp/360dialog-callback/route.ts:15 y src/lib/whatsapp/reclamar-canal.ts:66); la desconexión lo borra por ese mismo id (src/app/api/clinic/whatsapp-disconnect/route.ts:43). El resultado es que la api_key permanente de 360dialog —con la que se envían mensajes desde el número verificado del consultorio— queda escrita como ruta de documento: aparece en el listado de la consola de Firestore, en los registros de acceso a datos de Cloud, en cualquier exportación de la base y en el texto de cualquier error del Admin SDK sobre ese documento. Y no caduca: sólo se borra al desconectar el canal.",
+      "impacto": {
+        "paciente": "Quien obtenga esa llave puede escribirle desde el número verificado de su médico. Es el canal por el que le llegan su magic-link y sus recordatorios.",
+        "medico": "Suplantación de su número de consultorio ante sus pacientes.",
+        "negocio": "Contradice de frente el propósito declarado de src/lib/whatsapp/secreto-canal.ts («el token nunca debe viajar en claro fuera del gestor de secretos»): el token dejó de estar en el documento raíz de la clínica y siguió estando en el nombre del documento de índice."
+      },
+      "severidad": 4,
+      "probabilidad": "baja",
+      "control_existente": "`whatsapp_channels` no tiene bloque match, así que cae en el deny total del catch-all: el cliente no la puede leer. El token en sí ya no vive en el documento raíz de la clínica.",
+      "prioridad": "P2",
+      "propuesta": "Indexar por un hash y no por el secreto: doc(sha256(apiKey)) —en el callback, en reclamarCanal y en findClinicByDialog360ApiKey—, guardando dentro del documento sólo el clinicId y los últimos cuatro caracteres para poder diagnosticar. Migración perezosa como la de secreto-canal.ts: si no está el documento por hash, se busca por el id legado, se reescribe con hash y se borra el viejo. El índice sigue siendo O(1).",
+      "prueba_que_faltaria": "Prueba que acuñe una api_key sintética, llame a reclamarCanal y compruebe que NINGÚN id de documento de whatsapp_channels contiene la llave (y que findClinicByDialog360ApiKey sigue resolviendo el clinicId). Hoy fallaría en la primera aserción.",
+      "que_no_cubre": "No cubre el índice por `phoneNumberId` de Meta, que se guarda igual pero NO es un secreto (es un identificador público del canal). Tampoco cubre la ausencia de rotación de la llave, que es una decisión aparte.",
+      "relacionado": []
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-005",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "El guardián que certifica que «ninguna ruta queda sin sesión» se satisface con que la llamada exista, aunque la ruta ignore el resultado — y ya hay una que lo hace",
+      "archivo": "src/__tests__/authz-rutas-declaradas.test.ts",
+      "linea": 479,
+      "evidencia": "if (e.tipo === 'sesion' && !/verificarUsuario\\s*\\(/.test(src)) desajustes.push(`${clave}: sin verificarUsuario`)",
+      "reproduccion": "src/lib/authz/registro-rutas.ts:346 declara 'errores' como { tipo: 'sesion', motivo: 'POST reporta un error del propio usuario…' }. src/app/api/errores/route.ts:40-41 hace `const acceso = await verificarUsuario(req); const anonimo = !acceso.ok` y SIGUE ADELANTE: acepta reportes sin sesión (por un motivo bueno y documentado — el boundary global y el login). El guardián pasa en verde porque la cadena `verificarUsuario(` está en el archivo. Es decir: el registro de rutas, que es el artefacto con el que se responde «¿toda ruta valida sesión?», afirma algo que el código no hace, y la prueba que debía cazarlo no puede.",
+      "impacto": {
+        "paciente": "Ninguno hoy: la ruta que diverge redacta con redactarString y tiene freno por IP.",
+        "medico": "Ninguno hoy.",
+        "negocio": "El inventario de autorización deja de ser fiable justo donde más se usa: una ruta futura declarada `sesion` puede dejar de exigirla y el CI seguirá verde. Es un control que se prueba a sí mismo por presencia, no por efecto — el patrón que testing-gates.md prohíbe («una prueba que no puede fallar no es una prueba»)."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "El guardián sí cruza el CÓDIGO contra el registro para los tipos con capacidad (verificarCapacidad). Para `sesion` sólo mira presencia textual.",
+      "prioridad": "P2",
+      "propuesta": "Dos cosas, y ninguna toca la conducta de la ruta: (a) añadir al tipo ExigenciaRuta un `publica` por método, o un flag `anonimoPermitido` con motivo, y reclasificar 'errores' como { tipo: 'porMetodo' } con POST público motivado y GET/PATCH superadmin — el registro diría la verdad; (b) endurecer el guardián de `sesion` para exigir que tras la llamada exista un `if (!acceso.ok) return`, que es la forma con la que las otras 9 rutas de ese tipo la aplican.",
+      "prueba_que_faltaria": "Probar el guardián al revés: inyectar en un archivo temporal una ruta declarada `sesion` que llame a verificarUsuario e ignore el resultado, y comprobar que el guardián se pone rojo. Hoy pasaría en verde.",
+      "que_no_cubre": "No dice nada sobre los tipos `publica`, `webhook` y `cron`, que están exentos por diseño y cuya autenticación se comprueba en otras pruebas.",
+      "relacionado": []
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-006",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "Siete rutas siguen devolviendo el texto del error del Admin SDK al cliente, y ese texto trae rutas de documento con el id del paciente dentro",
+      "archivo": "src/app/api/hospital/mutar/route.ts",
+      "linea": 573,
+      "evidencia": "const msg = e instanceof Error ? e.message : 'error'\nif (msg === 'no-existe') return ...\nif (msg === 'CAMA_OCUPADA') return ...\nif (msg.startsWith('BLOQUEADO:')) return ...\nreturn NextResponse.json({ ok: false, error: msg }, { status: 500 })",
+      "reproduccion": "Provocar un fallo de Firestore dentro de la transacción del gateway (por ejemplo, con reglas que denieguen o un documento inexistente en un camino no previsto). El `msg` que cae al último return no es uno de los tres centinelas: es el mensaje del proveedor, que según la propia cabecera de src/lib/security/error-al-cliente.ts «trae nombres de colecciones, rutas de documentos (con el id del paciente dentro), mensajes del proveedor y, a veces, el dato que provocó el fallo». Los otros seis sitios: clinic/unirse:95 (sin recortar), clinic/crear:111, config/imagen:52, mantenimiento/backfill-contadores:59 y :96, auditoria/registrar:109.",
+      "impacto": {
+        "paciente": "El identificador de su expediente puede llegar al navegador de quien sondea la API.",
+        "medico": "Ve un mensaje del proveedor que no le dice qué hacer, que es la otra mitad del motivo por el que se hizo REG-534.",
+        "negocio": "Reconocimiento gratis de la estructura interna para quien sondee, y una reparación registrada como cerrada que no lo está del todo."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "errorAlCliente() existe y está adoptado en la mayoría de las rutas; safeLog redacta lo que va al log.",
+      "prioridad": "P2",
+      "propuesta": "Sustituir los siete `error: e.message` por errorAlCliente() con el mensaje concreto que la ruta sí conoce, precedido del safeLog.error(...) que ya hacen las demás. En hospital/mutar conservar los tres centinelas (`no-existe`, `CAMA_OCUPADA`, `BLOQUEADO:`) que son mensajes propios y útiles, y mandar al genérico sólo el resto.",
+      "prueba_que_faltaria": "Extender el guardián de REG-534 (si existe) o escribir uno: un test que recorra src/app/api/**/route.ts y falle si aparece `error: ` seguido de `e.message`/`err.message`/`String(e)` dentro de un NextResponse.json. Hoy encontraría siete.",
+      "que_no_cubre": "No cubre los mensajes que se guardan DENTRO de la aplicación (latidos de cron, notas de respaldo), donde el propio repositorio decide acotarlos con redactarString en vez de suprimirlos.",
+      "relacionado": [
+        "REG-534"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-007",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La lista blanca de campos de la cita y la regla «sólo el médico agenda encima de otro» se saltan escribiendo la cita directo desde el navegador",
+      "archivo": "firestore.rules",
+      "linea": 151,
+      "evidencia": "allow update: if isMember(clinicId) && (\n  !(resource.data.get('cobroExento', false) == false && request.resource.data.get('cobroExento', false) == true)\n  || ( ... exentoPor == request.auth.uid ... )\n);",
+      "reproduccion": "La aplicación ya escribe citas directamente con el SDK cliente (updateAppointment, src/lib/firestore.ts:90, usado en consulta/[patientId]:4455 y CobrarModal:225), así que el camino existe y está abierto. Con una sesión de rol `secretaria`: updateDoc(doc(db,'clinics/CID/appointments/AID'), { cobradoEn: '2026-09-06', cobroId: 'inventado', sobreagendada: true, sobreagendadaPor: 'otro-uid' }). La regla sólo mira `cobroExento`, así que lo acepta. Ninguno de esos campos está en CAMPOS_CITA de /api/appointments (route.ts:57), y `sobreagendadaPor` la ruta lo fija desde la sesión a propósito (route.ts:266).",
+      "impacto": {
+        "paciente": "Su cita puede aparecer como cobrada sin que exista el cobro, o como sobreagendada a nombre de otra persona.",
+        "medico": "La compuerta que el dueño pidió expresamente —sobreagendar es del médico, no del mostrador (route.ts:93-102)— sólo vale para quien entre por la API.",
+        "negocio": "`cobradoEn`/`cobroId` sin documento en `cobros` descuadra el corte de caja, y `cobros` es justo la colección que se blindó campo a campo contra este mismo tipo de fraude."
+      },
+      "severidad": 3,
+      "probabilidad": "baja",
+      "control_existente": "La ruta /api/appointments sí tiene lista blanca y sí exige rol médico para sobreagendar; el guard antifraude de `cobroExento` sí está en la regla.",
+      "prioridad": "P2",
+      "propuesta": "Congelar en el allow update de `appointments` los campos que sólo debe poner el servidor: cobroId, cobradoEn, sobreagendada, sobreagendadaMotivo, sobreagendadaPor, sobreagendadaEn, telesaludUrl, telesaludNombre, telesaludExpiresAt, googleCalendarEventId y googleCalendarSyncStatus, con el mismo patrón `request.resource.data.get(x, d) == resource.data.get(x, d)` que ya usan `clinics` y `cobros`. Alternativa de fondo, más limpia: cerrar el update del cliente y hacer que CobrarModal y la consulta pasen por la ruta, que ya es transaccional.",
+      "prueba_que_faltaria": "Prueba de reglas: miembro rol secretaria hace update de una cita poniendo cobradoEn y sobreagendada:true → debe denegarse; el mismo miembro cancelando la cita (estado) → debe seguir permitido. Hoy la primera pasa.",
+      "que_no_cubre": "No cubre el `create` directo de una cita desde el cliente, que sigue sin re-chequear conflicto ni horario (la regla sólo mira el paywall y la exención): eso es un empalme de agenda, no un problema de dinero, y necesita su propia decisión sobre si se cierra el create del cliente.",
+      "relacionado": [
+        "REG-015"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-008",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "El consultorio puede reescribir el texto y la calificación de la reseña que un paciente ya publicó, sin dejar rastro",
+      "archivo": "firestore.rules",
+      "linea": 999,
+      "evidencia": "allow create: if false;   // solo Admin SDK (/api/public/resena)\nallow update, delete: if isMember(clinicId);",
+      "reproduccion": "Un paciente envía su reseña por /api/public/resena (rating 2, texto crítico); el documento nace con estado 'pendiente'. Cualquier miembro del consultorio —cualquier rol— hace updateDoc(doc(db,'clinics/CID/reviews/RID'), { rating: 5, texto: 'Excelente atención', estado: 'publicada' }). La regla lo acepta: no congela ni `rating`, ni `texto`, ni `pacienteNombre`, ni `createdAt`. La reseña resultante es pública (allow read cuando estado=='publicada', línea 989).",
+      "impacto": {
+        "paciente": "Se publica bajo su nombre una opinión que él no escribió. Y el que busca un médico lee un promedio que no salió de nadie.",
+        "medico": "Su reputación pública descansa en un dato que su propio equipo puede editar, así que no acredita nada.",
+        "negocio": "Publicidad engañosa: reseñas de terceros presentadas como auténticas y editables por el interesado. Es riesgo legal y de plataforma, no sólo de imagen."
+      },
+      "severidad": 3,
+      "probabilidad": "baja",
+      "control_existente": "El create está cerrado al Admin SDK y el token de la solicitud es de un solo uso; el flujo previsto es sólo moderar (aprobar/rechazar).",
+      "prioridad": "P2",
+      "propuesta": "Reducir el update a lo que la moderación necesita: allow update: if isMember(clinicId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado','moderadoPor','moderadoEn']); y allow delete: if false (una reseña rechazada es un estado, como el cobro anulado). Es el mismo patrón exacto que ya se aplicó a hospital_alertas (línea 566) por el mismo razonamiento: «borrarla estaba prohibido y vaciarla no».",
+      "prueba_que_faltaria": "Prueba de reglas: miembro cambia `texto`/`rating` de una reseña → denegado; miembro cambia sólo `estado` a publicada → permitido. Hoy las dos pasan.",
+      "que_no_cubre": "No impide que el consultorio no publique una reseña mala: eso es moderación legítima y una decisión de producto, no un defecto de seguridad.",
+      "relacionado": []
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-009",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Las membresías de pacientes y sus planes —dinero recurrente— se pueden crear, editar y BORRAR desde el navegador por cualquier rol, sin autor y sin forma congelada",
+      "archivo": "firestore.rules",
+      "linea": 811,
+      "evidencia": "match /membership_plans/{planId} {\n  allow read, write: if isMember(clinicId);\n}\nmatch /memberships/{membershipId} {\n  allow read, write: if isMember(clinicId);\n}",
+      "reproduccion": "Con una sesión de rol `laboratorio` o `enfermeria`: deleteDoc(doc(db,'clinics/CID/memberships/MID')) o updateDoc del plan con {precio: 0}. `write` incluye create, update y delete y no hay ninguna condición: ni autor (`creadoPor == request.auth.uid`), ni piso de monto, ni prohibición de borrar. Contrastar con `cobros` (línea 891), donde exactamente los mismos riesgos —autor suplantable, monto negativo, anulación sin huella— se cerraron uno a uno y se documentaron.",
+      "impacto": {
+        "paciente": "Su membresía —que es lo que le da derecho a consultas ya pagadas— puede desaparecer sin que quede constancia de quién la quitó.",
+        "medico": "Ingreso recurrente sin registro contable defendible.",
+        "negocio": "Asimetría difícil de justificar en una auditoría: el cobro puntual es una fortaleza y el ingreso recurrente no tiene ni un candado. Un plan borrado no deja rastro ninguno."
+      },
+      "severidad": 3,
+      "probabilidad": "baja",
+      "control_existente": "Ninguno en la regla. Sólo la interfaz, que no es un borde.",
+      "prioridad": "P2",
+      "propuesta": "Aplicar a las dos colecciones el patrón ya probado de `cobros`: create exigiendo creadoPor == request.auth.uid y precio/monto numérico ≥ 0; update congelando los campos económicos y de identidad (precio, patientId, planId, creadoPor, fechaAlta) salvo la baja, que se hace con estado + autor + fecha + motivo; delete: if false. Si el dueño prefiere restringir además por rol, `cobrar` es la capacidad que ya existe para esto — pero eso es decisión suya, no nuestra.",
+      "prueba_que_faltaria": "Prueba de reglas: miembro borra una membership → denegado; miembro la da de baja con estado+motivo+autor → permitido; miembro crea una con creadoPor de otro uid → denegado. Hoy las tres primeras pasan.",
+      "que_no_cubre": "No dice nada sobre si el modelo de membresías está bien diseñado ni sobre su conciliación con Stripe; sólo sobre quién puede escribirlo desde el cliente.",
+      "relacionado": [
+        "REG-015"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-010",
+      "modulo": "nucleo",
+      "tipo": "mejora",
+      "titulo": "Catorce colecciones raíz que el servidor escribe —incluida la que indexa credenciales de WhatsApp y la de los nonces de OAuth— no están en la matriz de acceso ni tienen regla propia: la regla de los TRES SITIOS no las alcanza",
+      "archivo": "src/lib/authz/matriz-acceso.ts",
+      "linea": 96,
+      "evidencia": "/**\n * LA MATRIZ. Una entrada por cada `match` de firestore.rules, en el mismo orden\n * en que aparecen en el archivo (facilita revisarlas en paralelo).\n */\nexport const MATRIZ_ACCESO: readonly RecursoAcceso[] = [",
+      "reproduccion": "Cruzar las colecciones raíz que aparecen en `adminDb.collection('X')` contra los `match` de primer nivel de firestore.rules. Quedan fuera catorce: whatsapp_channels, oauthStates, errores, soporte, rate_limits, transcript_owners, anticipos_procesados, recargas_procesadas, platform_config, platform_csp, platform_heartbeats, platform_incidentes, platform_recargas y libro. Todas están cubiertas por el `match /{document=**} { allow read, write: if false }` final (línea 1210), y todas están declaradas en RAIZ_EXCLUIDAS del manifiesto de respaldo — pero la matriz de acceso, que es donde se responde «¿quién lee esto?», sólo tiene entradas para colecciones con `match` propio, así que ninguna de las catorce está clasificada.",
+      "impacto": {
+        "paciente": "Ninguno hoy: el catch-all las cierra al cliente.",
+        "medico": "Ninguno hoy.",
+        "negocio": "La garantía de la regla («toda colección nueva se declara en TRES sitios») sólo se puede comprobar para las colecciones que ya tienen `match`. Una colección raíz nueva puede nacer clasificada en cero sitios y ningún guardián lo dirá. Y hoy eso incluye dos con contenido de seguridad: el índice que resuelve la credencial de WhatsApp de cada consultorio (S-004) y los nonces de un solo uso de OAuth."
+      },
+      "severidad": 2,
+      "probabilidad": "media",
+      "control_existente": "El catch-all deny las cierra al SDK cliente; el guardián de la matriz sí caza el sentido contrario (un `match` nuevo sin entrada en la matriz pone el CI en rojo).",
+      "prioridad": "P2",
+      "propuesta": "Añadir a MATRIZ_ACCESO una entrada por cada colección raíz con clase 'plataforma', guardaLectura y guardaEscritura 'servidor', y el porqué; y ampliar matriz-acceso.test.ts con el cruce que falta: toda colección que aparezca en un `adminDb.collection('…')` de primer nivel tiene que estar en la matriz o en una lista de exenciones con motivo. Es el mismo mecanismo que ya funciona en el otro sentido; sólo falta cerrar el círculo.",
+      "prueba_que_faltaria": "Test que recorra src/**/*.ts, extraiga los literales de adminDb.collection(...) de primer nivel y falle si alguno no está en MATRIZ_ACCESO ni en una lista de exenciones declarada. Hoy encontraría catorce.",
+      "que_no_cubre": "No cubre subcolecciones creadas dinámicamente con un nombre calculado, que ningún análisis estático de literales puede ver.",
+      "relacionado": [
+        "R-06"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-011",
+      "modulo": "nucleo",
+      "tipo": "mejora",
+      "titulo": "La política de contenido va en modo aviso por omisión y permite scripts en línea: hoy no hay ningún freno real contra un XSS almacenado en el área clínica",
+      "archivo": "next.config.ts",
+      "linea": 44,
+      "evidencia": "/** Modo efectivo. Fail-safe: sólo el literal 'enforce' aprieta. */\nfunction modoCsp(): CspMode {\n  return process.env.CSP_MODE === \"enforce\" ? \"enforce\" : \"report-only\";\n}",
+      "reproduccion": "CSP_MODE no aparece definida en ningún archivo del repositorio (ni vercel.json, ni scripts, ni .env de ejemplo): sólo se lee en next.config.ts y en las dos rutas que informan del modo. Sin ella, el build emite Content-Security-Policy-Report-Only para todo salvo frame-ancestors. Y aun con enforce, script-src lleva 'unsafe-inline' y 'unsafe-eval' (línea 133), así que la directiva no detendría una inyección en línea.",
+      "impacto": {
+        "paciente": "Si alguna vez entra HTML/JS por un campo que se pinta sin escapar —el motivo de una cita, un texto del formulario previo, el nombre de un paciente importado por CSV—, no hay segunda barrera antes de que ese script lea el expediente en pantalla.",
+        "medico": "Su sesión es la que ejecutaría.",
+        "negocio": "La reparación está diseñada, medida y con criterios escritos (E0-10, src/lib/security/csp-observacion.ts): lo que falta es el interruptor y el endurecimiento de script-src. Mientras tanto la cabecera informa y no protege, y desde el repositorio no se puede saber en qué modo está producción."
+      },
+      "severidad": 3,
+      "probabilidad": "baja",
+      "control_existente": "frame-ancestors sí viaja en modo enforce en las dos zonas que importan; X-Frame-Options DENY en rutas privadas y de paciente; el subidor de imágenes rechaza SVG justo por este vector (config/imagen:33-39); React escapa por defecto.",
+      "prioridad": "P2",
+      "propuesta": "Dos pasos separados, en este orden: (1) verificar contra producción en qué modo está la cabecera (curl -sI sobre una ruta privada) y, si sigue en aviso, decidir la fecha del flip con los criterios que csp-observacion.ts ya calcula; (2) planificar la retirada de 'unsafe-inline'/'unsafe-eval' con nonces por petición, que es la unidad aparte que el propio archivo anuncia. Sin el paso 2, el paso 1 sube poco el listón contra XSS aunque sí cierra la carga de orígenes externos.",
+      "prueba_que_faltaria": "El repositorio ya tiene csp-manifest.test.ts, que compara el manifiesto del build; lo que falta es la comprobación contra el SITIO VIVO en el paso e2e:seguridad:prod: que la cabecera de una ruta privada sea Content-Security-Policy y no la Report-Only. Ese es el sitio donde deployment-and-flags.md dice que se miden las cabeceras de producción.",
+      "que_no_cubre": "No cubre la ausencia de Cross-Origin-Resource-Policy ni de Cross-Origin-Embedder-Policy, que son otro eje (aislamiento de recursos) y hoy no bloquean nada crítico.",
+      "relacionado": []
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-012",
+      "modulo": "nucleo",
+      "tipo": "defecto",
+      "titulo": "La regla dice que toda colección lleva la forma congelada con hasOnly; ocho de sesenta y ocho la llevan, y las que faltan son las que guardan el expediente, la agenda, el dinero recurrente y la reputación",
+      "archivo": ".claude/rules/security-tenant.md",
+      "linea": 5,
+      "evidencia": "## Toda colección nueva se declara en TRES sitios\n\n1. `firestore.rules`, con la forma **congelada** (`hasOnly`) y su guarda.",
+      "reproduccion": "grep -c hasOnly firestore.rules devuelve 8, sobre 68 colecciones y 71 bloques match. Las ocho que sí congelan la forma son asr_aprendizaje (707), members (1027), clinic_invitations (1136), clinic_review_requests (1100), icu_observations (471), signos (429), hospital_alertas (566) y el update de clinic_review_requests. `clinics` (117-131) y `cobros` (912-978) usan congelado POR CAMPO enumerado, que es equivalente y está razonado por escrito. El resto —patients, appointments, reviews, memberships, membership_plans, waitlist, time_blocks, branches, notification_logs, doctors, camas, unidades, dosing_validations, antimicrobial_limits, farmacia, tareas_clinicas, laboratorio, hospital_roles— acepta cualquier campo con cualquier valor mientras la guarda de rol pase.",
+      "impacto": {
+        "paciente": "Es la causa común de S-001, S-002, S-007, S-008 y S-009: cinco maneras distintas de que un campo del que depende su seguridad, su privacidad o su dinero se pueda escribir desde una consola del navegador.",
+        "medico": "Cada campo server-authoritative que se añada mañana nace sin protección y nadie lo nota, porque no hay ningún guardián que exija la forma congelada.",
+        "negocio": "R-06 («datos de un consultorio visibles en otro») está registrado como controlado con el argumento «reglas con forma congelada + matriz de acceso»; la primera mitad de ese argumento se cumple en el 12% de las colecciones. El aislamiento ENTRE consultorios sí está bien cerrado; lo que no está congelado es la forma DENTRO de cada uno."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "La guarda de rol (isMember/isMedico/isClinicoHospital/isLabStaff) sí está en todas; el aislamiento por clinicId sí es correcto en todas; la matriz de acceso y su guardián sí cruzan las tres listas.",
+      "prioridad": "P2",
+      "propuesta": "Un guardián y una lista, no 68 reglas de golpe: (a) un test que recorra firestore.rules y exija que todo bloque con create o update permitido al cliente lleve `hasOnly` o un congelado por campo, con una lista de exenciones declaradas y motivadas —el mismo mecanismo con el que registro-rutas.ts obliga a motivar cada exención de ruta—; (b) empezar la lista de exenciones con lo que hoy está sin congelar, para que el techo sólo pueda bajar, como el trinquete de lint. Priorizar en este orden por impacto: patients, appointments, memberships/membership_plans, reviews.",
+      "prueba_que_faltaria": "El test descrito en (a), arrancado con la lista de exenciones actual y probado al revés: quitar el hasOnly de asr_aprendizaje debe ponerlo rojo. Hoy no existe ningún test que mire si una colección congela su forma.",
+      "que_no_cubre": "No cubre el aislamiento entre consultorios, que es un eje distinto y sí está bien: las 71 rutas de match cuelgan de clinics/{clinicId} o comprueban clinicId contra clinic_members, y el catch-all cierra el resto.",
+      "relacionado": [
+        "R-06",
+        "REG-016"
+      ]
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-013",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "Un endpoint de migración de una sola vez sigue abierto y reescribe los contadores de todos los pacientes del consultorio; nadie lo llama desde la aplicación",
+      "archivo": "src/app/api/mantenimiento/backfill-contadores/route.ts",
+      "linea": 31,
+      "evidencia": "export async function POST(req: NextRequest) {\n  const clinicId = req.nextUrl.searchParams.get('clinicId') ?? ''\n  const simular = req.nextUrl.searchParams.get('simular') === '1'\n\n  const acc = await verificarCapacidad(req, clinicId, 'administrar')",
+      "reproduccion": "grep -rl 'api/mantenimiento/backfill-contadores' sobre src/app, src/components, src/hooks, src/lib, scripts y public no devuelve ningún llamador: sólo aparece en docs/auditoria/AUDIT_LOG.md, en el registro de rutas y en dos tests. Es decir, es superficie HTTP que sólo se puede invocar a mano con un token de administrador. Y lo que hace no es de sólo lectura: reescribe noShowCount, cancelacionCount y ultimaCita de todos los pacientes del consultorio, que son los campos que alimentan el motor de riesgo de no-asistencia y el CRM.",
+      "impacto": {
+        "paciente": "Si se ejecuta cuando no debe, el riesgo de no-asistencia que el sistema le atribuye cambia sin que nadie lo haya decidido.",
+        "medico": "Función invisible en el producto: no hay botón, no hay pantalla, no hay forma de saber que existe ni de saber que ya se corrió.",
+        "negocio": "Superficie de ataque permanente a cambio de una tarea que se hace una vez. Suma dos fugas de mensaje de error (líneas 59 y 96, ver S-006)."
+      },
+      "severidad": 2,
+      "probabilidad": "baja",
+      "control_existente": "Exige capacidad `administrar` sobre ESE consultorio y ofrece ?simular=1 para ver qué haría antes de escribir. No es explotable entre consultorios.",
+      "prioridad": "P3",
+      "propuesta": "Recomendación: RETIRAR la ruta y mover la lógica a un script de scripts/ que corra con credenciales de servicio, como el resto del mantenimiento. Si el dueño prefiere conservarla, la alternativa mínima es subirla a `superadmin` (es una operación de plataforma, no del consultorio) y anotar en el documento de la clínica cuándo se corrió, para que ejecutarla dos veces sea visible. No la borramos: se propone.",
+      "prueba_que_faltaria": "Ninguna de seguridad; lo que faltaría es la entrada en el registro de rutas que declare por escrito que no tiene llamador y por qué se conserva — hoy está declarada como una ruta normal de `administrar`, indistinguible de las que la aplicación sí usa.",
+      "que_no_cubre": "No dice nada sobre si los contadores están bien calculados; sólo sobre que la puerta siga abierta.",
+      "relacionado": []
+    },
+    {
+      "panel": "seguridad",
+      "rol": "ciberseguridad",
+      "decision_del_dueno": null,
+      "id": "S-014",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La ruta que ofrece un hueco liberado manda WhatsApp a pacientes sin freno de tasa propio",
+      "archivo": "src/app/api/whatsapp/waitlist-notify/route.ts",
+      "linea": 28,
+      "evidencia": "  const acc = await verificarMiembro(req, clinicId)\n  if (!acc.ok) return acc.response\n\n  const r = await ofrecerHuecoLiberado(clinicId, { fecha, hora, tipo, medicoId })\n  return NextResponse.json(r, { status: r.ok ? 200 : 500 })",
+      "reproduccion": "POST repetido con sesión de cualquier miembro y fechas/horas distintas: cada llamada recorre la lista de espera y envía hasta tres WhatsApp. No hay ninguna llamada a limitar*/limitarEstricto en el archivo. Comparar con las otras rutas que gastan dinero o molestan a un humano: /api/portal cobra tres ventanas, /api/public/booking dos, /api/telesalud/sala una, y todas las rutas de IA tienen la suya.",
+      "impacto": {
+        "paciente": "Puede recibir una ráfaga de ofertas de hueco desde el número de su consultorio si una cuenta del equipo se ve comprometida o si un cliente de la API entra en bucle.",
+        "medico": "Coste por mensaje y, peor, pacientes que dejan de leer los mensajes del consultorio.",
+        "negocio": "Riesgo de que Meta/360dialog degraden la calidad del número del consultorio, que es un activo que no se recupera rápido."
+      },
+      "severidad": 2,
+      "probabilidad": "baja",
+      "control_existente": "Exige ser miembro del consultorio (no es pública). Y ofrecerHuecoLiberado marca `contactado` y no reofrece al mismo paciente hasta pasadas unas horas, lo que acota la repetición POR PACIENTE pero no el número de llamadas ni el barrido de la lista entera con huecos distintos.",
+      "prioridad": "P3",
+      "propuesta": "Añadir limitarOResponder(`waitlist:${clinicId}`, N, 600) al principio de la ruta, con el mismo criterio que sus hermanas. No proponemos el número: el cupo razonable depende del tamaño de agenda del consultorio y es una decisión del dueño (por comparación, /api/portal usa 10 mutaciones por 10 minutos y por paciente).",
+      "prueba_que_faltaria": "Prueba de la ruta que haga N+1 llamadas seguidas y espere un 429 en la última. Hoy devolvería 200.",
+      "que_no_cubre": "No cubre el camino del portal del paciente, que llama a ofrecerHuecoLiberado directamente y ya está detrás de los tres frenos de /api/portal.",
+      "relacionado": []
+    }
+  ]
+}

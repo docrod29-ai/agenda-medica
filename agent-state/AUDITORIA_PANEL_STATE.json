@@ -6,19 +6,77 @@
   "aprobado_por_dueno": "2026-09-06",
   "fase_actual": 1,
   "fases": {
-    "0_linea_base": { "estado": "en_curso", "inventario": "hecho", "vitest": null, "lint": null, "build": null, "mantenimiento": null, "app_levantada": null },
+    "0_linea_base": {
+      "estado": "hecha",
+      "inventario": "hecho",
+      "vitest": "12876 pasan / 1 falla ambiental (ops-timeout-y-punto-ciego, proxy del contenedor)",
+      "lint": "93 = techo",
+      "build": "TS pasa; sin env falla en /dr/[clinicId] (Firebase al importar); con env del arnés compila",
+      "mantenimiento": "script no existe en package.json aunque CLAUDE.md lo cita",
+      "app_levantada": "sí — emuladores auth+firestore sembrados, next dev :3200, demo@nexusmed.test"
+    },
     "1_auditoria_paralela": {
       "estado": "en_curso",
-      "oleada_1": { "estado": "lanzada", "agentes": ["A-ingeniero-software","B-ingeniero-ia","C-programador","S-ciberseguridad","D-diseno","N-negocio","M-internista","M-pediatra"], "hechos": [] },
-      "oleada_2": { "estado": "pendiente", "agentes": ["M-cirujano","M-ginecologo","M-ortopedista","AS-recepcion","AS-cobros","AS-mensajeria","AS-expedientes","AS-enfermeria"], "hechos": [] },
-      "oleadas_pacientes": { "estado": "pendiente", "agentes": ["P-interna","P-cirugia","P-gineco","P-ortopedia","P-pediatria"], "hechos": [] }
+      "oleada_1": {
+        "estado": "lanzada",
+        "agentes": [
+          "A-ingeniero-software",
+          "B-ingeniero-ia",
+          "C-programador",
+          "S-ciberseguridad",
+          "D-diseno",
+          "N-negocio",
+          "M-internista",
+          "M-pediatra"
+        ],
+        "hechos": []
+      },
+      "oleada_2": {
+        "estado": "pendiente",
+        "agentes": [
+          "M-cirujano",
+          "M-ginecologo",
+          "M-ortopedista",
+          "AS-recepcion",
+          "AS-cobros",
+          "AS-mensajeria",
+          "AS-expedientes",
+          "AS-enfermeria"
+        ],
+        "hechos": []
+      },
+      "oleadas_pacientes": {
+        "estado": "pendiente",
+        "agentes": [
+          "P-interna",
+          "P-cirugia",
+          "P-gineco",
+          "P-ortopedia",
+          "P-pediatria"
+        ],
+        "hechos": []
+      }
     },
-    "2_refutacion": { "estado": "pendiente", "lotes_hechos": 0 },
-    "3_reproduccion": { "estado": "pendiente", "reproducciones": [] },
-    "4_riesgo": { "estado": "pendiente" },
-    "5_completitud": { "estado": "pendiente" },
-    "6_mejoras": { "estado": "pendiente" },
-    "7_entrega": { "estado": "pendiente" }
+    "2_refutacion": {
+      "estado": "pendiente",
+      "lotes_hechos": 0
+    },
+    "3_reproduccion": {
+      "estado": "pendiente",
+      "reproducciones": []
+    },
+    "4_riesgo": {
+      "estado": "pendiente"
+    },
+    "5_completitud": {
+      "estado": "pendiente"
+    },
+    "6_mejoras": {
+      "estado": "pendiente"
+    },
+    "7_entrega": {
+      "estado": "pendiente"
+    }
   },
-  "actualizado": "2026-09-06T03:05Z"
+  "actualizado": "2026-09-06T03:20Z"
 }
