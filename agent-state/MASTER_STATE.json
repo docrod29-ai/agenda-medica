@@ -28,21 +28,21 @@
     "M  .github/workflows/deploy-production.yml",
     "M  .gitignore",
     "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/AUSCULTA_MASTER_LOOP.md",
+    "A  agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md",
+    "M  agent-state/BACKLOG.json",
     "M  agent-state/BLOCKERS.md",
-    "MM agent-state/MASTER_STATE.json",
+    "M  agent-state/MASTER_STATE.json",
     "M  docs/audit/lane-product-excellence.md",
     "M  docs/audit/lint-techo.json",
     "M  docs/audit/regression-ledger.md",
-    "MM docs/data-room/INDICE.md",
-    "MM docs/design/SCREEN_INVENTORY.md",
+    "A  docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
     "A  docs/design/capturas/base/calendario-1440.png",
     "A  docs/design/capturas/base/calendario-390.png",
     "A  docs/design/capturas/base/citas-1440.png",
-    "A  docs/design/capturas/base/citas-390.png",
-    "A  docs/design/capturas/base/dashboard-1440.png",
-    "A  docs/design/capturas/base/dashboard-390.png",
-    "A  docs/design/capturas/base/expedientes-1440.png",
-    "A  docs/design/capturas/base/expedientes-390.png"
+    "A  docs/design/capturas/base/citas-390.png"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -76,7 +76,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-master-completion-4clx9v",
+  "ramaActual": "claude/chat-pendientes-m4f9p9",
   "derivado": {
     "regsEnElLedger": 388,
     "ultimaREG": "REG-604",
