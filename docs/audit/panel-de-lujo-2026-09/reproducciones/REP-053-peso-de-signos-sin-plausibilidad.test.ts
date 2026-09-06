@@ -80,10 +80,10 @@ describe('REP-053 · el peso de signos vitales pasa por revisarPesoPediatrico an
   })
 
   it('la consulta, que alimenta dosisPeligrosasDeLaLista con signosNum.peso, revisa ese peso', () => {
-    expect(leer(CONSULTA)).toMatch(/revisarPesoPediatrico/)
+    expect(/revisarPesoPediatrico/.test(leer(CONSULTA)), `${CONSULTA} no menciona revisarPesoPediatrico`).toBe(true)
   })
 
   it('la receta, que alimenta revisarDosis con el peso de la nota, revisa ese peso', () => {
-    expect(leer(RECETA)).toMatch(/revisarPesoPediatrico/)
+    expect(/revisarPesoPediatrico/.test(leer(RECETA)), `${RECETA} no menciona revisarPesoPediatrico`).toBe(true)
   })
 })

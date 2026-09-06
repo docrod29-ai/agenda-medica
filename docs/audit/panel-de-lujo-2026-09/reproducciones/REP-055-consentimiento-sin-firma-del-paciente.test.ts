@@ -74,18 +74,18 @@ const TESTIGO = /testigo/i
 describe('REP-055 · el consentimiento impreso lleva renglón de firma del paciente y de testigos', () => {
   it('el Word (construirNotaHTML) con tipo consentimiento trae «Firma del paciente» (hoy: sólo el médico)', () => {
     const html = construirNotaHTML(nota('consentimiento'), null)
-    expect(html).toMatch(FIRMA_PACIENTE)
+    expect(FIRMA_PACIENTE.test(html), 'el Word sólo trae la firma del médico').toBe(true)
   })
 
   it('… y trae «Testigo»', () => {
     const html = construirNotaHTML(nota('consentimiento'), null)
-    expect(html).toMatch(TESTIGO)
+    expect(TESTIGO.test(html), 'el Word no tiene renglón de testigos').toBe(true)
   })
 
   it('la página de impresión de la nota contempla la firma del paciente y los testigos (hoy: un solo bloque, page.tsx:548)', () => {
     const src = readFileSync(path.join(raiz, PAGINA), 'utf8')
-    expect(src, 'no hay «Firma del paciente» en la página').toMatch(FIRMA_PACIENTE)
-    expect(src, 'no hay «Testigo» en la página').toMatch(TESTIGO)
+    expect(FIRMA_PACIENTE.test(src), 'no hay «Firma del paciente» en la página').toBe(true)
+    expect(TESTIGO.test(src), 'no hay «Testigo» en la página').toBe(true)
   })
 
   it('control: el médico sigue firmando (el bloque existente no se pierde)', () => {
