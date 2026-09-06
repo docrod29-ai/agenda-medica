@@ -112,7 +112,20 @@ export async function POST(req: NextRequest) {
         url: fakeUrl,
         name: fakeName,
         expiresAt: Math.floor(Date.now() / 1000) + 7200,
-        warning: 'DAILY_API_KEY no configurada — usando URL ficticia',
+        /*
+         * ── ESTE AVISO LO PUEDE LEER EL PACIENTE ──────────────────────────
+         * Decía «DAILY_API_KEY no configurada — usando URL ficticia», y
+         * `/teleconsulta/[citaId]` lo pinta tal cual. Esa pantalla la abre el
+         * paciente con su token del portal: es superficie de cara al paciente,
+         * y `patient-facing-ai` la gobierna.
+         *
+         * Y el fondo importa más que las palabras: esta respuesta va con
+         * `ok: true` y una URL de `meet.example.com`. O sea que el producto
+         * entrega un enlace de videoconsulta que NO lleva a ninguna consulta.
+         * Quien lo lea tiene que entenderlo sin saber qué es una clave de API.
+         */
+        warning: 'Esta sala es de prueba: el enlace no abre una videoconsulta real. '
+          + 'La videoconsulta no está activada en este consultorio.',
       })
     }
 

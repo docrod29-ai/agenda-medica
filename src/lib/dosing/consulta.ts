@@ -33,6 +33,7 @@
 import type { ContextoPaciente, Recomendacion, ModalidadRRT, EscalarPeso } from '@/lib/dosing/motor'
 import type { ResultadoValidacion } from '@/lib/dosing/validacion'
 import { AVISO_SIN_VALIDAR } from '@/lib/dosing/dataset'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /** Lo que devuelve el formulario: todo texto, todo opcional. */
 export interface CamposConsulta {
@@ -128,7 +129,7 @@ export function conValidacionDelMedico(
       validacion: 'validado_por_medico',
       avisoValidacion:
         `Regla validada por ${val.firma.validadoPorNombre} el `
-        + `${val.firma.fecha.slice(0, 10)} contra la versión ${val.firma.versionDataset} `
+        + `${fechaCorta(val.firma.fecha)} contra la versión ${val.firma.versionDataset} `
         + 'del dataset, que es la que está cargada.',
     }
   }

@@ -46,6 +46,7 @@ import {
   ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO,
   type TareaClinica,
 } from '@/lib/tareas-clinicas/modelo'
+import { fechaISOLocal } from '@/lib/timezone'
 
 export type LecturaDelWorklist =
   | { estado: 'lista'; tareas: readonly TareaClinica[] }
@@ -164,9 +165,35 @@ export function estadoClinicoDeFila(
  */
 export function ultimaVezVisto(iso: string | undefined, ahoraMs: number): string | null {
   if (!iso) return null
-  const t = Date.parse(iso)
-  if (Number.isNaN(t)) return null
-  const dias = Math.floor((ahoraMs - t) / 86_400_000)
+  /**
+   * SE CUENTAN DÍAS DE CALENDARIO DEL CONSULTORIO, NO MILISEGUNDOS EN UTC.
+   *
+   * Esto restaba instantes: `Date.parse('2026-09-02')` es medianoche **UTC**, y
+   * se comparaba con un «ahora» también en UTC. En México (UTC−6) eso significa
+   * que **a partir de las 18:00 todo paciente atendido esa misma mañana pasaba
+   * a decir «visto ayer»**. Medido el 2-sep a las 18:11 hora del consultorio:
+   * Rosalía, atendida a las 08:00 de ESE día, salía como «visto ayer» en la
+   * lista y como «Hace 1 día» en Reactivación. Y la tarde es justo cuando el
+   * médico repasa la jornada.
+   *
+   * Es el mismo defecto que vaciaba Finanzas y el corte de caja al caer la
+   * tarde, y que allí ya está documentado: el día del consultorio no es el día
+   * UTC.
+   *
+   * Por qué no lo cazó la prueba que había: le pasaba marcas de tiempo ISO
+   * completas, y lo que manda la lista es `ultimaCita`, que es una FECHA a
+   * secas (`fechaHora.slice(0, 10)`). Medía una forma del dato que nadie envía.
+   */
+  // Una entrada que no es fecha se descarta ANTES de tocar `Intl`: darle un
+  // `Invalid Date` a `fechaISOLocal` lanza, y esto lo llama una fila de lista.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) && Number.isNaN(Date.parse(iso))) return null
+  const dia = iso.length === 10 ? iso : fechaISOLocal(new Date(iso))
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return null
+  const hoy = fechaISOLocal(new Date(ahoraMs))
+  const dias = Math.round(
+    (Date.parse(hoy + 'T00:00:00Z') - Date.parse(dia + 'T00:00:00Z')) / 86_400_000,
+  )
+  if (Number.isNaN(dias)) return null
   if (dias < 0) return null            // una cita futura no es «visto»: es agenda.
   if (dias === 0) return 'visto hoy'
   if (dias === 1) return 'visto ayer'

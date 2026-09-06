@@ -157,7 +157,29 @@ for (const w of ANCHOS) {
     })
     const dom = await pag.evaluate(() => ({
       ariaCurrent: document.querySelectorAll('[aria-current="page"]').length,
-      desborde: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      // ¿SE SALE ALGO A LO ANCHO? La pregunta hay que hacérsela al contenedor
+      // que hace scroll, no sólo al documento.
+      //
+      // Durante meses esto sólo miró `documentElement`, y por eso dio verde en
+      // /finanzas@390 mientras 295 px de la pantalla —la tarjeta de
+      // Transferencia entera, con su importe— quedaban fuera de la vista. El
+      // documento no se desbordaba porque `<main>` lleva `overflow-x: auto` y
+      // se lo tragaba: el contenido no desaparece, se esconde detrás de un
+      // arrastre lateral que en un teléfono nadie descubre.
+      //
+      // Un guardián que pregunta del lado equivocado de la frontera es un
+      // guardián en verde sin nada vigilado. Ahora se pregunta también a cada
+      // contenedor de scroll de dentro de `<main>`.
+      desborde: (() => {
+        const raiz = document.documentElement
+        if (raiz.scrollWidth > raiz.clientWidth + 1) return true
+        for (const e of document.querySelectorAll('main, main *')) {
+          const cs = getComputedStyle(e)
+          if (cs.overflowX !== 'auto' && cs.overflowX !== 'scroll') continue
+          if (e.scrollWidth > e.clientWidth + 1) return true
+        }
+        return false
+      })(),
       // ¿EN QUÉ PÁGINA ESTAMOS DE VERDAD? Una ruta que redirige al login se
       // mediría como si fuera la ruta pedida, y el login saca cero en todo.
       aterrizo: location.pathname,

@@ -111,6 +111,22 @@ describe('RTC-22 — una sola marca en pantalla', () => {
   it('5 · pero la franja NO pierde su trabajo', () => {
     // Con paciente dice su nombre; grabando cuenta los segundos.
     expect(FRANJA).toContain('{paciente.nombre}')
-    expect(FRANJA).toMatch(/Grabando · \{formatearDuracion\(segundos\)\}/)
+    /*
+     * ESTE CASO EXIGÍA LA ORTOGRAFÍA, NO EL TRABAJO (corregido el 1-sep-2026).
+     *
+     * Pedía literalmente `Grabando · {formatearDuracion(segundos)}` — la cadena
+     * escrita a mano en esta franja. Y esa cadena era justo una de las CUATRO
+     * copias del rótulo de grabación que decían el mismo segundo con distintas
+     * palabras y distintos formatos («Escuchando · 0:39» aquí, «Grabando ·
+     * 00:39» allá). Mientras el guardián exigiera la copia, la copia no se podía
+     * quitar.
+     *
+     * Ahora exige el TRABAJO: que la franja siga diciendo el estado y siga
+     * contando — pidiéndoselo al vocabulario común en vez de escribiéndolo.
+     * Que la palabra sea «Grabando» y el reloj `mm:ss` lo fija
+     * `un-estado-de-la-escucha-se-dice-una-sola-vez`, donde vive esa decisión.
+     */
+    expect(FRANJA).toMatch(/rotulo\('grabando', segundos\)/)
+    expect(FRANJA).toMatch(/from '@\/lib\/encuentro\/vocabulario-de-la-escucha'/)
   })
 })

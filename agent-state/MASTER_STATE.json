@@ -23,17 +23,28 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-04-v1180.md",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1181.md",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-05-v1182.md",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1184.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/product/AUSCULTA-ULTRA-READINESS.md"
+    "M  .env.example",
+    "M  .gitignore",
+    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    "M  agent-state/MASTER_STATE.json",
+    "M  docs/audit/lane-product-excellence.md",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "A  docs/design/capturas/base/calendario-1440.png",
+    "A  docs/design/capturas/base/calendario-390.png",
+    "A  docs/design/capturas/base/citas-1440.png",
+    "A  docs/design/capturas/base/citas-390.png",
+    "A  docs/design/capturas/base/dashboard-1440.png",
+    "A  docs/design/capturas/base/dashboard-390.png",
+    "A  docs/design/capturas/base/expedientes-1440.png",
+    "A  docs/design/capturas/base/expedientes-390.png",
+    "A  docs/design/capturas/base/finanzas-1440.png",
+    "A  docs/design/capturas/base/finanzas-390.png",
+    "A  docs/design/capturas/base/pacientes-1440.png",
+    "A  docs/design/capturas/base/pacientes-390.png"
   ],
-  "actualizado": "2026-09-05",
+  "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -67,11 +78,11 @@
   ],
   "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 329,
-    "ultimaREG": "REG-535",
-    "archivosDePrueba": 956,
-    "casosDePrueba": 11512,
+    "regsEnElLedger": 343,
+    "ultimaREG": "REG-555",
+    "archivosDePrueba": 968,
+    "casosDePrueba": 11601,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1184"
+  "versionEnElRepo": "nexusmed-v1185"
 }

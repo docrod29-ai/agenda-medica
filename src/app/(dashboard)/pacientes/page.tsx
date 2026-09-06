@@ -25,6 +25,7 @@ import { estadoClinicoDeFila, pendienteQueManda, ultimaVezVisto, type LecturaDel
 import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
 import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
 import { auth } from '@/lib/firebase'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 export default function PacientesPage() {
   const { toast } = useToast()
@@ -422,7 +423,7 @@ export default function PacientesPage() {
                       <div className="nx-meta" style={{ margin: '2px 0 7px' }}>
                         {p.edad ? `${p.edad} años` : 'sin edad'}
                         {p.telefono ? ` · ${p.telefono}` : ''}
-                        {p.ultimaCita ? ` · última cita ${p.ultimaCita.slice(0, 10)}` : ' · sin citas'}
+                        {p.ultimaCita ? ` · última cita ${fechaCorta(p.ultimaCita)}` : ' · sin citas'}
                       </div>
                       <Button size="sm" variant="secondary" onClick={() => {
                         setRevisandoDuplicados(false)
@@ -1128,7 +1129,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
                       <div className="nx-meta">
                         {c.motivo}
                         {c.paciente.edad ? ` · ${c.paciente.edad} años` : ''}
-                        {c.paciente.ultimaCita ? ` · última cita ${c.paciente.ultimaCita.slice(0, 10)}` : ''}
+                        {c.paciente.ultimaCita ? ` · última cita ${fechaCorta(c.paciente.ultimaCita)}` : ''}
                       </div>
                     </div>
                     <Button size="sm" onClick={() => onAbrirExistente(c.paciente)}>

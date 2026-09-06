@@ -86,3 +86,6 @@ ui-debug.log
 
 # Capturas de trabajo del arnés visual — se curan a mano tras revisión
 tests/visual/capturas/
+
+# Los diffs de la regresión visual son de una corrida, no del repositorio.
+docs/design/capturas/base/diff/
