@@ -46,7 +46,7 @@ const ruta = readFileSync(path.join(raiz, 'src', 'app', 'api', 'consultor-eviden
 
 /** Orden (imperativo o «recuerda …») de ajustar/calcular/estimar en función de renal/hepático/peso/edad. */
 const ORDEN_DE_AJUSTAR =
-  /\b(aj[uú]st(a|ala|arla|ar|e)|calc[uú]l(a|ala|ar)|estim(a|ala|ar))\b[^.;]{0,80}(renal|hep[aá]tic|\bpeso\b|\bedad\b)/i
+  /\b(aj[uú]st(a|ala|arla|ar)|calc[uú]l(a|ala|ar)|estim(a|ala|ar))\b[^.;]{0,80}(renal|hep[aá]tic|\bpeso\b|\bedad\b)/i
 
 describe('REP-015 · el prompt del consultor no ordena calcular ni ajustar dosis', () => {
   const system = ruta.match(/const system = '((?:[^'\\]|\\.)*)'/)?.[1]
