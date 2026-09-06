@@ -3519,3 +3519,16 @@ arregló en la pantalla del corte de caja y quedó vivo en el lado que escribe.
 
 Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
+
+## v1183 — 6-sep-2026
+
+Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
+auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime
+antecedentes; la atribución manda sobre la etiqueta del modelo), REG-516 (un
+código CIE-10 sin diagnóstico ya no sale impreso, y la regla deja de estar
+duplicada), REG-517 (el diálogo de firmar deja de esconder sus botones y de ser
+un muro de texto), REG-518 (tres diálogos más con la misma herida, un patrón
+compartido y un guardián) y D-032 (la caja ámbar se retira; sólo la caja).
+
+Primer paquete de la sesión que sale de uso real en un aparato real. Ninguna de
+las cuatro la había cazado el arnés, que corre en Chromium a 390 px.

@@ -18822,6 +18822,272 @@ rama (REG-437, REG-438); se compara sin comentarios.
   el dueño es fijar vocabulario de producto.
 - **No es un iPhone.** Chromium a 390 px.
 
+---
+
+## REG-515 · La receta seguía imprimiendo antecedentes, y el dato que lo impedía se borraba en la frontera
+
+**CÓMO SE DESCUBRIÓ.** El dueño, con la app abierta en su iPhone: *«sigues
+poniéndome en la receta medicamentos de sus antecedentes. No quiero que los
+pongas: esos los tienes que captar del plan, y si no escucha el plan que el
+médico los ponga manualmente.»*
+
+Es la **segunda vez** que reporta exactamente esto. La primera creó
+`que-va-en-la-receta.ts`, cuya cabecera cita sus palabras de entonces.
+
+**LO QUE HACÍA ESTE CASO DISTINTO — Y PEOR.** La primera vez el defecto era de
+la familia conocida: el campo existía y `z.object` lo borraba. Esta vez el
+módulo **ya existía Y ya estaba conectado** a la página de receta. La regla
+corría. Y aun así se colaban.
+
+Cuando una regla corre y el defecto persiste, la regla es incompleta. No sirve
+volver a cablear lo que ya está cableado.
+
+**CAUSA RAÍZ, en dos mitades.**
+
+1. `loQueSeReceta` sólo apartaba lo etiquetado `ya_lo_toma`. Un antecedente que
+   el modelo etiquetara `se_prescribe_hoy` pasaba entero. La única palabra sobre
+   si algo se receta era **la etiqueta que el propio modelo se pone**.
+
+2. El dato que habría podido contradecir esa etiqueta —`speaker`, quién dijo la
+   frase— **se borraba en la frontera**: la lista PLANA de
+   `extraction-schema.ts` no lo declaraba, y `z.object` borra las claves que no
+   declara.
+
+   Es **el mismo defecto que ya se arregló en ese mismo objeto**, un campo más
+   allá. Se reparó `procedenciaClinica` y nadie miró si el vecino tenía la misma
+   herida. Un arreglo puntual sobre un defecto sistémico deja el resto en pie.
+
+**LA REGLA QUE LO HACE SEGURO.** Un antecedente lo dice el paciente («tomo
+metformina»); un plan lo dice el médico («le voy a dar amoxicilina»). Eso no es
+una heurística sobre el nombre del fármaco: es de quién salió la frase.
+
+Un renglón con atribución que **no** sea del médico no baja al papel. La opinión
+del modelo deja de ser la última palabra.
+
+**POR QUÉ LA AUSENCIA NO SE CASTIGA.** Un renglón sin `speaker` no viene del
+dictado: lo escribió el médico a mano, o es de una nota anterior a este campo.
+Ésos se siguen imprimiendo. Quitarle del papel algo que él mismo escribió es el
+error caro en la otra dirección, y este proyecto ya lo tiene documentado.
+
+Lo que sí se para es lo que trae atribución y no es suya: ahí la duda no se
+convierte en permiso, y el médico lo pone a mano — que es literalmente lo que
+pidió.
+
+**PRUEBAS.** `que-va-en-la-receta.test.ts`, cinco casos:
+1. un antecedente **mal etiquetado** por el modelo ya no se imprime;
+2. lo que dijo el médico sí;
+3. un renglón sin atribución sigue imprimiéndose;
+4. `acompanante` y `desconocido` tampoco pasan;
+5. **de frontera** — el esquema plano declara `speaker`, o se borraría otra vez.
+
+**PROBADO AL REVÉS, dos veces.** Quitada la comprobación de atribución: caen los
+casos 1 y 4, y sólo ésos. Borrado `speaker` del esquema: cae el caso 5, y sólo
+ése. Restaurado, los veinticinco en verde.
+
+**UN ERROR QUE SE COMETIÓ ESCRIBIENDO ESTO, Y SE CORRIGIÓ ANTES DE FUSIONAR.**
+El enum se escribió a mano como `['medico','paciente','otro','desconocido']`,
+pero el prompt del repositorio dice `acompanante`, no `otro`. Un modelo que
+mandara `acompanante` habría sido rechazado por el esquema y el dato **no habría
+llegado** — reintroduciendo, con otra cara, el defecto que esta entrada repara.
+Se sustituyó por el enum canónico `Hablante`, que ya existía. Vocabulario
+paralelo donde ya hay uno canónico es la forma más silenciosa de romper una
+frontera.
+
+**LO QUE NO CUBRE, dicho.**
+- Si la diarización atribuye mal la frase, esto hereda ese error. No es una
+  defensa contra un audio mal separado: es una defensa contra que la etiqueta
+  del modelo sea la única palabra.
+- **No mira la SECCIÓN de la nota.** Sigue sin existir un campo que diga «esto
+  salió del plan». Lo que hay es quién habló, y con eso se decide. Si algún día
+  hace falta la sección, es trabajo aparte y queda declarado aquí.
+- No cambia lo que se ve en la NOTA. El antecedente se sigue documentando donde
+  le toca; lo que cambia es que no baja al papel.
+
+---
+
+## REG-516 · Un código CIE-10 sin diagnóstico salía impreso en la receta
+
+**CÓMO SE DESCUBRIÓ.** El dueño, con la receta abierta en su teléfono: *«ahora
+no pones diagnóstico, nomás dice CIE-10»*. Literal.
+
+**CAUSA RAÍZ, dos mitades.**
+
+1. La pantalla componía `descripcion + " (" + codigoCIE10 + ")"` **sin comprobar
+   que la descripción existiera**. Un diagnóstico con código y sin texto salía
+   impreso como « (A41.9)»: un paréntesis con una clave dentro y nada delante.
+
+2. La misma composición estaba **COPIADA** en `receta/[patientId]/[notaId]` y en
+   `orden/[patientId]/[notaId]`. Fuente de verdad duplicada — lo que la carta
+   del proyecto prohíbe en su primera página. Arreglar una dejaba la otra rota,
+   y nadie se enteraba hasta imprimir.
+
+**POR QUÉ IMPORTA.** «A41.9» no le dice nada a quien surte la receta ni al
+paciente. Un código es una clave para facturar y para estadística; el diagnóstico
+es la frase. Una receta que enseña la clave y esconde el diagnóstico no está
+incompleta: está diciendo la parte que no sirve.
+
+**LA REGLA QUE LO HACE SEGURO.** `diagnosticoParaImprimir`, una sola función que
+llaman las dos pantallas:
+- UNO solo, el principal — la regla del dueño: *«nomás el principal; si hay que
+  agregar, bueno, pero no repetir»*;
+- se prefiere el `definitivo`, **pero un definitivo sin descripción no gana a un
+  presuntivo que sí la tiene**: preferir el definitivo no puede significar
+  imprimir un hueco;
+- un código sin descripción no se imprime, y el campo queda en blanco para que lo
+  escriba el médico.
+
+**PRUEBAS.** `el-diagnostico-impreso-no-es-un-codigo-huerfano.test.ts`, siete
+casos, incluido uno que lee la fuente de las DOS pantallas y exige que ninguna
+vuelva a componer el diagnóstico a mano.
+
+**PROBADO AL REVÉS.** Reintroducido el defecto —quitar el filtro por
+descripción— caen dos casos de siete, y sólo ésos.
+
+**LO QUE NO CUBRE.**
+- **No infiere la descripción a partir del código.** Haría falta un catálogo
+  CIE-10 con su fuente citada, y rellenar aquí un texto plausible sería poner en
+  la receta un diagnóstico que nadie escribió. Es exactamente el fallo que la
+  regla 1 de seguridad clínica llama el más caro posible.
+- No valida que el código corresponda a la descripción.
+- No toca las varias casillas de diagnóstico de la pantalla de consulta, que es
+  donde el dueño las ve. Eso es trabajo aparte y queda declarado.
+
+---
+
+## REG-517 · El diálogo de firmar escondía sus propios botones en un iPhone
+
+**CÓMO SE DESCUBRIÓ.** El dueño, probando la app en su iPhone antes de firmar
+una nota: *«no se ven los botones de hasta abajo»*. Y sobre el contenido:
+*«esta madre sale al final y no está bien […] quiero quitarle, me caga»*.
+
+**Ninguna prueba lo cazó, y no por descuido.** El arnés visual corre en Chromium
+a 390 px, donde `100vh` sí es lo que se ve. En Safari de iPhone `100vh` incluye
+lo que tapa la barra de direcciones — exactamente el trozo donde caían los
+botones. Es la frase que la rama AUSCULTA venía declarando en cada PR: *«no es
+un iPhone»*. Aquí se cobró.
+
+**PRIMERA MITAD — LOS BOTONES.** El diálogo de confirmación de `ToastContext`
+no tenía **ni alto máximo ni desbordamiento**. La compuerta previa a firmar
+llega a listar veintiún avisos, así que el panel crecía más que la ventana y
+«Los revisé, firmar» y «Volver a la nota» quedaban fuera de la pantalla.
+
+No es un detalle de comodidad: es un diálogo **modal**. Mientras está abierto no
+hay otra cosa que tocar. Un modal cuyos botones no se alcanzan es una pantalla de
+la que no se puede salir por el camino previsto — y la que bloqueaba era la de
+firmar la nota.
+
+**La regla.** El panel es una columna con tope de alto medido en `dvh`: el TEXTO
+scrollea y la fila de botones queda FUERA de ese scroll. Así el mensaje puede
+crecer lo que quiera sin volver a esconder la salida. El telón acolcha con
+`env(safe-area-inset-*)`, que es lo que respeta la muesca y la barra inferior.
+
+**SEGUNDA MITAD — EL MURO DE TEXTO.** Con los botones ya alcanzables quedaba lo
+otro: `comoSeDicenAlFirmar` listaba ocho avisos ENTEROS y luego «…y N más». Casi
+todos la misma frase con distinto relleno: «Esto no salió del dictado: «…».
+Nadie dijo: …».
+
+Un muro de texto antes de firmar no se lee: se salta. **Un aviso que nadie lee no
+protege a nadie**, que es el mismo fallo que este repositorio ya reparó en los
+avisos clínicos y que su propia regla de diseño llama por su nombre: un tablero
+donde todo pesa lo mismo no tiene jerarquía, tiene inventario.
+
+**La regla.** Lo que se repite se cuenta; lo que es único se dice entero. Tres o
+más avisos del mismo origen se colapsan en una línea con su número y a dónde ir.
+Tres y no dos: con dos, verlos enteros todavía informa.
+
+**LO QUE NO CAMBIA, Y HAY QUE DECIRLO.** No se descarta ni un aviso. La cuenta
+total sigue siendo la real, todos siguen en la nota con su ancla, y ninguno
+bloqueaba firmar antes ni bloquea ahora. Cambia cuánto hay que leer para
+enterarse, no qué se vigila.
+
+**PRUEBAS.** `el-dialogo-no-esconde-sus-botones.test.ts`, nueve casos: tope de
+alto, que el tope sea `dvh` y no `vh`, que scrollee el texto y no el diálogo,
+que la fila de botones quede fuera del scroll, el área segura, el resumen de
+veintiuno en una línea, que la cuenta total siga siendo real, que lo único se
+siga diciendo entero, y que dos NO se resuman.
+
+**PROBADO AL REVÉS, dos veces.** Quitado el `maxHeight`: cae el caso del tope y
+sólo ése. Subido el umbral de resumen a 999: cae el caso del muro y sólo ése.
+
+**LO QUE NO CUBRE.**
+- Son pruebas de FUENTE. Que en el aparato se vean los botones lo dice el
+  teléfono, y este arnés no corre en uno.
+- **No se auditaron los demás modales** del producto (`AppointmentModal`,
+  `CobrarModal` y compañía). Pueden tener la misma herida; queda dicho en vez de
+  insinuar que se revisaron todos.
+- **Quedan 31 usos de `100vh`** en el árbol contra 9 de `100dvh`. El cascarón
+  principal ya usa las dos con respaldo, pero el resto no se revisó. Es el
+  trabajo siguiente, y se declara.
+
+---
+
+## REG-518 · Tres diálogos más con la misma herida, y el `100vh` que resultó no serlo
+
+**DE DÓNDE VIENE.** REG-517 reparó UN diálogo: el dueño no podía firmar desde su
+iPhone porque los botones caían debajo del pliegue. Su PR se cerró declarando dos
+cosas sin auditar — *«no se auditaron los demás modales»* y *«quedan 31 usos de
+`100vh`»*. El dueño pidió cerrarlas. Ésta es esa auditoría.
+
+**PRIMERA CONCLUSIÓN: EL «31 USOS DE 100vh» ERA MI EXAGERACIÓN.** Se midió uno a
+uno y la cifra no significaba lo que yo dije que significaba:
+
+- **29 son `min-height: 100vh`**, que **no esconde nada**: el contenedor crece
+  con el contenido. En iPhone hace la página un poco más alta de lo necesario —
+  cosmético, no una trampa.
+- **2 son alto FIJO** (`.nx-app-shell` y `.nx-alto-de-trabajo`) y **los dos ya
+  llevaban respaldo en `dvh`**. El del calendario lo cerró REG-426.
+
+O sea: **cero riesgos abiertos por `100vh`**. Queda escrito porque el error iba
+en la dirección cara: alarmar sobre algo que ya estaba reparado enseña a
+desconfiar del inventario, y entonces el inventario deja de servir.
+
+**SEGUNDA CONCLUSIÓN: LOS MODALES SÍ.** Doce superficies con telón modal:
+
+| cuántas | qué son |
+|---|---|
+| 3 | cubiertas por el `<Modal>` del sistema — que **sí lo tenía bien**: `max-height: 92dvh` y `overflow-y: auto` |
+| 3 | capas transparentes para cerrar un menú al hacer clic fuera; no llevan contenido |
+| **3** | **la misma herida que REG-517** |
+| 3 | ya cubiertas con estilo en línea |
+
+**LA PEOR DE LAS TRES.** El panel de ayuda (`BotonAyuda`) lleva
+`overflow: hidden` **sin tope de alto**: un contenido que crece no desborda, se
+**recorta**. Recortar es peor que desbordar — ni siquiera se ve que falta algo.
+
+**LA REGLA QUE LO HACE SEGURO.** No cuatro arreglos: un patrón. Dos clases en la
+hoja —`.nx-dialogo-telon` con el área segura respetada y `.nx-dialogo-panel`,
+columna con tope en `dvh`— más `.nx-dialogo-cuerpo` para lo que scrollea y
+`.nx-dialogo-pie` para lo que no. Y `.modal-overlay` pasa a acolchar con
+`env(safe-area-inset-*)`, lo que beneficia a **todos** los modales del producto
+de una vez.
+
+**Y UN GUARDIÁN, que es lo que faltaba.** Los cuatro arreglos ya estaban; lo que
+no existía era impedir que el quinto diálogo naciera igual. `estaCubierto`
+enumera las CUATRO formas válidas de cobertura, cada una con su porqué escrito, y
+`CAPAS_DE_CLIC` declara una a una las capas sin contenido — no se detectan por
+heurística, porque «parece que no tiene contenido» es exactamente como se cuela
+un diálogo de verdad.
+
+**PROBADO AL REVÉS, dos veces y por lados distintos.** Quitada la clase al tour:
+cae el caso del barrido y sólo ése, nombrando el archivo. Borrado el tope de la
+hoja: cae el caso del patrón y sólo ése. Restaurados, los cinco en verde.
+
+**UN GUARDIÁN ME CAZÓ MIENTRAS LO ESCRIBÍA.** El panel de ayuda quedó cubierto
+con tope PROPIO en línea —está anclado a su botón, no centrado, así que la resta
+del patrón no le vale— más el cuerpo por clase. El barrido lo denunció, y en vez
+de relajarlo se añadió esa cuarta forma **declarada y explicada**. Una forma
+nueva de cobertura es un cambio de política, no un ajuste.
+
+**LO QUE NO CUBRE, dicho.**
+- Es una prueba de FUENTE. Que en el aparato se vean los botones lo dice el
+  teléfono, y este arnés corre en Node.
+- **No mira paneles anclados que no son modales** (menús, tooltips): ahí quedarse
+  corto no atrapa a nadie contra su voluntad.
+- El primer barrido de esta auditoría **acusó al `<Modal>` del sistema**, que
+  estaba perfecto: sólo miraba estilos en línea y el `Modal` resuelve por clase.
+  Se arregló el instrumento antes de seguir — la lección de REG-512, aplicada el
+  mismo día que se aprendió.
+
 ## REG-519 · El enlace REVOCADO del paciente seguía abriendo la sala de video
 
 **CÓMO SE DESCUBRIÓ.** Equipo rojo read-only sobre las 99 rutas de `src/app/api`,
