@@ -17,6 +17,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { safeLog } from '@/lib/security/sanitize'
 import { minimizarContextoPaciente, seguroParaMemoria } from '@/lib/ia/minimizar-phi'
@@ -503,6 +504,6 @@ export async function POST(req: NextRequest) {
       },
     })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }

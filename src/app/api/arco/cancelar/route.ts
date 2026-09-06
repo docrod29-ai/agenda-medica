@@ -95,7 +95,22 @@ export async function POST(req: NextRequest) {
 
     if (veredicto.camino === 'bloqueo') {
       const marca = marcaDeBloqueo({ ahoraMs: Date.now(), uid: acceso.uid!, solicitudId, motivo })
-      await pacienteRef.set({ arcoBloqueo: marca }, { merge: true })
+      /**
+       * Y EL PORTAL SE APAGA EN EL MISMO ACTO — D-035 · REG-526.
+       *
+       * El bloqueo dejaba el expediente marcado y daba de baja el WhatsApp,
+       * pero el magic-link del paciente seguía vivo hasta caducar: su agenda,
+       * sus documentos y sus recetas seguían leyéndose por un enlace que
+       * quizá se reenvió a un grupo, sobre un expediente que él pidió
+       * cancelar. `portalTokenVersion` es el contador que tumba los enlaces
+       * (REG-331); subirlo aquí los corta en el mismo `set` que escribe el
+       * bloqueo. Decisión del dueño, 5-sep-2026.
+       *
+       * En la SUPRESIÓN no hace falta: el expediente deja de existir, y un
+       * expediente que no está ya cuenta como revocado (REG-331).
+       */
+      const portalTokenVersion = Number(paciente.portalTokenVersion ?? 0) + 1
+      await pacienteRef.set({ arcoBloqueo: marca, portalTokenVersion }, { merge: true })
 
       /**
        * EL BLOQUEO TIENE QUE MORDER HOY, NO CUANDO ALGUIEN LEA EL CAMPO.

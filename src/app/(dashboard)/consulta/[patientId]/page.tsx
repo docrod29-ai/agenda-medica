@@ -79,6 +79,7 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { edadParaDosificar } from '@/lib/seguridad/edad-para-dosificar'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
 import {
   vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
@@ -1957,7 +1958,12 @@ export default function ConsultaActivaPage() {
          * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
          */
         setHistorialTruncado(truncada)
-        const firmadas = ns.filter(n => n.estado === 'firmada')
+        /**
+         * SIN LA NOTA ABIERTA — REG-535. Una nota firmada se puede reabrir aquí
+         * (adenda); entraba en «lo vigente» y la barra decía «ya figura como
+         * vigente» de lo que ella misma receta. Se vio primero en la receta.
+         */
+        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
@@ -6218,8 +6224,12 @@ export default function ConsultaActivaPage() {
            * cuando el paciente ya se había ido con la receta en la mano.
            */
           dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
-            edadAnios: patient?.edad ?? undefined,
+            // REG-524: la fecha de nacimiento manda sobre la edad congelada, y
+            // sin ninguna se pasa `undefined` — nunca se supone adulto.
+            edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
+            // REG-528: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
+            yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
             med: d.med,
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),

@@ -11,6 +11,7 @@
  * Solo superadmin.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { mrrDe } from '@/lib/finanzas/mrr'
 import { churnDelMes } from '@/lib/finanzas/churn'
 import { claseDeCuenta, cuentaComoIngreso } from '@/lib/authz/fundador'
@@ -342,7 +343,7 @@ export async function GET(req: NextRequest) {
       },
     })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 200) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

@@ -1,5 +1,79 @@
 # AUSCULTA — último punto seguro
 
+## Checkpoint · 5-sep-2026 — **Preservation, Audit & Intelligence Transformation · cuatro P1 cerrados y la receta cerrada en lo verificado, #442 absorbido el test-the-test y la seguridad reportada cerrados (REG-519…535) · tres decisiones del dueño escritas (D-033…034)**
+
+```
+CURRENT_BRANCH=claude/ausculta-preservation-improvement-44lutz
+CURRENT_HEAD=(este commit)
+CURRENT_PR=(sin PR: el dueño no lo pidió; la rama está en origin con 4 slices, cada uno con sus compuertas en el mensaje del commit)
+CURRENT_WORKSTREAM=Programa del pliego del 5-sep: UNDERSTAND → MEASURE → PRESERVE → IMPROVE. Fase 0 (reconciliación) y Fase 2 (P0/P1) — sin P0; los cuatro P1 confirmados, cerrados
+LAST_COMPLETED_UNIT=REG-535 — verificación en navegador con el arnés (sonda nueva, pac-006 sembrado): los avisos de REG-524/520/521 se ven a 390 y 1440 sin errores de consola; y destapó que la receta contaba su propia nota como «ya lo toma» — arreglado en receta y consulta. Antes: REG-534 — el error crudo ya no sale al cliente: helper sin acceso al error, 40 rutas migradas, barrido de todas las rutas como guardián. Antes: REG-532 y 528 — sanitize redacta lo que su cabecera prometía (nombres por llave, Stripe por patrón); reclamarCanal en transacción con la carrera provocada. D-E escrita (360dialog: la llave como id de documento exige migración). Antes: REG-529, 525 y 526 — test-the-test: csp-manifest corre tras el build; el prompt se vigila por frases sobre lo emitido; la membresía del servidor tiene por fin una prueba ejecutada contra un doble con id. Antes: REG-513 y REG-514 — port de PR #442 con número nuevo (vista previa medida, captura completa de la sonda); sus pruebas pasan aquí. Antes: REG-528 — terapia duplicada: la misma sustancia en dos renglones (catálogo de dosis: Tempra = paracetamol) o ya vigente, con la suma diaria contra el techo que ya existía; en consulta y receta. Antes: REG-527 (la receta ve el expediente completo), REG-526 (bloqueo ARCO revoca el portal, D-035); D-033 y D-034 escritas en el código que gobiernan
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=Mirar la consulta con `pac-006` (`/consulta/pac-006`: barra de avisos con yaToma, tema claro, teclado) con una sonda como `mirar-la-receta-con-expediente.mjs`, y anotar en readiness §8. Emuladores aquí: `npx firebase emulators:start --only auth,firestore --project demo-nexusmed-v10` (el script `arnes:emuladores` asume brew); luego `node scripts/design/sembrar-emulador.mjs` y `npm run arnes:dev`. Después: guardianes de texto sellados del test-the-test, uno por uno. Decisiones del dueño pendientes: D-D (validadores sin llamador) y D-E (360dialog). Todo en docs/product/AUSCULTA-ULTRA-READINESS.md §3 y §11.
+FILES_IN_SCOPE=scripts/ausculta-transformacion/*.mjs · scripts/design/sembrar-emulador.mjs · docs/product/AUSCULTA-ULTRA-READINESS.md §8
+FILES_LOCKED=(ninguno — un solo writer)
+TESTS_PASSED=12634
+TESTS_FAILED=1
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — el proxy del contenedor rechaza 10.255.255.1 al instante. NO tocar la aserción.
+BUILD=163/163 con los placeholders NEXT_PUBLIC_FIREBASE_* del CI
+LINT=93 (techo apretado en REG-524)
+P0_OPEN=(ninguno; cross-tenant refutado en las 99 rutas)
+P1_OPEN=(ninguno confirmado). Receta: los cinco hallazgos de medication-safety verificados; cuatro cerrados (REG-524, 518, 520, 521) y el quinto (validadores sin llamador) es decisión del dueño (D-D)
+BLOCKED_EXTERNAL=reglas de Firestore sin desplegar · WebKit/iPhone · PITR y restore real · pentest · licencias de evidencia · llave AssemblyAI local. B-12 YA NO: el emulador de Firebase arranca en este contenedor (comprobado el 5-sep)
+DO_NOT_REGRESS=REG-519 (revocación en telesalud/sala) · REG-520 (una lista de sesgo para los cuatro puntos de envío) · REG-521 (la pregunta escalada abre tarea sin depender del teléfono) · REG-522 (guardián con autotest) · REG-523 (cerrar la tarea marca la pregunta atendida) · REG-524 (sin edad no se supone adulto) · REG-525 (la huella de la receta larga no se pierde) · REG-526 (el bloqueo ARCO apaga el portal) · REG-527 (la receta ve la medicación vigente y la creatinina del expediente) · REG-528 (la misma sustancia dos veces se dice, con la suma contra el techo del catálogo) · REG-513/523 (port de #442: la vista previa mide su sitio; la sonda recorre el scroller de dentro) · REG-529 (csp-manifest corre tras el build) · REG-530 (el prompt se vigila por frases, sobre lo emitido) · REG-531 (la membresía del servidor se ejecuta contra un doble con id) · REG-532 (sanitize redacta nombres y Stripe) · REG-533 (reclamarCanal en transacción) · REG-534 (el error crudo no sale al cliente) · REG-535 (la receta no se cruza consigo misma)
+```
+
+### Qué se hizo en esta sesión, en orden
+
+1. **Reconciliación** medida, no citada: main `e78e1242` (v1181), un solo PR
+   abierto (#442, con dos REG que main ya gastó), bucle de Actions muerto,
+   baseline 12 598/1/1, tsc limpio, lint 94.
+2. **Seis auditorías read-only en paralelo** (equipo rojo de API, voz,
+   medicación, test-the-test, seguridad, experiencia del paciente). El
+   orquestador verificó cada P1 en el código antes de tocarlo.
+3. **REG-519** — la sala de video aceptaba un enlace revocado.
+4. **REG-520** — los alérgenos no llegaban a Whisper; ahora una lista para los
+   cuatro puntos de envío.
+5. **REG-521** — la pregunta escalada del paciente abre una tarea en
+   `/pendientes` aunque no haya teléfono.
+6. **REG-522** — el guardián del paciente equivocado se probaba contra un
+   comentario; ahora contra sus mutantes.
+7. **REG-523** — cerrar la tarea de una pregunta marca la pregunta atendida:
+   el portal del paciente deja de decir «pendiente» para siempre.
+8. **REG-524** — sin edad en el expediente, la receta ya no aplica topes de
+   adulto a un niño en silencio: lo dice, y usa la fecha de nacimiento.
+9. **REG-525** — la bitácora ya no pierde entera la huella de una receta
+   larga: se acota por campo y lo omitido se declara.
+10. **D-033, D-034, D-035** — el dueño decidió: la alergia crítica sólo avisa,
+    la pregunta del paciente viaja completa por WhatsApp, y la cancelación
+    ARCO apaga el portal. La tercera es código: **REG-526**.
+11. **REG-527** — la receta ve el expediente completo, como la consulta: la
+    warfarina de marzo con el ketorolaco de hoy ya dispara, y la creatinina
+    del último panel llega al ajuste renal con su fecha y su vigencia.
+12. **REG-528** — «Paracetamol 500 mg» + «Tempra 1 g» pasaban renglón a
+    renglón. Ahora la misma sustancia en dos renglones se dice, con la suma
+    diaria contra el techo que ya estaba en el catálogo, y también cuando ya
+    está vigente en el expediente. Sin cifras nuevas.
+13. **REG-513 y REG-514** — port de PR #442, cuyos números ya había gastado
+    `main`: dos commits traídos tal cual y renumerados. El PR queda para que
+    el dueño lo cierre.
+14. **REG-529, 525, 526** — test-the-test: una prueba que el CI dejaba
+    siempre saltada, un guardián que sellaba una redacción y no la regla, y la
+    guardia de membresía de las 99 rutas sin una sola prueba que la ejecutara.
+15. **REG-532 y REG-533** — seguridad: `sanitize` cumple lo que su cabecera
+    prometía; el candado del canal de WhatsApp resiste una carrera. D-E para
+    el dueño: la llave de 360dialog como id de documento exige migración.
+16. **REG-534** — cuarenta rutas devolvían `String(err)` al cliente; ahora un
+    helper que no recibe el error, y un barrido de todas las rutas.
+17. **REG-535** — la primera verificación en navegador de esta rama (arnés
+    de emuladores, Chromium 390/1440) confirmó los avisos nuevos de la receta
+    y destapó que la receta se cruzaba consigo misma. Arreglado en receta y
+    consulta. Sonda y paciente sintético quedan en el repositorio.
+18. `docs/product/AUSCULTA-ULTRA-READINESS.md` nace con el KEEP LIST verificado
+   en código y todo lo abierto con archivo y línea.
+
+---
+
 ## Checkpoint · 29-ago-2026 — **P0 = 0 y P1 internos = 0. Empieza el trabajo de los workstreams sin cola**
 
 ```

@@ -114,6 +114,7 @@ la de la dosis depende de lo que el médico decida escribir.
 | Nota ⇒ tiene `estado` en la raíz | Las reglas de Firestore lo exigen para crear | Verificado: 22/22 |
 | Cobro de anticipo ⇒ id `stripe_{session}` | Evita el cobro duplicado (REG-153) | Reparado en v1038 |
 | Transcript ⇒ tiene dueño registrado | Sin él, otro consultorio podía leerlo (REG-164) | Reparado en v1047 |
+| Pregunta con `escalada == true` ⇒ existe `tareas_clinicas/pregunta__{id}` | Sin ella, la escalación sólo vive en un WhatsApp que quizá no salió (REG-521) | Reparado el 5-sep-2026; **se comprueba desde la próxima pregunta escalada** |
 
 ---
 

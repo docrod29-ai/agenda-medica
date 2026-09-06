@@ -5,6 +5,7 @@
  * ruta y user-agent. Con rate-limit anti-spam.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { redactarString, redactarRuta } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarUsuario } from '@/lib/auth-server'
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
     const errores = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     return NextResponse.json({ ok: true, errores })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 

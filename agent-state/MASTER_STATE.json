@@ -23,10 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt",
-    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md"
+    "M  .github/workflows/deploy-production.yml",
+    "M  agent-state/MASTER_STATE.json",
+    "M  docs/audit/regression-ledger.md",
+    "M  docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "A  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
+    "M  docs/maintenance/sw-changelog.md",
+    "M  docs/product/DECISION_REGISTER.md",
+    "M  docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M  scripts/design/techos-de-diseno.json",
+    "M  src/__tests__/confianza-por-palabra.test.ts",
+    "A  src/__tests__/el-diagnostico-impreso-no-es-un-codigo-huerfano.test.ts",
+    "A  src/__tests__/el-dialogo-no-esconde-sus-botones.test.ts",
+    "A  src/__tests__/ningun-dialogo-se-come-su-salida.test.ts",
+    "M  src/__tests__/que-va-en-la-receta.test.ts",
+    "M  src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    "M  src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
+    "M  src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
+    "M  src/app/globals.css",
+    "M  src/components/AutoLogout.tsx"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -60,13 +76,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/chat-pendientes-m4f9p9",
+  "ramaActual": "claude/ausculta-preservation-improvement-44lutz",
   "derivado": {
-    "regsEnElLedger": 312,
-    "ultimaREG": "REG-518",
-    "archivosDePrueba": 940,
-    "casosDePrueba": 11381,
+    "regsEnElLedger": 329,
+    "ultimaREG": "REG-535",
+    "archivosDePrueba": 956,
+    "casosDePrueba": 11512,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1183"
+  "versionEnElRepo": "nexusmed-v1184"
 }
