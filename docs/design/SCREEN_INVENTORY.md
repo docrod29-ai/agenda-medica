@@ -35,11 +35,11 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 1293 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 1884 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
-| `/privacidad/[clinicId]` | paciente | ✅ | 288 | 0 | — | ✅ | — |
-| `/resena/[token]` | paciente | ✅ | 139 | 0 | — | ✅ | — |
+| `/privacidad/[clinicId]` | paciente | ✅ | 391 | 0 | — | ✅ | — |
+| `/resena/[token]` | paciente | ✅ | 157 | 0 | — | ✅ | — |
 | `/reservar/[clinicId]` | paciente | ✅ | 440 | 0 | — | ✅ | — |
 | `/teleconsulta/[citaId]` | paciente | ✅ | 112 | 0 | — | ✅ | — |
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |

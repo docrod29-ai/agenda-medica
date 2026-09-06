@@ -75,6 +75,8 @@ const recienCompuesto = (): PaqueteDeVisita => ({
   orders: ['Biometría hemática'],
   followUp: '',
   warningSigns: [],
+  /* PC-020/MO-016: las indicaciones del médico también bajan al paciente. */
+  indicaciones: [],
   educationalMaterial: [],
   documents: [],
   unansweredQuestions: [],
@@ -168,7 +170,13 @@ describe('el servidor filtra, no la pantalla', () => {
      * prueba; un `p.estado === 'RELEASED'` incrustado se olvida en la segunda
      * ruta que alguien escriba.
      */
-    expect(RUTA).toContain("import { visibleParaElPaciente")
+    /*
+      El `import` pasó a ser de varias líneas cuando la ruta empezó a cruzar
+      también la puerta de los DIAGNÓSTICOS del paciente (PC-001), así que se
+      mira el símbolo importado y no la forma de la línea. Lo que importa —que
+      la compuerta se llame por su nombre y se use— no cambia.
+    */
+    expect(RUTA).toMatch(/import \{[\s\S]{0,200}visibleParaElPaciente/)
     expect(RUTA).toContain('.filter(visibleParaElPaciente)')
   })
 

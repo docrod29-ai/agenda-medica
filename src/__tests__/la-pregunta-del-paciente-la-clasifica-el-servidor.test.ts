@@ -130,9 +130,47 @@ describe('2 · LA CLASE LA PONE EL SERVIDOR', () => {
     }
   })
 
-  it('exige alcance clínico — un token de agenda no abre esto', () => {
-    expect(a).toContain("if (alcance !== 'clinico')")
+  it('exige alcance clínico — un token de agenda no abre esto, salvo que sea una urgencia', () => {
+    /**
+     * ── ESTE CASO PEDÍA EL LITERAL, Y EL LITERAL CAMBIÓ POR PI-004 ──────────
+     *
+     * `preguntar` sigue cerrada al alcance `agenda`… menos cuando lo que llega
+     * es una de las urgencias del §6. Una urgencia no devuelve un solo dato
+     * clínico del paciente: registra lo que escribió y enseña la vía. Contestar
+     * «pide a tu médico el acceso» a quien dice que le falta el aire es
+     * responderle que le falta un permiso.
+     *
+     * Lo que se vigila sigue siendo lo mismo —que la puerta exista y que
+     * `preguntas` (que SÍ devuelve su historial) no tenga excepción ninguna—,
+     * dicho sobre la forma nueva.
+     */
+    expect(a).toContain("alcance !== 'clinico'")
+    expect(a, 'la única excepción es la urgencia, y va nombrada').toContain('!urgenciaDeEstaPeticion')
     expect(accion('preguntas')).toContain("if (alcance !== 'clinico')")
+    expect(accion('preguntas'), 'el historial no tiene excepción: devuelve secreto médico').not.toContain('urgencia')
+  })
+
+  /**
+   * PI-004 — LA URGENCIA SE MIRA ANTES QUE EL FRENO DE TASA.
+   *
+   * A las 2 a.m., tras varias recargas del portal, «me duele el pecho y me
+   * falta el aire» recibió «Demasiadas consultas a tus documentos»: el freno
+   * por paciente se preguntaba antes que la urgencia, así que nada se
+   * clasificó, nada se registró y nadie se enteró. Es el fallo de ORDEN que
+   * `urgencia.ts` dejó escrito, un piso más abajo.
+   */
+  it('la urgencia se clasifica ANTES de los frenos por paciente, y abre tarea igual', () => {
+    const iUrgencia = RUTA.indexOf('const urgenciaDeEstaPeticion')
+    const iFrenoClinico = RUTA.indexOf('portal:clinico:')
+    expect(iUrgencia, 'desapareció la clasificación temprana').toBeGreaterThan(-1)
+    expect(iUrgencia, 'el freno volvió a preguntarse antes que la urgencia').toBeLessThan(iFrenoClinico)
+    // Y los frenos POR PACIENTE quedan dentro de la rama que la urgencia salta.
+    expect(RUTA).toContain('if (!urgenciaDeEstaPeticion) {')
+    // El freno por IP NO se salta: ése protege la ruta de una ráfaga, no al
+    // consultorio de un paciente angustiado.
+    expect(RUTA.indexOf('portal:ip:'), 'el freno por IP tiene que seguir por delante').toBeLessThan(iUrgencia)
+    // Y la tarea del worklist se abre mirando también la clase.
+    expect(RUTA).toContain("r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED'")
   })
 
   it('tiene freno propio: un token filtrado no convierte el buzón del médico en spam', () => {

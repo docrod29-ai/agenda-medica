@@ -560,7 +560,23 @@ describe('LAS DOS SUPERFICIES CRUZAN LA MISMA PUERTA', () => {
   })
 
   it('y un fallo de lectura ya NO se pinta como «no tienes recetas»', () => {
-    expect(pantallaPaciente).toContain('setDocsError(true)')
+    /**
+     * ── EL LITERAL CAMBIÓ CON PC-006, EL INVARIANTE NO ─────────────────────
+     *
+     * Se miraba `setDocsError(true)` dentro del `.then` de la petición de
+     * documentos. Abrir el portal costaba cuatro peticiones y tres contaban
+     * contra la ventana clínica, así que a la quinta apertura el paciente veía
+     * «no pudimos cargar tus recetas» sin haber hecho nada raro: ahora la
+     * apertura es UNA petición y el servidor manda `documentos: null` cuando no
+     * las pudo leer, frente a `[]` cuando las leyó y no hay.
+     *
+     * Lo que sigue vigilándose es exactamente lo mismo: que un fallo de lectura
+     * no acabe pintando una lista vacía, que se lee como una afirmación clínica
+     * que nadie comprobó.
+     */
+    expect(pantallaPaciente).toContain('setDocsError(d.documentos === null)')
     expect(pantallaPaciente).not.toMatch(/\.catch\(\(\)\s*=>\s*setDocs\(\[\]\)\)/)
+    // Y el aviso sigue en la pantalla, con su «esto no quiere decir que no tengas».
+    expect(pantallaPaciente).toMatch(/docsError && \(/)
   })
 })
