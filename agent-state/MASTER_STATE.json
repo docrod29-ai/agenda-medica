@@ -23,26 +23,9 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/ci.yml",
-    "M  .github/workflows/deploy-production.yml",
-    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/BLOCKERS.md",
-    "M  agent-state/MASTER_STATE.json",
-    "M  docs/audit/lane-product-excellence.md",
-    "M  docs/audit/lint-techo.json",
-    "M  docs/audit/regression-ledger.md",
-    "MM docs/data-room/INDICE.md",
-    "MM docs/design/SCREEN_INVENTORY.md",
-    "A  docs/maintenance/BITACORA-2026-09-05-preservacion-y-auditoria.md",
-    "R  docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1184.md -> docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1185.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "MM docs/ops/inventario-de-entorno.json",
-    "A  docs/product/AUSCULTA-ULTRA-READINESS.md",
-    "M  docs/product/DECISION_REGISTER.md",
-    "MM docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  docs/whatsapp/policy-risk-register.md",
-    "M  public/sw.js",
-    "M  public/version.txt"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -76,14 +59,14 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-product-excellence-52rqck",
+  "ramaActual": "claude/medical-app-audit-team-8c37y7",
   "derivado": {
     "regsEnElLedger": 391,
     "ultimaREG": "REG-602",
-    "archivosDePrueba": 968,
-    "casosDePrueba": 11601,
+    "archivosDePrueba": 1050,
+    "casosDePrueba": 12378,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1185",
+  "versionEnElRepo": "nexusmed-v1186",
   "ultimaREG": null
 }
