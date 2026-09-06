@@ -5,15 +5,24 @@ Todo lo de aquí es la MITAD de un hallazgo cuya otra mitad ya está reparada en
 
 ---
 
-## Para MOTORES
+## Para MOTORES — y para el orquestador al integrar
+
+> Al cierre de esta rama, `ledger-MOTORES.md` ya declara **MP-016 CLOSED** con
+> `EntradaCopiloto.edadMeses`/`edadDias`, y **MP-005 CLOSED** con el aviso
+> `volumen_sin_concentracion`. Nada de eso está en la base de
+> `reparacion/CONSULTA` (que sale de `595c89a`), así que **no se pudo cablear
+> desde aquí sin romper el tipo**. Los tres puntos siguientes son de una línea
+> cada uno **una vez fusionadas las dos ramas**, y hay que hacerlos: sin ellos,
+> la mitad del motor no protege a nadie.
 
 ### 1. `EntradaCopiloto` no acepta la edad en meses ni en días (bloquea el cableado que la consulta debe hacer)
 
 - **Archivo**: `src/lib/expediente/copiloto.ts` (`EntradaCopiloto`, l.64) y
   `src/types/expediente.ts`.
-- **Qué falta**: campos `edadMeses?: number` y `edadDias?: number`, y el aviso
-  crítico cuando un fármaco está contraindicado a esa edad más el aviso de acción
-  cuando la edad no consta (REP-054).
+- **Qué falta en la base de esta rama**: campos `edadMeses?: number` y
+  `edadDias?: number`, y el aviso crítico cuando un fármaco está contraindicado a
+  esa edad más el aviso de acción cuando la edad no consta (REP-054). MOTORES lo
+  da por cerrado en su rama.
 - **Qué hace la consulta en cuanto existan**: ya deriva la edad en meses con la
   fecha del consultorio —`edadEnMesesDelPaciente`, en
   `src/app/(dashboard)/consulta/[patientId]/page.tsx`— y la pasa a
@@ -29,8 +38,10 @@ Todo lo de aquí es la MITAD de un hallazgo cuya otra mitad ya está reparada en
 - **Archivo**: `src/types/expediente.ts` (`Medicamento`) y
   `src/lib/seguridad/dosis.ts` (`revisarUnidadDosis`, aviso
   `volumen_sin_concentracion`).
-- **Qué falta**: el campo de presentación/concentración («jarabe 250 mg/5 mL») y
-  el aviso cuando se receta un volumen sin concentración.
+- **Qué falta en la base de esta rama**: el campo de presentación/concentración
+  («jarabe 250 mg/5 mL») y el aviso cuando se receta un volumen sin
+  concentración. MOTORES da por cerrado el aviso en su rama; lo que queda es la
+  CAPTURA, que es de la consulta y se hace en cuanto el campo exista.
 - **Qué hará la consulta**: capturarlo en el renglón del medicamento, junto a la
   dosis. La fila ya tiene encabezado de columna y `aria-label` por campo
   (D-005), así que añadir una columna es un cambio local.

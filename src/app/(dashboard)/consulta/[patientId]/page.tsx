@@ -887,24 +887,31 @@ export default function ConsultaActivaPage() {
   /** El peso que sale de la pantalla hacia los motores por kilo. */
   const pesoParaDosis = pesoBloqueado ? undefined : (signosNum.peso ?? undefined)
 
-  /** Los signos tal como venían de la nota guardada (línea base de ASN-012). */
-  const signosGuardadosRef = useRef<Record<string, unknown>>({})
+  /**
+   * Los signos tal como venían de la nota guardada — la línea base de ASN-012.
+   *
+   * Es ESTADO y no un ref a propósito: lo lee un `useMemo` durante el render, y
+   * leer `ref.current` ahí es exactamente lo que el compilador de React prohíbe
+   * (y lo que el trinquete de lint cuenta como error).
+   */
+  const [signosGuardados, setSignosGuardados] = useState<Record<string, unknown>>({})
   const [motivoDeCorreccion, setMotivoDeCorreccion] = useState('')
-  const [correccionesRegistradas, setCorreccionesRegistradas] = useState(0)
   /**
    * ── QUÉ SIGNO YA GUARDADO SE ESTÁ CAMBIANDO (ASN-012) ─────────────────────
    *
    * Sólo cuenta lo que YA tenía valor en la nota guardada: capturar por primera
-   * vez no es corregir. `correccionesRegistradas` fuerza el recálculo cuando la
-   * constancia se deja en la nota y la línea base se mueve.
+   * vez no es corregir. Cuando la constancia se deja en la nota, la línea base
+   * se mueve y la caja ámbar desaparece sola.
    */
-  const correccionesDeSignos = useMemo(() => {
-    const base = signosGuardadosRef.current
-    return (['ta', 'fc', 'fr', 'temperatura', 'spo2', 'peso', 'talla'] as const)
-      .map(k => ({ campo: k, antes: String(base[k] ?? '').trim(), despues: String((signos as Record<string, unknown>)[k] ?? '').trim() }))
+  const correccionesDeSignos = useMemo(() => (
+    (['ta', 'fc', 'fr', 'temperatura', 'spo2', 'peso', 'talla'] as const)
+      .map(k => ({
+        campo: k,
+        antes: String(signosGuardados[k] ?? '').trim(),
+        despues: String((signos as Record<string, unknown>)[k] ?? '').trim(),
+      }))
       .filter(c => c.antes !== '' && c.antes !== c.despues)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signos, correccionesRegistradas])
+  ), [signos, signosGuardados])
 
   /** Lo que hay que preguntarle al médico sobre lo que acaba de capturar (ASN-002). */
   const avisosDeSignos = useMemo(
@@ -2413,7 +2420,7 @@ export default function ConsultaActivaPage() {
        * C-5; en Practice no existía, y es justo donde dos personas tocan el
        * mismo campo.
        */
-      signosGuardadosRef.current = { ...(n.signosVitales ?? {}) } as Record<string, unknown>
+      setSignosGuardados({ ...(n.signosVitales ?? {}) } as Record<string, unknown>)
       setDiagnosticos(diagnosticosSanos(n.diagnosticos))
       setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
@@ -7341,9 +7348,9 @@ export default function ConsultaActivaPage() {
                       + `. Corrección hecha a las ${hora} por ${quien}`
                       + (motivoDeCorreccion.trim() ? `; motivo: ${motivoDeCorreccion.trim()}.` : '; sin motivo declarado.')
                     if (agregarASeccion('correccionDeSignos', 'Correcciones de signos vitales')(texto)) {
-                      signosGuardadosRef.current = { ...(signos as Record<string, unknown>) }
+                      // La línea base se mueve: lo corregido ya consta en la nota.
+                      setSignosGuardados({ ...(signos as Record<string, unknown>) })
                       setMotivoDeCorreccion('')
-                      setCorreccionesRegistradas(n => n + 1)
                     }
                   }}
                   className="nx-acc-caja"

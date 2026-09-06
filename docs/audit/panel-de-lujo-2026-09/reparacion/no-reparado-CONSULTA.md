@@ -1,8 +1,10 @@
 # Lo que NO se reparó — CONSULTA (Panel de Lujo 2026-09)
 
-Cuatro de los 45 hallazgos quedan sin cerrar del todo. Ninguno es un defecto
-clínico vivo: dos dependen de una decisión del dueño que el valor seguro no
-resuelve, y dos son la mitad ajena de un trabajo cuya mitad propia sí está hecha.
+Tres de los 45 hallazgos quedan sin reparar (N-021, PG-004, PP-018) y uno queda
+reparado a medias a propósito (B-009). Ninguno es un defecto clínico vivo: dos
+dependen de una decisión del dueño que el valor seguro no resuelve, uno necesita
+antes una unidad de trabajo con nombre, y el cuarto es la mitad ajena de algo
+cuya mitad propia sí está hecha.
 
 ---
 

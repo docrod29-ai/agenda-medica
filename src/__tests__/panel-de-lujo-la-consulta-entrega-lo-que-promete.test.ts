@@ -145,8 +145,10 @@ describe('ASN-003 · la consulta sin cerrar del servidor se ofrece', () => {
 
 describe('ASN-012 · corregir un signo ya guardado deja rastro', () => {
   it('hay línea base de lo guardado y se detecta el cambio', () => {
-    expect(consulta).toContain('signosGuardadosRef')
+    expect(consulta).toContain('signosGuardados')
     expect(consulta).toContain('correccionesDeSignos')
+    // La línea base es ESTADO, no un ref: la lee un `useMemo` durante el render.
+    expect(consulta).toMatch(/const \[signosGuardados, setSignosGuardados\] = useState/)
   })
 
   it('pide motivo sin bloquear y la constancia queda DENTRO de la nota', () => {
