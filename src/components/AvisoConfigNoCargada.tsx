@@ -1,5 +1,6 @@
 'use client'
 import { AlertTriangle } from 'lucide-react'
+import { enEspanolLlano } from '@/lib/texto-es'
 
 /**
  * Aviso de que la configuración del consultorio NO se pudo leer.
@@ -28,8 +29,18 @@ export function AvisoConfigNoCargada({ error }: { error: string | null }) {
       <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--text)' }}>
         <strong>No se pudo cargar la configuración de tu consultorio.</strong>{' '}
         Este documento saldría sin membrete, sin tu firma y sin tu cédula profesional, así que
-        imprimir y descargar están bloqueados. Revisa tu conexión y recarga la página.
-        <div style={{ color: 'var(--text3)', marginTop: 5, fontSize: 12.5 }}>Detalle técnico: {error}</div>
+        imprimir y descargar están bloqueados.
+        {/*
+          ZC-021 — lo que llegaba aquí era el código de Firebase tal cual
+          («Detalle técnico: permission-denied»), en inglés y sin decir qué
+          hacer. Ahora la coletilla es la frase de persona que corresponde a ese
+          código; el código sigue existiendo en `error` para el reporte, y
+          `title` lo deja a mano de quien lo necesite sin ponérselo delante al
+          médico.
+        */}
+        <div style={{ color: 'var(--text3)', marginTop: 5, fontSize: 12.5 }} title={`código: ${error}`}>
+          {enEspanolLlano(error)}
+        </div>
       </div>
     </div>
   )

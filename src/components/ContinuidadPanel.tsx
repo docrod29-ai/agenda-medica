@@ -43,7 +43,7 @@
  * (`@/components/tareas/PorQueEstaAqui`), porque dos plantillas para la misma
  * entidad es la trampa de REG-318 montada otra vez.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -52,6 +52,8 @@ import { tareasVivas } from '@/lib/tareas-clinicas/firestore'
 import { ordenWorklist, debeEscalar, ETIQUETA_TIPO, type TareaClinica } from '@/lib/tareas-clinicas/modelo'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 import { DisparadorPorQue, LentePorQue, usePorQue } from '@/components/tareas/PorQueEstaAqui'
+import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
+import { plural } from '@/lib/texto-es'
 import { ChevronRight, FileClock, AlertTriangle } from 'lucide-react'
 
 /** Vista previa, no el worklist entero: eso ya es `/pendientes`. */
@@ -62,6 +64,18 @@ export function ContinuidadPanel() {
   const [tareas, setTareas] = useState<TareaClinica[]>([])
   const [cargando, setCargando] = useState(true)
   const [ahora, setAhora] = useState(0)
+  /**
+   * EL `catch` VACÍO SE LLENÓ — Panel de Lujo ZC-006.
+   *
+   * `.catch(() => {})` dejaba `tareas` en `[]` y el `if (… ordenadas.length === 0)
+   * return null` de más abajo borraba la zona entera: un fallo de red al leer el
+   * worklist se veía exactamente igual que un consultorio sin nada pendiente.
+   * En «Hoy» eso importa más que en otras pantallas, porque Hoy es lo primero
+   * que se mira y lo único que se mira con prisa.
+   */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [intento, setIntento] = useState(0)
+  const reintentar = useCallback(() => { setFalloAlLeer(undefined); setCargando(true); setIntento(n => n + 1) }, [])
   /* El estado de la lente vive AQUÍ, no en la fila: la lista se reordena por
      urgencia en cada `setAhora`, y una fila que se guardara si está abierta
      perdería la lente al reordenarse. Es la misma decisión —y la misma
@@ -73,16 +87,26 @@ export function ContinuidadPanel() {
     if (!clinicId) return
     let vivo = true
     tareasVivas(clinicId)
-      .then(w => { if (vivo) { setTareas(w.tareas); setAhora(Date.now()) } })
-      .catch(() => {})
+      .then(w => { if (vivo) { setTareas(w.tareas); setAhora(Date.now()); setFalloAlLeer(undefined) } })
+      .catch((e: unknown) => { if (vivo) setFalloAlLeer(e ?? new Error('lectura fallida')) })
       .finally(() => { if (vivo) setCargando(false) })
     return () => { vivo = false }
-  }, [clinicId])
+  }, [clinicId, intento])
 
   const ordenadas = useMemo(
     () => [...tareas].sort((a, b) => ordenWorklist(a, b, ahora)),
     [tareas, ahora],
   )
+
+  // Si NO se pudo leer, se dice. Va antes que el vacío porque un fallo de
+  // lectura no es un consultorio al día.
+  if (falloAlLeer !== undefined) {
+    return (
+      <section className="hoy-bloque" aria-label="Continuidad entre consultas">
+        <NoSePudoLeer que="los pendientes que siguen abiertos" error={falloAlLeer} alReintentar={reintentar} />
+      </section>
+    )
+  }
 
   // Cargando o vacío: no hay zona que pintar. Un bloque vacío con encabezado
   // propio es peor que no mostrarlo — el mismo criterio que ya usa ProxHero.
@@ -113,7 +137,9 @@ export function ContinuidadPanel() {
       </div>
       {ordenadas.length > TOPE_VISIBLE && (
         <div className="nx-meta" style={{ padding: '8px 2px 14px' }}>
-          +{ordenadas.length - TOPE_VISIBLE} más en el worklist
+          {/* «worklist» es la palabra del código, no la del médico (ZC-006).
+              La pantalla se llama Pendientes y así se nombra aquí. */}
+          +{plural(ordenadas.length - TOPE_VISIBLE, 'pendiente más', 'pendientes más')} en Pendientes
         </div>
       )}
 

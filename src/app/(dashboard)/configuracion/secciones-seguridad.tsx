@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { iniciarEnrolamientoTotp, completarEnrolamientoTotp, listarFactores, desactivarFactor } from '@/lib/mfa'
 import type { TotpSecret } from 'firebase/auth'
 import { KeyRound, Lock } from 'lucide-react'
@@ -69,7 +70,7 @@ export function SeguridadTab() {
       toast('Factor eliminado', 'success')
       setFactores(listarFactores(user))
     } catch (e) {
-      toast(`Error: ${(e as Error).message}`, 'error')
+      toast(noSePudo('aplicar el cambio de seguridad', e), 'error')
     }
   }
 
@@ -142,7 +143,7 @@ export function SeguridadTab() {
             Paso 2: Ingresa el código de 6 dígitos que muestra tu app
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <input
+            <input aria-label="Código de seis dígitos de tu app de autenticación"
               value={codigo}
               onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"

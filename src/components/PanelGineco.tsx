@@ -12,7 +12,7 @@ import { Baby, CalendarDays, HeartPulse, Microscope, Plus, Stethoscope } from 'l
 import {
   gestacionPorFUM, gestacionPorUltrasonido, hitosSegunEG,
   aspirinaPreeclampsia, RIESGO_ALTO_PE, RIESGO_MODERADO_PE,
-  bishop, conductaCervical, tamizajeRutina,
+  bishop, conductaCervical, tamizajeRutina, HITOS_PRENATALES_AVISO,
   type Citologia, type EstadoVPH,
 } from '@/lib/expediente/ginecologia'
 
@@ -111,6 +111,22 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
 
           {gest ? (
             <>
+              {/*
+                MG-010 — la cuenta implausible se DICE, y se dice arriba.
+                El motor devuelve la cifra Y el aviso: no corrige en silencio
+                (regla 3) y no se calla lo que sabe (regla 4). Va antes del
+                resultado porque, si la FUM está mal, lo de abajo no vale.
+              */}
+              {gest.aviso && (
+                <div role="status" style={{
+                  padding: '10px 12px', borderRadius: 10, marginBottom: 10,
+                  border: '1px solid color-mix(in srgb, var(--amber) 45%, transparent)',
+                  background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
+                  fontSize: 12, lineHeight: 1.5, color: 'var(--text)',
+                }}>
+                  <b>Revisa la fecha antes de usar esta cuenta.</b> {gest.aviso}
+                </div>
+              )}
               <div style={{ padding: '10px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--rosa) 35%, transparent)', background: 'color-mix(in srgb, var(--rosa) 10%, transparent)', marginBottom: 10 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--rosa)' }}>
                   {gest.semanas} semanas {gest.dias} días · {gest.trimestre}º trimestre
@@ -120,13 +136,30 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
                   {metodo === 'us' && <span style={{ color: 'var(--text3)' }}> (derivada del ultrasonido)</span>}
                 </div>
                 {onAgregarANota && (
-                  <button type="button" style={{ ...btnMini, marginTop: 8 }} onClick={() => onAgregarANota(
-                    `Embarazo de ${gest.semanas}.${gest.dias} semanas (${gest.trimestre}º trimestre) por ${metodo === 'fum' ? 'FUM' : 'ultrasonido'}. Fecha probable de parto: ${gest.fpp}.`
-                  )}><Plus size={12} /> Agregar a la nota</button>
+                  /* Una cuenta con aviso no se pega a la nota a un clic: el
+                     hallazgo decía literalmente «y se puede pegar a la nota». */
+                  gest.aviso ? (
+                    <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 8 }}>
+                      No se puede agregar a la nota mientras la cuenta no cuadre.
+                    </div>
+                  ) : (
+                    <button type="button" style={{ ...btnMini, marginTop: 8 }} onClick={() => onAgregarANota(
+                      `Embarazo de ${gest.semanas}.${gest.dias} semanas (${gest.trimestre}º trimestre) por ${metodo === 'fum' ? 'FUM' : 'ultrasonido'}. Fecha probable de parto: ${gest.fpp}.`
+                    )}><Plus size={12} /> Agregar a la nota</button>
+                  )
                 )}
               </div>
 
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--text3)', marginBottom: 6 }}>Control prenatal para esta edad gestacional</div>
+              {/*
+                MG-021 — el estado del motor se DICE. Estaba declarado como
+                `pendiente_validacion` en el registro de motores y la pantalla lo
+                pintaba como si estuviera cerrado. Va arriba de la lista porque
+                condiciona todo lo que hay debajo.
+              */}
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.45, marginBottom: 6 }}>
+                {HITOS_PRENATALES_AVISO}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 280, overflowY: 'auto' }}>
                 {hitosSegunEG(gest.semanas).map((h, i) => (
                   <div key={i} style={{
@@ -144,6 +177,13 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, embebido }: Props
                       {h.estado === 'vencido' && <span style={pill('var(--text3)', 'var(--s2)')}>ya pasó</span>}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>{h.hito.detalle}</div>
+                    {/* La fuente va PEGADA al renglón, no en la cabecera del
+                        archivo: la cifra y de dónde sale se leen juntas o no se
+                        leen (MG-021, regla 1 de seguridad clínica). */}
+                    <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3 }}>
+                      {h.hito.llevaDosis ? 'Dosis según ' : 'Fuente: '}{h.hito.fuente}
+                      {h.hito.llevaDosis ? ' · confirma antes de prescribir' : ''}
+                    </div>
                   </div>
                 ))}
               </div>

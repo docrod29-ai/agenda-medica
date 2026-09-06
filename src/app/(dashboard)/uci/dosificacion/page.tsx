@@ -151,7 +151,7 @@ export default function ValidacionDosisPage() {
         <div style={{ position: 'relative', flex: '1 1 220px' }}>
           <Search size={14} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text3)' }} />
           <input
-            className="input" placeholder="Buscar fármaco o clase…" value={busca}
+            className="input" aria-label="Buscar fármaco o clase" placeholder="Buscar fármaco o clase…" value={busca}
             onChange={e => setBusca(e.target.value)} style={{ paddingLeft: 30 }}
           />
         </div>
@@ -547,7 +547,7 @@ function Tarjeta({ nombre, firma, abierta, onAbrir, nota, setNota, onValidar, on
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input
+              <input aria-label="Nota (opcional): con qué fuente lo cotejó"
                 className="input" placeholder="Nota (opcional): con qué fuente lo cotejó…"
                 value={nota} onChange={e => setNota(e.target.value)}
                 style={{ flex: '1 1 240px', fontSize: 12.5 }}

@@ -42,7 +42,25 @@
  * se pudo leer no se enseña a medias: quien la pinte decide qué decir en su
  * lugar, y así el hueco es visible en vez de disfrazado.
  */
+import { zonaActiva } from '@/lib/timezone'
 
+/**
+ * ── LA ZONA ES LA DEL CONSULTORIO, NO LA DEL NAVEGADOR — Panel de Lujo ZC-019
+ *    y C-038 ────────────────────────────────────────────────────────────────
+ *
+ * Cinco componentes clínicos pintaban la fecha con `toLocaleString('es-MX')` a
+ * secas, y una `toLocale*` sin `timeZone` usa la zona del DISPOSITIVO. El mismo
+ * ingreso hospitalario cambiaba de día según desde dónde se mirara: el médico
+ * en Chihuahua (UTC−6) y el residente conectado desde Madrid leían fechas
+ * distintas del mismo hecho, y el brazalete impreso salía con la del navegador
+ * que lo imprimió (C-038).
+ *
+ * `zonaActiva()` ya existía —`src/lib/timezone.ts`, publicada desde
+ * `config.zonaHoraria` al entrar— y ya la usaban la agenda, los cobros y el
+ * calendario. Lo único que faltaba era que la usaran también las fechas que se
+ * LEEN. Se hace aquí, en el formateador único, y no componente por componente:
+ * de lo contrario la siguiente pantalla vuelve a elegir.
+ */
 /** Acepta ISO completo o `YYYY-MM-DD`. Mediodía para que la zona no mueva el día. */
 function aFecha(iso: string | null | undefined): Date | null {
   if (!iso) return null
@@ -56,13 +74,18 @@ function aFecha(iso: string | null | undefined): Date | null {
 /** «1 sep 2026». La fecha por defecto del producto. */
 export function fechaCorta(iso: string | null | undefined): string {
   const d = aFecha(iso)
-  return d ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+  return d
+    ? d.toLocaleDateString('es-MX', { timeZone: zonaActiva(), day: 'numeric', month: 'short', year: 'numeric' })
+    : ''
 }
 
 /** «1 sep 2026, 12:00» — cuando la hora forma parte del hecho. */
 export function fechaConHora(iso: string | null | undefined): string {
   const d = aFecha(iso)
   return d
-    ? d.toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? d.toLocaleString('es-MX', {
+        timeZone: zonaActiva(),
+        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+      })
     : ''
 }

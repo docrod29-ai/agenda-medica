@@ -57,7 +57,17 @@ export function ComoCerrarLaConsulta(p: ComoCerrarLaConsultaProps) {
             <button
               key={paso.que}
               onClick={() => paso.ruta && p.alIr(paso.ruta)}
+              /*
+               * ZC-007 — un paso sin ruta seguía pintándose deshabilitado y sin
+               * porqué. Ya no hay ninguno así (el del cobro lleva la suya), pero
+               * la propiedad se conserva por si algún día vuelve a haberlo: lo
+               * que no puede volver es un botón apagado y mudo, así que se le
+               * pone el título como nombre accesible y el `siNoSeHace` como
+               * explicación, que es lo que faltaba.
+               */
               disabled={!paso.ruta}
+              aria-disabled={!paso.ruta}
+              title={paso.ruta ? undefined : paso.siNoSeHace || undefined}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 10px', borderRadius: 9, textAlign: 'left',

@@ -15,12 +15,21 @@ export interface Cie10AutocompleteProps {
   value: string
   onChange: (descripcion: string, codigoCIE10?: string) => void
   placeholder?: string
+  /**
+   * C-025 — CÓMO SE LLAMA ESTE CAMPO.
+   *
+   * El componente no aceptaba NINGUNA prop de etiqueta, así que sus dos
+   * llamadores (la consulta y el ingreso hospitalario) no podían arreglarlo
+   * desde fuera aunque quisieran. El valor por defecto dice lo que el campo es
+   * en las dos: un buscador de diagnóstico.
+   */
+  etiqueta?: string
   /** Si true, el input es solo descripción libre; el código se selecciona aparte */
   soloDescripcion?: boolean
   style?: React.CSSProperties
 }
 
-export function Cie10Autocomplete({ value, onChange, placeholder, style }: Cie10AutocompleteProps) {
+export function Cie10Autocomplete({ value, onChange, placeholder, etiqueta, style }: Cie10AutocompleteProps) {
   const [query, setQuery] = useState(value)
   const [resultados, setResultados] = useState<Cie10Entry[]>([])
   const [open, setOpen] = useState(false)
@@ -66,6 +75,7 @@ export function Cie10Autocomplete({ value, onChange, placeholder, style }: Cie10
     <div ref={containerRef} style={{ position: 'relative', ...style }}>
       <div style={{ position: 'relative' }}>
         <input
+          aria-label={etiqueta ?? 'Diagnóstico (buscar en CIE-10)'}
           value={query}
           onChange={(e) => handleInput(e.target.value)}
           onFocus={() => {

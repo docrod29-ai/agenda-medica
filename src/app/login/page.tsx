@@ -1,5 +1,6 @@
 'use client'
 import { esFalloDeRed, MENSAJE_SIN_RED } from '@/lib/auth/fallo-de-red'
+import { enEspanolLlano } from '@/lib/texto-es'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from 'firebase/auth'
@@ -50,7 +51,10 @@ function LoginInner() {
       if (resolver) { setMfaResolver(resolver); return }
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
-      else if (code) setError(`No se pudo entrar con Google: ${code}`)
+      /* C-022 — el código `auth/…` es la palabra de Firebase, no la de nadie
+         más. `enEspanolLlano` lo traduce, y lo que no conoce cae en una frase
+         que también dice qué hacer. El código sigue en la consola. */
+      else if (code) { console.warn('[login] fallo de Google', code); setError(`No se pudo entrar con Google. ${enEspanolLlano(err)}`) }
     })
   }, [])
 
@@ -94,7 +98,7 @@ function LoginInner() {
       } else if (code === 'auth/too-many-requests') {
         setError('Demasiados intentos. Espera un momento e inténtalo de nuevo.')
       } else {
-        setError('Error al iniciar sesión. Intenta de nuevo.')
+        setError(`No se pudo iniciar sesión. ${enEspanolLlano(err)}`)
       }
     } finally {
       setSubmitting(false)
@@ -117,7 +121,8 @@ function LoginInner() {
       if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       } else {
-        setError(`No se pudo entrar con Google: ${code || 'error desconocido'}`)
+        console.warn('[login] fallo de Google', code)
+        setError(`No se pudo entrar con Google. ${enEspanolLlano(err)}`)
       }
       setSubmitting(false)
     }

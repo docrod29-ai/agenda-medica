@@ -16,7 +16,14 @@ import { MarcaAusculta } from '@/components/MarcaAusculta'
 export default function SetupPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [step, setStep] = useState(0)
+  /*
+   * N-017 — RETIRADO el contador de pasos.
+   *
+   * `step` y `setStep` no volvían a aparecer en las 270 líneas del archivo: eran
+   * el resto de un asistente por pasos que ya no existe. El alta de este producto
+   * es UNA pantalla con dos campos obligatorios, y eso está bien hecho — conviene
+   * que el código no sugiera lo contrario a quien lo lea dentro de un año.
+   */
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({

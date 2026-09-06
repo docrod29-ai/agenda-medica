@@ -132,6 +132,58 @@ const REGLAS: ReglaInteraccion[] = [
   },
 ]
 
+/**
+ * LO QUE ESTE MÓDULO **NO** VIGILA — Panel de Lujo MI-007 (P2).
+ *
+ * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ *
+ * Con ocho fármacos frecuentes en un adulto crónico —metformina, losartán,
+ * amlodipino, atorvastatina, ácido acetilsalicílico, furosemida, levotiroxina y
+ * omeprazol— el equipo rojo ejecutó `detectarInteracciones` y obtuvo `[]`. Y un
+ * arreglo vacío, en una pantalla que existe para avisar de interacciones, se lee
+ * como «no hay ninguna». No es lo mismo: lo que hay es que esos veintiocho pares
+ * no están en el catálogo.
+ *
+ * Es la regla 5 de seguridad clínica dicha al pie de la letra: los vocabularios
+ * son **vocabulario, no criterio**; que falte un par significa que ese caso no
+ * se vigila, no que se dé por bueno. `temporalidad.ts` ya lo declara con
+ * `LO_QUE_NO_DISTINGUE` y `terapia-duplicada.ts` con su `NOT_IMPLEMENTED`. Este
+ * módulo era el que faltaba.
+ *
+ * ── QUÉ **NO** SE HIZO ───────────────────────────────────────────────────────
+ *
+ * No se ha ampliado el catálogo ni por un par. Qué pares entran es criterio
+ * clínico y lo decide el Dr.; lo que se puede reparar sin decisión clínica es
+ * que el SILENCIO deje de ser mudo.
+ */
+export const LO_QUE_NO_VIGILA_FARMACOVIGILANCIA =
+  'Este cruce compara la receta contra una lista CURADA de pares con interacción ' +
+  'relevante, no contra un catálogo exhaustivo. No conoce clases terapéuticas ' +
+  'completas, ni interacciones con alimentos, plantas o suplementos, ni ajustes ' +
+  'por función renal o hepática, ni las interacciones de lo que el paciente ya ' +
+  'tomaba y no está en esta receta. Que no salte nada NO significa que no haya ' +
+  'interacción: significa que ninguna de las parejas vigiladas está presente.'
+
+/** Cuántos pares vigila hoy el catálogo. Se cuenta, no se escribe a mano. */
+export const PARES_VIGILADOS = REGLAS.length
+
+/**
+ * La declaración de cobertura, lista para pintar, **sólo cuando hace falta**.
+ *
+ * Hace falta exactamente cuando hay ≥2 fármacos y CERO alertas: es el momento en
+ * que el silencio significa algo y hoy no dice nada. Con una alerta en pantalla
+ * el médico ya sabe que el cruce corrió; con un solo fármaco no hay pareja
+ * posible y el aviso sería ruido.
+ */
+export function coberturaDeclarada(
+  medicamentos: readonly { nombre?: string }[],
+  alertas: readonly unknown[],
+): string | null {
+  const conNombre = medicamentos.filter(m => (m.nombre ?? '').trim()).length
+  if (conNombre < 2 || alertas.length > 0) return null
+  return `Se cruzaron ${conNombre} medicamentos contra ${PARES_VIGILADOS} parejas vigiladas y ninguna coincidió. ${LO_QUE_NO_VIGILA_FARMACOVIGILANCIA}`
+}
+
 export function detectarInteracciones(medicamentos: readonly { nombre?: string }[]): AlertaFarmaco[] {
   const nombres = medicamentos.map(m => norm(m.nombre ?? '')).filter(Boolean)
   if (nombres.length < 2) return []

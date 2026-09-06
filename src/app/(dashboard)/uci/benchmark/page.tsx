@@ -55,7 +55,7 @@ interface Captura {
 
 export default function BenchmarkVozPage() {
   const volver = useSmartBack('/uci')
-  const { toast } = useToast()
+  const { toast, confirm } = useToast()
   const audio = useGrabacionAudio()
 
   const [modo, setModo] = useState<'guion' | 'libre'>('guion')
@@ -151,7 +151,7 @@ export default function BenchmarkVozPage() {
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>
               Dicta lo que quieras y escribe aquí <strong>exactamente</strong> lo que dijiste
             </label>
-            <textarea
+            <textarea aria-label="Lo que dijiste, palabra por palabra"
               value={goldLibre} onChange={e => setGoldLibre(e.target.value)}
               rows={3}
               placeholder="Lo que dijiste, palabra por palabra"
@@ -254,7 +254,19 @@ export default function BenchmarkVozPage() {
             </div>
           </div>
 
-          <button onClick={() => setCapturas([])} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 12 }}>
+          {/*
+            C-036 — «Empezar de cero» borraba TODAS las frases grabadas al
+            primer clic, sin preguntar. Sólo se pregunta cuando hay algo que
+            perder: confirmar sobre una lista vacía es la clase de diálogo
+            que enseña a decir que sí sin leer.
+          */}
+          <button onClick={async () => {
+            if (capturas.length > 0 && !(await confirm(
+              `Vas a borrar ${capturas.length === 1 ? 'la frase grabada' : `las ${capturas.length} frases grabadas`}. No se pueden recuperar.`,
+              { peligro: true, confirmar: 'Borrar y empezar de cero' },
+            ))) return
+            setCapturas([])
+          }} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: 12 }}>
             <Trash2 size={12} /> Empezar de cero
           </button>
         </div>

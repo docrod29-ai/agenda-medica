@@ -59,6 +59,7 @@ import {
   guardarContrato, nuevoTestigo, rutaConRegreso,
 } from '@/lib/ui/regreso-a-la-fuente'
 import { AlertTriangle, FileText, HelpCircle } from 'lucide-react'
+import { zonaActiva } from '@/lib/timezone'
 
 /**
  * EL `id` DEL DISPARADOR — estable, derivado del pendiente.
@@ -83,7 +84,7 @@ function fechaLarga(iso?: string): string {
   if (!iso) return ''
   const d = new Date(iso)
   return Number.isFinite(d.getTime())
-    ? d.toLocaleString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? d.toLocaleString('es-MX', { timeZone: zonaActiva(), day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : ''
 }
 

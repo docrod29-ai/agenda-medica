@@ -99,11 +99,44 @@ describe('lo no leído manda', () => {
 })
 
 describe('lo que NO se finge', () => {
-  it('si la carga falla, no se enseña «0 alertas»', () => {
-    /** `null` significa «no se pudo cargar», y eso no es una bandeja vacía. */
-    expect(comp).toMatch(/setAlertas\(null\)/)
-    expect(comp).toMatch(/if \(!alertas \|\| alertas\.length === 0\) return null/)
+  /**
+   * ── ESTA ASERCIÓN SE CAMBIÓ, Y POR QUÉ (Panel de Lujo ZC-001) ─────────────
+   *
+   * Lo que decía antes:
+   *
+   *     expect(comp).toMatch(/setAlertas\(null\)/)
+   *     expect(comp).toMatch(/if \(!alertas \|\| alertas\.length === 0\) return null/)
+   *
+   * Las dos líneas eran ciertas y las dos juntas **fijaban el defecto**. El
+   * `catch` ponía `null` y el `if` de abajo trataba ese mismo `null` como «no
+   * hay nada»: las dos únicas salidas del componente ante un fallo de lectura
+   * eran no pintar nada. La prueba se llamaba «no se enseña 0 alertas» y lo que
+   * comprobaba era que no se enseñara NADA — que es la misma mentira dicha en
+   * silencio, no lo contrario de ella.
+   *
+   * Se descubrió en la auditoría del Panel de Lujo (6-sep-2026, hallazgo ZC-001
+   * del barrido de cierre de componentes) mirando qué PINTA el componente
+   * cuando `cargar` rechaza, en vez de qué guarda.
+   *
+   * Lo que se comprueba ahora: que el fallo tiene un estado PROPIO
+   * (`falloAlLeer`), que se pinta con la pieza compartida `NoSePudoLeer`, y
+   * —esto es lo que de verdad cierra el agujero— que esa rama va ANTES que la
+   * del vacío en el orden del archivo. Si alguien la mueve debajo del
+   * `return null`, deja de alcanzarse y el defecto vuelve.
+   */
+  it('si la carga falla, se PINTA que falló — y antes que ningún «no hay nada»', () => {
+    expect(comp).toMatch(/setFalloAlLeer\(e \?\? new Error\('lectura fallida'\)\)/)
+
+    const ramaDelFallo = comp.indexOf('if (falloAlLeer !== undefined)')
+    const ramaDelVacio = comp.indexOf('if (!alertas || alertas.length === 0) return null')
+    expect(ramaDelFallo).toBeGreaterThan(-1)
+    expect(ramaDelVacio).toBeGreaterThan(-1)
+    expect(ramaDelFallo).toBeLessThan(ramaDelVacio)
+
+    expect(comp).toMatch(/<NoSePudoLeer[\s\S]*?que="las alertas de este paciente"/)
     expect(POR_QUE_NULL_NO_ES_CERO).toMatch(/misma mentira/)
+    /* Y que quede escrito que «se dice» significa EN PANTALLA. */
+    expect(POR_QUE_NULL_NO_ES_CERO).toMatch(/ZC-001/)
   })
 
   it('si no se pudo marcar, se queda sin marcar', () => {

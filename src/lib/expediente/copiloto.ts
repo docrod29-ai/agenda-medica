@@ -14,7 +14,7 @@
  * Todo es PURO y testeado. El médico decide; esto solo pone lo que ya se sabe.
  */
 
-import { FARMACOS_PED, elegirFarmacoPed, calcularDosisPediatrica, imc as calcImc } from './pediatria'
+import { elegirFarmacoPed, calcularDosisPediatrica, imc as calcImc } from './pediatria'
 import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
 import { creatininaPlausibleMgDl } from './funcion-renal'
@@ -291,30 +291,56 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
   }
 
   /**
-   * ── LA EDAD LLEGA AL MOTOR — MP-016 ───────────────────────────────────────
+   * ── LA EDAD LLEGA AL MOTOR — MP-003 (P1) y MP-016 ─────────────────────────
    *
-   * Las contraindicaciones por edad (ibuprofeno < 6 meses, TMP-SMX < 2 meses,
-   * nitrofurantoína < 1 mes) estaban escritas y validadas en el catálogo, y el
-   * motor sabía aplicarlas: nadie le pasaba la edad. Así que «Ibuprofeno 30 mg
-   * c/8 h» a un lactante de 3 meses cruzaba la consulta sin un aviso.
+   * Dos defectos en el mismo sitio. Aquí se elegía el fármaco por la PRIMERA
+   * coincidencia de subcadena y se llamaba a `calcularDosisPediatrica(f, peso)`
+   * **sin edad**: para «gentamicina» salía siempre «Gentamicina neonatal
+   * (≤7 días)» —la primera del arreglo— y se comparaba con la receta de un
+   * escolar, con alarma crítica sobre una dosis correcta. Y sin edad, el bloqueo
+   * por `edadMinimaMeses` que YA existía y estaba validado (ibuprofeno < 6
+   * meses, TMP-SMX < 2, nitrofurantoína < 1) no podía dispararse nunca: un
+   * lactante de tres meses cruzaba la consulta sin un aviso.
    *
-   * `edad` viene en AÑOS. Para un lactante eso es 0, que no distingue 3 meses
-   * de 11: por eso se prefiere `edadMeses` cuando la pantalla lo sabe, y sólo se
-   * deriva de los años cuando el niño ya tiene uno cumplido —donde la conversión
-   * no puede equivocarse hacia el lado peligroso—. Si no consta y el fármaco
-   * TIENE restricción por edad, el aviso lo dice en voz alta en vez de callar:
-   * que no se vigile no es que sea seguro (regla 5 de seguridad clínica).
+   * `e.edad` viene en AÑOS, y por debajo del año eso no distingue tres meses de
+   * once. Así que los meses NO se derivan de los años en el lactante: se
+   * declaran desconocidos. Decir «0 meses» de un niño de once pondría una
+   * contraindicación falsa sobre una receta correcta, y adivinar hacia el otro
+   * lado dejaría al de tres meses sin aviso. Cuando la pantalla sabe los meses
+   * o los días exactos, los manda y esto no hace falta.
+   *
+   * Quien elige entre la pauta neonatal y la general es `elegirFarmacoPed`, y
+   * cuando sólo los días de vida las separan y no constan, no elige: pregunta.
    */
   const edadMeses = e.edadMeses ?? (edad >= 1 ? Math.round(edad * 12) : undefined)
 
   const out: Sugerencia[] = []
   for (const m of meds) {
-    const nm = norm(m.nombre ?? '')
-    const f = elegirFarmacoPed(nm, edadMeses, e.edadDias)
-    if (!f) continue
-    if ((f.edadMinimaMeses != null || f.edadMaximaDias != null) && edadMeses == null && e.edadDias == null) {
+    const eleccion = elegirFarmacoPed(m.nombre ?? '', { meses: edadMeses, dias: e.edadDias })
+    if (!eleccion) continue
+
+    if (eleccion.pideEdadEnDias) {
       out.push({
-        id: `ped:edad-desconocida:${m.nombre}`,
+        id: `ped:pauta-por-dias:${norm(m.nombre ?? '')}`,
+        nivel: 'accion',
+        titulo: `${m.nombre}: hay dos pautas y las separan los días de vida`,
+        detalle: `Para ${m.nombre} existen ${eleccion.candidatos.map(c => `«${c.nombre}»`).join(' y ')}. Con la edad en años no se puede saber cuál toca. Captura la fecha de nacimiento y vuelvo a comprobarlo.`,
+        textoNota: '',
+        pide: 'peso',
+      })
+      continue
+    }
+
+    const f = eleccion.farmaco
+    if (!f) continue
+    /**
+     * MP-016: si el fármaco tiene restricción por edad y la edad no consta, se
+     * dice en voz alta. Que no se pueda vigilar no significa que sea seguro
+     * (regla 5 de seguridad clínica).
+     */
+    if (f.edadMinimaMeses != null && edadMeses == null && e.edadDias == null) {
+      out.push({
+        id: `ped:edad-desconocida:${norm(m.nombre ?? '')}`,
         nivel: 'accion',
         titulo: `No puedo verificar la restricción por edad de ${m.nombre}`,
         detalle: `${f.restriccionEdad ?? 'Este fármaco tiene restricción por edad.'} Captura la fecha de nacimiento para que la compruebe: con la edad en años redondeada no se distingue un lactante de tres meses de uno de once.`,
@@ -331,6 +357,18 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
         titulo: `${m.nombre} no está indicado a esta edad`,
         detalle: d.motivoEdad ?? 'Contraindicado por edad.',
         textoNota: `Se revisó la indicación de ${m.nombre} por edad: ${d.motivoEdad ?? 'contraindicado por edad'}.`,
+      })
+      continue
+    }
+
+    /* Contraindicada o fuera de su franja: se dice, y NO se ofrece una dosis. */
+    if (d.contraindicadoPorEdad || d.noAplicaPorEdad) {
+      out.push({
+        id: `ped:edad:${f.nombre}`,
+        nivel: d.contraindicadoPorEdad ? 'critico' : 'accion',
+        titulo: `${f.nombre}: no corresponde a esta edad`,
+        detalle: d.motivoEdad ?? 'La pauta no corresponde a la edad de este paciente.',
+        textoNota: '',
       })
       continue
     }

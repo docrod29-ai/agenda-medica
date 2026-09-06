@@ -224,6 +224,27 @@ export interface AvisoConsulta {
   descartable?: boolean
   /** El motor que lo emite está pendiente de validación y hay que decirlo. */
   sello?: 'farmacovigilancia'
+  /**
+   * ESTE AVISO VA PRIMERO Y PESA MÁS — Panel de Lujo MP-015 (P2).
+   *
+   * ── QUÉ FALLABA ──────────────────────────────────────────────────────────
+   *
+   * Una dosis pediátrica CRÍTICA —`pediatrico_sobre_mgkg`,
+   * `sobre_maximo_dosis`— salía como un renglón más de la barra, con el mismo
+   * peso visual que «medicamento controlado» y en el orden en que la lista lo
+   * fuera colocando. Una pediatra con prisa lo ve **si lee la barra entera**.
+   *
+   * ── LO QUE ESTO **NO** CAMBIA ────────────────────────────────────────────
+   *
+   * No bloquea. Que la dosis peligrosa no apague el botón de Firmar es una
+   * decisión del médico dueño, tomada el 5-ago con el dato delante
+   * (`dosis-de-la-lista.ts`), y esta reparación no la toca: sigue en nivel
+   * `revisa`, sigue sin bloquear y sigue sin plegarse. Lo único que cambia es
+   * DÓNDE se lee y con cuánto peso, que es lo que el hallazgo pedía.
+   *
+   * La pantalla lo usa para ordenar y para resaltar; el motor sólo lo declara.
+   */
+  manda?: boolean
 }
 
 export interface EntradaAvisos {
@@ -248,6 +269,15 @@ export interface EntradaAvisos {
    * dos se dicen; sólo una encabeza. Ver `interaccionesDelCuadro` (REG-410).
    */
   interacciones?: readonly { titulo: string; detalle: string; severidad: string; introducidaHoy?: boolean }[]
+  /**
+   * QUÉ SE CRUZÓ CUANDO NO SALTÓ NADA — Panel de Lujo MI-007.
+   *
+   * Lo calcula `coberturaDeclarada` en `farmacovigilancia.ts` y llega ya
+   * redactado: la decisión de cuándo el silencio significa algo vive junto al
+   * catálogo que lo produce, no aquí. Ausente = no procede decirlo (hay alertas,
+   * o no hay dos fármacos que cruzar).
+   */
+  coberturaInteracciones?: string | null
   controlados?: readonly { farmaco: string; requisito: string }[]
   /** Sobredosis, techos por vía/edad y error de decimal (REG-190). */
   dosisPeligrosas?: readonly { med: string; mensaje: string; critica: boolean }[]
@@ -490,6 +520,25 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
+  /**
+   * EL SILENCIO DEL CRUCE DE INTERACCIONES SE ETIQUETA — Panel de Lujo MI-007.
+   *
+   * Con dos o más fármacos y CERO alertas, la barra no decía nada y el médico
+   * leía «no hay interacción». Lo que hay es que ninguna de las parejas
+   * VIGILADAS está presente, que es otra cosa. Se dice al nivel más bajo —es
+   * información de alcance, no una alarma— y sólo en el momento en que el
+   * silencio significa algo.
+   */
+  if (e.coberturaInteracciones) {
+    out.push({
+      id: 'interacciones:cobertura',
+      origen: 'interaccion', nivel: 'contexto',
+      texto: e.coberturaInteracciones,
+      ancla: { seccion: 'medicamentos' }, sello: 'farmacovigilancia',
+      descartable: true,
+    })
+  }
+
   for (const c of e.controlados ?? []) {
     out.push({
       id: `controlado:${c.farmaco}`,
@@ -509,6 +558,8 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       ancla: { seccion: 'medicamentos', nombre: d.med },
       /** Lo crítico no se descarta con un botón: se corrige o se decide. */
       descartable: !d.critica,
+      /** MP-015: lo crítico encabeza la barra en vez de esperar su turno. */
+      manda: d.critica,
     })
   }
 
@@ -624,7 +675,16 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
     })
   }
 
-  return out
+  /**
+   * LO QUE MANDA VA PRIMERO — Panel de Lujo MP-015.
+   *
+   * `sort` estable sobre un solo criterio: lo marcado `manda` sube y el resto
+   * conserva el orden en que se construyó, que ya está pensado. No se reordena
+   * por nivel ni por gravedad: eso reabriría la discusión de los tres niveles
+   * que este módulo cerró, y aquí sólo se trata de que una dosis crítica no
+   * dependa de que alguien lea la barra entera.
+   */
+  return out.sort((a, b) => Number(b.manda ?? false) - Number(a.manda ?? false))
 }
 
 /** ¿Cuántos bloquean y cuántos piden un vistazo? Para el encabezado. */

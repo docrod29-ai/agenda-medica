@@ -92,10 +92,34 @@ describe('el cobro cuenta como un destino más', () => {
     expect(aDondeIrDirecto({ ...BASE, hayMedicamentos: true, pideCobro: true })).toBeNull()
   })
 
-  it('el cobro se resuelve sin salir de aquí', () => {
+  /**
+   * ── ESTA ASERCIÓN SE CAMBIÓ, Y POR QUÉ (Panel de Lujo ZC-007) ─────────────
+   *
+   * Decía `expect(cobro.ruta).toBeNull()` bajo el título «el cobro se resuelve
+   * sin salir de aquí», y esa frase describía una intención que el producto no
+   * cumplía. `ruta: null` hace que `ComoCerrarLaConsulta` pinte el paso como un
+   * **botón deshabilitado y sin explicación**, y el único disparador del modal
+   * de cobro corre una sola vez al firmar: si el médico cerró ese modal, ya no
+   * había forma de volver a él desde la consulta. No se resolvía «sin salir de
+   * aquí»: no se resolvía.
+   *
+   * Se descubrió en la auditoría del Panel de Lujo (6-sep-2026, ZC-007),
+   * mirando qué PASA al pulsar cada paso del cierre en vez de qué declara.
+   *
+   * Lo que se comprueba ahora es lo que de verdad hace falta: que el paso lleve
+   * a alguna parte, y que esa parte sea la vía que el propio comentario de la
+   * pantalla de consulta ya declaraba como normal — la asistente cobra desde la
+   * ficha de la cita, en Citas.
+   *
+   * Lo que NO se hizo, a propósito: abrir un segundo disparador del modal de
+   * cobro dentro de la consulta. Serían dos sitios donde se registra un cobro, y
+   * el corte de caja acabaría con dos fuentes de verdad.
+   */
+  it('el paso del cobro lleva a donde se cobra, y no es un botón muerto', () => {
     const cobro = queFaltaParaCerrar({ ...BASE, hayMedicamentos: true, pideCobro: true })
       .find(p => p.que === 'cobro')!
-    expect(cobro.ruta).toBeNull()
+    expect(cobro.ruta).toBe('/citas')
+    expect(cobro.titulo).toMatch(/en la cita/)
     expect(cobro.siNoSeHace).toMatch(/corte del día/)
   })
 })

@@ -11,6 +11,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { suscribirCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
+import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { mismaCama } from '@/lib/hospital/cama'
 import { contarCamas, siguientes, POLITICA_CAMAS_SEGURA } from '@/lib/hospital/estados-cama'
 import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
@@ -36,6 +38,7 @@ export default function CamasPage() {
   const router = useRouter()
   const volver = useSmartBack('/hospitalizacion')
   const { clinicId, role } = useClinic()
+  const { toast, confirm } = useToast()
   const esAdmin = role === 'admin' || role === 'medico'
   const [censo, setCenso] = useState<Internamiento[]>([])
   const [camas, setCamas] = useState<Cama[]>([])
@@ -203,7 +206,32 @@ export default function CamasPage() {
                                 {[c.estado, ...siguientes(c.estado, POLITICA)].filter(s => s !== 'ocupada')
                                   .map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
                               </select>
-                              <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
+                              {/*
+                                C-013 — borraba al PRIMER CLIC, sin preguntar y sin
+                                capturar el error: si la escritura fallaba, la cama
+                                seguía en la lista y nadie sabía si se había borrado
+                                o no. El icono está pegado al selector de estado, así
+                                que el clic errado no es raro.
+                              */}
+                              <button
+                                title="Eliminar cama"
+                                aria-label={`Eliminar la cama ${c.etiqueta ?? c.id}`}
+                                onClick={async ev => {
+                                  ev.stopPropagation()
+                                  if (!clinicId) return
+                                  if (!(await confirm(
+                                    `¿Eliminar la cama ${c.etiqueta ?? c.id}? Deja de existir para el censo y para el tablero.`,
+                                    { peligro: true, confirmar: 'Eliminar' },
+                                  ))) return
+                                  try {
+                                    await borrarCama(clinicId, c.id)
+                                    recargarCamas()
+                                  } catch (e) {
+                                    toast(noSePudo('eliminar la cama', e), 'error')
+                                  }
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}
+                              ><Trash2 size={12} /></button>
                             </div>
                           )}
                         </div>
@@ -224,12 +252,12 @@ export default function CamasPage() {
         }}>Agregar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>
-            <select className={inputCls} value={form.servicio} onChange={e => setForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
+            <select aria-label="Servicio" className={inputCls} value={form.servicio} onChange={e => setForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Etiqueta (ej. 302-A)</label>
-              <input className={inputCls} value={form.etiqueta} onChange={e => setForm(f => ({ ...f, etiqueta: e.target.value }))} /></div>
+              <input aria-label="Etiqueta (ej. 302-A)" className={inputCls} value={form.etiqueta} onChange={e => setForm(f => ({ ...f, etiqueta: e.target.value }))} /></div>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo (opcional)</label>
-              <input className={inputCls} placeholder="General / UCI / Aislamiento" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))} /></div>
+              <input aria-label="Tipo (opcional)" className={inputCls} placeholder="General / UCI / Aislamiento" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))} /></div>
           </div>
         </div>
       </Modal>

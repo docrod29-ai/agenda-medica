@@ -8,6 +8,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import { BookOpen, ExternalLink, Loader2, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { enEspanolLlano } from '@/lib/texto-es'
 
 interface Art {
   pmid: string
@@ -37,7 +38,14 @@ export function EvidenciaEnVivo() {
         setMsg(d.error || 'PubMed no devolvió artículos ahora mismo.'); setEstado('vacio')
       }
     } catch (e) {
-      setMsg(String(e).slice(0, 120)); setEstado('error')
+      /*
+       * ZC-024 — `String(e)` acababa en el DOM de la demo PÚBLICA: el visitante
+       * leía «TypeError: Failed to fetch» en la franja ámbar. El detalle
+       * técnico se queda en la consola, que es donde sirve; a la pantalla va la
+       * frase de persona.
+       */
+      console.warn('[evidencia-en-vivo] no se pudo consultar PubMed', e)
+      setMsg(enEspanolLlano(e)); setEstado('error')
     }
   }, [])
 

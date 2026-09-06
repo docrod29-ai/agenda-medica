@@ -9,6 +9,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Search, Wrench } from 'lucide-react'
+import { plural } from '@/lib/texto-es'
 
 export interface Herramienta {
   id: string
@@ -78,6 +79,15 @@ export function Herramientas({ items, ocultas = [] }: {
           {buscando ? (
             <input
               autoFocus
+              /*
+               * ZC-011 — el `placeholder` NO es la etiqueta: desaparece en
+               * cuanto se teclea la primera letra, justo cuando hace falta
+               * saber qué es este campo. axe lo da por bueno
+               * (`non-empty-placeholder`) y por eso el defecto no salía en
+               * ninguna medición; un lector de pantalla que llegue al campo con
+               * texto dentro se queda sin nombre.
+               */
+              aria-label="Buscar herramienta clínica"
               value={q}
               onChange={e => setQ(e.target.value)}
               onBlur={() => { if (!q.trim()) setBuscando(false) }}
@@ -106,11 +116,12 @@ export function Herramientas({ items, ocultas = [] }: {
 
       {q.trim() && (
         <div style={{ padding: '7px 13px', fontSize: 11.5, color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>
+          {/* ZC-011 — «resultado(s)» es el paréntesis del programador. */}
           {visibles.length === 0
             ? 'Ninguna herramienta coincide.'
             : encontradasFueraDeEspecialidad > 0
-              ? `${visibles.length} resultado(s) — incluye ${encontradasFueraDeEspecialidad} fuera de tu especialidad.`
-              : `${visibles.length} resultado(s).`}
+              ? `${plural(visibles.length, 'resultado', 'resultados')} — incluye ${encontradasFueraDeEspecialidad} fuera de tu especialidad.`
+              : `${plural(visibles.length, 'resultado', 'resultados')}.`}
         </div>
       )}
 

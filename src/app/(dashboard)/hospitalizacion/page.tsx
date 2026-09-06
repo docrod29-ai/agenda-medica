@@ -191,7 +191,7 @@ export default function CensoPage() {
           <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0, lineHeight: 1.5 }}>
             Cuando seas el <strong>médico tratante</strong> de un paciente, las alertas críticas (laboratorio crítico, deterioro NEWS2, interconsultas) llegarán a <strong>este</strong> número. Si lo dejas vacío, van al teléfono general de la clínica.
           </p>
-          <input className={inputCls} inputMode="tel" placeholder="+52 614 123 4567" value={tel} onChange={e => setTel(e.target.value)} />
+          <input aria-label="Tu WhatsApp para alertas críticas" className={inputCls} inputMode="tel" placeholder="+52 614 123 4567" value={tel} onChange={e => setTel(e.target.value)} />
         </div>
       </Modal>
       <p style={{ fontSize: 13, color: 'var(--text3)', margin: '0 0 20px' }}>
@@ -262,7 +262,7 @@ export default function CensoPage() {
               <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Paciente</label>
               <div style={{ position: 'relative' }}>
                 <Search size={14} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text3)' }} />
-                <input className={inputCls} style={{ paddingLeft: 30 }} placeholder="Busca por nombre o teléfono" value={buscar} onChange={e => setBuscar(e.target.value)} />
+                <input aria-label="Paciente" className={inputCls} style={{ paddingLeft: 30 }} placeholder="Busca por nombre o teléfono" value={buscar} onChange={e => setBuscar(e.target.value)} />
               </div>
               <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
                 {pacientesFiltrados.map(p => (
@@ -304,10 +304,10 @@ export default function CensoPage() {
           {nuevoPac && !pac && (
             <div style={{ padding: 12, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s2)', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text2)' }}>Paciente nuevo</div>
-              <input className={inputCls} placeholder="Nombre completo" value={np.nombre}
+              <input aria-label="Nombre completo" className={inputCls} placeholder="Nombre completo" value={np.nombre}
                 onChange={e => setNp({ ...np, nombre: e.target.value })} />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input className={inputCls} placeholder="Edad" inputMode="numeric" value={np.edad}
+                <input aria-label="Edad" className={inputCls} placeholder="Edad" inputMode="numeric" value={np.edad}
                   onChange={e => setNp({ ...np, edad: e.target.value })} />
                 <select className={inputCls} value={np.sexo} onChange={e => setNp({ ...np, sexo: e.target.value })}>
                   <option value="">Sexo</option>
@@ -318,10 +318,10 @@ export default function CensoPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <input className={inputCls} type="date" value={np.fechaNacimiento}
                   onChange={e => setNp({ ...np, fechaNacimiento: e.target.value })} />
-                <input className={inputCls} placeholder="Teléfono" inputMode="tel" value={np.telefono}
+                <input aria-label="Teléfono" className={inputCls} placeholder="Teléfono" inputMode="tel" value={np.telefono}
                   onChange={e => setNp({ ...np, telefono: e.target.value })} />
               </div>
-              <input className={inputCls} placeholder="Alergias (o «niega»)" value={np.alergias}
+              <input aria-label="Alergias (o «niega»)" className={inputCls} placeholder="Alergias (o «niega»)" value={np.alergias}
                 onChange={e => setNp({ ...np, alergias: e.target.value })} />
               <div style={{ fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.5 }}>
                 Las alergias se piden aquí porque en las próximas horas se va a prescribir,
@@ -403,7 +403,7 @@ export default function CensoPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>
-              <select className={inputCls} value={servicio} onChange={e => setServicio(e.target.value)}>
+              <select aria-label="Servicio" className={inputCls} value={servicio} onChange={e => setServicio(e.target.value)}>
                 {SERVICIOS_HOSPITAL.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
@@ -443,7 +443,7 @@ export default function CensoPage() {
 
           <div>
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Motivo de ingreso (opcional)</label>
-            <textarea className={inputCls} rows={2} placeholder="Breve resumen del padecimiento que motiva el internamiento" value={motivo} onChange={e => setMotivo(e.target.value)} />
+            <textarea aria-label="Motivo de ingreso (opcional)" className={inputCls} rows={2} placeholder="Breve resumen del padecimiento que motiva el internamiento" value={motivo} onChange={e => setMotivo(e.target.value)} />
           </div>
         </div>
       </Modal>

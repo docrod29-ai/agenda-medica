@@ -23,8 +23,9 @@
  * ocupa el mismo sitio que una que dice algo, y enseñar ceros entrena a no
  * mirar. Es el mismo motivo por el que un aviso que grita de más se ignora.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AlertCircle, ChevronRight, ClipboardList } from 'lucide-react'
+import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
 import type { TareaClinica } from '@/lib/tareas-clinicas/modelo'
 import {
   cabosDelPaciente, comoSeResume,
@@ -75,7 +76,18 @@ export function CabosSueltosDelPaciente(p: CabosSueltosDelPacienteProps) {
    * lo mismo durante toda la visita.
    */
   const [cabos, setCabos] = useState<CabosDelPaciente | null>(null)
+  /**
+   * EL FALLO DE LECTURA ES UN ESTADO PROPIO — Panel de Lujo ZC-004.
+   *
+   * El comentario del `catch` ya decía lo correcto («`null` es "no se pudo
+   * leer", que NO es "no hay pendientes"») y luego el `if (!cabos) return null`
+   * de dos líneas más abajo hacía justo lo que el comentario prohibía: un
+   * «resultado sin leer» desaparecía sin que nadie supiera que hubo un fallo.
+   */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [intento, setIntento] = useState(0)
   const { clinicId, patientId, cargar } = p
+  const reintentar = useCallback(() => { setFalloAlLeer(undefined); setIntento(n => n + 1) }, [])
 
   /* Ref, no dependencia del efecto: `onResumen` puede llegar como una función
      nueva en cada render (arrow function inline) y si estuviera en el array
@@ -95,14 +107,24 @@ export function CabosSueltosDelPaciente(p: CabosSueltosDelPacienteProps) {
         if (!vivo) return
         const c = cabosDelPaciente(r, Date.now())
         setCabos(c)
+        setFalloAlLeer(undefined)
         onResumenRef.current?.(c)
       })
-      /* `null` es «no se pudo leer», que NO es «no hay pendientes». Enseñar
-         una tarjeta vacía ante un fallo de red afirmaría que este paciente no
-         tiene nada suelto, que es exactamente lo contrario de lo que se sabe. */
-      .catch(() => { if (vivo) { setCabos(null); onResumenRef.current?.(null) } })
+      /* «No se pudo leer» NO es «no hay pendientes». El fallo se guarda aparte
+         y se PINTA: enseñar el mismo hueco que ante un paciente sin nada suelto
+         afirmaría algo que nadie comprobó. */
+      .catch((e: unknown) => {
+        if (!vivo) return
+        setCabos(null)
+        setFalloAlLeer(e ?? new Error('lectura fallida'))
+        onResumenRef.current?.(null)
+      })
     return () => { vivo = false }
-  }, [clinicId, patientId, cargar])
+  }, [clinicId, patientId, cargar, intento])
+
+  if (falloAlLeer !== undefined) {
+    return <NoSePudoLeer que="los pendientes de este paciente" error={falloAlLeer} alReintentar={reintentar} />
+  }
 
   if (!cabos) return null
 
@@ -174,6 +196,11 @@ export const POR_QUE_NO_CIERRA_AQUI =
   'Cerrar es «alguien lo miró y decidió», y esa transición la valida ' +
   '/pendientes. Repetir la validación en una segunda pantalla la desalinea en ' +
   'la primera prisa.'
+
+export const POR_QUE_EL_FALLO_SE_VE =
+  'Que no se pudieran leer los pendientes no es que no los haya. Hasta ' +
+  'ZC-004 las dos cosas pintaban el mismo hueco, así que un «resultado sin ' +
+  'leer» se perdía sin que nadie supiera que hubo un fallo.'
 
 export const POR_QUE_NO_ENSENA_CEROS =
   'Una tarjeta que dice «0 pendientes» ocupa el mismo sitio que una que dice ' +
