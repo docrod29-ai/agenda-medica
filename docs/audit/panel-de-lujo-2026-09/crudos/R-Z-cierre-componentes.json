@@ -1,0 +1,176 @@
+{
+  "auditor": "Z-cierre-componentes",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ZC-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/AlertasDelEpisodio.tsx:90 · src/__tests__/la-alerta-tiene-quien-la-lea.test.ts:104-106 · src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx:590-597",
+      "nota": "Las tres líneas existen literales y el estado inicial TAMBIÉN es null (l.53), así que cargando, fallo y cero pintan lo mismo: nada. Abrí el padre: monta el componente con `cargar={getAlertas}` y no tiene estado de error, aviso ni reintento para esta lectura. AGRAVANTE que el auditor no vio: la prueba no es que «no cubra» el camino de error — lo FIJA: `expect(comp).toMatch(/if \\(!alertas \\|\\| alertas\\.length === 0\\) return null/)` bajo el título «si la carga falla, no se enseña «0 alertas»». Arreglar el defecto pone el CI en rojo. Bajo P1→P2 sólo por alcance: módulo en pausa D-030 (modulos-en-pausa.ts:34), mismo criterio con el que ya se bajó C-010/C-013/C-036/C-038; no baja a P3 porque aquí sí hay daño clínico y porque el guardián está invertido."
+    },
+    {
+      "id": "ZC-002",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/nom004.ts:74-81 · src/lib/expediente/medical-dictionary.ts:72 · grep de `alternativa_sugerida` en src/ = 3 aciertos (NerPanel:138,173 y el esquema medical-ner.ts:103)",
+      "nota": "La etiqueta existe literal en NerPanel.tsx:140 y sale del prompt (medical-ner.ts:192-193): eso se sostiene. Lo que se refuta es la cadena de impacto. (1) El campo NO entra a la receta por ninguna vía: sus únicos tres usos en todo src/ son el esquema y dos pintados. (2) Si el médico la teclea, la compuerta determinista sí la cruza: nom004.ts:74-79 dice con nombre y apellido «alergia a penicilina + prescripción de cefalexina NO se detectaba con el match por subcadena de arriba, pero sí aquí», y `cefalexina` está en FAMILIA_BETALACTAMICOS (medical-dictionary.ts:72) → severidad `critica` (l.184-190) → `detiene(clase)` → errores → no se firma. La reproducción exacta del auditor (penicilina→cefalexina) está cubierta. El hueco residual —alergia declarada por CLASE («Cefalosporinas»)— ya está abierto y confirmado como MI-004 P1; no se cuenta dos veces. Queda como fricción de rótulo: la palabra «segura» la pone la pantalla, no un motor. P1→P3."
+    },
+    {
+      "id": "ZC-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/hospital/PanelEnfermeria.tsx:19 y :72 · src/lib/hospital/escalas.ts:24 · contraste en el mismo archivo: :40 `disabled={!ing && !egr}`",
+      "nota": "Verificado a mano: 4+4+4+4+4+3 = 23 y escalas.ts:24 devuelve 'sin riesgo' con score>18; Morse 0 → 'bajo'. Los dos «Guardar» (l.72 y l.91) no llevan `disabled` ni marca de tocado, mientras el balance hídrico de la misma pantalla sí lo exige (l.40): el criterio existe en el archivo y no se aplicó a las escalas. NO es defecto de núcleo: el componente sólo importa `@/lib/hospital/*` y su único montaje es la ficha de internamiento; Practice no lo toca. Se REFUTA el NEEDS_CLINICAL_REVIEW del auditor: los cortes SÍ tienen fuente citada donde manda la regla 7 de clinical-safety — registry.ts:1560 «Bergstrom N, Braden BJ et al. Nurs Res 1987» y :1579 «Morse JM et al. Can J Aging 1989», ambos `estado: 'validado'`. Y registry.ts:1567 ya escribe la regla que la UI incumple: «la UI no debe enviar parciales». P1→P2 por D-030."
+    },
+    {
+      "id": "ZC-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/CabosSueltosDelPaciente.tsx:103 y :107 · src/app/(dashboard)/expediente/[patientId]/page.tsx:496 y :263-264",
+      "nota": "Literal. Comprobé al otro lado, como pedía el auditor sin hacerlo: `onResumen` alimenta `setPendientesPaciente` (page.tsx:496) y su ÚNICO consumidor es el conteo del Clinical Spine (l.263-264), que con `null` simplemente no añade la entrada — nadie pinta el fallo. Segundo camino de desaparición que el auditor no citó y refuerza el hallazgo: `comoSeResume(c)` null también devuelve null (l.110-111). Misma familia y misma prioridad que C-008/C-009 en R-C-programador."
+    },
+    {
+      "id": "ZC-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/InternamientosDelPaciente.tsx:71 y :75 · src/app/(dashboard)/expediente/[patientId]/page.tsx:526 y :267-268",
+      "nota": "Literal, y el `onCargado(null)` sólo alimenta el conteo del riel (page.tsx:267-268): la página no pinta nada. Bajo P2→P3 por alcance real: los ingresos sólo existen si el consultorio usa el módulo de hospitalización, que está en pausa D-030 (modulos-en-pausa.ts:34); en un consultorio Practice la lista es vacía y el `return null` es la conducta correcta, así que el modo de fallo sólo alcanza a quien ya usa hospital. Mismo criterio con el que se bajó C-010/C-013/C-036/C-038."
+    },
+    {
+      "id": "ZC-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/ContinuidadPanel.tsx:77 (`.catch(() => {})`), :89 y :116 («+N más en el worklist»)",
+      "nota": "Las tres citas son literales y el catch es efectivamente vacío (ni reportarError ni estado). Es `friccion` con evidencia comprobable, así que se confirma tal cual (briefing §7). La prioridad P3 es la correcta: /pendientes es la fuente completa y el enlace «Ver todo» está en la misma cabecera (l.98)."
+    },
+    {
+      "id": "ZC-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/que-falta-para-cerrar.ts:135-140 (`ruta: null`) · src/components/ComoCerrarLaConsulta.tsx:59-60 · src/app/(dashboard)/consulta/[patientId]/page.tsx:4466 (único `setCobrar(true)` del archivo)",
+      "nota": "Busqué la salida que refutaría el callejón y no existe: `grep setCobrar` en la página da exactamente tres líneas (713 declaración, 4466 abrir, 7494 cerrar). No hay segundo disparador, así que con `pedirCobroAlCerrar === true` y el modal cerrado el paso queda muerto de verdad. Matiz que el auditor no aprovechó: el comentario de la propia página (l.4460-4462) declara que la vía normal es la asistente desde Citas — es decir, el texto que le falta al paso ya está escrito en el código, tres pantallas más allá."
+    },
+    {
+      "id": "ZC-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/AvisoPrivacidadModal.tsx:74 (rótulo) y :49-53 (`text/plain` + `.txt`)",
+      "nota": "Literal: el botón dice «Descargar PDF/texto» y baja un .txt. Bajo P2→P3: el rótulo nombra los DOS formatos y entrega uno de ellos, el contenido legal descargado es exactamente el mismo texto cuyo SHA-256 se sella (l.38), y nada del trámite depende del formato. Es una etiqueta que promete de más, no una promesa incumplida al paciente."
+    },
+    {
+      "id": "ZC-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/AvisoPrivacidadModal.tsx:126-140 y :39-45 · contra src/app/api/public/booking/route.ts:249-255 y src/lib/whatsapp/aviso-bot.ts:111",
+      "nota": "Confirmado y REFORZADO: los dos medios que el escritorio deja afirmar tienen un camino REAL que los origina con evidencia —el portal sella `medioAceptacion: 'portal'` en el servidor con su propio hash (booking/route.ts:253) y el bot de WhatsApp sella `'whatsapp'` (aviso-bot.ts:111)—, así que el mismo valor puede venir de un evento o de un clic del personal y quedan indistinguibles en el expediente. Control parcial que el auditor no citó: pacientes/page.tsx:1059-1064 emite `aviso_privacidad_aceptado` con `medio` a la bitácora, de modo que queda quién lo declaró, pero no que el paciente lo hiciera. `aria-pressed` ausente: cierto (l.127-139)."
+    },
+    {
+      "id": "ZC-010",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/privacidad/page.tsx:79-83 (la frase vive DENTRO de «6. WhatsApp Business y Meta») · .env.example:130 (`NEXT_PUBLIC_META_PIXEL_ID=` vacío) · docs/roadmap/nexus-os/unidades/E0-10/RESULTADO.json:62 (D-2, `bloquea: false`)",
+      "nota": "Los eventos son exactamente dos y son los que dice: `fbq('track','PageView')` (MetaPixel.tsx:39) y `trackConversion('CompleteRegistration')` (l.18-27, llamado en registro/page.tsx:70 y 106). Pero el titular «el aviso afirma lo contrario» no se sostiene tal cual: la frase de :83 está dentro de la sección 6, cuyo sujeto son «el número de teléfono y el contenido del mensaje» del paciente, y el Pixel no toca ninguna página de paciente (comentario MetaPixel.tsx:3-7, cumplido y ya verificado en REG-056, que además acotó el Pixel a `/`, `/registro` y `/configuracion` por ruta). Lo que SÍ queda en pie, y es más preciso que lo que escribió el auditor: la sección 3 (datos de médicos, donde Ausculta es RESPONSABLE) enumera finalidades —cuenta, cobro, CFDI, soporte, obligaciones legales— y no menciona medición ni publicidad, y en todo el archivo no hay ni una palabra sobre cookies o píxeles. Decisión del dueño abierta y explícita (D-2), y la variable está vacía en el repositorio: `parcial`, P2→P3."
+    },
+    {
+      "id": "ZC-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/globals.css:1710 (`@media (pointer: coarse) { button:not(.mobile-topbar-btn) { min-height: 44px !important } }`) · node_modules/axe-core/axe.js (regla `label`, `any: [… non-empty-placeholder …]`) · src/components/Herramientas.tsx:112-113",
+      "nota": "Dos de los tres cargos caen. (1) El objetivo táctil: la regla de globals.css:1710 lleva `!important` precisamente para ganarle al estilo en línea (comentario :1693-1698) y alcanza a TODO `<button>`, así que en el teléfono —la reproducción del auditor— el disparador «Buscar» mide 44 de alto; es el mismo hecho que R-D-diseno ya verificó en D-006, donde lo único que sobrevive es el `min-width`, que aquí no aplica porque el botón lleva texto. (2) La prueba que propone es falsa: la regla `label` de axe-core acepta `non-empty-placeholder`, y el input tiene `placeholder=\"Buscar herramienta…\"` (l.84) → axe pasa. Queda en pie el placeholder-como-etiqueta (desaparece al teclear) y el «resultado(s)» de :112-113. P2→P3."
+    },
+    {
+      "id": "ZC-012",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/hospital/PanelEnfermeria.tsx:65 y :84 (`<select>` sin nombre) · node_modules/axe-core/axe.js (regla `select-name`, sin `non-empty-placeholder`) · docs/audit/panel-de-lujo-2026-09/crudos/R-D-diseno.json → D-004",
+      "nota": "REPETIDO: este archivo ya está enumerado en D-004 («hospital/PanelEnfermeria.tsx ×4»), juzgado `parcial` P3 en R-D-diseno; mismo veredicto y misma prioridad, no se cuenta dos veces. Lo que verifiqué aparte: `select-name` sí falla (la regla de axe no tiene salida por placeholder, a diferencia de `label`), y en cambio el `<textarea>` del SBAR (l.101) PASA la regla `label` por su placeholder, así que ese tercer cargo del auditor no es un fallo de axe sino del criterio propio. Los `<select>` además reciben 44 px en táctil por globals.css:1705."
+    },
+    {
+      "id": "ZC-013",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/globals.css:1691 y :1710 — `@media (pointer: coarse) { … button:not(.mobile-topbar-btn) { min-height: 44px !important; } }`",
+      "nota": "La premisa es falsa justo en el escenario que el auditor propone medir («abrir el episodio en un teléfono»): con puntero grueso la hoja de estilos le da 44 px de alto al botón «La vi», y el `!important` está ahí exactamente para vencer al `style={{…}}` en línea — el comentario de :1693-1698 cuenta que se escribió por este mismo tipo de botón. R-D-diseno ya lo verificó en D-006. Los 26 px sólo existen con ratón, donde el mínimo aplicable (WCAG 2.5.8, 24×24) se cumple. El mismo argumento tumba los dos casos de su `que_no_cubre` (AvisoCorreoSinVerificar, AvisoIncidenteIA): son `<button>` sin clase, cubiertos por la misma regla."
+    },
+    {
+      "id": "ZC-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/preventivo.ts:270, :277, :284 (`regla` sin organismo) contra :246 (Creatinina, «KDIGO») · src/components/PanelPreventivo.tsx:131-133 · src/app/(dashboard)/consulta/[patientId]/page.tsx:803-828 (`agregarASeccion`)",
+      "nota": "Verificado el recorrido completo del dato, que es lo que faltaba: el texto de `alerta` va a `onAgregarANota` → `agregarASeccion('preventivo', …)` (page.tsx:7102) → concatena en `secciones` → se guarda con el borrador; sólo se rechaza si la nota ya está firmada (l.815). Las tres reglas citadas no nombran organismo y la de Creatinina sí; LDL y TFG dicen «la guía» sin decir cuál. La ceguera de unidad también es real: ninguna `evaluar` lee `unidad`, y en el ejemplo de plaquetas el disparo viene de `cambioPct <= -50`, no del corte de 150 —el auditor acertó el resultado por el camino correcto."
+    },
+    {
+      "id": "ZC-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelPreventivo.tsx:83-85 (texto insertado) y :88 (advertencia a 10.5 px, fuera del texto) · src/lib/expediente/preventivo.ts:5-8 y :17-18",
+      "nota": "Literal en las dos puntas. Agravante comprobado: la cabecera de preventivo.ts:13 promete «cada entrada dice de qué organismo proviene» y el texto que se inserta es sólo `prueba (frecuencia)` — se pierde justo el campo que hacía verificable la recomendación. Misma familia que MC-005 (confirmado P1 en R-M-cirujano), pero P2 y no P1: aquí lo que entra a la nota es una edad de tamizaje, no una dosis."
+    },
+    {
+      "id": "ZC-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/NerPanel.tsx:57 («Claude está identificando…»), :167 («cross-checks adicionales»), :193 y :212 («condición(es)»), :68-69 (`{error}` crudo)",
+      "nota": "Las cinco citas son literales. `friccion` con evidencia: se confirma (briefing §7). P3 correcto — no hay consecuencia clínica, y el nombre del proveedor en pantalla es además el único sitio de este componente donde aparece."
+    },
+    {
+      "id": "ZC-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/NerPanel.tsx:229, :243, :276, :289, :302, :315 (`title={…source_quote}`) y :361 (`cursor: 'help'`)",
+      "nota": "Las seis apariciones existen y no hay ningún control que abra la cita: los chips son `<span>`, no focalizables, así que ni teclado ni táctil llegan a la procedencia. Es `mejora` con evidencia y lectura razonable contra el principio PROCEDENCIA de design-system.md. P3 correcto: la procedencia de la NOTA (REG-213/250) es otro camino y sigue en pie."
+    },
+    {
+      "id": "ZC-018",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/laboratorio/firestore.ts:41 («Fecha del estudio YYYY-MM-DD») + src/components/laboratorio/PanelLaboratorios.tsx:324 (`<input type=\"date\">`) — refutan el cargo de `fmtFecha`; src/components/laboratorio/GraficaLab.tsx:45-46 y :28 y :41 — confirman el resto",
+      "nota": "Comprobé el eje a mano: con 0.6/1.2 y sin refs, lo=0.51 y hi=1.29 → `Math.round` da «1» y «1». Cierto. También el x por índice y el `<svg>` sin nombre en las dos gráficas, y los hex de GraficaSignos :39 y :50. Se REFUTA el cargo de `fmtFecha`: la única fuente de `puntos[].fecha` es `panel.fecha`, declarado `YYYY-MM-DD` en el contrato (firestore.ts:41) y capturado con `<input type=\"date\">` (PanelLaboratorios:324), que no puede producir una hora; el «06T12:00:00Z/09» es un caso que el tipo excluye. P3 correcto."
+    },
+    {
+      "id": "ZC-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/InternamientosDelPaciente.tsx:50 · src/components/AlertasDelEpisodio.tsx:132 · src/components/hospital/PanelEnfermeria.tsx:47 y :108 · src/components/tareas/PorQueEstaAqui.tsx:86",
+      "nota": "Las cinco citas son literales y ninguna pasa `timeZone`. Se queda CORTO, no largo, igual que el patrón de C-015: `grep -c \"toLocale[A-Za-z]*String('es-MX'\" src/components` sin `timeZone` da 18 apariciones (incluye formateo de moneda, que no aplica; las de fecha clínica son ≥9, sumando FotosClinicas:83, HistorialVersiones:106, expediente/HistorialVersiones:124 y PatientAnchor:265). P3 correcto: en México la zona coincide y la familia ya está abierta por C-014/C-015/C-016."
+    },
+    {
+      "id": "ZC-020",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/motores/QueDiceElMotor.tsx:63, :122, :128 y :141",
+      "nota": "Las cuatro líneas existen literales: el mismo icono `Check` con sólo el color cambiado, el rótulo fijo «AHORA · el motor, corriendo sobre lo de arriba» y `{dice}` imprimiendo `String(e)`. P3 correcto y con un atenuante que el auditor no citó: /motores está desenlazada de toda superficie de cliente por decisión del dueño (REG-292, fijado por lo-que-hace-si-como-lo-hace-no.test.ts y ya usado para refutar C-029), así que el único lector posible es el propio dueño."
+    },
+    {
+      "id": "ZC-021",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/AvisoConfigNoCargada.tsx:32 · src/hooks/useConfig.ts:55 (`setError(err.code || 'error')`)",
+      "nota": "Literal en los dos extremos: lo que llega a pantalla es el código de Firebase. P3 correcto — el bloque de arriba (l.29-31) sí explica en español qué pasó, qué se bloqueó y qué hacer («revisa tu conexión y recarga»), así que el código crudo es una coletilla, no el mensaje."
+    },
+    {
+      "id": "ZC-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/MientrasHablas.tsx:81-88 (rama 'listo'), :91 (`<div aria-label=\"Procesando\">` sin rol), :116 (`aria-live=\"polite\"` sobre toda la región) y :199-207 (las últimas palabras dentro de esa región) · src/app/(dashboard)/consulta/[patientId]/page.tsx:5354-5357",
+      "nota": "Comprobada la inalcanzabilidad: `grep MientrasHablas` da un solo montaje y el estado se mapea a 'procesando' | 'pausado' | 'grabando' (page.tsx:5354), con `mandaElPanelDeEscucha` limitado a grabando/pausado/subiendo (l.1834-1835); 'listo' no puede ocurrir, aunque `alGrabar` se sigue pasando (l.5357). De los cuatro cargos el que de verdad muerde es el `aria-live`: la región envuelve el goteo del dictado, así que un lector de pantalla lo relee entero. P3 se sostiene por ser un caso de uso muy minoritario."
+    },
+    {
+      "id": "ZC-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/RecetaPreviewWrapper.tsx:129 (`background: '#1a2333'`)",
+      "nota": "Literal, y es el único color del archivo. Misma familia que D-020 (hex literal como color, confirmado P3 en R-D-diseno) pero archivo distinto, así que no es repetición. P3 correcto."
+    },
+    {
+      "id": "ZC-024",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/EvidenciaEnVivo.tsx:40 (`setMsg(String(e).slice(0, 120))`) y :127 (`{msg || …}`)",
+      "nota": "Literal: el `String(e)` acaba en el DOM público. Prioridad P3 bien puesta y el resto del bloque está mejor de lo que sugiere el titular: la franja abre con «PubMed no contestó.» en negrita, declara que no se rellena con ejemplos, lleva `role=\"status\"` y ofrece «Reintentar» (l.121-131). El defecto es la coletilla técnica, no que el visitante se quede sin explicación."
+    }
+  ],
+  "ratio": { "total": 24, "confirmados": 18, "refutados": 1, "parciales": 5 },
+  "observaciones_del_auditor": "Precisión de citas: alta. Abrí las 24 líneas y todas existen dentro de ±5; ningún «evidencia no coincide». Sus puntos ciegos son tres y se repiten. (1) NO MIRA LA HOJA DE ESTILOS: firma tres cargos de objetivo táctil (ZC-013, ZC-011, y los dos del `que_no_cubre` de ZC-013) midiendo el `style` en línea, cuando globals.css:1710 le da 44 px a todo <button> con `!important` en puntero grueso — eso solo tumba ZC-013 entero. (2) NO MIRA EL REGISTRO NI EL CONTRATO: en ZC-003 pide NEEDS_CLINICAL_REVIEW por «cortes sin fuente» y registry.ts:1560/1579 cita Bergstrom 1987 y Morse 1989 con estado 'validado'; en ZC-018 inventa un fallo de `fmtFecha` que el tipo declarado (firestore.ts:41, YYYY-MM-DD, capturado con <input type=\"date\">) excluye. (3) PROPONE PRUEBAS QUE NO FALLARÍAN: en ZC-011 dice «axe `label`; hoy falla» y axe-core acepta `non-empty-placeholder` en esa regla — el input tiene placeholder y pasa. En sentido contrario, se queda corto dos veces y en lo que más importa: en ZC-001 dice que la prueba «no cubre el camino de error» cuando la-alerta-tiene-quien-la-lea.test.ts:105 FIJA la línea defectuosa (arreglar el defecto pone el CI en rojo), y en ZC-019 cuenta 5 ocurrencias donde hay ≥9 de fecha clínica. Prioriza a ojo dentro de una misma familia: los tres P1 son en realidad un P2 de módulo en pausa (ZC-001), un P2 de módulo en pausa (ZC-003) y un P3 de rótulo cuya cadena de daño ya la corta la compuerta NOM-004 (ZC-002). Sí acierta —y con trabajo del bueno— en la familia «fallo de lectura pintado como vacío» (ZC-001/004/005/006), donde además verificó que la constante exportada del propio componente promete lo contrario de lo que hace el código."
+}
