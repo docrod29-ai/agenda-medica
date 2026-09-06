@@ -18,6 +18,7 @@ import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, nivelIADe, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
+import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 import { safeLog } from '@/lib/security/sanitize'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
@@ -62,8 +63,8 @@ async function openaiVerificar(
   key: string, model: string, notaOriginal: unknown, instruccion: string, notaCorregida: unknown,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const sys = `Eres un SEGUNDO editor clínico de precisión que AUDITA el trabajo de otro modelo. Recibes: la NOTA ORIGINAL (JSON), una INSTRUCCIÓN de corrección del médico, y la NOTA CORREGIDA por el primer modelo. Verifica que la nota corregida aplique EXACTAMENTE la instrucción y NADA más. Si el primer modelo cambió algo que NO se pidió (revteó texto, agregó/quitó datos ajenos, "mejoró" redacción), REVIÉRTELO al original. Si NO aplicó bien el cambio pedido, corrígelo. NUNCA inventes datos nuevos. Conserva IDÉNTICA la estructura de campos. Responde EXCLUSIVAMENTE el JSON final de la nota, sin markdown ni texto extra. Primer carácter "{", último "}".`
-    const usr = `NOTA ORIGINAL:\n${JSON.stringify(notaOriginal)}\n\nINSTRUCCIÓN DEL MÉDICO:\n"${instruccion}"\n\nNOTA CORREGIDA (a auditar):\n${JSON.stringify(notaCorregida)}\n\nDevuelve el JSON final verificado.`
+    const sys = GUARDA_INYECCION + '\n\n' + `Eres un SEGUNDO editor clínico de precisión que AUDITA el trabajo de otro modelo. Recibes: la NOTA ORIGINAL (JSON), una INSTRUCCIÓN de corrección del médico, y la NOTA CORREGIDA por el primer modelo. Verifica que la nota corregida aplique EXACTAMENTE la instrucción y NADA más. Si el primer modelo cambió algo que NO se pidió (revteó texto, agregó/quitó datos ajenos, "mejoró" redacción), REVIÉRTELO al original. Si NO aplicó bien el cambio pedido, corrígelo. NUNCA inventes datos nuevos. Conserva IDÉNTICA la estructura de campos. Responde EXCLUSIVAMENTE el JSON final de la nota, sin markdown ni texto extra. Primer carácter "{", último "}".`
+    const usr = `NOTA ORIGINAL:\n${delimitar(JSON.stringify(notaOriginal), 'NOTA')}\n\nINSTRUCCIÓN DEL MÉDICO:\n"${instruccion}"\n\nNOTA CORREGIDA (a auditar):\n${delimitar(JSON.stringify(notaCorregida), 'NOTA')}\n\nDevuelve el JSON final verificado.`
     // REG-346 — `maxDuration = 300`: sin tope, un socket colgado se los lleva
     // enteros, facturados, y la corrección nunca vuelve.
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -121,7 +122,9 @@ export async function POST(req: NextRequest) {
   const t0Costo = Date.now()
   if (!API_KEY) return NextResponse.json({ ok: false, error: iaNoDisponible('nota').mensaje }, { status: 503 })
 
-  const userMsg = `NOTA ACTUAL (JSON):\n${JSON.stringify(body.nota)}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
+  // B-006 (Panel de Lujo): la nota se redactó a partir del dictado y hereda lo
+  // que éste traiga; va dentro de la valla, con la guarda delante del system.
+  const userMsg = `NOTA ACTUAL (JSON):\n${delimitar(JSON.stringify(body.nota), 'NOTA')}\n\nCONTEXTO DEL PACIENTE (referencia, no lo metas a la nota salvo que se pida):\n${JSON.stringify(body.contexto ?? {})}\n\nINSTRUCCIÓN DE CORRECCIÓN DEL MÉDICO:\n"${instruccion}"\n\nDevuelve la nota corregida en JSON aplicando SOLO ese cambio.`
 
   // Un intento con un modelo, con o sin thinking. Extraído para poder reintentar
   // el MISMO modelo SIN thinking si el thinking (o max_tokens alto) da 400.
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
     const payload: Record<string, unknown> = {
       model,
       max_tokens: conThinking ? 16000 : 8000,
-      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: GUARDA_INYECCION + '\n\n' + SYSTEM, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }],
     }
     if (conThinking) payload.thinking = { type: 'enabled', budget_tokens: 4000 }

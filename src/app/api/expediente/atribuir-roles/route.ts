@@ -25,6 +25,7 @@ import { esFundador } from '@/lib/authz/fundador'
 import { gateCreditos, resolverClaveIA } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { GUARDA_INYECCION, delimitar } from '@/lib/expediente/prompts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -103,8 +104,14 @@ export async function POST(req: NextRequest) {
     muestra += linea
   }
 
-  const system = 'Eres un asistente clínico. Recibes el diálogo de una grabación clínica transcrito con hablantes anónimos (Hablante A, B, C…). Determina el ROL de cada hablante ÚNICAMENTE entre estos valores: ' + catalogoParaPrompt(modulo) + '. Guíate por el contenido: quién pregunta, explora, explica o indica tratamiento; quién describe síntomas propios; quién reporta signos, balances o administración de medicamentos; quién presenta el caso. Si no puedes decidirlo con lo que dice el hablante, responde "' + NO_IDENTIFICADO + '" — es preferible a adivinar, porque de esta atribución dependen decisiones clínicas posteriores. Responde ÚNICAMENTE un objeto JSON que mapee cada letra de hablante a su rol, sin texto extra. Ejemplo: {"A":"Médico","B":"Paciente"}.'
-  const userMsg = `Hablantes: ${hablantes.join(', ')}\n\nDiálogo:\n${muestra}\n\nResponde solo el JSON.`
+  /**
+   * B-006 (Panel de Lujo): el habla del paciente iba pegada al prompt sin valla
+   * ni guarda, y el rol se ARCHIVA. La guarda y `delimitar` ya existían; lo que
+   * faltaba era cablearlas a esta ruta (y que `delimitar` no se cerrara desde
+   * dentro: B-005, reparado antes que esto).
+   */
+  const system = GUARDA_INYECCION + '\n\n' + 'Eres un asistente clínico. Recibes el diálogo de una grabación clínica transcrito con hablantes anónimos (Hablante A, B, C…). Determina el ROL de cada hablante ÚNICAMENTE entre estos valores: ' + catalogoParaPrompt(modulo) + '. Guíate por el contenido: quién pregunta, explora, explica o indica tratamiento; quién describe síntomas propios; quién reporta signos, balances o administración de medicamentos; quién presenta el caso. Si no puedes decidirlo con lo que dice el hablante, responde "' + NO_IDENTIFICADO + '" — es preferible a adivinar, porque de esta atribución dependen decisiones clínicas posteriores. Responde ÚNICAMENTE un objeto JSON que mapee cada letra de hablante a su rol, sin texto extra. Ejemplo: {"A":"Médico","B":"Paciente"}.'
+  const userMsg = `Hablantes: ${hablantes.join(', ')}\n\nDiálogo:\n${delimitar(muestra)}\n\nResponde solo el JSON.`
 
   // Por el gateway (§P–T): misma cascada, mismo manejo de errores, y ahora
   // también asiento en el libro de costos — esta llamada no dejaba ninguno.
