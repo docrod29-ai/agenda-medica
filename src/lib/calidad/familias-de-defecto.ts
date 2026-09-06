@@ -567,7 +567,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
      * algo; filtrar un token entrega el acceso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516],
   },
   {
     clave: 'habla_real',
@@ -986,7 +986,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
      * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390],
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517],
   },
   {
     clave: 'perdida',

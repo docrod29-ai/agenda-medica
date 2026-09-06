@@ -18902,3 +18902,119 @@ frontera.
   hace falta la sección, es trabajo aparte y queda declarado aquí.
 - No cambia lo que se ve en la NOTA. El antecedente se sigue documentando donde
   le toca; lo que cambia es que no baja al papel.
+
+---
+
+## REG-516 · Un código CIE-10 sin diagnóstico salía impreso en la receta
+
+**CÓMO SE DESCUBRIÓ.** El dueño, con la receta abierta en su teléfono: *«ahora
+no pones diagnóstico, nomás dice CIE-10»*. Literal.
+
+**CAUSA RAÍZ, dos mitades.**
+
+1. La pantalla componía `descripcion + " (" + codigoCIE10 + ")"` **sin comprobar
+   que la descripción existiera**. Un diagnóstico con código y sin texto salía
+   impreso como « (A41.9)»: un paréntesis con una clave dentro y nada delante.
+
+2. La misma composición estaba **COPIADA** en `receta/[patientId]/[notaId]` y en
+   `orden/[patientId]/[notaId]`. Fuente de verdad duplicada — lo que la carta
+   del proyecto prohíbe en su primera página. Arreglar una dejaba la otra rota,
+   y nadie se enteraba hasta imprimir.
+
+**POR QUÉ IMPORTA.** «A41.9» no le dice nada a quien surte la receta ni al
+paciente. Un código es una clave para facturar y para estadística; el diagnóstico
+es la frase. Una receta que enseña la clave y esconde el diagnóstico no está
+incompleta: está diciendo la parte que no sirve.
+
+**LA REGLA QUE LO HACE SEGURO.** `diagnosticoParaImprimir`, una sola función que
+llaman las dos pantallas:
+- UNO solo, el principal — la regla del dueño: *«nomás el principal; si hay que
+  agregar, bueno, pero no repetir»*;
+- se prefiere el `definitivo`, **pero un definitivo sin descripción no gana a un
+  presuntivo que sí la tiene**: preferir el definitivo no puede significar
+  imprimir un hueco;
+- un código sin descripción no se imprime, y el campo queda en blanco para que lo
+  escriba el médico.
+
+**PRUEBAS.** `el-diagnostico-impreso-no-es-un-codigo-huerfano.test.ts`, siete
+casos, incluido uno que lee la fuente de las DOS pantallas y exige que ninguna
+vuelva a componer el diagnóstico a mano.
+
+**PROBADO AL REVÉS.** Reintroducido el defecto —quitar el filtro por
+descripción— caen dos casos de siete, y sólo ésos.
+
+**LO QUE NO CUBRE.**
+- **No infiere la descripción a partir del código.** Haría falta un catálogo
+  CIE-10 con su fuente citada, y rellenar aquí un texto plausible sería poner en
+  la receta un diagnóstico que nadie escribió. Es exactamente el fallo que la
+  regla 1 de seguridad clínica llama el más caro posible.
+- No valida que el código corresponda a la descripción.
+- No toca las varias casillas de diagnóstico de la pantalla de consulta, que es
+  donde el dueño las ve. Eso es trabajo aparte y queda declarado.
+
+---
+
+## REG-517 · El diálogo de firmar escondía sus propios botones en un iPhone
+
+**CÓMO SE DESCUBRIÓ.** El dueño, probando la app en su iPhone antes de firmar
+una nota: *«no se ven los botones de hasta abajo»*. Y sobre el contenido:
+*«esta madre sale al final y no está bien […] quiero quitarle, me caga»*.
+
+**Ninguna prueba lo cazó, y no por descuido.** El arnés visual corre en Chromium
+a 390 px, donde `100vh` sí es lo que se ve. En Safari de iPhone `100vh` incluye
+lo que tapa la barra de direcciones — exactamente el trozo donde caían los
+botones. Es la frase que la rama AUSCULTA venía declarando en cada PR: *«no es
+un iPhone»*. Aquí se cobró.
+
+**PRIMERA MITAD — LOS BOTONES.** El diálogo de confirmación de `ToastContext`
+no tenía **ni alto máximo ni desbordamiento**. La compuerta previa a firmar
+llega a listar veintiún avisos, así que el panel crecía más que la ventana y
+«Los revisé, firmar» y «Volver a la nota» quedaban fuera de la pantalla.
+
+No es un detalle de comodidad: es un diálogo **modal**. Mientras está abierto no
+hay otra cosa que tocar. Un modal cuyos botones no se alcanzan es una pantalla de
+la que no se puede salir por el camino previsto — y la que bloqueaba era la de
+firmar la nota.
+
+**La regla.** El panel es una columna con tope de alto medido en `dvh`: el TEXTO
+scrollea y la fila de botones queda FUERA de ese scroll. Así el mensaje puede
+crecer lo que quiera sin volver a esconder la salida. El telón acolcha con
+`env(safe-area-inset-*)`, que es lo que respeta la muesca y la barra inferior.
+
+**SEGUNDA MITAD — EL MURO DE TEXTO.** Con los botones ya alcanzables quedaba lo
+otro: `comoSeDicenAlFirmar` listaba ocho avisos ENTEROS y luego «…y N más». Casi
+todos la misma frase con distinto relleno: «Esto no salió del dictado: «…».
+Nadie dijo: …».
+
+Un muro de texto antes de firmar no se lee: se salta. **Un aviso que nadie lee no
+protege a nadie**, que es el mismo fallo que este repositorio ya reparó en los
+avisos clínicos y que su propia regla de diseño llama por su nombre: un tablero
+donde todo pesa lo mismo no tiene jerarquía, tiene inventario.
+
+**La regla.** Lo que se repite se cuenta; lo que es único se dice entero. Tres o
+más avisos del mismo origen se colapsan en una línea con su número y a dónde ir.
+Tres y no dos: con dos, verlos enteros todavía informa.
+
+**LO QUE NO CAMBIA, Y HAY QUE DECIRLO.** No se descarta ni un aviso. La cuenta
+total sigue siendo la real, todos siguen en la nota con su ancla, y ninguno
+bloqueaba firmar antes ni bloquea ahora. Cambia cuánto hay que leer para
+enterarse, no qué se vigila.
+
+**PRUEBAS.** `el-dialogo-no-esconde-sus-botones.test.ts`, nueve casos: tope de
+alto, que el tope sea `dvh` y no `vh`, que scrollee el texto y no el diálogo,
+que la fila de botones quede fuera del scroll, el área segura, el resumen de
+veintiuno en una línea, que la cuenta total siga siendo real, que lo único se
+siga diciendo entero, y que dos NO se resuman.
+
+**PROBADO AL REVÉS, dos veces.** Quitado el `maxHeight`: cae el caso del tope y
+sólo ése. Subido el umbral de resumen a 999: cae el caso del muro y sólo ése.
+
+**LO QUE NO CUBRE.**
+- Son pruebas de FUENTE. Que en el aparato se vean los botones lo dice el
+  teléfono, y este arnés no corre en uno.
+- **No se auditaron los demás modales** del producto (`AppointmentModal`,
+  `CobrarModal` y compañía). Pueden tener la misma herida; queda dicho en vez de
+  insinuar que se revisaron todos.
+- **Quedan 31 usos de `100vh`** en el árbol contra 9 de `100dvh`. El cascarón
+  principal ya usa las dos con respaldo, pero el resto no se revisó. Es el
+  trabajo siguiente, y se declara.

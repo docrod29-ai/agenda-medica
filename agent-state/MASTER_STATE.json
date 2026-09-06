@@ -23,13 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/product/DECISION_REGISTER.md",
-    " M src/__tests__/confianza-por-palabra.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx",
-    " M src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx",
-    " M src/lib/expediente/fusionar-diagnosticos.ts",
-    "?? src/__tests__/el-diagnostico-impreso-no-es-un-codigo-huerfano.test.ts"
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M src/context/ToastContext.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/expediente/cuando-avisar.ts",
+    "?? src/__tests__/el-dialogo-no-esconde-sus-botones.test.ts"
   ],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +64,10 @@
   ],
   "ramaActual": "claude/chat-pendientes-m4f9p9",
   "derivado": {
-    "regsEnElLedger": 309,
-    "ultimaREG": "REG-515",
-    "archivosDePrueba": 938,
-    "casosDePrueba": 11367,
+    "regsEnElLedger": 311,
+    "ultimaREG": "REG-517",
+    "archivosDePrueba": 939,
+    "casosDePrueba": 11376,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1182"
