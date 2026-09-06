@@ -26,6 +26,7 @@
  * escribir/agregar el diagnóstico y seleccionar o teclear el CIE en la UI. Este
  * módulo no inventa un estado paralelo ni eleva una sugerencia por sí solo.
  */
+import { estaVigente } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
 
 /** Normaliza para comparar: sin acentos, sin plurales obvios, sin relleno. */
@@ -162,3 +163,73 @@ export const POR_QUE_MANDA_EL_CODIGO =
 export const ANTE_LA_DUDA_SE_CONSERVA =
   'Si no se sabe qué puso la IA en la pasada anterior, no se quita nada. El ' +
   'error caro es borrarle un diagnóstico al médico, no dejarle uno de más.'
+
+/**
+ * ── EL DIAGNÓSTICO QUE VA IMPRESO — REG-516 ─────────────────────────────────
+ *
+ * QUÉ PASABA. El dueño, con la receta en la mano: «ahora no pones diagnóstico,
+ * nomás dice CIE-10». Y tenía razón literal: la receta componía
+ * `descripcion + " (" + codigoCIE10 + ")"`, así que un diagnóstico con código y
+ * sin descripción salía impreso como « (A41.9)» — un paréntesis con un código
+ * dentro y nada delante.
+ *
+ * UN CÓDIGO NO ES UN DIAGNÓSTICO. «A41.9» no le dice nada a quien surte la
+ * receta ni al paciente. Es una clave para facturar y estadística; el
+ * diagnóstico es la frase.
+ *
+ * ESTABA DUPLICADO, que es la mitad de por qué persistía. La misma composición
+ * vivía copiada en `receta/[patientId]/[notaId]/page.tsx` y en
+ * `orden/[patientId]/[notaId]/page.tsx`. Arreglar una dejaba la otra rota, y
+ * nadie se enteraba hasta imprimir. Ahora es UNA función, y las dos pantallas
+ * la llaman.
+ *
+ * LA REGLA DEL DUEÑO, textual: «sí quiero que lo infieras pero nomás el
+ * principal; si hay que agregar, bueno, pero no repetir».
+ *
+ *   · UNO solo — el principal.
+ *   · Se prefiere un `definitivo`; entre ellos, el que tenga descripción.
+ *   · Un código SIN descripción no se imprime: no es un diagnóstico.
+ *   · La descripción sola SÍ se imprime. El código es el adorno, no al revés.
+ *
+ * LO QUE NO HACE. No inventa la descripción a partir del código: eso exigiría
+ * un catálogo CIE-10 con su fuente, y rellenar aquí un texto plausible sería
+ * poner en la receta un diagnóstico que nadie escribió.
+ */
+export interface DxImprimible {
+  descripcion?: string
+  codigoCIE10?: string
+  tipo?: string
+  estado?: string
+}
+
+/**
+ * El diagnóstico principal, listo para imprimir. Cadena vacía si no hay ninguno
+ * con descripción — y entonces el campo se queda en blanco para que lo escriba
+ * el médico, en vez de enseñarle un código huérfano.
+ */
+export function diagnosticoParaImprimir(dxs: readonly DxImprimible[] | undefined): string {
+  /**
+   * ── EL RESPALDO ERA EL DEFECTO (REG-569, portado al fusionar) ─────────────
+   *
+   * Esta función tenía `?? conTexto[0]`: sin ningún `definitivo`, cogía el
+   * PRIMERO del dictado sin mirar su `tipo`. Un «embarazo descartado» salía
+   * impreso en la receta como el motivo, con cédula profesional debajo.
+   *
+   * La otra rama cerró el mismo defecto en su propia puerta. Al fusionar gana
+   * ésta —es la única y ya la usan /receta y /orden— y se le porta el filtro:
+   * lo que NO es un problema del paciente no puede representar la visita, así
+   * que un `descartado`, un `diferencial` y un `resuelto` quedan fuera.
+   *
+   * Cuando nada califica se devuelve cadena vacía, y ése es el arreglo entero:
+   * el campo es editable en las dos pantallas. Un campo vacío le cuesta al
+   * médico escribir una línea; el respaldo le costaba no darse cuenta.
+   * Rellenar de menos se ve; rellenar mal, no.
+   */
+  const conTexto = (dxs ?? []).filter(d => String(d?.descripcion ?? '').trim())
+  const vigentes = conTexto.filter(d => estaVigente(d as never))
+  if (!vigentes.length) return ''
+  const principal = vigentes.find(d => d.tipo === 'definitivo') ?? vigentes[0]
+  const texto = String(principal.descripcion).trim()
+  const codigo = String(principal.codigoCIE10 ?? '').trim()
+  return codigo ? `${texto} (${codigo})` : texto
+}

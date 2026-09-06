@@ -53,8 +53,11 @@ describe('LA REGLA: OCUPADO POR OTRO, NO SE RECLAMA', () => {
      * Es justo el caso en el que el `set()` optimista causaba el daño: escribir
      * sin saber de quién era.
      */
-    const i = modulo.indexOf('previo = await ref.get()')
-    const bloque = modulo.slice(i, i + 900)
+    // REG-533: la lectura vive dentro de la transacción (`tx.get(ref)`), y el
+    // fail-closed envuelve la transacción entera. Se busca desde la lectura.
+    const i = modulo.indexOf('previo = await tx.get(ref)')
+    expect(i, 'la lectura ya no está dentro de la transacción').toBeGreaterThan(-1)
+    const bloque = modulo.slice(i, i + 1600)
     expect(bloque).toContain('ok: false')
     expect(bloque).toMatch(/No se pudo comprobar/)
   })

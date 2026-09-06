@@ -89,16 +89,51 @@ export function deDondeSale(m: Pick<Medicamento, 'procedenciaClinica'>): DeDonde
  * - un renglón manual legado sin etiqueta ni estado se conserva por
  *   compatibilidad: fue creado por una acción directa del médico, no por la IA.
  */
-export function loQueSeReceta<T extends Pick<Medicamento, 'procedenciaClinica' | 'estado'>>(
-  meds: readonly T[],
-): T[] {
+export function loQueSeReceta<
+  T extends Pick<Medicamento, 'procedenciaClinica' | 'estado' | 'speaker'>,
+>(meds: readonly T[]): T[] {
   return (meds ?? []).filter(m =>
     deDondeSale(m) !== 'ya_lo_toma' &&
+    loDijoElMedico(m) &&
     m.estado !== 'borrador' &&
     m.estado !== 'suspendida' &&
     m.estado !== 'terminada' &&
     m.estado !== 'cancelada'
   )
+}
+
+/**
+ * ── LA ATRIBUCIÓN MANDA SOBRE LA OPINIÓN DEL MODELO — REG-515 ───────────────
+ *
+ * `procedenciaClinica` es lo que el modelo OPINA que es el renglón. `speaker`
+ * es un hecho del audio: quién habló. Hasta hoy sólo se miraba la opinión, y
+ * cuando el modelo etiquetaba un antecedente como `se_prescribe_hoy` no había
+ * NADA que lo parara: bajaba al papel con cédula profesional.
+ *
+ * La regla del dueño, textual: «esos los tienes que captar del plan, y si no
+ * escucha el plan que el médico los ponga manualmente». Un antecedente lo dice
+ * el paciente; un plan lo dice el médico. Eso no es una heurística: es de quién
+ * salió la frase.
+ *
+ * ── POR QUÉ LA AUSENCIA NO SE CASTIGA ───────────────────────────────────────
+ *
+ * Un renglón SIN `speaker` no viene del dictado: lo escribió el médico a mano,
+ * o es de una nota anterior a este campo. Ésos siguen imprimiéndose, porque
+ * borrarlos sería quitarle del papel algo que él mismo escribió — el error caro
+ * en la otra dirección.
+ *
+ * Lo que se para es lo que SÍ trae atribución y NO es del médico. Ahí la
+ * ausencia de dato no se convierte en permiso: se para, y el médico lo pone a
+ * mano, que es exactamente lo que pidió.
+ *
+ * ── LO QUE ESTA FUNCIÓN NO ARREGLA ──────────────────────────────────────────
+ *
+ * Si la diarización atribuye mal la frase, esto hereda ese error. No es una
+ * defensa contra un audio mal separado: es una defensa contra que la ETIQUETA
+ * del modelo sea la única palabra sobre si algo se receta.
+ */
+function loDijoElMedico(m: Pick<Medicamento, 'speaker'>): boolean {
+  return m.speaker === undefined || m.speaker === 'medico'
 }
 
 /**
@@ -136,7 +171,7 @@ export function loQueSeReceta<T extends Pick<Medicamento, 'procedenciaClinica' |
  * `medicamentos.length > 0`.
  */
 export function medicamentosDeLaReceta<
-  T extends Pick<Medicamento, 'procedenciaClinica' | 'estado'>,
+  T extends Pick<Medicamento, 'procedenciaClinica' | 'estado' | 'speaker'>,
 >(meds: readonly T[]): T[] {
   return loQueSeReceta(meds).filter(m => estaVigente(m))
 }

@@ -80,6 +80,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${base}/configuracion?gcal=connected${sufijo}`)
   } catch (err) {
     safeLog.error('Google Calendar callback error:', err)
-    return NextResponse.redirect(`${base}/configuracion?gcal=error&msg=${encodeURIComponent(String(err))}`)
+    return NextResponse.redirect(`${base}/configuracion?gcal=error&msg=${encodeURIComponent('No se pudo completar la conexión con Google Calendar. Intenta de nuevo.')}`)
   }
 }

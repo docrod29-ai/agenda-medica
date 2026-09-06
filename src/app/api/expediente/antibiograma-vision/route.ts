@@ -13,6 +13,7 @@
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarCreditos } from '@/lib/ai-keys'
@@ -22,6 +23,7 @@ import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
 import { VISION_SYSTEM_PROMPT, buildVisionUserPrompt, PerfilExtraido } from '@/lib/expediente/antibiograma/vision'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
   const { key: API_KEY, clinicId, fuente } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) {
-    return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: iaNoDisponible('vision').mensaje }, { status: 503 })
   }
 
   let body: { imagen?: string; sitio?: string }
@@ -163,6 +165,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, perfil: val.data, model })
   } catch (err) {
     safeLog.error('[antibiograma-vision] Exception:', err)
-    return NextResponse.json({ ok: false, error: `Error al procesar la imagen: ${String(err)}` }, { status: 500 })
+    return errorAlCliente('No se pudo procesar la imagen. Intenta con otra foto o un PDF.')
   }
 }

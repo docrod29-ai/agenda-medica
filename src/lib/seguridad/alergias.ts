@@ -312,6 +312,50 @@ export function alergiasDe(p: { alergias?: string; alergiasEstructuradas?: Alerg
  * Acepta el campo venga como venga —texto libre o ya en lista— porque en el
  * repositorio viene de las dos formas, y eso no lo arregla un llamador.
  */
+/**
+ * ── ¿LA LECTURA AÑADE ALGO, O ES LO MISMO CON OTRA PUNTUACIÓN? ───────────────
+ *
+ * La consulta enseña, junto a la franja de alergias, «se lee: X · Y» — lo que
+ * el sistema ENTIENDE como alérgeno a partir de lo que el médico escribió. Eso
+ * vale su sitio cuando aporta: «Niega penicilina. Alérgico a sulfas» escrito,
+ * y de ahí sale «sulfas», que es un hecho distinto y necesario.
+ *
+ * No vale nada cuando dice lo mismo. Y eso es lo que pasaba: la comprobación
+ * era `alergenos.join(' · ') !== texto.trim()`, o sea comparar dos CADENAS YA
+ * PUNTUADAS. Con «Penicilina (anafilaxia), sulfas, AINEs» escrito, la lectura
+ * es «Penicilina (anafilaxia) · sulfas · AINEs»: los mismos tres alérgenos,
+ * separados con « · » en vez de con «, ». Difieren como cadena, no como
+ * hecho — así que la condición se cumplía SIEMPRE y la alergia se pintaba dos
+ * veces, en rojo, en la misma franja.
+ *
+ * Medido en navegador el 1-sep: los dos textos a 700 px uno del otro en el
+ * primer pliegue de la consulta. Es el defecto que REG-311 ya había cazado en
+ * vertical —dos avisos del mismo dato compiten, y el segundo se aprende a
+ * ignorar— reapareciendo en horizontal cuando se fusionaron los dos avisos.
+ *
+ * Se compara por CONJUNTO normalizado: mismos alérgenos, en cualquier orden,
+ * con cualquier separador y sin importar acentos ni mayúsculas → no añade nada.
+ *
+ * Qué NO decide esta función: si la lectura es CORRECTA. Sólo si es
+ * redundante. Un alérgeno mal extraído sigue enseñándose, que es lo que debe
+ * pasar: el médico tiene que poder verlo para corregirlo.
+ */
+export function laLecturaAnadeAlgo(escrito: string, alergenos: readonly string[]): boolean {
+  if (alergenos.length === 0) return false
+  const normalizar = (t: string) => t
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/).filter(Boolean).join(' ')
+  // El texto escrito se parte por los separadores que un médico usa de verdad.
+  const escritos = new Set(
+    escrito.split(/[,;·|\n]+| y | e /i).map(normalizar).filter(Boolean),
+  )
+  const leidos = alergenos.map(normalizar).filter(Boolean)
+  if (leidos.length !== escritos.size) return true
+  return leidos.some(a => !escritos.has(a))
+}
+
 export function alergenosDe(p: {
   alergias?: string | readonly unknown[]
   alergiasEstructuradas?: AlergiaEstructurada[]

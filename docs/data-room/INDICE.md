@@ -112,8 +112,8 @@ rotación de credenciales.
 | | |
 |---|---|
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
-| Registro de regresiones | `docs/audit/regression-ledger.md` — **353 REG** con causa raíz |
-| Invariantes sellados | **499 archivos, 7139 casos** que no pueden encoger |
+| Registro de regresiones | `docs/audit/regression-ledger.md` — **388 REG** con causa raíz |
+| Invariantes sellados | **528 archivos, 7357 casos** que no pueden encoger |
 | Suite completa | **10 431 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,
@@ -164,10 +164,10 @@ producto.
 
 ## 8 · Historial de incidentes
 
-✅ El `regression-ledger` **es** el historial: 353 defectos con su causa raíz, su
+✅ El `regression-ledger` **es** el historial: 388 defectos con su causa raíz, su
 reparación y su prueba de regresión permanente.
 
-**Es un activo, no un pasivo.** Un comprador que ve 353 defectos documentados con
+**Es un activo, no un pasivo.** Un comprador que ve 388 defectos documentados con
 su causa raíz aprende más del rigor del equipo que uno que ve una lista vacía —
 que sólo significa que nadie los estaba buscando.
 

@@ -14,6 +14,7 @@
  * Costo aproximado: ~$0.01–0.015 USD por minuto de audio.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { topeDe, TOPE_TERMINOS, componerSesgo, type ContextoSesgo } from '@/lib/asr/sesgo-diarizado'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { safeLog } from '@/lib/security/sanitize'
@@ -26,6 +27,8 @@ import { esFundador } from '@/lib/authz/fundador'
 import { WORD_BOOST_MEDICO } from '@/lib/expediente/medical-vocabulary'
 import { adminDb } from '@/lib/firebase-admin'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
+import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -127,7 +130,7 @@ export async function POST(req: NextRequest) {
   const t0Costo = Date.now()
   if (!key) {
     return NextResponse.json(
-      { ok: false, sinClave: true, error: 'ASSEMBLYAI_API_KEY no configurada. Se usa transcripción sin diarización.' },
+      { ok: false, sinClave: true, error: iaNoDisponible('diarizacion').mensaje },
       { status: 503 },
     )
   }
@@ -190,7 +193,7 @@ export async function POST(req: NextRequest) {
         // socket colgado se lleva la función entera y con ella el dictado.
         signal: AbortSignal.timeout(120_000),
       })
-      if (!up.ok) return NextResponse.json({ ok: false, error: `AssemblyAI upload HTTP ${up.status}` }, { status: 502 })
+      if (!up.ok) return NextResponse.json({ ok: false, error: avisoAlMedico(claseDeFallo(up.status), quienPaga(fuente), 'assemblyai').texto }, { status: 502 })
       audio_url = (await up.json()).upload_url
       ctxSesgo = {
         medicamentos: comoLista(formData.get('medicamentos')),
@@ -344,7 +347,7 @@ export async function POST(req: NextRequest) {
     if (!sub.ok) {
       const detalle = (await sub.text().catch(() => '')).slice(0, 300)
       safeLog.error(`[diarizado] rechazado HTTP ${sub.status}`, { detalle })
-      return NextResponse.json({ ok: false, error: `AssemblyAI submit HTTP ${sub.status}` }, { status: 502 })
+      return NextResponse.json({ ok: false, error: avisoAlMedico(claseDeFallo(sub.status), quienPaga(fuente), 'assemblyai').texto }, { status: 502 })
     }
     const { id } = await sub.json()
     // DUEÑO DEL TRANSCRIPT (auditoría P1 IDOR): en modo prueba varias clínicas
@@ -414,7 +417,7 @@ export async function POST(req: NextRequest) {
     )
     return NextResponse.json({ ok: true, id })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }
 
@@ -459,7 +462,7 @@ export async function GET(req: NextRequest) {
       headers: { authorization: key },
       signal: AbortSignal.timeout(20_000),
     })
-    if (!r.ok) return NextResponse.json({ ok: false, error: `AssemblyAI HTTP ${r.status}` }, { status: 502 })
+    if (!r.ok) return NextResponse.json({ ok: false, error: avisoAlMedico(claseDeFallo(r.status), quienPaga(fuente), 'assemblyai').texto }, { status: 502 })
     const d = await r.json()
 
     if (d.status === 'completed') {
@@ -543,11 +546,11 @@ export async function GET(req: NextRequest) {
       return respuesta
     }
     if (d.status === 'error') {
-      return NextResponse.json({ ok: false, status: 'error', error: d.error ?? 'AssemblyAI error' })
+      return NextResponse.json({ ok: false, status: 'error', error: avisoAlMedico('otro', quienPaga(fuente), 'assemblyai').texto })
     }
     // queued | processing
     return NextResponse.json({ ok: true, status: d.status ?? 'processing' })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e).slice(0, 120) }, { status: 500 })
+    return errorAlCliente()
   }
 }

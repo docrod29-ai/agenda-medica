@@ -13,6 +13,7 @@
  * Requiere env var: OPENAI_API_KEY
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString } from '@/lib/security/sanitize'
 import { safeLog } from '@/lib/security/sanitize'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -25,6 +26,7 @@ import { limitarOResponder } from '@/lib/rate-limit'
 import { gateCreditos, resolverClaveIA, registrarUso, registrarCreditos  } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
   if (corteCreditos) return corteCreditos
   if (!apiKey) {
     return NextResponse.json(
-      { ok: false, error: 'OPENAI_API_KEY no configurada. La app sigue funcionando con Web Speech.' },
+      { ok: false, error: iaNoDisponible('transcripcion').mensaje },
       { status: 503 },
     )
   }
@@ -243,13 +245,16 @@ export async function POST(req: NextRequest) {
       // 5xx, así que un 502 pasajero de gpt-4o-transcribe ya no tumba la nota.
     } catch (err) {
       safeLog.error(`[transcribir] ${model} error de red:`, err)
-      ultimoError = String(err).slice(0, 300)
+      ultimoError = redactarString(String(err)).slice(0, 300)
     }
   }
   // Aquí solo se llega si TODOS los modelos de OpenAI fallaron (outage real).
   safeLog.error('[transcribir] Todos los modelos de OpenAI fallaron. Último:', ultimoStatus, ultimoError)
   return NextResponse.json(
-    { ok: false, error: `OpenAI no disponible temporalmente (HTTP ${ultimoStatus}). El audio sigue guardado; reintenta en un momento.` },
+    /* Éste ya decía lo importante —«el audio sigue guardado»— pero nombraba al
+       proveedor y le enseñaba un código HTTP al médico. `avisoAlMedico` dice lo
+       mismo, clasificado, y sabe si reintentar sirve de verdad. */
+    { ok: false, error: avisoAlMedico(claseDeFallo(ultimoStatus, ultimoError), quienPaga(fuente), 'openai').texto },
     { status: 502 },
   )
 }

@@ -3,6 +3,8 @@ import { useMemo } from 'react'
 import type { Patient } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
 import { Activity } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
+import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 
 /**
  * RESUMEN DEL PACIENTE — "todo en un solo lugar".
@@ -27,23 +29,63 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
     return null
   }, [orden])
 
+  /**
+   * ── AQUÍ SE PERDÍA QUIÉN PUSO CADA DIAGNÓSTICO ───────────────────────────
+   *
+   * MEDIDO en navegador el 1-sep-2026, con un paciente sembrado a propósito con
+   * los tres ejes del modelo: los cuatro diagnósticos vigentes se pintaban en el
+   * MISMO nodo de texto, con el mismo color, peso y tamaño, bajo el rótulo
+   * «Diagnósticos activos» — uno definitivo puesto por el médico y otro que la
+   * IA propuso y nadie avaló, indistinguibles.
+   *
+   * La causa: este `useMemo` empujaba `d.descripcion` PELADA. `tipo` y
+   * `tipoOrigen` viajaban en el documento y se tiraban aquí.
+   *
+   * ── LO QUE NO SE HACE, Y POR QUÉ ─────────────────────────────────────────
+   *
+   * NO se etiqueta `presuntivo`. REG-365 lo decidió y sigue siendo correcto: es
+   * el valor de fábrica del esquema —«nadie dijo nada»—, y escribir «(presuntivo)»
+   * junto a una crónica confirmada afirma una duda que el médico nunca expresó,
+   * en casi todos los renglones.
+   *
+   * Lo que sí se dice es la PROCEDENCIA, que es otro eje y hoy era invisible:
+   * `tipoOrigen === 'medico'` es «lo eligió una persona» y el resto no. Es la
+   * misma frontera que `la-certeza-que-sale-al-mundo` ya aplica al salir a FHIR
+   * (`confirmed` sólo con `medico`) y la que la consulta ya avisa antes de
+   * firmar. `requisitos.ts` declaraba el hueco: «FALTA la misma elección en las
+   * otras superficies que muestran diagnósticos (expediente…)».
+   *
+   * Y se dice **una vez y no por fila**, con la regla que ya eligió la consulta:
+   * un aviso por diagnóstico, en una lista de seis, es ruido que se aprende a
+   * saltar. `por_defecto` cuenta igual que `extraccion`: en los dos casos nadie
+   * lo decidió.
+   */
   const dxActivos = useMemo(() => {
     const vistos = new Set<string>()
-    const out: string[] = []
+    const out: { texto: string; loEligioUnaPersona: boolean }[] = []
     for (const n of orden) {
       for (const d of n.diagnosticos ?? []) {
         const k = d.descripcion.trim().toLowerCase()
         if (!k || vistos.has(k)) continue
         if (d.estado === 'resuelto' || d.tipo === 'descartado') continue
-        vistos.add(k); out.push(d.descripcion.trim())
+        vistos.add(k)
+        // `nombreConCerteza` y no la descripción a secas: UNA definición para
+        // todos los lectores (REG-364).
+        out.push({ texto: nombreConCerteza(d), loEligioUnaPersona: d.tipoOrigen === 'medico' })
         if (out.length >= 6) return out
       }
     }
     return out
   }, [orden])
 
+  const sinAvalar = dxActivos.filter(d => !d.loEligioUnaPersona).length
+
   const ultimaFecha = ultima?.fechaConsulta || ultima?.createdAt
-  const fmt = (iso?: string) => { if (!iso) return null; try { return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return null } }
+  /* Era `{ day: '2-digit' }` y daba «01 sep 2026», mientras dos renglones más
+     abajo la MISMA pantalla decía «1 sep 2026» y una tercera línea decía
+     «2026-09-01». Tres lecturas de la misma clase de hecho en un pliegue.
+     Ahora sale del módulo único (`@/lib/formato/fecha`). */
+  const fmt = (iso?: string) => fechaCorta(iso) || null
 
   const vitales: { label: string; valor: string }[] = []
   if (signos) {
@@ -125,7 +167,16 @@ export function ResumenPaciente({ patient, notas }: { patient: Patient | null; n
         {conDx && (
           <div>
             <strong style={{ color: 'var(--text)' }}>Diagnósticos activos:</strong>{' '}
-            {dxActivos.join(' · ')}
+            {dxActivos.map(d => d.texto).join(' · ')}
+            {sinAvalar > 0 && (
+              /* Una vez, no por fila. Y en pasado: estas notas ya están
+                 firmadas, así que no es un aviso para antes de firmar — es lo
+                 que el médico necesita saber al LEER su propio expediente. */
+              <div className="nx-meta" style={{ marginTop: 2 }}>
+                El tipo de {sinAvalar === 1 ? 'uno de ellos lo puso' : `${sinAvalar} de ellos lo puso`} el dictado
+                o la plantilla, no una persona.
+              </div>
+            )}
           </div>
         )}
 

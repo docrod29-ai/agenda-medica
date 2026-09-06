@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import type { NotaMedica, Adenda } from '@/types/expediente'
+import { fechaCorta } from '@/lib/formato/fecha'
 // `stripUndefined` se mudó a un módulo puro (sin SDK) para poder simular el viaje
 // a Firestore en los tests del sello de integridad. Ver serializacion.ts.
 import { stripUndefined } from './serializacion'
@@ -1062,7 +1063,30 @@ export async function getUltimasNotasResumen(
       .slice(0, limit),
   )
   if (notas.length === 0) return ''
-  return notas
-    .map(n => `[${(n.fechaConsulta || '').slice(0, 10)}] ${n.resumenEjecutivo || (n.diagnosticos ?? []).map(d => d.descripcion).join(', ')}`)
-    .join(' · ')
+  return notas.map(resumenDeUnaVisita).join('  ·  ')
+}
+
+/**
+ * ── LO QUE ESTA LÍNEA LE ENSEÑA AL MÉDICO EN LA CONSULTA ─────────────────────
+ *
+ * Salía `[2026-09-01] ` — con corchetes, con la fecha en ISO, y **vacío**
+ * cuando la nota no tenía resumen ni diagnósticos. Medido en navegador el
+ * 1-sep: la consulta pintaba una caja entera con borde que decía, entera,
+ * «Visitas anteriores: [2026-09-01]». Corchetes que parecen un array de
+ * depuración y una fecha que este producto no usa en ningún otro sitio.
+ *
+ * Tres decisiones, y la tercera es la que importa:
+ *
+ * 1. Fecha en es-MX, como la receta y como todo lo demás.
+ * 2. Sin corchetes: la fecha y el resumen se separan tipográficamente, no con
+ *    puntuación de programador.
+ * 3. Una visita SIN resumen **sigue apareciendo**, y dice que no lo tiene.
+ *    Quitarla habría sido más limpio de leer y clínicamente falso: el paciente
+ *    vino ese día. Ausencia de resumen no es ausencia de visita.
+ */
+function resumenDeUnaVisita(n: NotaMedica): string {
+  const fecha = fechaCorta(n.fechaConsulta) || 'fecha no registrada'
+  const dxs = (n.diagnosticos ?? []).map(d2 => d2.descripcion).filter(Boolean).join(', ')
+  const que = (n.resumenEjecutivo || '').trim() || dxs || 'sin resumen'
+  return `${fecha} — ${que}`
 }

@@ -910,13 +910,56 @@ export function accionPrimaria(appt: Appointment, esHoy: boolean): AccionPrimari
 
 /** El dibujo del nodo sobre el riel: el estado como MOMENTO, no como color.
  *  «espera» (en sala) y «ahora» (en consulta) se dibujan distinto: hueco
- *  cobalto vs lleno con anillo — lo pidió la revisión independiente (P3.11). */
-function momentoDeCita(appt: Appointment): 'proximo' | 'espera' | 'ahora' | 'hecho' | 'cerrado' {
+ *  cobalto vs lleno con anillo — lo pidió la revisión independiente (P3.11).
+ *
+ * ── ESTA FUNCIÓN NO MIRABA EL RELOJ, Y EL RIEL ES UNA LÍNEA DE TIEMPO ───────
+ *
+ * MEDIDO el 1-sep-2026 a las 18:08 (hora del consultorio), con las ocho citas
+ * del día ya pasadas:
+ *
+ *   pintadas a peso completo ................. 6 de 8
+ *   atenuadas ................................ 2 — y por ESTADO (atendida,
+ *                                              cancelada), no por hora
+ *   que aún ofrecían «Iniciar consulta»
+ *   o «Confirmar» como acción primaria ....... 6
+ *
+ * Todo lo demás estaba construido: el marcador de AHORA existe, la hoja ya
+ * atenúa `hecho` y `cerrado` por token —su comentario hasta lo explica—, y la
+ * fila RECIBE `ahoraHHMM`… y no lo usaba nunca. Es «escrito y sin conectar» en
+ * la pieza que decide qué momento es cada cita: el mapa iba de ESTADO a
+ * momento, y la hora no entraba.
+ *
+ * La consecuencia no es de estética. R1 dice que el marcador de ahora separa
+ * «lo pasado (atenuado) de lo que viene»; sin eso el riel contesta «aquí hay
+ * ocho cosas que hacer» cuando el día ya terminó y ninguna es la siguiente.
+ *
+ * ── POR QUÉ UN MOMENTO NUEVO Y NO `hecho` ──────────────────────────────────
+ *
+ * Una cita confirmada cuya hora pasó **no está hecha** —nadie la atendió— ni
+ * está **cerrada** —nadie la canceló—. Es un hueco sin resolver, y son
+ * justamente las filas que el médico tiene que reconciliar al cerrar el día.
+ * Llamarle `hecho` para que se atenúe sería mentir con tal de que se vea bien.
+ *
+ * Se atenúa como lo pasado y el NODO se dibuja distinto, para que «pasó sin
+ * resolverse» no se lea como «listo».
+ *
+ * Y la acción primaria NO se quita: el médico puede iniciar una consulta tarde
+ * o cobrar una visita de la mañana. Cambia el peso visual, no lo que se puede
+ * hacer.
+ */
+function momentoDeCita(
+  appt: Appointment,
+  ahoraHHMM: string | null,
+  esHoy: boolean,
+): 'proximo' | 'espera' | 'ahora' | 'hecho' | 'pasado' | 'cerrado' {
   const e = appt.estado
   if (['cancelada', 'no-asistio', 'reagendada'].includes(e)) return 'cerrado'
   if (['atendida', 'finalizada', 'pagada'].includes(e)) return 'hecho'
   if (e === 'en-consulta') return 'ahora'
   if (e === 'en-sala') return 'espera'
+  /* Sólo tiene sentido en el día de hoy: en otro día, «pasado» lo es todo o
+     nada, y atenuar la agenda entera de ayer no le dice nada a nadie. */
+  if (esHoy && ahoraHHMM && appt.fechaHora.slice(11, 16) < ahoraHHMM) return 'pasado'
   return 'proximo'
 }
 
@@ -935,7 +978,10 @@ const TONO_RIEL: Record<string, string> = {
 }
 
 function RielEntrada({
-  appt, paciente, config, esHoy, multiMedico, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
+  /* `ahoraHHMM` estaba en el tipo de props y NO se desestructuraba: el padre lo
+     mandaba, el tipo lo declaraba, y la firma lo tiraba al suelo. No es que no
+     se usara — era imposible usarlo. Ver `momentoDeCita`. */
+  appt, paciente, config, esHoy, ahoraHHMM, multiMedico, menuOpen, onMenuToggle, onEdit, onDelete, onStatusChange, onCobrar, onQuitarCortesia, deleting, onConsulta,
 }: {
   /** Abre la consulta del paciente. Se recibe del padre para no montar otro router. */
   onConsulta: (pacienteId: string) => void
@@ -1014,7 +1060,7 @@ function RielEntrada({
 
   const QUICK_STATUSES: AppointmentStatus[] = ['en-sala', 'en-consulta', 'atendida', 'finalizada', 'cancelada', 'no-asistio']
 
-  const momento = momentoDeCita(appt)
+  const momento = momentoDeCita(appt, ahoraHHMM, esHoy)
   const accion = accionPrimaria(appt, esHoy)
   const estado = estadoCita(appt.estado)
 

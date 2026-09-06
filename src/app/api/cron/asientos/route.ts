@@ -28,6 +28,7 @@
  * habilitados sin cobrar hasta el cierre de mes.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { redactarString } from '@/lib/security/sanitize'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { stripe, priceMedicoDe, type PlanKey } from '@/lib/stripe'
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     safeLog.error('[cron/asientos]', e)
-    await registrarLatido('asientos', { correlacion, ok: false, duracionMs: Date.now() - t0, error: String(e).slice(0, 160) })
+    await registrarLatido('asientos', { correlacion, ok: false, duracionMs: Date.now() - t0, error: redactarString(String(e)).slice(0, 160) })
     return NextResponse.json({ ok: false, error: 'no se pudo conciliar' }, { status: 500 })
   }
 

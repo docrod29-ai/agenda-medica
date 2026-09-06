@@ -12,6 +12,7 @@
 
 import { revalidarCitas } from '@/lib/ia/revalidar-citas'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/expediente/prompts'
 import { tieneGuia } from '@/lib/expediente/guias-de-especialidad'
 import { RespuestaExtraccion } from '@/lib/expediente/extraction-schema'
@@ -31,6 +32,7 @@ import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-modelo-se-eligio'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
@@ -369,7 +371,7 @@ export async function POST(req: NextRequest) {
   if (corteCreditos) return corteCreditos
   if (!API_KEY) {
     return NextResponse.json(
-      { ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' },
+      { ok: false, error: iaNoDisponible('nota').mensaje },
       { status: 503 },
     )
   }
@@ -714,11 +716,11 @@ export async function POST(req: NextRequest) {
     try {
       return fallbackVisible(
         transcripcion, tipo,
-        `Error interno al llamar la IA de estructura: ${String(err).slice(0, 100)}.`,
+        `Error interno al llamar la IA de estructura: ${redactarString(String(err)).slice(0, 100)}.`,
         'excepcion',
       )
     } catch {
-      return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+      return errorAlCliente()
     }
   } finally {
     /**

@@ -10,6 +10,7 @@
  * Output: { ok, razonamiento, segundaOpinion?, modelos } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -23,6 +24,7 @@ import { safeLog } from '@/lib/security/sanitize'
 import { interpretarAntibiograma, type EntradaAntibiograma } from '@/lib/expediente/antibiograma'
 import { resumenDeterminista, RAZONAR_SYSTEM, buildRazonarUser } from '@/lib/expediente/antibiograma/razonar'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ENV_OPENAI = process.env.OPENAI_API_KEY ?? ''
@@ -57,7 +59,7 @@ async function claude(key: string, modelos: string[], system: string, user: stri
         reportarFalloIA({ clase, quien, proveedor: 'anthropic', feature: 'antibiograma-razonar', status: res.status })
         return { error: avisoAlMedico(clase, quien, 'anthropic').texto }
       }
-    } catch (e) { return { error: String(e).includes('timeout') ? 'la IA tardó demasiado' : 'error de red' } }
+    } catch (e) { return { error: e instanceof Error && e.message.includes('timeout') ? 'la IA tardó demasiado' : 'error de red' } }
   }
   return { error: 'ningún modelo disponible' }
 }
@@ -105,7 +107,7 @@ export async function POST(req: NextRequest) {
     clinicId: clinicId ?? null, uid: acceso.uid, creditos: 0, fuente,
     esFundador: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS),
   }
-  if (!API_KEY) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (Configuración → Llaves de IA).' }, { status: 503 })
+  if (!API_KEY) return NextResponse.json({ ok: false, error: iaNoDisponible('razonamiento').mensaje }, { status: 503 })
 
   let body: { organismo?: string; resultados?: EntradaAntibiograma['resultados']; sitio?: EntradaAntibiograma['sitio']; pruebas?: EntradaAntibiograma['pruebas']; motor?: string }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
@@ -192,6 +194,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     safeLog.error('[antibiograma-razonar] Exception:', err)
-    return NextResponse.json({ ok: false, error: `Error al razonar: ${String(err).slice(0, 120)}` }, { status: 500 })
+    return errorAlCliente('No se pudo razonar el antibiograma. Intenta de nuevo.')
   }
 }

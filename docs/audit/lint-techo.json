@@ -1,5 +1,5 @@
 {
-  "errores": 94,
+  "errores": 93,
   "porArchivo": {
     "src/app/(dashboard)/asistente/page.tsx": 2,
     "src/app/(dashboard)/citas/page.tsx": 2,
@@ -20,7 +20,7 @@
     "src/app/(dashboard)/layout.tsx": 1,
     "src/app/(dashboard)/lista-espera/page.tsx": 1,
     "src/app/(dashboard)/pacientes/page.tsx": 1,
-    "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx": 2,
+    "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx": 1,
     "src/app/(dashboard)/uci/ResumenPase.tsx": 1,
     "src/app/(dashboard)/uci/dosificacion/page.tsx": 1,
     "src/app/(dashboard)/uci/page.tsx": 6,

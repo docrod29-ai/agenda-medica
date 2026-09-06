@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 5-sep-2026.
-**Fuente**: los REG de `docs/audit/regression-ledger.md` (308 clasificados hoy).
+**Abierto**: 6-ago-2026. **Actualizado**: 6-sep-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (343 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 109 de 353, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 119 de 388, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-604** (5-sep-2026), y es la subespecie en la que
@@ -244,7 +244,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 45 de 308.**
+**«El sistema se contradice a sí mismo» — 50 de 343.**
 
 Sumó REG-576 (30-ago-2026), que es REG-572 otra vez cuatro unidades después: **una
 garantía escrita en la prosa y no en el código**. La cabecera del cajón de
@@ -379,7 +379,7 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 52 de 308**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 64 de 343**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 

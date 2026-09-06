@@ -11,6 +11,7 @@ import type { Appointment } from '@/types'
 import { corteDeCaja, embudoCobro, cuentasPorCobrar } from '@/lib/corte-caja'
 import { hoyISO, TZ_DEFAULT } from '@/lib/timezone'
 import { Printer, Wallet, TrendingDown, Users, AlertCircle, Calendar } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * DÍA LOCAL DEL CONSULTORIO.
@@ -195,7 +196,7 @@ export function CorteCajaContenido({ embedded = false }: { embedded?: boolean })
                     */}
                     Motivo: {c.motivoCancelacion || '— sin motivo —'}
                     {` · anuló ${quienAnulo(c, nombrePorUid)}`}
-                    {c.canceladoEn ? ` · el ${c.canceladoEn.slice(0, 10)}` : ''}
+                    {c.canceladoEn ? ` · el ${fechaCorta(c.canceladoEn)}` : ''}
                   </div>
                 </div>
               ))}

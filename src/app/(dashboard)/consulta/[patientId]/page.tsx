@@ -80,6 +80,7 @@ import { construirManifiesto, camposSinEvidencia, notaParaElSello } from '@/lib/
 import { conAvisosSellados } from '@/lib/expediente/lo-que-se-aviso-al-firmar'
 import { dudasQueSiguenEnPie, type DudaDeAntes } from '@/lib/expediente/la-duda-de-la-otra-vez'
 import { labsDelCuadro } from '@/lib/expediente/laboratorio/lo-que-ya-esta-medido'
+import { edadParaDosificar } from '@/lib/seguridad/edad-para-dosificar'
 import { trayectoriaDe, comoSeDiceLaTrayectoria } from '@/lib/expediente/laboratorio/la-trayectoria'
 import {
   vigenciaDeLaFuncionRenal, avisoDeFuncionRenalCaduca,
@@ -132,11 +133,12 @@ import { CorreccionesPanel } from '@/components/CorreccionesPanel'
 import { AlertasDictado } from '@/components/AlertasDictado'
 import { Alert, Modal, Button } from '@/components/ui'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { alergenosDe, alergiasDe } from '@/lib/seguridad/alergias'
+import { alergenosDe, alergiasDe, laLecturaAnadeAlgo } from '@/lib/seguridad/alergias'
 
 import { calculadorasSugeridas } from '@/lib/expediente/calculadoras'
 
-import { vacunasSegunEdad } from '@/lib/expediente/pediatria'
+import { vacunasSegunEdad, edadEnAnios } from '@/lib/expediente/pediatria'
+import { rotulo } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 
 
@@ -214,6 +216,7 @@ import {
   Lock, Bug, FlaskConical, Lightbulb, FileText, ChevronDown, ChevronUp, Volume2, BedDouble,
   Scissors, Baby, Calculator, Camera, HeartPulse, Brain, MessageSquare,
 } from 'lucide-react'
+import { fechaCorta } from '@/lib/formato/fecha'
 
 /**
  * Los paneles clínicos se cargan SOLO cuando el médico los abre.
@@ -324,6 +327,44 @@ const ESPECIALIDADES_POR_GRUPO: { grupo: string; items: string[] }[] = [
  * volviendo a intentar. Un mensaje genérico las convierte en «algo falló», que
  * no le dice a nadie qué hacer.
  */
+/**
+ * ── LA EDAD DE LA CONSULTA SALE DE LA FECHA DE NACIMIENTO, NO DE UN NÚMERO ───
+ *
+ * Encontrado mirando el primer pliegue de `/consulta` en el navegador: el
+ * subtítulo decía «· Femenino · Nota de Primera Vez», con un separador huérfano
+ * donde debía ir la edad. El paciente SÍ tenía `fechaNacimiento` guardada.
+ *
+ * Y el separador era lo de menos. `patient.edad` se lee en TRECE sitios de esta
+ * pantalla, y con el campo vacío todos degradan en silencio:
+ *
+ *   · `esPediatrico` nunca se enciende            → sin modo pediátrico
+ *   · `esGineco` nunca se enciende                → sin módulo de ginecología
+ *   · las vacunas atrasadas devuelven 0           → un cero que no vigila nada
+ *   · el memo de contexto de SEGURIDAD y cada llamada a motor reciben `undefined`
+ *   · al copiloto le llega, literalmente, la cadena «? años»
+ *
+ * Ninguno avisa. Es «ausencia de dato no es dato de ausencia» en la capa que
+ * decide dosis.
+ *
+ * `edadEnAnios` —motor determinista, ya probado en `pediatria.ts`— existía y
+ * esta pantalla no lo llamaba: la regla «escrito, probado y sin conectar» del
+ * propio repositorio. `/pacientes` sí lo llama, pero SÓLO al teclear la fecha en
+ * su formulario, y guarda el resultado como número.
+ *
+ * Por eso lo derivado MANDA sobre lo guardado cuando hay fecha de nacimiento:
+ * un número guardado es una foto del día que se escribió. Quien se registró con
+ * 66 sigue teniendo 66 en el expediente cinco años después, y de esa cifra
+ * cuelgan el ajuste renal y la dosis pediátrica.
+ *
+ * No se escribe nada: esto es SÓLO para lo que se lee y se calcula en esta
+ * consulta. Corregir el documento del paciente es otro acto, del médico.
+ */
+function conLaEdadAlDia(p: Patient | null): Patient | null {
+  if (!p) return p
+  const derivada = edadEnAnios(p.fechaNacimiento)
+  return derivada != null && derivada !== p.edad ? { ...p, edad: derivada } : p
+}
+
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
@@ -1951,7 +1992,7 @@ export default function ConsultaActivaPage() {
      * hacía bien; esta pantalla se había quedado atrás.
      */
     getPatient(clinicId, patientId)
-      .then(p => { setPatient(p); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
+      .then(p => { setPatient(conLaEdadAlDia(p)); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     /**
      * Los paneles de laboratorio, para que los motores los vean (REG-368). Es
@@ -1985,7 +2026,12 @@ export default function ConsultaActivaPage() {
          * ausencia, y aquí se lee con el paciente enfrente y antes de prescribir.
          */
         setHistorialTruncado(truncada)
-        const firmadas = ns.filter(n => n.estado === 'firmada')
+        /**
+         * SIN LA NOTA ABIERTA — REG-535. Una nota firmada se puede reabrir aquí
+         * (adenda); entraba en «lo vigente» y la barra decía «ya figura como
+         * vigente» de lo que ella misma receta. Se vio primero en la receta.
+         */
+        const firmadas = ns.filter(n => n.estado === 'firmada' && n.id !== notaIdRef.current)
           .map(n => ({
             fecha: n.fechaConsulta ?? n.metadata?.fechaCreacion ?? '',
             medicamentos: n.medicamentos,
@@ -4699,7 +4745,9 @@ export default function ConsultaActivaPage() {
     }
   }, [cedulaRapida, clinicId])
 
-  const mmss = `${String(Math.floor(voz.duracion / 60)).padStart(2, '0')}:${String(voz.duracion % 60).padStart(2, '0')}`
+  /* El reloj del modo «vivo». El formateo ya no vive aquí: sale del vocabulario
+     común, para que los cuatro relojes de la pantalla cuenten igual. */
+  const segundosVivo = voz.duracion
 
   return (
     <div className="nx-canvas">
@@ -4745,8 +4793,33 @@ export default function ConsultaActivaPage() {
               o en el ancla del expediente ATERRIZA aquí — el mismo objeto
               ganando detalle, no una pantalla que reemplaza a otra. */}
           <h1 className="nx-vt-paciente" style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{patient?.nombre ?? 'Consulta'}</h1>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-            {patient?.edad ? `${patient.edad} años` : ''}{patient?.sexo ? ` · ${patient.sexo}` : ''} · {TIPO_NOTA_LABEL[tipo]}
+          {/*
+            ── EL SUBTÍTULO DECÍA «· Femenino · Nota de Primera Vez» ────────────
+            Con un separador HUÉRFANO delante, porque la edad se concatenaba con
+            `''` cuando faltaba y el « · » del sexo se escribía igual. Visto en
+            navegador el 1-sep: ningún paciente del consultorio de prueba tiene
+            edad, así que ese renglón salía roto SIEMPRE y nadie lo vio, porque
+            un separador de más no rompe ninguna prueba.
+
+            Y debajo del defecto tipográfico hay uno clínico: **la edad no
+            estaba**. Es dato de dosificación —de ella cuelgan el ajuste renal,
+            la dosis pediátrica y media compuerta de seguridad— y el encabezado
+            del encuentro, que es donde el médico mira antes de prescribir, no
+            la decía.
+
+            Ahora las piezas se ARMAN y se unen: sin piezas vacías no hay
+            separadores huérfanos, falte lo que falte. Y la edad ausente **se
+            declara** en vez de desaparecer: ausencia de dato no es dato de
+            ausencia, y un hueco callado en este renglón se lee como «ya la vi».
+          */}
+          <div className="nx-meta" style={{ marginTop: 3 }}>
+            {[
+              patient?.edad
+                ? `${patient.edad} años`
+                : '— edad no registrada',
+              patient?.sexo,
+              TIPO_NOTA_LABEL[tipo],
+            ].filter(Boolean).join(' · ')}
           </div>
           {/*
             ALERGIAS SIEMPRE A LA VISTA durante la consulta.
@@ -4780,9 +4853,15 @@ export default function ConsultaActivaPage() {
           mera presencia de texto: «Niega alergias» pintaba esta franja ROJA y
           la píldora de más abajo NEUTRA — dos alarmas contradictorias para el
           mismo dato en el mismo viewport (REG-311). */}
-      {(() => { const alergenosDelPaciente = alergenosDe(patient ?? {}); const hayAlergias = alergenosDelPaciente.length > 0; return (
+      {(() => {
+        const alergenosDelPaciente = alergenosDe(patient ?? {})
+        const hayAlergias = alergenosDelPaciente.length > 0
+        /* `flex-start` y no `center`: el campo de alergias crece a varias líneas
+           cuando la lista es larga, y centrado deja el rótulo «Alergias:» a
+           media altura de un bloque de tres renglones. La clase es de REG-549. */
+        return (
       <div className="nx-franja-alergias" style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+        display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
         background: hayAlergias ? 'color-mix(in srgb, var(--red) 10%, transparent)' : 'var(--s2)',
         border: `1px solid ${hayAlergias ? 'color-mix(in srgb, var(--red) 35%, transparent)' : 'var(--border)'}`,
         borderRadius: 10, padding: '9px 13px',
@@ -4797,7 +4876,28 @@ export default function ConsultaActivaPage() {
         */}
         <AlertTriangle size={16} color={hayAlergias ? 'var(--red)' : 'var(--text3)'} style={{ flexShrink: 0 }} />
         <strong style={{ flexShrink: 0, fontSize: 13, color: hayAlergias ? 'var(--red)' : 'var(--text2)' }}>Alergias:</strong>
-        <input
+        {/*
+          ── LA LISTA DE ALERGIAS SE RECORTABA EN EL TELÉFONO ──────────────────
+          MEDIDO a 390 px el 1-sep, mirando la pantalla: se leía
+          «Penicilina (anafilaxia), sulfas, AINE» — sin la «s» final, sin puntos
+          suspensivos y sin ningún indicio de que hubiera más. El dato más letal
+          del producto, cortado a media palabra.
+
+          La causa es el propio control: un `<input>` de una línea RECORTA su
+          contenido al ancho, en silencio. No lo cazó ninguna medición —la página
+          no desbordaba, el recorte pasaba DENTRO del campo— y ninguna prueba
+          puede cazarlo leyendo el código: hay que mirar la pantalla estrecha.
+
+          `<textarea>` de una fila que crece con el contenido: envuelve en vez de
+          cortar, a cualquier ancho, y conserva la edición directa que el médico
+          pidió («no había dónde ponerlas»). `resize: none` porque el alto ya lo
+          decide el texto, y `rows={1}` para que en escritorio se siga leyendo
+          como el renglón que era.
+        */}
+        <textarea
+          ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` } }}
+          onInput={e => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = `${t.scrollHeight}px` }}
+          rows={1}
           value={patient?.alergias ?? ''}
           onChange={e => setPatient(prev => prev ? { ...prev, alergias: e.target.value } : prev)}
           onBlur={() => {
@@ -4830,9 +4930,17 @@ export default function ConsultaActivaPage() {
           // una caja sin nombre.
           aria-label="Alergias del paciente"
           disabled={firmada}
-          // 244×24 medido en el teléfono: es un campo de verdad, editable, no un
-          // enlace dentro de una frase — y el más importante de la pantalla.
-          style={{ flex: 1, minHeight: 44, background: 'transparent', border: 'none', color: 'var(--text)', fontSize: 14 }}
+          /**
+           * Las dos cosas, que no se estorban: **crece con el contenido** (esta
+           * rama, REG-543: a 390 px una lista de tres alérgenos se recortaba) y
+           * **no baja de 44 px** (main: 244×24 medido en el teléfono — es un
+           * campo editable de verdad, y el más importante de la pantalla).
+           */
+          style={{
+            flex: 1, minWidth: 0, minHeight: 44, background: 'transparent', border: 'none',
+            color: 'var(--text)', fontSize: 14, lineHeight: 1.45,
+            resize: 'none', overflow: 'hidden', padding: 0, fontFamily: 'inherit',
+          }}
         />
         {/**
           * RTC-14 — LA LECTURA DEL SISTEMA, AQUÍ Y NO EN OTRA CAJA.
@@ -4849,7 +4957,7 @@ export default function ConsultaActivaPage() {
           * exactamente el alérgeno, repetirlo al lado sería el mismo defecto
           * que esta rebanada viene a quitar.
           */}
-        {hayAlergias && alergenosDelPaciente.join(' · ') !== (patient?.alergias ?? '').trim() && (
+        {hayAlergias && laLecturaAnadeAlgo(String(patient?.alergias ?? ''), alergenosDelPaciente) && (
           <span
             className="nx-critico nx-lectura-alergenos"
             style={{ fontSize: 12.5, fontWeight: 700 }}
@@ -4907,7 +5015,7 @@ export default function ConsultaActivaPage() {
                   <strong style={{ color: 'var(--text)' }}>{a.alergeno}</strong>
                   {peor && <> · {peor.severidad}</>}
                   {reac && <> · {reac.reaccion}</>}
-                  {a.selladaEn && <> · nota firmada del {a.selladaEn.slice(0, 10)}</>}
+                  {a.selladaEn && <> · nota firmada del {fechaCorta(a.selladaEn)}</>}
                   {a.negadaHoy && <> · <span className="nx-critico">hoy el campo la niega</span></>}
                   {!firmada && (
                     <>
@@ -4992,11 +5100,7 @@ export default function ConsultaActivaPage() {
       )}
 
       {(problemas.length > 0 || ultimaVisita) && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
-          background: 'var(--s2)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '9px 13px',
-        }}>
+        <div className="nx-ctx">
           <Stethoscope size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
             {problemas.length > 0 && (
@@ -5046,7 +5150,7 @@ export default function ConsultaActivaPage() {
                   <li key={`${d.problema}|${d.texto}`}>
                     <strong style={{ color: 'var(--text2)' }}>{d.problema}</strong>
                     {' — '}{d.texto}
-                    {d.dichoEn && <> · nota del {d.dichoEn.slice(0, 10)}</>}
+                    {d.dichoEn && <> · nota del {fechaCorta(d.dichoEn)}</>}
                   </li>
                 ))}
               </ul>
@@ -5062,11 +5166,7 @@ export default function ConsultaActivaPage() {
         anterior.
       */}
       {vigentes.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
-          background: 'var(--s2)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '9px 13px',
-        }}>
+        <div className="nx-ctx">
           <Pill size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, flex: 1, minWidth: 0 }}>
             <strong style={{ color: 'var(--text)' }}>Está tomando:</strong>{' '}
@@ -5078,6 +5178,16 @@ export default function ConsultaActivaPage() {
               amoxicilina de hace dos años seguía figurando como vigente.
               El cambio se escribe en la nota de HOY —no se edita el pasado— y de
               ahí lo recoge la regla de la última palabra.
+            */}
+            {/*
+              AQUÍ HABÍA UN `whiteSpace: 'nowrap'` POR FÁRMACO, y a 390 px
+              empujaba el segundo FUERA de la pantalla: medido, llegaba a x=418
+              en un viewport de 390. Los 28 px de fuera se llevaban su «ya no»
+              — el control que SUSPENDE un fármaco, invisible e impulsable en
+              el teléfono.
+
+              Un nombre partido en dos renglones se lee. Un nombre fuera de la
+              pantalla, no. Se deja envolver.
             */}
             {vigentes.map((v, i) => (
               /*
@@ -5137,16 +5247,15 @@ export default function ConsultaActivaPage() {
         abriera la valoración.
       */}
       {dispositivosEnLinea && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
-          background: 'var(--s2)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '9px 13px',
-        }}>
+        <div className="nx-ctx">
           <BedDouble size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
             <strong style={{ color: 'var(--text)' }}>Lleva puesto:</strong>{' '}{dispositivosEnLinea}
             <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2 }}>
-              De su valoración{loQueLleva.registradoEn ? ` del ${loQueLleva.registradoEn.slice(0, 10)}` : ''}.
+              {/* Fecha en es-MX, como el resto del producto. Salía `del 2026-09-01`
+                  — el mismo ISO crudo que «Visitas anteriores» imprimía entre
+                  corchetes, y por la misma razón: nadie había mirado el renglón. */}
+              De su valoración{loQueLleva.registradoEn ? ` del ${fechaCorta(loQueLleva.registradoEn)}` : ''}.
               Sólo lo que se marcó; que algo no aparezca no significa que no lo lleve.
             </div>
           </div>
@@ -5170,11 +5279,7 @@ export default function ConsultaActivaPage() {
         diagnóstico que nadie firmó.
       */}
       {Object.keys(trayectoriasDeLaConsulta).length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12,
-          background: 'var(--s2)', border: '1px solid var(--border)',
-          borderRadius: 10, padding: '9px 13px',
-        }}>
+        <div className="nx-ctx">
           <FlaskConical size={16} color="var(--text3)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, minWidth: 0 }}>
             <strong style={{ color: 'var(--text)' }}>Laboratorios:</strong>{' '}
@@ -5190,11 +5295,7 @@ export default function ConsultaActivaPage() {
 
       {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
       {contextoPrevio && (
-        <div style={{
-          display: 'flex', gap: 8, alignItems: 'flex-start',
-          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 10,
-          padding: '10px 14px', marginBottom: 16, fontSize: 12.5, color: 'var(--text2)',
-        }}>
+        <div className="nx-ctx" style={{ fontSize: 12.5, color: 'var(--text2)' }}>
           <FileText size={14} className="ds-icon" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
             <strong style={{ color: 'var(--text)' }}>Visitas anteriores:</strong> {contextoPrevio}
@@ -5350,7 +5451,7 @@ export default function ConsultaActivaPage() {
               </button>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
-                  {voz.grabando ? `Grabando · ${mmss}` : 'Grabar consulta (en vivo)'}
+                  {voz.grabando ? rotulo('grabando', segundosVivo) : 'Grabar consulta (en vivo)'}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--text3)' }}>
                   {voz.grabando
@@ -5630,40 +5731,32 @@ export default function ConsultaActivaPage() {
                 )}
 
                 {/*
-                  PALABRAS QUE EL AUDIO NO OYÓ BIEN.
-                  Va aquí, junto al dictado y ANTES de firmar, porque es donde el
-                  médico todavía se acuerda de lo que dijo el paciente. En la nota
-                  ya terminada llegaría tarde: para entonces la palabra dudosa ya
-                  se lee como un hecho.
+                  LA CAJA ÁMBAR DE «PALABRAS QUE EL AUDIO NO OYÓ» SE RETIRÓ — D-032.
+
+                  Decisión del dueño, 5-sep-2026, probando la app en su iPhone:
+                  «no quiero que aparezca, sólo confunde; que haga lo que se
+                  tenga que hacer pero que no salga».
+
+                  LO QUE SE FUE es SÓLO la caja. Nada del trabajo se tocó:
+
+                   · el marcado sigue corriendo — `palabrasAVerificar` se calcula
+                     igual (arriba, con `paraElMedico`) y sigue viajando a la nota
+                     que se archiva, unas líneas más abajo en este mismo archivo.
+                     La IA sigue sin dar por hechas esas palabras, que era el
+                     punto;
+                   · el audio crudo se conserva, como siempre;
+                   · la procedencia por frase sigue igual: pulsar una frase sigue
+                     llevando al segundo exacto del dictado.
+
+                  LO QUE SÍ SE PIERDE, dicho para que nadie crea que salió gratis:
+                  el médico ya no ve DE UN VISTAZO qué palabra dudó el motor. Si
+                  algún día se echa en falta, el sitio correcto es una marca
+                  discreta sobre la palabra en el texto —no un bloque de color
+                  que compite con la nota—, y el dato para pintarla sigue estando.
+
+                  No se borra el cálculo: eso convertiría una decisión de
+                  interfaz en una pérdida de dato clínico, que es otra cosa.
                 */}
-                {audio.estado === 'listo' && palabrasAVerificar.palabras.length > 0 && (
-                  <div style={{
-                    marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.6,
-                    color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 10%, transparent)',
-                    border: '1px solid color-mix(in srgb, var(--amber) 30%, transparent)',
-                  }}>
-                    <b>Palabras que el audio no oyó con seguridad.</b>{' '}
-                    No se corrigieron ni se adivinaron: se marcaron para que la IA no las dé por hechas.
-                    Vuelve al audio en el minuto indicado si alguna cambia el sentido.
-                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {palabrasAVerificar.palabras.map((w, i) => (
-                        <span key={`${w.texto}-${w.momento}-${i}`} style={{
-                          padding: '2px 8px', borderRadius: 'var(--r-pill)', fontSize: 12,
-                          background: 'color-mix(in srgb, var(--amber) 18%, transparent)',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}>
-                          «{w.texto}» · {w.momento} · {w.seguridad}%
-                        </span>
-                      ))}
-                    </div>
-                    {palabrasAVerificar.ocultas > 0 && (
-                      <div style={{ marginTop: 6, fontSize: 12, opacity: .9 }}>
-                        Y {palabrasAVerificar.ocultas} más, menos dudosas que éstas. Se enseñan las más dudosas,
-                        no las primeras.
-                      </div>
-                    )}
-                  </div>
-                )}
                 {/* Manos libres: aviso de escucha activa + comandos */}
                 {manosLibres && (
                   /* Escuchar comandos también es «te estoy oyendo»: cobalto y el
@@ -6304,8 +6397,12 @@ export default function ConsultaActivaPage() {
            * cuando el paciente ya se había ido con la receta en la mano.
            */
           dosisPeligrosas: dosisPeligrosasDeLaLista(medicamentos, {
-            edadAnios: patient?.edad ?? undefined,
+            // REG-524: la fecha de nacimiento manda sobre la edad congelada, y
+            // sin ninguna se pasa `undefined` — nunca se supone adulto.
+            edadAnios: edadParaDosificar(patient).edad ?? undefined,
             pesoKg: signosNum.peso ?? undefined,
+            // REG-528: «Tempra» vigente en el expediente + «paracetamol» hoy se dice.
+            yaToma: medsDelCuadro.filter(m => !m.deHoy),
           }).map(d => ({
             med: d.med,
             mensaje: d.alertas.map(a => a.mensaje).join(' · '),
@@ -7519,9 +7616,10 @@ export default function ConsultaActivaPage() {
               el `@keyframes pulse` local que se retiró de esta pantalla. */}
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--nexus)', flexShrink: 0, animation: 'nx-escuchando-latido 1.5s infinite' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            Grabando · {modoVoz === 'vivo'
-              ? mmss
-              : `${String(Math.floor(audio.duracion / 60)).padStart(2, '0')}:${String(audio.duracion % 60).padStart(2, '0')}`}
+            {/* El rótulo y el reloj salen del vocabulario común (REG-544): esta
+                línea llevaba su propio `padStart` mientras la franja de arriba
+                decía lo mismo con otro formato. Cuatro relojes, dos formatos. */}
+            {rotulo('grabando', modoVoz === 'vivo' ? voz.duracion : audio.duracion)}
           </span>
           <button
             onClick={async () => { if (modoVoz === 'vivo') voz.detener(); else await audio.detener() }}

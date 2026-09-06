@@ -1,103 +1,75 @@
 # Paquete de producción — `nexusmed-v1183`
 
-> **Estado: PREPARADO, NO PUBLICADO.** Se escribe ANTES de fusionar a `main`,
-> como manda el ciclo. Publicar y fusionar son actos del dueño.
+> **SUPERADO — 6-sep-2026. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `182d8c78`: ejecución [#23](https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1183` contra el sitio vivo. Lo escrito debajo no se
+> reescribe: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó). Esta acta nació sin la línea «Estado: PREPARADO, NO PUBLICADO» que
+> llevan las demás —la escribió otra sesión, antes de correr el botón—; se deja dicho
+> aquí, no se le inventa arriba.
 
-## Lo primero, porque cambia lo que se está publicando
+**Fecha:** 6-sep-2026 · **Autoriza:** el dueño («sigue y desplegando y subiendo a
+producción, no quiero atascadero»).
 
-**Este paquete NO publica «lo último». Arrastra v1182 y v1183 juntos.**
+## 0. Qué es este paquete, en una frase
 
-`v1182` está PREPARADO y sin publicar: la última línea certificada en producción
-es **v1181** (`e78e1242`, ejecuciones #19 y #20 del botón). Quien pulse el botón
-con este árbol publica **las dos versiones**, y por tanto los 64 commits que van
-de v1181 hasta aquí — no los 45 de la rama de laboratorio.
+**Las cuatro cosas que el dueño encontró usando la app en su propio iPhone**, más
+la auditoría de lo que aquellas cuatro dejaron declarado sin mirar.
 
-| | |
-|---|---|
-| **Service worker** | `nexusmed-v1182` → **`nexusmed-v1183`** |
-| **Última línea DESPLEGADA** | `e78e1242` — v1181 |
-| **Commits desde v1181** | **64** (58 desde el árbol al que apunta hoy el botón) |
-| **Superficie** | laboratorio, voz, evidencia, expediente, tareas clínicas, ops |
-| **Código de producto** | **sí**, y mucho: 45 unidades de la rama + lo de main |
-| **Reglas de Firestore** | **UNA sin desplegar** — ver abajo |
-| **Índices de Firestore** | **UNO sin construir** — ver abajo, y **bloquea** |
+Es el primer paquete de esta sesión que sale de **uso real en un aparato real**,
+no de leer código. Las cuatro las encontró él en diez minutos; ninguna la había
+cazado el arnés, que corre en Chromium a 390 px.
 
-## Las dos cosas que hay que hacer APARTE de pulsar el botón
+## 1. La fila que importa: la receta
 
-`vercel --prod` no publica ni reglas ni índices. Estas dos van sueltas y las
-tiene que autorizar el dueño.
+**REG-515** es de seguridad clínica y es la segunda vez que el dueño reporta lo
+mismo. La primera creó `que-va-en-la-receta.ts`. Esta vez ese módulo **ya existía
+y ya estaba conectado** — la regla corría y aun así se colaban antecedentes al
+papel.
 
-### 1. El índice — esto SÍ rompe algo si no se hace
+Lo que faltaba: el filtro sólo apartaba lo etiquetado `ya_lo_toma`, así que **la
+única palabra sobre si algo se receta era la etiqueta que el propio modelo se
+pone**. Y el dato que podía contradecirla —quién dijo la frase— se borraba en la
+frontera del esquema.
 
-Entra una consulta compuesta nueva:
+Ahora manda la atribución: un antecedente lo dice el paciente, un plan lo dice el
+médico. Lo que trae atribución y no es del médico no baja al papel.
 
-```
-errores  ·  where visto == false  ·  orderBy fecha desc
-```
-
-del vigilante (`src/app/api/cron/vigilante/route.ts`, REG-578). **Firestore
-RECHAZA una consulta compuesta sin su índice.** Si se publica el código sin
-construir el índice, el vigilante falla en cada ejecución.
-
-```bash
-npx firebase deploy --only firestore:indexes --project nexomed-agenda
-```
-
-Está declarado en `firestore.indexes.json` (el trece). El punto 1 de la lista de
-comprobación de `docs/ops/INDICES-DE-FIRESTORE.md` queda **REABIERTO**, tal como
-ese punto decía que pasaría el día que la tabla creciera.
-
-### 2. La regla — esto NO rompe nada, y conviene saber por qué
-
-```
-match /platform_authz_denegadas/{denId} { allow read, write: if false; }
-```
-
-Escrita en REG-578 y sin desplegar. **No abre ni cierra nada por sí sola**: el
-`match /{document=**}` del final de `firestore.rules` ya deniega todo lo no
-declarado, así que la colección está cerrada al cliente esté o no esta regla.
-Lo que falta es que sea **explícita**, que es lo que impide que un `match` futuro
-más laxo la deje al descubierto sin que nadie lo note.
-
-```bash
-npx firebase deploy --only firestore:rules --project nexomed-agenda
-```
-
-## Qué entra, en grueso
-
-De la rama de laboratorio (45 unidades, REG-560…REG-604):
-
-- **Laboratorio** — el catálogo maestro del dueño (D-045, 220 analitos) cargado
-  por máquina; la unidad se normaliza ANTES de juzgar el número; los factores de
-  conversión se CALCULAN de pesos atómicos IUPAC en vez de teclearse; el
-  espécimen sale de la cabecera de la hoja, así que una glucosuria de 250 deja
-  de archivarse como glucemia; el decimal corrido se SUGIERE y no se corrige.
-- **Voz** — umbral de motor decidido (D-043) con trinquete sobre las consultas
-  con error crítico, y el crítico real que sigue abierto declarado con nombre.
-- **Evidencia, expediente, tareas clínicas, observabilidad** — el resto.
-
-Y de `main`, todo lo suyo desde v1181, incluidos D-023…D-031.
-
-## Lo que este paquete NO trae
-
-- **No se ha visto en un navegador.** Este entorno no llega al sitio vivo: la
-  política de red del sandbox contesta 403 al dominio de producción. Todo lo de
-  aquí está probado por suite y por build, no por haber mirado la pantalla.
-- **`npm run e2e:seguridad:prod` no se ha corrido**, por lo mismo. Va DESPUÉS de
-  publicar, que es donde es accionable.
-- **La mitad de visión del laboratorio sigue sin medir**: hace falta imágenes y
-  llamadas de API. Lo medido es la mitad de texto.
-
-## Compuertas de este árbol
+## 2. Qué entra, en una frase por bloque
 
 | | |
 |---|---|
-| `npx vitest run` | **975 / 976 archivos · 13 230 / 13 231 casos** |
-| `node scripts/lint-trinquete.mjs` | **94**, igual que el techo |
-| `node scripts/design/trinquete-de-diseno.mjs` | sin deuda nueva |
-| `npm run build` | compila |
+| **REG-515** | La receta ya no imprime lo que dijo el paciente. `speaker` cruza la frontera del esquema y decide. |
+| **REG-516** | Un código CIE-10 sin diagnóstico ya no sale impreso. La regla deja de estar duplicada en dos pantallas. |
+| **REG-517** | El diálogo de firmar deja de esconder sus botones en un iPhone, y deja de ser un muro de veintiún avisos. |
+| **REG-518** | Tres diálogos más con la misma herida, un patrón compartido para los cuatro, y un guardián para el quinto. |
+| **D-032** | La caja ámbar de palabras dudosas se retira de la consulta. Sólo la caja: el marcado sigue corriendo. |
 
-El único rojo es `src/__tests__/ops-timeout-y-punto-ciego.test.ts`, y su fichero
-es **idéntico al de `main`**: falla porque el proxy de este entorno contesta 403
-en vez de colgarse, así que el ayudante de timeout no puede agotarse. No es de
-esta rama y en CI no se reproduce.
+## 3. Lo que este paquete NO afirma
+
+- **No se probó en un iPhone.** Las cinco reparaciones se verifican con pruebas
+  de FUENTE; que en el aparato se vean los botones lo dice el teléfono. El
+  arnés corre en Node y en Chromium.
+- **No se auditaron los paneles anclados** que no son modales (menús, tooltips).
+- **No se tocaron las varias casillas de diagnóstico** de la pantalla de
+  consulta, que es donde el dueño las ve. Trabajo aparte, declarado.
+- **No se decidió ninguna cifra clínica.** El bloque D sigue abierto entero.
+- La conversión de descripción a partir de un código CIE-10 **no se hace**: haría
+  falta un catálogo citado, y rellenarlo sería inventar un diagnóstico.
+
+## 4. Orden de publicación
+
+1. Este PR (#457): las cuatro reparaciones, el service worker a v1183 y esta acta.
+2. Un segundo PR repunta `SHA_AUTORIZADO` al `main` resultante. Va aparte porque
+   la Compuerta 0 compara el pin contra la cabeza de `main`, y un pin que apunta
+   a un árbol que aún no existe no se puede escribir.
+3. El botón. Publica reglas, verifica la versión contra el sitio vivo y corre la
+   comprobación de cabeceras de producción.
+
+---
+
+## 5. Lo que pasó de verdad
+
+*(Se rellena tras correr el botón. Si esta sección sigue vacía, el paquete está
+preparado y no publicado.)*

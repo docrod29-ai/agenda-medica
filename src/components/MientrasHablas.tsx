@@ -38,6 +38,10 @@
  * franja, no una pantalla.
  */
 import { Mic, Pause, Play, Square, Loader2 } from 'lucide-react'
+/* El reloj sale del vocabulario común: esta pantalla llevaba su propio
+   `mmss` mientras la píldora y la franja decían lo mismo con otro formato.
+   Cuatro relojes, dos formatos, un solo estado. Ver REG-544. */
+import { reloj } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 export type EstadoDeLaBarra = 'listo' | 'grabando' | 'pausado' | 'procesando'
 
@@ -58,11 +62,6 @@ export interface MientrasHablasProps {
   alPausar: () => void
   alReanudar: () => void
   alDetener: () => void
-}
-
-const mmss = (s: number) => {
-  const t = Math.max(0, Math.floor(s))
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
 }
 
 /** El botón principal. 64 px: el pulgar no falla y el ratón tampoco. */
@@ -143,7 +142,7 @@ export function MientrasHablas(p: MientrasHablasProps) {
             </span>
             {activo && (
               <span style={{ fontSize: 14, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>
-                {mmss(p.duracion)}
+                {reloj(p.duracion)}
               </span>
             )}
           </div>

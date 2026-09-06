@@ -1,5 +1,6 @@
 'use client'
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react'
+import { useDialogoDeTeclado } from '@/hooks/useDialogoDeTeclado'
 
 type ToastType = 'success' | 'error' | 'info'
 
@@ -78,16 +79,42 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setPending(prev => { prev?.resolve(valor); return null })
   }, [])
 
-  // Teclado: Esc = cancelar, Enter = aceptar
-  useEffect(() => {
-    if (!pending) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); cerrar(false) }
-      else if (e.key === 'Enter') { e.preventDefault(); cerrar(true) }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [pending, cerrar])
+  /**
+   * EL TECLADO DE ESTA CONFIRMACIÓN, POR EL CAMINO CANÓNICO.
+   *
+   * Estaba escrito a mano y le faltaba la trampa de foco. Medido en el
+   * navegador el 2-sep: con «¿Eliminar esta cita permanentemente?» abierto,
+   * **cinco tabulaciones sacaban el foco del diálogo** y lo dejaban en el
+   * enlace «Encuentro» de la navegación de detrás — a pesar del
+   * `aria-modal="true"`, que le promete a la tecnología de apoyo que lo de
+   * atrás está inerte.
+   *
+   * Y encima el Enter estaba atado a la VENTANA. Así que pulsar Enter sobre
+   * ese enlace, creyendo que se navegaba, **borraba la cita**: medido, la
+   * lista pasó de 7 citas a 6. Una tecla apuntada a otra cosa ejecutando un
+   * acto destructivo e irreversible es lo más caro que puede hacer un diálogo
+   * de confirmación — precisamente el que existe para que nada se borre sin
+   * querer.
+   *
+   * Ahora el foco queda atrapado (`useDialogoDeTeclado`, las cinco cosas:
+   * Escape, trampa, foco inicial, scroll bloqueado y foco devuelto) y el Enter
+   * vive DENTRO del diálogo, no en la ventana.
+   */
+  const cajaRef = useRef<HTMLDivElement>(null)
+  useDialogoDeTeclado(!!pending, cajaRef, () => cerrar(false))
+
+  /**
+   * Enter acepta — pero sólo cuando no hay un control que quiera esa tecla.
+   * Con el foco en «Cancelar», Enter cancela: lo dice el botón, no este atajo.
+   * Sin esta guarda, las dos cosas pasarían a la vez y ganaría la destructiva.
+   */
+  const alTeclearEnElDialogo = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter') return
+    const dentro = e.target as HTMLElement | null
+    if (dentro && dentro.closest('button, a, input, textarea, select')) return
+    e.preventDefault()
+    cerrar(true)
+  }
 
   return (
     <Ctx.Provider value={{ toast, confirm }}>
@@ -118,24 +145,71 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           onClick={() => cerrar(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            /*
+             * EL ACOLCHADO RESPETA EL ÁREA SEGURA — REG-517.
+             *
+             * `padding: 20` a secas ignora la muesca y, sobre todo, la barra
+             * inferior de Safari en iPhone. El diálogo llegaba hasta debajo de
+             * ella y sus botones quedaban fuera de alcance.
+             */
+            paddingTop: 'max(20px, env(safe-area-inset-top))',
+            paddingBottom: 'max(20px, env(safe-area-inset-bottom))',
+            paddingLeft: 'max(20px, env(safe-area-inset-left))',
+            paddingRight: 'max(20px, env(safe-area-inset-right))',
           }}
         >
           <div
+            ref={cajaRef}
+            tabIndex={-1}
+            onKeyDown={alTeclearEnElDialogo}
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%', maxWidth: 400, background: 'var(--s1)', color: 'var(--text)',
               border: '1px solid var(--border)', borderRadius: 16, padding: 22,
               boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              /*
+               * ── LOS BOTONES NO PUEDEN SALIRSE DE LA PANTALLA — REG-517 ────
+               *
+               * El panel no tenía alto máximo ni desbordamiento. Con un mensaje
+               * largo —la compuerta previa a firmar llega a listar veintiún
+               * avisos— crecía más que la ventana y «Firmar» y «Volver» se iban
+               * por abajo. En un teléfono eso no es incómodo: es un diálogo
+               * MODAL del que no se puede salir por el camino previsto.
+               *
+               * Lo encontró el dueño usándolo en su iPhone: «no se ven los
+               * botones de hasta abajo».
+               *
+               * El arreglo es de estructura, no de tamaño de letra: columna con
+               * tope de alto, el TEXTO scrollea y la fila de botones se queda
+               * fuera del scroll. Así el mensaje puede crecer lo que quiera sin
+               * volver a esconder la salida.
+               *
+               * `dvh` y no `vh`: en Safari de iPhone `100vh` incluye lo que tapa
+               * la barra de direcciones, que es exactamente el trozo donde
+               * estaban cayendo los botones.
+               */
+              display: 'flex', flexDirection: 'column',
+              maxHeight: 'calc(100dvh - 40px)',
+              minHeight: 0,
             }}
           >
             {pending.opts.titulo && (
               <div id="nx-confirm-title" style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{pending.opts.titulo}</div>
             )}
-            <div id="nx-confirm-desc" style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+            <div id="nx-confirm-desc" style={{
+              fontSize: 14, color: 'var(--text2)', lineHeight: 1.55, whiteSpace: 'pre-line',
+              /* Lo que crece es ESTO, no el diálogo. Ver REG-517. */
+              overflowY: 'auto', minHeight: 0, flex: '1 1 auto',
+              overscrollBehavior: 'contain',
+            }}>
               {pending.mensaje}
             </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+            <div style={{
+              display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20,
+              /* Fuera del scroll: la salida siempre visible. */
+              flex: '0 0 auto',
+            }}>
               <button
                 onClick={() => cerrar(false)}
                 style={{

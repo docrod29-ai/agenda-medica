@@ -86,6 +86,7 @@ import { readFileSync } from 'node:fs'
 import {
   diagnosticoQueSeImprime, nombreConCerteza, estaVigente,
 } from '@/lib/expediente/problemas-activos'
+import { diagnosticoParaImprimir } from '@/lib/expediente/fusionar-diagnosticos'
 import type { Diagnostico } from '@/types/expediente'
 
 const dx = (p: Partial<Diagnostico>): Diagnostico =>
@@ -179,11 +180,39 @@ describe('qué puede representar la visita', () => {
 
 describe('las dos pantallas que imprimen pasan por la puerta', () => {
   it('ni la receta ni la orden vuelven a elegir por su cuenta', () => {
+    /**
+     * PREMISA CAMBIADA AL FUSIONAR (6-sep-2026), y la historia importa.
+     *
+     * Las dos ramas encontraron ESTE MISMO defecto y le pusieron cada una su
+     * puerta: `diagnosticoQueSeImprime` aquí, `diagnosticoParaImprimir` en la
+     * otra. Al fusionar gana la suya —es la única que llaman /receta y /orden—
+     * y se le portó el filtro que le faltaba.
+     *
+     * Porque la suya TENÍA el defecto: `?? conTexto[0]` cogía el primero del
+     * dictado sin mirar `tipo`, que es exactamente lo que esta prueba existe
+     * para impedir. La puerta cambió de nombre; el defecto sigue cerrado, y
+     * ahora en un solo sitio en vez de dos.
+     */
     for (const src of [RECETA, ORDEN]) {
-      expect(src).toContain('diagnosticoQueSeImprime(n.diagnosticos)')
+      expect(src).toContain('diagnosticoParaImprimir(n.diagnosticos)')
       /* El respaldo sin filtro, que es el defecto exacto. */
       expect(src).not.toMatch(/\?\?\s*dxs\[0\]/)
     }
+  })
+
+  it('y la puerta que ganó lleva el filtro portado — probado al revés', () => {
+    /* Sin el filtro de vigencia, la función de la otra rama devolvía el primero
+       del dictado: un «embarazo descartado» impreso como el motivo. */
+    const FUENTE = readFileSync('src/lib/expediente/fusionar-diagnosticos.ts', 'utf8')
+    expect(FUENTE).toContain('estaVigente')
+    expect(diagnosticoParaImprimir([
+      { descripcion: 'Embarazo', tipo: 'descartado' },
+      { descripcion: 'Colitis', tipo: 'diferencial' },
+    ])).toBe('')
+    expect(diagnosticoParaImprimir([
+      { descripcion: 'Embarazo', tipo: 'descartado' },
+      { descripcion: 'Faringitis aguda', tipo: 'definitivo', codigoCIE10: 'J02.9' },
+    ])).toBe('Faringitis aguda (J02.9)')
   })
 
   it('el campo sigue siendo editable — por eso no rellenar es aceptable', () => {

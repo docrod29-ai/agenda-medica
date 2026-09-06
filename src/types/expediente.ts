@@ -161,6 +161,20 @@ export interface Medicamento {
    * cuál de los dos se trata, que es información que hoy no tiene.
    */
   procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy'
+  /**
+   * QUIÉN LO DIJO EN EL DICTADO — REG-515.
+   *
+   * `procedenciaClinica` es lo que el MODELO opina que es este renglón.
+   * `speaker` es un hecho del audio: quién habló. Cuando el modelo se equivoca
+   * —y se equivoca— este campo es lo único que separa el antecedente del plan.
+   *
+   * OPCIONAL a propósito. Ausente significa «no se sabe quién lo dijo»: los
+   * renglones que escribe el médico a mano no lo llevan, y las notas anteriores
+   * a este campo tampoco. La ausencia NO se lee como «lo dijo el médico».
+   */
+  speaker?: 'medico' | 'paciente' | 'acompanante' | 'desconocido'
+  /** La frase del dictado de la que salió este renglón. Hace auditable la atribución. */
+  source_quote?: string
 }
 
 /**

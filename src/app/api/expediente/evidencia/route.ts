@@ -31,6 +31,7 @@ import { verificarAfirmaciones } from '@/lib/evidencia/verificar-la-cita'
 import { nombreConCerteza } from '@/lib/expediente/problemas-activos'
 import type { Diagnostico } from '@/types/expediente'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 export const runtime = 'nodejs'
 /**
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     key = (r.key as string) ?? ''; fuente = r.fuente; clinicId = r.clinicId ?? ''
   } catch { /* key queda vacía → mensaje claro abajo, nunca 500 */ }
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
-  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada (revisa Configuración → Llaves de IA).' }, { status: 503 })
+  if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('evidencia').mensaje }, { status: 503 })
 
   let body: {
     diagnosticos?: { descripcion?: string; tipo?: string }[]
@@ -491,7 +492,7 @@ export async function POST(req: NextRequest) {
       _verificacion: verificacion,
     })
   } catch (e) {
-    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: `No se pudo analizar (${String(e).slice(0, 80)}). Muestro los artículos encontrados.` })
+    return NextResponse.json({ ok: true, articulos, evaluacion: [], alternativas: [], diferencial: [], _aviso: 'No se pudo analizar la evidencia. Muestro los artículos encontrados.' })
   }
 
   } catch (fatal) {

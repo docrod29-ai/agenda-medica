@@ -209,6 +209,12 @@ AUTO-RELLENO MÁXIMO (objetivo: el médico SOLO revisa y aprueba, NO escribe des
    Si de verdad no puedes saber cuál es, OMITE el campo: no lo adivines. Un valor
    inventado aquí es peor que su ausencia, porque de este eje depende cómo se
    trata la falta de dosis.
+   Y pon SIEMPRE "speaker" con quién dijo la frase: "paciente" si es él quien
+   refiere el fármaco, "medico" si es quien lo indica. Tu etiqueta de arriba es
+   una opinión; ésta es un hecho del audio, y es la que decide si el renglón
+   baja a la receta impresa. Si no puedes atribuir la frase, pon "desconocido":
+   no bajará al papel y el médico lo pondrá a mano, que es lo correcto.
+   Copia en "source_quote" la frase exacta de la que lo sacaste.
 18-bis. CADA NOTA CON SU FORMATO. Escribe ÚNICAMENTE en las claves de secciones
    que te da la estructura de ESTE tipo de nota. No inventes secciones de otro
    tipo ni traigas su formato: una nota de primera vez con encabezados SOAP, o
@@ -663,7 +669,7 @@ ESTRUCTURA JSON ESPERADA (incluye los campos planos + el bloque auditable "extra
 ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "contenido o cadena vacía"')).join(',\n')}
   },
   "diagnosticos": [{ "descripcion": "", "codigoCIE10": "", "tipo": "presuntivo|definitivo|diferencial", "estado": "activo" }],
-  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "procedenciaClinica": "ya_lo_toma|se_prescribe_hoy" }],
+  "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "procedenciaClinica": "ya_lo_toma|se_prescribe_hoy", "speaker": "medico|paciente|acompanante|desconocido", "source_quote": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
 ${tipo === 'valoracion_preoperatoria' ? `

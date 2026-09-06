@@ -9,10 +9,12 @@
  * Devuelve: { ok, url, name, expiresAt }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarTokenPaciente } from '@/lib/patient-token'
+import { bloquearSiNoVigente } from '@/lib/portal/vigencia-del-enlace'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
@@ -62,6 +64,28 @@ export async function POST(req: NextRequest) {
      * citaId existe.
      */
     const autorizadoPorToken = !!tk && tk.clinicId === clinicId && !!tk.patientId && tk.patientId === cita.pacienteId
+    /**
+     * Y LA REVOCACIÓN, QUE AQUÍ NO SE COMPROBABA — REG-519.
+     *
+     * Esta ruta acepta el MISMO magic-link que `/api/portal` y que
+     * `/api/payment/create-checkout`. Las dos hermanas comprueban
+     * `patients/{id}.portalTokenVersion` (REG-331); ésta miraba sólo la firma y
+     * la caducidad. Consecuencia: el médico revocaba los enlaces de un paciente,
+     * el enlace dejaba de abrir la agenda… y seguía abriendo la SALA DE VIDEO
+     * hasta caducar, siete días. Es la credencial que más importa revocar: el
+     * cron de recordatorios la manda por WhatsApp para toda teleconsulta, y
+     * WhatsApp se reenvía.
+     *
+     * Misma decisión que las hermanas, con sus tres estados: `revocado` → 401
+     * definitivo; `indeterminado` → 503 con `Retry-After`, el enlace NO se quema.
+     * Va DESPUÉS de comprobar que el token es de esta cita —un token ajeno sigue
+     * recibiendo 404 sin que se lea ningún expediente— y SÓLO en la rama del
+     * paciente: el médico entra con su sesión y no tiene token que revocar.
+     */
+    if (autorizadoPorToken) {
+      const noVigente = await bloquearSiNoVigente(clinicId, tk.patientId, tk.version)
+      if (noVigente) return noVigente
+    }
     let autorizadoPorMiembro = false
     if (!autorizadoPorToken) {
       const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')
@@ -88,7 +112,20 @@ export async function POST(req: NextRequest) {
         url: fakeUrl,
         name: fakeName,
         expiresAt: Math.floor(Date.now() / 1000) + 7200,
-        warning: 'DAILY_API_KEY no configurada — usando URL ficticia',
+        /*
+         * ── ESTE AVISO LO PUEDE LEER EL PACIENTE ──────────────────────────
+         * Decía «DAILY_API_KEY no configurada — usando URL ficticia», y
+         * `/teleconsulta/[citaId]` lo pinta tal cual. Esa pantalla la abre el
+         * paciente con su token del portal: es superficie de cara al paciente,
+         * y `patient-facing-ai` la gobierna.
+         *
+         * Y el fondo importa más que las palabras: esta respuesta va con
+         * `ok: true` y una URL de `meet.example.com`. O sea que el producto
+         * entrega un enlace de videoconsulta que NO lleva a ninguna consulta.
+         * Quien lo lea tiene que entenderlo sin saber qué es una clave de API.
+         */
+        warning: 'Esta sala es de prueba: el enlace no abre una videoconsulta real. '
+          + 'La videoconsulta no está activada en este consultorio.',
       })
     }
 
@@ -151,6 +188,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url, name, expiresAt: exp })
   } catch (err) {
     safeLog.error('[telesalud/sala]', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    return errorAlCliente()
   }
 }

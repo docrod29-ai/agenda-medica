@@ -16,6 +16,7 @@ import { llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { resolverClaveIA, creditosAgotados, registrarUso, registrarCreditos } from '@/lib/ai-keys'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODELOS = ['claude-sonnet-4-6', 'claude-sonnet-4-5']
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   if (!key) {
-    return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada. Agrégala en Configuración → Llaves de IA.' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: iaNoDisponible('nota').mensaje }, { status: 503 })
   }
   if (fuente === 'prueba' && (await creditosAgotados(clinicId))) {
     return NextResponse.json({ ok: false, sinCreditos: true, error: 'Se acabaron tus créditos con IA del mes. Compra más o sube de plan.' }, { status: 402 })

@@ -1,11 +1,13 @@
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
+import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { resolverClaveIA, gateCreditos, registrarCreditos } from '@/lib/ai-keys'
 import { COSTO_CREDITOS } from '@/lib/planes-ia'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
+import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 /**
  * IA de visión: recibe la imagen del FORMATO de receta del médico y detecta dónde
@@ -54,7 +56,7 @@ export async function POST(req: NextRequest) {
   if (_rl) return _rl
 
   const { key, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
-  if (!key) return NextResponse.json({ ok: false, error: 'No hay API key de Claude configurada.' }, { status: 503 })
+  if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('vision').mensaje }, { status: 503 })
   /**
    * El gate COMPARTIDO, no uno propio.
    *
@@ -133,6 +135,6 @@ export async function POST(req: NextRequest) {
     void registrarCreditos(clinicId, COSTO_CREDITOS.recetaVision)
     return NextResponse.json({ ok: true, campos, cuerpo })
   } catch (e) {
-    return NextResponse.json({ ok: false, error: 'Error al detectar', detalle: String(e).slice(0, 200) }, { status: 500 })
+    return errorAlCliente('No se pudieron detectar los campos del papel. Intenta con otra imagen.')
   }
 }
