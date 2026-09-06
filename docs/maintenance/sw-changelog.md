@@ -5,6 +5,11 @@ del `const CACHE`.
 
 ## v1186 — la rama de laboratorio se reencuentra con `main`, a la tercera
 
+**PUBLICADO Y VERIFICADO el 6-sep-2026**, ejecución #26 del botón, sobre el
+árbol `7c2465ea`. Arrastró v1184 y v1185, que seguían preparados y sin publicar.
+Reglas e índices de Firestore publicados en la misma ejecución; el índice trece
+queda **enviado y aceptado**, pendiente de confirmar `Enabled` en la consola.
+
 El paquete y lo que declara viven en
 [`PAQUETE-PRODUCCION-2026-09-06-v1186.md`](PAQUETE-PRODUCCION-2026-09-06-v1186.md).
 

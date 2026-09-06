@@ -1,14 +1,22 @@
 # Índices compuestos de Firestore — los que hay, y en qué orden se despliega
 
-> ⚠️ **EL TRECE NO ESTÁ CONSTRUIDO.** Al fusionar la rama de laboratorio
-> (6-sep-2026) entra una consulta compuesta nueva —`errores` · `visto` ↑ ·
-> `fecha` ↓, del vigilante— que **Firestore RECHAZA hasta que su índice se
-> construya**. Está declarado en `firestore.indexes.json` y NO desplegado:
-> desplegar índices es acto del dueño (`npx firebase deploy --only
-> firestore:indexes --project nexomed-agenda`). Los doce anteriores siguen
-> construidos y sirviendo.
+> ⚠️ **EL TRECE SE ENVIÓ EL 6-SEP-2026, Y ENVIAR NO ES CONSTRUIR.** La rama de
+> laboratorio trajo una consulta compuesta nueva —`errores` · `visto` ↑ ·
+> `fecha` ↓, del vigilante (REG-578)— que **Firestore RECHAZA hasta que su
+> índice esté construido**. La ejecución **#26** del botón lo publicó con
+> `FIRESTORE_INDICES=success`, sobre el árbol `7c2465ea` (v1186).
 >
-> **Estado**: **trece** índices declarados; **doce construidos en producción** y **las
+> **Ese `success` dice que Firestore ACEPTÓ la petición, no que el índice esté
+> listo.** La construcción es asíncrona y puede fallar después; es lo mismo que
+> `firestore.rules.estado.json` declara en su `loQueNoDemuestra`, y es la lección
+> de la que salió este documento entero. Queda **un renglón por cerrar mirando la
+> consola**: que el trece diga `Enabled` y no «Compilando». Mientras tanto, si el
+> vigilante empieza a fallar con «The query requires an index», ésa es la causa y
+> no otra.
+>
+> **Estado**: **trece** índices declarados; **doce confirmados `Enabled` en la
+> consola**, el trece **enviado y aceptado el 6-sep** y **pendiente de
+> confirmar**; y **las
 > consultas ya los usan** (REG-421, REG-422, REG-423).
 >
 > **DESPLEGADOS Y CONSTRUIDOS — 2-sep-2026.** El detalle, con los
@@ -210,7 +218,7 @@ entonces fusionar el código que lo usa.
 | Colección | Campos | Quién la hace |
 |---|---|---|
 | `appointments` | pacienteId ↑ · fechaHora ↓ | `usePatientAppointments` — las citas del paciente en la consulta |
-| `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-578). **Declarado, aún NO construido.** |
+| `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-578). **Enviado y aceptado el 6-sep (ejecución #26); falta confirmar `Enabled` en la consola.** |
 | `arco_requests` | estado ↑ · fechaSolicitud ↓ | La bandeja de derechos ARCO |
 | `clinic_invitations` | clinicId ↑ · createdAt ↓ | `listarInvitaciones` — invitar a alguien al consultorio |
 | `farmacia` | activo ↑ · nombre ↑ | La lista de la farmacia |
@@ -282,10 +290,14 @@ nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 
 1. Los **trece** índices, `Enabled` en la consola. No «enviados».
    **REABIERTO el 6-sep-2026**, exactamente como este punto decía que pasaría:
-   «vuelve a abrirse el día que esa tabla crezca». Creció. Doce siguen
-   `Enabled` desde el 2-sep; el trece —`errores` · `visto` ↑ · `fecha` ↓— está
-   declarado y **sin construir**, y hasta que se construya Firestore RECHAZA la
-   consulta del vigilante. Desplegar índices es acto del dueño.
+   «vuelve a abrirse el día que esa tabla crezca». Creció, y **sigue abierto**.
+   Doce llevan `Enabled` desde el 2-sep. El trece —`errores` · `visto` ↑ ·
+   `fecha` ↓— se **envió** ese mismo día con la ejecución #26 del botón y
+   Firestore lo aceptó (`FIRESTORE_INDICES=success`), pero eso es acuse de
+   recibo, **no** construcción: `deploy --only firestore:indexes` contesta al
+   enviar y la construcción es asíncrona. Este punto lo cierra **una mirada a la
+   consola**, no una ejecución en verde. Es la distinción exacta que da nombre a
+   este renglón desde el principio.
 2. En `waitlist`: cuántas entradas hay, y cuántas tienen `prioridad` **y**
    `createdAt`. Los dos números tienen que ser el mismo. Un `orderBy` de
    Firestore **excluye** los documentos a los que les falta el campo — no los
