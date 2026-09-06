@@ -1,0 +1,5 @@
+[
+ { "archivo": "src/__tests__/dosis-unidad-ausente.test.ts", "minCasos": 10, "hallazgos": ["MP-005", "MI-006", "RT-003"] },
+ { "archivo": "src/__tests__/medical-dictionary.test.ts", "minCasos": 12, "hallazgos": ["MI-004", "MI-005"] },
+ { "archivo": "src/__tests__/nom004.test.ts", "minCasos": 18, "hallazgos": ["MI-004"] }
+]
