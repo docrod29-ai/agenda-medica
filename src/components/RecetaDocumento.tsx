@@ -797,6 +797,15 @@ function HojaCustom({
               Se conserva el comportamiento de no pintar el recuadro cuando no hay
               dato: un impreso no debe afirmar «Negadas» a partir de un campo que
               nadie llenó.
+
+              MI-002 — POR QUÉ ESTA HOJA SIGUE ESCONDIENDO EL RECUADRO Y LA DE
+              FÁBRICA NO. La hoja generada es nuestra y ahí cabe el renglón «Sin
+              registro en el expediente», que le dice a quien dispensa que nadie
+              preguntó. Ésta se pinta ENCIMA del diseño que subió el médico, con
+              sus coordenadas calibradas: un recuadro que hoy sólo aparece cuando
+              hay alergia pasaría a aparecer siempre y le movería el papel. Las
+              dos coinciden en lo que importa —ninguna afirma una negación—; se
+              diferencian en quién es el dueño de la maqueta.
             */}
             {recetaConfig.mostrarAlergias !== false && alergiasParaImpreso(data.paciente) && (
               <div style={{
