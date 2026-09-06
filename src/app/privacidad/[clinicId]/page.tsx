@@ -36,6 +36,19 @@ export default function PortalPrivacidadPage() {
   const [curp, setCurp] = useState('')
   const [identificacion, setIdentificacion] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  /** Lo que no se pudo hacer, escrito en la pantalla y no en un diálogo nativo. */
+  const [aviso, setAviso] = useState('')
+  /**
+   * PP-013 — «SOLICITO EN REPRESENTACIÓN DE MI HIJO».
+   *
+   * El formulario pedía «Nombre completo, como aparece en tu INE». Un menor no
+   * tiene INE, y quien ejerce sus derechos ARCO es su madre o su padre: no
+   * había forma de decirlo, así que la solicitud llegaba al consultorio a
+   * nombre de una persona que no es la del expediente.
+   */
+  const [enRepresentacion, setEnRepresentacion] = useState(false)
+  const [titular, setTitular] = useState('')
+  const [parentesco, setParentesco] = useState('')
 
   useEffect(() => {
     if (!clinicId) return
@@ -61,10 +74,25 @@ export default function PortalPrivacidadPage() {
   }, [clinicId])
 
   const enviar = async () => {
-    if (!nombre || !telefono || !descripcion) {
-      alert('Por favor llena los campos obligatorios')
+    /**
+     * ── C-006 · PG-016 — ESTE FORMULARIO HABLABA POR `alert()` ──────────────
+     *
+     * Dos diálogos nativos: uno para «llena los campos obligatorios» y otro que
+     * imprimía el MENSAJE CRUDO DE LA EXCEPCIÓN («Missing or insufficient
+     * permissions») a un paciente que acababa de ejercer un derecho.
+     *
+     * Un `alert()` se cierra sin dejar rastro —la pantalla queda idéntica a la
+     * del éxito— y en un WebView puede no salir siquiera: el propio guardián
+     * `native-dialogs-guard` de este repositorio lo tiene documentado. Lo que
+     * sustituye a los dos es un aviso que se QUEDA en la pantalla, con
+     * `role="alert"` para que un lector de pantalla lo anuncie, y en español de
+     * persona: sin `Error:` y sin la excepción dentro.
+     */
+    if (!nombre.trim() || !telefono.trim() || !descripcion.trim()) {
+      setAviso('Para poder atender tu solicitud necesitamos tu nombre, tu teléfono y que nos cuentes qué necesitas.')
       return
     }
+    setAviso('')
     setEnviando(true)
     try {
       const id = await crearSolicitudArco({
@@ -77,12 +105,17 @@ export default function PortalPrivacidadPage() {
           identificacion: identificacion.trim() || undefined,
         },
         tipo,
-        descripcion: descripcion.trim(),
+        descripcion: enRepresentacion && titular.trim()
+          ? `[Solicitud presentada por ${nombre.trim()} en representación de ${titular.trim()}${parentesco.trim() ? ` (${parentesco.trim()})` : ''}]\n${descripcion.trim()}`
+          : descripcion.trim(),
       })
       setFolioConfirmacion(id.slice(-8).toUpperCase())
       setPaso('enviado')
-    } catch (e) {
-      alert(`Error al enviar: ${(e as Error).message}`)
+    } catch {
+      /* El mensaje de la excepción no se le enseña a nadie: no le dice nada al
+         paciente y puede filtrar detalles de la base. Se dice qué pasó y qué
+         hacer. */
+      setAviso('No pudimos enviar tu solicitud en este momento. Vuelve a intentarlo en unos minutos, o llama al consultorio para pedirla por teléfono.')
     } finally {
       setEnviando(false)
     }
@@ -111,8 +144,24 @@ export default function PortalPrivacidadPage() {
             máximo de <strong>20 días hábiles</strong>.
             {clinic?.nombre && <> El responsable es <strong>{clinic.nombre}</strong>.</>}
           </p>
-          <button onClick={() => window.close()} className="btn btn-primary">
-            Cerrar
+          {/*
+            ── C-005 · «CERRAR» NO CERRABA NADA ────────────────────────────
+
+            Era `window.close()`, que sólo funciona en ventanas que abrió un
+            script. El paciente llega aquí por un enlace copiado o tecleado, así
+            que el navegador ignoraba la llamada: el único botón de la pantalla,
+            justo después de ejercer un derecho, no hacía absolutamente nada.
+
+            El cierre real del trámite es el FOLIO de arriba. Lo que hacía falta
+            aquí no era cerrar la pestaña: era decirle al paciente qué hacer con
+            ese folio y darle a dónde ir.
+          */}
+          <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>
+            Guarda este folio o toma una foto de la pantalla: es tu comprobante
+            si tienes que reclamar el plazo.
+          </p>
+          <button onClick={() => setPaso('info')} className="btn btn-secondary" style={{ minHeight: 44 }}>
+            Hacer otra solicitud
           </button>
         </div>
       </div>
@@ -128,7 +177,7 @@ export default function PortalPrivacidadPage() {
           <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, lineHeight: 1.65, color: '#374151' }}>
             {generarAvisoPrivacidad(config)}
           </pre>
-          <button onClick={() => setPaso('info')} className="btn btn-secondary" style={{ marginTop: 16 }}>
+          <button onClick={() => setPaso('info')} className="btn btn-secondary" style={{ marginTop: 16, minHeight: 44 }}>
             ← Volver
           </button>
         </div>
@@ -184,7 +233,11 @@ export default function PortalPrivacidadPage() {
 
         {paso === 'formulario' && (
           <>
-            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>
+            {/*
+              PO-012: medía 55×20 px en móvil, menos de la mitad del mínimo
+              táctil de 44×44 — y es el único camino de vuelta de esta pantalla.
+            */}
+            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 15, marginBottom: 12, minHeight: 44, minWidth: 44, padding: '10px 4px', textAlign: 'left' }}>
               ← Volver
             </button>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
@@ -194,7 +247,29 @@ export default function PortalPrivacidadPage() {
               Llena tus datos para identificarte. Te responderemos en máximo 20 días hábiles.
             </p>
             <div style={{ display: 'grid', gap: 10 }}>
-              <Field label="Nombre completo *" value={nombre} onChange={setNombre} placeholder="Como aparece en tu INE" />
+              <Field label="Tu nombre completo *" value={nombre} onChange={setNombre} placeholder="Como aparece en tu identificación" />
+              {/*
+                PP-013 — el formulario daba por hecho que quien escribe es el
+                paciente. Un menor no tiene INE, y quien ejerce sus derechos es
+                su madre o su padre: sin esto, la solicitud llegaba a nombre de
+                alguien que no está en el expediente y el consultorio no podía
+                localizarlo.
+              */}
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, color: '#374151', lineHeight: 1.5 }}>
+                <input
+                  type="checkbox"
+                  checked={enRepresentacion}
+                  onChange={e => setEnRepresentacion(e.target.checked)}
+                  style={{ marginTop: 3, width: 20, height: 20 }}
+                />
+                <span>Lo pido en representación de otra persona (por ejemplo, mi hijo o alguien a quien cuido)</span>
+              </label>
+              {enRepresentacion && (
+                <>
+                  <Field label="Nombre de la persona del expediente *" value={titular} onChange={setTitular} />
+                  <Field label="¿Quién es esa persona para ti?" value={parentesco} onChange={setParentesco} placeholder="Por ejemplo: mi hijo" />
+                </>
+              )}
               <Field label="Teléfono *" value={telefono} onChange={setTelefono} placeholder="10 dígitos" type="tel" />
               <Field label="Correo electrónico" value={email} onChange={setEmail} type="email" />
               <Field label="CURP (opcional, ayuda a localizar tu expediente)" value={curp} onChange={(v) => setCurp(v.toUpperCase())} maxLength={18} />
@@ -215,7 +290,14 @@ export default function PortalPrivacidadPage() {
                     fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
                   }}
                 />
-                <div id="arco-descripcion-cuenta" aria-live="polite" style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'right', marginTop: 2 }}>
+                {/*
+                  D-007: iba a 10.5 px con `#9ca3af` sobre blanco — 2.4:1, la
+                  mitad del mínimo AA. La compuerta del paciente no lo cazó
+                  porque mide TOKENS de color, y esto es un literal escrito a
+                  mano. `#4b5563` sobre blanco da 7.5:1, y el tamaño sube al del
+                  resto del formulario.
+                */}
+                <div id="arco-descripcion-cuenta" aria-live="polite" style={{ fontSize: 13, color: '#4b5563', textAlign: 'right', marginTop: 4 }}>
                   {descripcion.length} de 1000 caracteres
                 </div>
               </div>
@@ -229,12 +311,33 @@ export default function PortalPrivacidadPage() {
                   oficial cuando responda tu solicitud.
                 </div>
               </div>
+              {aviso && (
+                <p role="alert" style={{ fontSize: 14, color: '#b45309', lineHeight: 1.6, margin: 0 }}>
+                  {aviso}
+                </p>
+              )}
+              {/*
+                ── PI-023 · «ENVIAR SOLICITUD, NO DISPONIBLE» ─────────────────
+
+                El botón salía `disabled` mientras faltara un campo, así que un
+                lector de pantalla anunciaba «no disponible» y ahí acababa la
+                conversación: nadie decía QUÉ faltaba. Un control deshabilitado
+                sin explicación es una puerta cerrada sin cartel.
+
+                Ahora el botón siempre se puede pulsar y es él quien dice qué
+                falta —el mismo aviso que ve todo el mundo—, y `aria-describedby`
+                lo cuenta antes de pulsarlo.
+              */}
+              <p id="arco-que-falta" style={{ fontSize: 13, color: '#4b5563', margin: 0, lineHeight: 1.5 }}>
+                Los campos con * son obligatorios.
+              </p>
               <button
                 onClick={enviar}
-                disabled={enviando || !nombre || !telefono || !descripcion}
+                disabled={enviando}
                 aria-busy={enviando}
+                aria-describedby="arco-que-falta"
                 className="btn btn-primary"
-                style={{ marginTop: 6 }}
+                style={{ marginTop: 6, minHeight: 44 }}
               >
                 {enviando ? <><Loader2 size={14} className="spin" aria-hidden="true" /> Enviando…</> : 'Enviar solicitud'}
               </button>

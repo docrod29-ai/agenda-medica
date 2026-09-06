@@ -168,7 +168,22 @@ describe('NO SE PIERDE LO QUE EL PACIENTE ESCRIBIÓ NI LO QUE YA PREGUNTÓ', () 
   })
 
   it('el historial se pide al servidor: una respuesta sobrevive a recargar', () => {
-    expect(PANTALLA).toContain("action: 'preguntas'")
+    /**
+     * ── ESTE CASO MIRABA LA ACCIÓN, Y LA ACCIÓN SE FUSIONÓ (PC-006) ─────────
+     *
+     * Pedía el literal `action: 'preguntas'`. Abrir el portal costaba CUATRO
+     * peticiones —`session`, `documentos`, `paquetes`, `preguntas`—, tres de
+     * ellas contra la ventana clínica de quince en diez minutos: a la quinta
+     * apertura el paciente veía «No pudimos cargar tus recetas» sin haber hecho
+     * nada raro. Ahora la apertura es UNA petición, `inicio`, que las trae las
+     * cuatro.
+     *
+     * Lo que este caso vigila sigue siendo lo mismo —que el historial venga del
+     * SERVIDOR y no de la memoria de la pestaña, para que sobreviva a que el
+     * teléfono se bloquee— dicho sobre la forma nueva.
+     */
+    expect(PANTALLA).toContain("action: 'inicio'")
+    expect(PANTALLA, 'el historial tiene que venir de la respuesta del servidor').toContain('setPreguntas(d.preguntas')
   })
 
   it('y un fallo de red NO se pinta como «nunca he preguntado»', () => {

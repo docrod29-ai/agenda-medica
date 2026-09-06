@@ -67,6 +67,43 @@ export async function POST(req: NextRequest) {
     version = Number((snap.data() as { portalTokenVersion?: number } | undefined)?.portalTokenVersion ?? 0)
   } catch { /* sin versión conocida se emite la 0: el enlace sirve, y una revocación posterior lo corta igual */ }
 
+  /**
+   * ── PC-004 · UN ENLACE CLÍNICO SIN TELÉFONO ES UNA PROMESA VACÍA ──────────
+   *
+   * El enlace de alcance clínico abre «Preguntar». Ahí el portal le dice al
+   * paciente que su consultorio va a ver lo que escriba y que, si no puede
+   * esperar, llame — y en un consultorio sin `whatsappConsultorio` ni
+   * `telefonoAdmin` cargados, «llámales» no lleva a ningún sitio: la escalación
+   * tampoco avisa por WhatsApp a nadie, y el paciente lee «Tu consultorio no
+   * dejó aquí un teléfono» a las dos de la mañana.
+   *
+   * Es la recomendación del dueño en PL-P7: exigir teléfono al liberar el
+   * alcance clínico. Se comprueba al EMITIR, que es el único momento en que
+   * alguien del consultorio está delante y puede arreglarlo.
+   *
+   * El enlace de agenda no lo exige: ése sirve para confirmar y mover citas, y
+   * no promete que nadie conteste nada.
+   */
+  if (pideClinico) {
+    let telefono = ''
+    try {
+      const cfg = await adminDb.collection('clinics').doc(body.clinicId)
+        .collection('config').doc('main').get()
+      const c = cfg.data() as { whatsappConsultorio?: string; telefonoAdmin?: string } | undefined
+      telefono = String(c?.whatsappConsultorio || c?.telefonoAdmin || '').trim()
+    } catch {
+      /* No poder comprobarlo no es permiso: cae al mismo sitio que no tenerlo.
+         Es el criterio de la revocación del portal, dicho aquí. */
+    }
+    if (!telefono) {
+      return NextResponse.json({
+        error: 'Antes de mandar este enlace, carga el teléfono del consultorio en Configuración. '
+          + 'Con él, el paciente puede preguntar por el portal y llamar si no puede esperar; sin él, '
+          + 'la pantalla le dice que llame y no tiene a dónde.',
+      }, { status: 409 })
+    }
+  }
+
   const url = linkPortalPaciente(origin, body.clinicId, body.patientId, undefined, alcance, version)
   return NextResponse.json({ url, alcance })
 }

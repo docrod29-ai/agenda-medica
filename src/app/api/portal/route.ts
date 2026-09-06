@@ -538,6 +538,148 @@ export async function POST(req: NextRequest) {
         })
       }
 
+      /**
+       * ABRIR EL PORTAL COSTABA CUATRO PETICIONES — PC-006 · PO-008 · PP-010 · PI-025.
+       *
+       * ── QUÉ PASABA ──────────────────────────────────────────────────────
+       *
+       * La pantalla pedía `session`, `documentos`, `paquetes` y `preguntas` en
+       * paralelo. Tres de esas cuatro cuentan contra la ventana clínica, que es
+       * de quince en diez minutos: a la QUINTA apertura —y abrir el portal dos
+       * veces mientras se espera en la sala es lo normal— el paciente veía «No
+       * pudimos cargar tus recetas» y «No pudimos cargar el resumen de tus
+       * consultas». Sin haber hecho nada raro.
+       *
+       * Peor: el mensaje que el servidor manda («espera un momento») no se
+       * enseñaba, así que el paciente leía un fallo genérico. Y en un teléfono
+       * con datos contados, cuatro peticiones por apertura se pagan cuatro veces.
+       *
+       * ── QUÉ HACE ────────────────────────────────────────────────────────
+       *
+       * Devuelve las cuatro cosas en UNA petición y cobra UN cupo clínico. No
+       * es una acción «de conveniencia» para la pantalla: es la que hace que el
+       * freno cuente aperturas en vez de contar peticiones internas, que era el
+       * defecto. Las cuatro acciones sueltas siguen existiendo —la pantalla las
+       * usa para refrescar una sola cosa— y con el mismo alcance de siempre.
+       *
+       * Cada trozo dice si se pudo leer, y **un fallo de uno no borra los
+       * otros**: `null` es «no se sabe», que la pantalla ya distingue de vacío.
+       * Ausencia de dato no es dato de ausencia, también aquí.
+       */
+      case 'inicio': {
+        const [citas, config] = await Promise.all([
+          leerCitasPaciente(clinicId, patientId, alcance),
+          leerConfig(clinicId),
+        ])
+        const nombre = String(paciente?.nombre ?? '').trim() || citas[0]?.pacienteNombre || ''
+
+        /**
+         * EL MISMO GATE DE `documentos`, DICHO CON LAS MISMAS PALABRAS.
+         *
+         * `inicio` devuelve en una petición lo que antes eran cuatro, y tres de
+         * ellas exigían alcance clínico. La comprobación se escribe con el
+         * literal `alcance !== 'clinico'` a propósito: el guardián
+         * `api-authz-guard` fija que ese gate aparezca ANTES de que la ruta
+         * toque `collection('notas')`, y un sinónimo (`=== 'clinico'`) dejaría
+         * al guardián mirando la rama equivocada mientras la ruta lee notas.
+         */
+        const sinAlcanceClinico = alcance !== 'clinico'
+        const base = adminDb.collection('clinics').doc(clinicId).collection('patients').doc(patientId)
+
+        /* `null` = no se pudo leer. `[]` = se leyó y no hay. La pantalla los
+           distingue, y de esa distinción depende que no diga «no tienes
+           recetas» sobre un fallo de red. */
+        let documentos: unknown[] | null = sinAlcanceClinico ? [] : null
+        let paquetes: unknown[] | null = sinAlcanceClinico ? [] : null
+        let preguntas: unknown[] | null = sinAlcanceClinico ? [] : null
+        let alergias = ''
+
+        if (!sinAlcanceClinico) {
+          try {
+            const snapNotas = await base.collection('notas').where('estado', '==', 'firmada').get()
+            alergias = pacienteLeido ? alergiasParaImpreso(paciente) : ''
+            documentos = snapNotas.docs
+              .map(d => ({ id: d.id, ...(d.data() as Omit<NotaMedica, 'id'>) }))
+              .map(n => ({ nota: n, recetados: medicamentosDeLaReceta(n.medicamentos ?? []) }))
+              .filter(({ recetados }) => recetados.length > 0)
+              .map(({ nota: n, recetados }) => ({
+                id: n.id,
+                fecha: n.fechaConsulta,
+                medico: n.firma?.nombreMedico ?? '',
+                cedulaProfesional: n.firma?.cedulaProfesional ?? '',
+                especialidad: n.firma?.especialidad ?? '',
+                diagnostico: resumenDeDiagnosticosParaElPaciente(n.diagnosticos),
+                medicamentos: recetados,
+              }))
+              .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+            asentar(clinicId, 'portal_documentos_leidos', {
+              patientId,
+              meta: { origen: 'portal-paciente', alcance, cuantos: documentos.length, cuidadorId: cuidadorId ?? '', documentoId: '' },
+            })
+          } catch (e) {
+            safeLog.error(`[portal] ${clinicId}: no se pudieron leer las notas firmadas`, e)
+          }
+
+          try {
+            const snapPaq = await base.collection('paquetes_visita').get()
+            paquetes = snapPaq.docs
+              .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as unknown as PaqueteDeVisita & { id: string })
+              .filter(visibleParaElPaciente)
+              .sort((a, b) => (b.approvedAt ?? 0) - (a.approvedAt ?? 0))
+          } catch (e) {
+            safeLog.error(`[portal] ${clinicId}: no se pudieron leer los paquetes liberados`, e)
+          }
+
+          try {
+            const snapP = await base.collection('preguntas_paciente').get()
+            preguntas = snapP.docs
+              .map(d => {
+                const q = d.data() as Record<string, unknown>
+                return {
+                  id: d.id,
+                  texto: String(q.texto ?? ''),
+                  clase: String(q.clase ?? ''),
+                  respuesta: String(q.respuesta ?? ''),
+                  procedencia: (q.procedencia ?? null) as unknown,
+                  escalada: Boolean(q.escalada),
+                  atendidaEn: (q.atendidaEn ?? null) as number | null,
+                  creadaEn: Number(q.creadaEn ?? 0),
+                }
+              })
+              .sort((a, b) => b.creadaEn - a.creadaEn)
+              .slice(0, 20)
+          } catch (e) {
+            safeLog.error(`[portal] ${clinicId}: no se pudo leer el historial de preguntas`, e)
+          }
+        }
+
+        return NextResponse.json({
+          paciente: nombre,
+          clinicId,
+          alcance,
+          cuidadorId: cuidadorId ?? null,
+          /* Con un enlace de documento, la pantalla tiene que poder decir qué
+             abre ESTE enlace en vez de fingir que es el portal entero. */
+          documentoDelEnlace: alcance === 'documento' ? documentoDelEnlace : null,
+          cuidadores: vigentes(((paciente as unknown as { cuidadoresAutorizados?: CuidadorAutorizado[] })?.cuidadoresAutorizados) ?? []),
+          clinica: config ? {
+            nombre: config.nombreClinica || config.nombreMedico || 'Consultorio',
+            medico: config.nombreMedico || '',
+            telefono: config.whatsappConsultorio || config.telefonoAdmin || '',
+            direccion: config.direccion || '',
+          } : null,
+          minHoras: (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO,
+          zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
+          anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
+          citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
+          documentos,
+          alergias,
+          alergiasLeidas: pacienteLeido,
+          paquetes,
+          preguntas,
+        })
+      }
+
       case 'confirmar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
