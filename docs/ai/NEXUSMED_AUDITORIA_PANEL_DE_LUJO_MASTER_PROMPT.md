@@ -1,7 +1,8 @@
 # NexusMED — Prompt maestro de la Auditoría «Panel de Lujo»
 
-**Estado: BORRADOR PARA APROBACIÓN DEL DUEÑO. No se ejecuta hasta que el Dr.
-David Alonso Rodríguez Luna lo apruebe por escrito.**
+**Estado: APROBADO por el dueño el 6-sep-2026, con tres adiciones suyas:
+botones y funciones que no sirven · que sea amigable y fácil de usar · quitar
+lo que no sea necesario. En ejecución.**
 
 Fecha del borrador: 6-sep-2026 · Rama: `claude/medical-app-audit-team-8c37y7`
 
@@ -43,6 +44,9 @@ Se mide por cuatro cosas, en este orden:
    consultorios, bitácora.
 4. **Experiencia** — del médico, del asistente y del paciente, en escritorio y
    en móvil, con teclado y con la vista cansada.
+5. **Simplicidad** — nada que no sirva, nada que estorbe. Un botón que no hace
+   lo que dice es peor que ningún botón; una pantalla que nadie usa cuesta
+   atención cada vez que se pasa por ella.
 
 No se compite por número de hallazgos. Un hallazgo refutado cuenta en contra
 de quien lo levantó. Un hallazgo P0 confirmado vale más que cien P3.
@@ -114,6 +118,41 @@ Cada auditor recibe: (a) su tarjeta de rol de esta sección, (b) su rebanada
 del inventario, (c) las reglas de la §2, (d) el formato de hallazgo de la §6.
 Devuelve **sólo** hallazgos en ese formato. No devuelve resúmenes, ni elogios,
 ni «en general se ve bien».
+
+### 4.0 Tres lentes que aplican TODOS los auditores (adición del dueño)
+
+Además de su rol, cada auditor mira siempre con estas tres lentes y etiqueta
+el hallazgo con su `tipo`:
+
+**Lente 1 — Botones y funciones que no sirven** (`tipo: boton_muerto`).
+Todo control interactivo se pone a prueba: ¿hace algo? ¿Hace lo que dice su
+texto? ¿Lleva a una ruta que existe? ¿Está deshabilitado sin decir por qué?
+¿Está «escrito y sin conectar» (el símbolo existe en `lib/` pero nadie lo llama
+desde `app/`, `hooks/` o `components/`)? ¿Promete una función que en realidad
+está detrás de una bandera apagada, y no lo avisa? ¿Abre un modal que no se
+puede cerrar? ¿Guarda y no persiste (el dato no LLEGA)? Cada botón muerto se
+anota con pantalla, texto del botón, `archivo:línea` y qué debería pasar.
+
+**Lente 2 — Amigable y fácil de usar** (`tipo: friccion`).
+Cada pantalla se juzga con cinco preguntas: ¿se puede decir su propósito en una
+frase? ¿La tarea que más se repite ahí cabe en tres clics o menos? ¿El texto
+habla como una persona y no como un sistema («Guardado» y no «Operación
+exitosa»; «No encontramos a este paciente» y no «Error 404»)? ¿Lo primero que
+se ve es lo más importante, o todo pesa igual? ¿Un médico cansado a las nueve
+de la noche, o un paciente de 70 años, lo entiende sin que nadie le explique?
+Lo que falle se anota con la propuesta concreta de cómo debería verse o
+decirse.
+
+**Lente 3 — Quitar lo que no sea necesario** (`tipo: innecesario`).
+Pantallas, botones, campos, ajustes, módulos y textos que no aportan a la
+misión (nota hecha sin dejar de mirar al paciente; agenda y consulta primero).
+Para cada candidato se registra la evidencia de que sobra: ¿lo enlaza alguien
+desde la navegación? ¿Tiene pruebas? ¿Duplica algo que ya existe en otro
+sitio? ¿Es de Hospital/UCI y aparece en Practice? ¿Es un ajuste que nadie va a
+cambiar nunca? **La auditoría no borra nada.** Produce la lista con su
+evidencia y una recomendación (retirar · esconder · fusionar · dejar), y el
+dueño decide. Retirar Hospital/UCI no está en la mesa: están en pausa por
+decisión D-030, no en revisión.
 
 ### 4.1 Ingeniería (3)
 
@@ -368,6 +407,7 @@ desde ahí sin repetir lo hecho.
   "panel": "medico|paciente|asistente|ingenieria|seguridad|diseno|negocio",
   "rol": "pediatra",
   "modulo": "practice|hospital|uci|portal|publico|nucleo",
+  "tipo": "defecto|boton_muerto|friccion|innecesario|mejora",
   "titulo": "Una frase, con el efecto en el paciente o el usuario, no el síntoma técnico",
   "archivo": "src/lib/dosing/pediatria.ts",
   "linea": 142,
@@ -415,6 +455,9 @@ Prioridades:
 | `08-MEJORAS-CLASE-MUNDIAL.md` | Cuadros de tres columnas por área | Roadmap |
 | `09-RIESGOS-NUEVOS.md` | Filas listas para `RISK_REGISTER.md` | Seguridad |
 | `10-CANDIDATOS-A-REG.md` | Hallazgos que, reparados, ganarán REG-556 en adelante; **no se numeran** hasta repararse | Ledger |
+| `11-BOTONES-MUERTOS.md` | Todo control que no hace lo que dice, por pantalla, con `archivo:línea` | Producto |
+| `12-FACILIDAD-DE-USO.md` | Por pantalla: propósito en una frase, clics de la tarea frecuente, texto que habla como sistema, propuesta | Producto |
+| `13-QUITAR-LO-INNECESARIO.md` | Candidatos a retirar, esconder o fusionar, con evidencia y recomendación; **decide el dueño** | El dueño |
 | `reproducciones/` | Pruebas que fallan hoy, con su salida | Ingeniería |
 
 ---
@@ -429,6 +472,8 @@ La auditoría está terminada cuando:
 - [ ] cada P0/P1 tiene una reproducción que falla hoy, o una nota de por qué no
       se pudo reproducir;
 - [ ] los 30 recorridos de pacientes y los 5 de asistentes están escritos;
+- [ ] las 45 pantallas de trabajo, el portal y las pantallas públicas tienen su
+      fila en `11`, `12` y `13` (aunque la fila diga «sin hallazgo»);
 - [ ] las doce preguntas de `evals/patient-ai/` se corrieron y su resultado está
       en el informe;
 - [ ] la línea base (vitest, lint, build, mantenimiento) está anotada tal cual;
@@ -465,10 +510,8 @@ La auditoría está terminada cuando:
 
 ## 11. Aprobación
 
-Este prompt se ejecuta **sólo** cuando el dueño responda con una aprobación
-explícita. Puede aprobarlo entero, recortar el panel (por ejemplo, menos
-pacientes por especialidad), cambiar prioridades o añadir una especialidad.
-Cualquier cambio se escribe aquí antes de arrancar, y la versión aprobada queda
-en el commit de arranque de la Fase 0.
-
-Firma del dueño: ____________________ · Fecha: ____________
+Aprobado por el dueño el 6-sep-2026 con la instrucción: «Agrégale funciones,
+botones que no sirvan, que sea amigable y fácil de usar, quita lo que no sea
+necesario y posterior ejecuta». Las tres adiciones quedaron en la §4.0, en el
+campo `tipo` del hallazgo y en los entregables 11, 12 y 13. Esta es la versión
+que arranca la Fase 0.
