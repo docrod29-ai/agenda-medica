@@ -10,12 +10,17 @@ import { edadEnAnios } from '@/lib/expediente/pediatria'
 import type { Patient } from '@/types'
 import {
   pacientesACsv, parseCsv, mapearEncabezados, construirFilas, clasificarFilas,
-  normalizarTel, type FilaImport, type EstadoFila,
+  columnasDescartadas, fechaDeArchivoEsAmbigua, ORDEN_DE_FECHA_POR_OMISION,
+  normalizarTel, type FilaImport, type OrdenDeFecha, type FilaClasificada,
 } from '@/lib/csv-pacientes'
-import { Download, Upload, Users, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react'
+import { Download, Upload, Users, CheckCircle2, AlertTriangle, FileSpreadsheet, Info } from 'lucide-react'
 import { CORREO_SOPORTE } from '@/lib/contacto'
+import Link from 'next/link'
 
-type Clasificada = { fila: FilaImport; estado: EstadoFila }
+type Clasificada = FilaClasificada
+
+/** Una fila que no se pudo crear, con su motivo. Se enseña y se puede bajar. */
+type FilaFallida = { nombre: string; telefono: string; motivo: string }
 
 export default function MigracionPage() {
   const { clinicId } = useClinic()
@@ -28,7 +33,25 @@ export default function MigracionPage() {
   const [analizando, setAnalizando] = useState(false)
   const [clasificadas, setClasificadas] = useState<Clasificada[] | null>(null)
   const [importando, setImportando] = useState(false)
-  const [reporte, setReporte] = useState<{ creados: number; duplicados: number; errores: number } | null>(null)
+  const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null)
+  const [reporte, setReporte] = useState<{ creados: number; duplicados: number; fallidas: FilaFallida[] } | null>(null)
+  /**
+   * ASE-003 — LA FECHA AMBIGUA SE PREGUNTA, NO SE ADIVINA.
+   *
+   * «03/04/1975» es el 3 de abril o el 4 de marzo según de qué sistema venga el
+   * archivo, y de esa fecha cuelgan la edad, la dosis pediátrica y el motor de
+   * duplicados. Se pregunta UNA VEZ por archivo —no por fila— y con es-MX
+   * puesto de salida, que es lo que el médico va a tener el 99 % de las veces.
+   */
+  const [ordenDeFecha, setOrdenDeFecha] = useState<OrdenDeFecha>(ORDEN_DE_FECHA_POR_OMISION)
+  const [fechasAmbiguas, setFechasAmbiguas] = useState(0)
+  /** Columnas del archivo con dato que no alimentan ningún campo (ASE-004). */
+  const [descartadas, setDescartadas] = useState<{ encabezado: string; ejemplo: string }[]>([])
+  /** Filas que el médico decidió importar aunque el motor las marcara repetidas. */
+  const [forzadas, setForzadas] = useState<Set<number>>(new Set())
+  /** El archivo ya troceado, para poder reanalizar sin volver a pedirlo. */
+  const [csvCrudo, setCsvCrudo] = useState<string[][] | null>(null)
+  const [existentes, setExistentes] = useState<Patient[] | null>(null)
 
   /* ─── Exportar ─── */
   const exportar = async () => {
@@ -146,7 +169,22 @@ export default function MigracionPage() {
     }
   }
 
+  /**
+   * ASE-008 — EL .XLSX SE RECHAZA DICIENDO CÓMO CONVERTIRLO.
+   *
+   * El texto prometía «CSV o Excel» y el lector hace `readAsText`: un .xlsx es
+   * un ZIP, así que salía convertido en ruido y el error final era «No se
+   * encontró una columna de Nombre», que manda a mirar el encabezado de un
+   * archivo que está perfecto. Aquí se dice la verdad y el gesto que resuelve.
+   */
   const cargarArchivo = (f: File) => {
+    if (/\.(xlsx|xls|numbers|ods)$/i.test(f.name)) {
+      toast(
+        'Todavía no leemos archivos de Excel. Ábrelo en Excel y usa Archivo → Guardar como → CSV UTF-8; ese archivo sí entra.',
+        'error',
+      )
+      return
+    }
     const r = new FileReader()
     r.onload = () => setTexto(String(r.result ?? ''))
     r.readAsText(f, 'utf-8')
@@ -163,7 +201,15 @@ export default function MigracionPage() {
       if (!mapeo.includes('nombre')) {
         toast('No se encontró una columna de "Nombre". Revisa el encabezado.', 'error'); return
       }
-      const filas = construirFilas(csv, mapeo)
+      const filas = construirFilas(csv, mapeo, { ordenDeFecha })
+      /**
+       * ASE-004 — LO QUE EL ARCHIVO TRAE Y NO SE VA A GUARDAR, ANTES DE GUARDAR.
+       * El hueco de los apellidos no dolió por el mapeo: dolió porque nadie lo
+       * veía. Estas dos listas son lo que la vista previa tiene que enseñar.
+       */
+      setDescartadas(columnasDescartadas(csv, mapeo).map(c => ({ encabezado: c.encabezado, ejemplo: c.ejemplo })))
+      const colFecha = mapeo.indexOf('fechaNacimiento')
+      setFechasAmbiguas(colFecha < 0 ? 0 : csv.slice(1).filter(f => fechaDeArchivoEsAmbigua(f[colFecha] ?? '')).length)
       /**
        * REG-351 — CONTRA QUÉ SE DECIDE SI UNA FILA ES «NUEVA».
        *
@@ -178,7 +224,8 @@ export default function MigracionPage() {
        * clasifica**: decir «nuevo» sin haber podido mirar a todos es
        * exactamente el error caro.
        */
-      const { pacientes: existentes, incompleto } = await recorrerPacientes(clinicId)
+      const { pacientes: existentesAhora, incompleto } = await recorrerPacientes(clinicId)
+      const existentes = existentesAhora
       if (incompleto) {
         toast(
           'No se pudo revisar el directorio completo, así que no se puede decir con seguridad quién es nuevo. Importar ahora duplicaría expedientes.',
@@ -186,6 +233,9 @@ export default function MigracionPage() {
         )
         return
       }
+      setCsvCrudo(csv)
+      setExistentes(existentes)
+      setForzadas(new Set())
       setClasificadas(clasificarFilas(filas, existentes))
     } catch {
       toast('No se pudo leer el CSV', 'error')
@@ -194,13 +244,22 @@ export default function MigracionPage() {
     }
   }
 
-  /* ─── Importar (solo los nuevos) ─── */
+  /* ─── Importar (los nuevos, más los que el médico decidió forzar) ─── */
   const importar = async () => {
     if (!clinicId || !clasificadas) return
-    const nuevos = clasificadas.filter(c => c.estado === 'nuevo')
+    const nuevos = clasificadas.filter((c, i) => c.estado === 'nuevo' || forzadas.has(i))
     if (!nuevos.length) { toast('No hay pacientes nuevos para importar', 'info'); return }
     setImportando(true)
-    let creados = 0, errores = 0
+    setProgreso({ hechos: 0, total: nuevos.length })
+    let creados = 0
+    /**
+     * ASE-006 — LA FILA QUE FALLA SE NOMBRA.
+     *
+     * El `catch` sólo subía un contador: «⚠️ 2 con error (revisa el formato)»
+     * sin decir cuáles, y el textarea se vaciaba en la misma sentencia, así que
+     * reintentar sólo las que fallaron era imposible sin volver a subir todo.
+     */
+    const fallidas: FilaFallida[] = []
     for (const { fila } of nuevos) {
       try {
         const data: Omit<Patient, 'id'> = {
@@ -208,13 +267,17 @@ export default function MigracionPage() {
           telefono: normalizarTel(fila.telefono),
           whatsapp: fila.whatsapp ? normalizarTel(fila.whatsapp) : undefined,
           email: fila.email?.trim() || undefined,
-          fechaNacimiento: fila.fechaNacimiento?.trim() || undefined,
+          // La fecha llega YA en ISO desde `construirFilas` (ASE-003): lo que
+          // no se pudo traducir no llega hasta aquí, llega vacío y declarado.
+          fechaNacimiento: fila.fechaNacimiento || undefined,
           // Derivar la EDAD de la fecha de nacimiento: sin esto, un niño importado
           // quedaba con edad=undefined y NO se le mostraban las herramientas
           // pediátricas (ni las gineco por edad), porque el gate usa `edad`.
-          edad: edadEnAnios(fila.fechaNacimiento?.trim()) ?? undefined,
+          edad: edadEnAnios(fila.fechaNacimiento) ?? undefined,
           sexo: fila.sexo === 'Masculino' || fila.sexo === 'Femenino' || fila.sexo === 'Otro' ? fila.sexo : undefined,
-          curp: fila.curp?.trim() || undefined,
+          // El CURP ya pasó por `validarCURP` (A-013/ASE-005): o tiene forma de
+          // CURP, o `construirFilas` lo dejó fuera y lo anotó como reparo.
+          curp: fila.curp || undefined,
           seguroMedico: fila.seguroMedico?.trim() || undefined,
           alergias: fila.alergias?.trim() || undefined,
           notas: fila.notas?.trim() || undefined,
@@ -224,21 +287,52 @@ export default function MigracionPage() {
         }
         await createPatient(clinicId, data)
         creados++
-      } catch {
-        errores++
+      } catch (e) {
+        fallidas.push({
+          nombre: fila.nombre,
+          telefono: fila.telefono ?? '',
+          motivo: (e as { message?: string })?.message || 'No se pudo crear el expediente.',
+        })
       }
+      setProgreso(p => (p ? { ...p, hechos: p.hechos + 1 } : p))
     }
-    const duplicados = clasificadas.filter(c => c.estado !== 'nuevo').length
-    setReporte({ creados, duplicados, errores })
-    setClasificadas(null); setTexto('')
+    const duplicados = clasificadas.filter((c, i) => c.estado !== 'nuevo' && !forzadas.has(i)).length
+    setReporte({ creados, duplicados, fallidas })
+    setClasificadas(null)
+    // ASE-006: el archivo NO se tira cuando algo falló — es lo único con lo que
+    // se puede corregir y reintentar. Reanalizar reclasifica lo ya importado
+    // como duplicado, así que no hay riesgo de crearlo dos veces.
+    if (!fallidas.length) { setTexto(''); setCsvCrudo(null) }
     setImportando(false)
-    toast(`Importación lista: ${creados} nuevos${errores ? `, ${errores} con error` : ''}`, errores ? 'info' : 'success')
+    setProgreso(null)
+    toast(`Importación lista: ${creados} nuevos${fallidas.length ? `, ${fallidas.length} con error` : ''}`, fallidas.length ? 'info' : 'success')
+  }
+
+  /** Las filas que fallaron, en un CSV que se puede corregir y volver a subir. */
+  const descargarFallidas = (fallidas: FilaFallida[]) => {
+    const cabecera = 'Nombre,Teléfono,Motivo'
+    const cuerpo = fallidas.map(f => [f.nombre, f.telefono, f.motivo].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    const blob = new Blob(['\ufeff' + [cabecera, ...cuerpo].join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `no_se_pudieron_importar_${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a); a.click(); a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /** Rehace la vista previa con otro orden de fecha, sin volver a leer el directorio. */
+  const cambiarOrdenDeFecha = (orden: OrdenDeFecha) => {
+    setOrdenDeFecha(orden)
+    if (!csvCrudo || !existentes) return
+    const mapeo = mapearEncabezados(csvCrudo[0])
+    setClasificadas(clasificarFilas(construirFilas(csvCrudo, mapeo, { ordenDeFecha: orden }), existentes))
   }
 
   const conteo = clasificadas
     ? {
-        nuevo: clasificadas.filter(c => c.estado === 'nuevo').length,
-        duplicado: clasificadas.filter(c => c.estado === 'duplicado').length,
+        nuevo: clasificadas.filter((c, i) => c.estado === 'nuevo' || forzadas.has(i)).length,
+        duplicado: clasificadas.filter((c, i) => c.estado === 'duplicado' && !forzadas.has(i)).length,
+        conReparos: clasificadas.filter(c => (c.fila.reparos?.length ?? 0) > 0).length,
       }
     : null
 
@@ -274,8 +368,10 @@ export default function MigracionPage() {
               </div>
               <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 12, lineHeight: 1.5 }}>
                 Una fila por elemento —un diagnóstico, un medicamento, un analito— con la nota
-                de la que salió. Para reconstruir el consultorio entero está el respaldo
-                completo en Pacientes; esto es para leerlo, contarlo o dárselo a tu contador.
+                de la que salió. Para reconstruir el consultorio entero está el{' '}
+                <Link href="/operaciones" style={{ color: 'var(--nexus)', textDecoration: 'underline' }}>
+                  respaldo completo, en Operaciones
+                </Link>; esto es para leerlo, contarlo o dárselo a tu contador.
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {/* El libro va PRIMERO: es lo que casi todo el mundo quiere, y los
@@ -316,10 +412,13 @@ export default function MigracionPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Importar pacientes</div>
             <div style={{ fontSize: 13.5, color: 'var(--text2)', margin: '4px 0 14px', lineHeight: 1.5 }}>
-              Sube un CSV o Excel exportado desde tu sistema actual (o desde Google Contactos). Detectamos las
-              columnas automáticamente y <strong>omitimos los que ya tienes</strong>. Una familia que comparte
+              Sube un <strong>CSV</strong> exportado desde tu sistema actual (o desde Google Contactos).
+              Si lo que tienes es un Excel, ábrelo y usa <em>Archivo → Guardar como → CSV UTF-8</em>.
+              Detectamos las columnas automáticamente, te enseñamos cuáles reconocimos antes de
+              escribir nada y <strong>omitimos los que ya tienes</strong>. Una familia que comparte
               teléfono se importa entera: para omitir a alguien tiene que parecerse el <strong>nombre</strong>,
-              no sólo el número. Solo necesitas una columna de <strong>Nombre</strong>.
+              no sólo el número. Solo necesitas una columna de <strong>Nombre</strong> (o «Nombre» y
+              «Apellido paterno» por separado: también las juntamos).
             </div>
 
             <label className="btn btn-secondary btn-sm" style={{ marginBottom: 12, cursor: 'pointer' }}>
@@ -349,19 +448,106 @@ export default function MigracionPage() {
                   Importar {conteo.nuevo} nuevo{conteo.nuevo !== 1 ? 's' : ''}
                 </Button>
               )}
+              {/* ASE-027: importar 1 200 pacientes son 1 200 altas. Al menos se
+                  dice por dónde va: una barra parada en «cargando» durante seis
+                  minutos se lee como que se colgó, y cerrar la pestaña a mitad
+                  deja media importación. */}
+              {progreso && (
+                <span role="status" style={{ alignSelf: 'center', fontSize: 12, color: 'var(--text2)' }}>
+                  {progreso.hechos} de {progreso.total} · no cierres esta pestaña
+                </span>
+              )}
             </div>
 
             {/* Previsualización */}
             {analizando && <div style={{ marginTop: 14 }}><Spinner label="Analizando…" /></div>}
             {conteo && (
               <div style={{ marginTop: 16 }}>
+                {/*
+                  ASE-004 — LAS COLUMNAS QUE SE VAN A TIRAR, ANTES DE TIRARLAS.
+
+                  Un Excel con «Apellido paterno» y «Apellido materno» importaba
+                  a todo el mundo con su nombre de pila y sin decir nada. Ahora
+                  esas columnas se reconocen; y si queda alguna con dato que no
+                  alimenta ningún campo, se enseña aquí — con un ejemplo, que es
+                  lo que permite reconocerla de un vistazo.
+                */}
+                {descartadas.length > 0 && (
+                  <div style={{
+                    marginBottom: 12, padding: '10px 13px', borderRadius: 10,
+                    border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+                      <AlertTriangle size={15} style={{ color: 'var(--amber)' }} />
+                      {descartadas.length === 1
+                        ? 'Hay 1 columna del archivo que no vamos a guardar'
+                        : `Hay ${descartadas.length} columnas del archivo que no vamos a guardar`}
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {descartadas.map(c => (
+                        <li key={c.encabezado}><strong>{c.encabezado}</strong> — por ejemplo «{c.ejemplo}»</li>
+                      ))}
+                    </ul>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, lineHeight: 1.5 }}>
+                      Si alguna de ellas es parte del nombre, renómbrala en el archivo a «Apellido paterno»
+                      o «Apellidos» y vuelve a analizarlo: entonces sí entra.
+                    </div>
+                  </div>
+                )}
+
+                {/*
+                  ASE-003 — LA FECHA AMBIGUA SE PREGUNTA (clinical-safety §6).
+
+                  «03/04/1975» es el 3 de abril o el 4 de marzo según el sistema
+                  del que venga el archivo. Se pregunta una vez, no por fila, y
+                  la respuesta rehace la vista previa en el momento.
+                */}
+                {fechasAmbiguas > 0 && (
+                  <div style={{
+                    marginBottom: 12, padding: '10px 13px', borderRadius: 10,
+                    border: '1px solid var(--border)', background: 'var(--s2)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                      <Info size={15} style={{ color: 'var(--nexus)' }} />
+                      ¿Cómo vienen las fechas de este archivo?
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 8 }}>
+                      {fechasAmbiguas === 1
+                        ? 'Hay 1 fecha que puede leerse de dos maneras'
+                        : `Hay ${fechasAmbiguas} fechas que pueden leerse de dos maneras`}
+                      {' '}(«03/04/1975» es el 3 de abril o el 4 de marzo). De la fecha de nacimiento salen la
+                      edad, la dosis pediátrica y la detección de expedientes repetidos, así que no la adivinamos.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {([
+                        ['dia-primero', 'día / mes / año (lo normal en México)'],
+                        ['mes-primero', 'mes / día / año'],
+                      ] as const).map(([clave, etiqueta]) => (
+                        <button key={clave} type="button" onClick={() => cambiarOrdenDeFecha(clave)}
+                          aria-pressed={ordenDeFecha === clave}
+                          className="nx-chip nx-chip--relleno"
+                          style={{
+                            padding: '6px 14px', borderRadius: 'var(--r-pill)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            color: ordenDeFecha === clave ? '#fff' : 'var(--text2)',
+                            border: `1px solid ${ordenDeFecha === clave ? 'var(--nexus-solido)' : 'var(--border)'}`,
+                          }}>{etiqueta}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green)', background: 'color-mix(in srgb, var(--green) 12%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
                     {conteo.nuevo} nuevos
                   </span>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', background: 'color-mix(in srgb, var(--amber) 12%, transparent)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
-                    {conteo.duplicado} duplicados (se omiten)
+                    {conteo.duplicado} ya los tienes (se omiten)
                   </span>
+                  {conteo.conReparos > 0 && (
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', padding: '4px 10px', borderRadius: 'var(--r-pill)' }}>
+                      {conteo.conReparos} entran con algo sin guardar
+                    </span>
+                  )}
                 </div>
                 {/*
                   LOS OMITIDOS SE ENSEÑAN SIEMPRE, AUNQUE LA LISTA SE CORTE.
@@ -370,17 +556,69 @@ export default function MigracionPage() {
                   vista previa, el paciente se pierde sin que nadie pueda verlo. Los
                   nuevos son los que sobran si hay que recortar algo.
                 */}
-                <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
-                  {[...clasificadas!.filter(c => c.estado !== 'nuevo'),
-                    ...clasificadas!.filter(c => c.estado === 'nuevo')].slice(0, 200).map((c, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--border)', opacity: c.estado === 'nuevo' ? 1 : 0.55 }}>
-                      {c.estado === 'nuevo'
-                        ? <CheckCircle2 size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
-                        : <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
-                      <span style={{ flex: 1, fontSize: 13, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
-                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.fila.telefono || '—'}</span>
-                    </div>
-                  ))}
+                <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  {clasificadas!
+                    .map((c, indice) => ({ c, indice }))
+                    .sort((a, b) => Number(a.c.estado === 'nuevo') - Number(b.c.estado === 'nuevo'))
+                    .slice(0, 200)
+                    .map(({ c, indice }) => {
+                      const forzada = forzadas.has(indice)
+                      const entra = c.estado === 'nuevo' || forzada
+                      return (
+                        <div key={indice} style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', opacity: entra ? 1 : 0.7 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {entra
+                              ? <CheckCircle2 size={15} style={{ color: 'var(--green)', flexShrink: 0 }} />
+                              : <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0 }} />}
+                            <span style={{ flex: 1, fontSize: 14, color: 'var(--text)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.fila.nombre}</span>
+                            <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.fila.telefono || '—'}</span>
+                          </div>
+                          {/*
+                            ASE-007 — CON QUIÉN CHOCÓ, Y LA SALIDA.
+                            «N duplicados (se omiten)» no decía contra quién ni
+                            dejaba forzar: el hijo homónimo del padre, sin fecha
+                            de nacimiento en el archivo, no entraba nunca y nadie
+                            podía verlo. La decisión vuelve a ser del médico.
+                          */}
+                          {c.estado === 'duplicado' && c.coincide && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4, marginLeft: 25 }}>
+                              <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                                {forzada ? 'Se va a crear igual. ' : 'Se omite: '}
+                                coincide con <strong style={{ color: 'var(--text2)' }}>{c.coincide.nombre || 'otra fila de este mismo archivo'}</strong>
+                                {' '}— {c.coincide.motivo.toLowerCase()}
+                                {c.coincide.certeza === 'seguro' && <strong style={{ color: 'var(--amber)' }}> · muy probable</strong>}
+                              </span>
+                              <button type="button" onClick={() => setForzadas(prev => {
+                                const s2 = new Set(prev)
+                                if (s2.has(indice)) s2.delete(indice); else s2.add(indice)
+                                return s2
+                              })} style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                                fontSize: 12, color: 'var(--text3)', textDecoration: 'underline',
+                              }}>
+                                {forzada ? 'Mejor omitirla' : 'Es otra persona — impórtala'}
+                              </button>
+                            </div>
+                          )}
+                          {/*
+                            ASE-003/005/A-013 — LO QUE NO SE PUDO GUARDAR DE ESTA
+                            FILA. Descartar un CURP mal formado o una fecha
+                            ilegible es correcto; hacerlo en silencio no lo es
+                            (regla 3 de seguridad clínica).
+                          */}
+                          {(c.fila.reparos?.length ?? 0) > 0 && (
+                            <ul style={{ margin: '4px 0 0 25px', padding: 0, listStyle: 'none' }}>
+                              {c.fila.reparos!.map((r, k) => (
+                                <li key={k} style={{ fontSize: 12, color: r.gravedad === 'descartado' ? 'var(--amber)' : 'var(--text3)', lineHeight: 1.5 }}>
+                                  {r.gravedad === 'descartado' ? '⚠️' : 'ℹ️'} {r.campo === 'fechaNacimiento' ? 'Fecha de nacimiento' : r.campo === 'curp' ? 'CURP' : 'Sexo'}
+                                  {' «'}{r.valor}{'» — '}{r.motivo}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )
+                    })}
                   {clasificadas!.length > 200 && (
                     <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
                       …y {clasificadas!.length - 200} más (se importarán todas)
@@ -398,9 +636,36 @@ export default function MigracionPage() {
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
                   ✅ {reporte.creados} pacientes creados<br />
-                  ⏭️ {reporte.duplicados} duplicados omitidos<br />
-                  {reporte.errores > 0 && <>⚠️ {reporte.errores} con error (revisa el formato)<br /></>}
+                  ⏭️ {reporte.duplicados} omitidos por estar ya en tu directorio<br />
                 </div>
+                {/*
+                  ASE-006 — LAS QUE FALLARON, CON NOMBRE.
+                  «2 con error (revisa el formato)» no dice cuáles ni deja
+                  reintentar. Aquí se nombran, se dice por qué, y se pueden bajar
+                  para corregirlas y volver a subir sólo esas.
+                */}
+                {reporte.fallidas.length > 0 && (
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--amber)', marginBottom: 6 }}>
+                      {reporte.fallidas.length === 1
+                        ? 'Este expediente no se pudo crear:'
+                        : `Estos ${reporte.fallidas.length} expedientes no se pudieron crear:`}
+                    </div>
+                    <ul style={{ margin: '0 0 10px', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.7 }}>
+                      {reporte.fallidas.slice(0, 20).map((f, i) => (
+                        <li key={i}><strong>{f.nombre}</strong>{f.telefono ? ` · ${f.telefono}` : ''} — {f.motivo}</li>
+                      ))}
+                      {reporte.fallidas.length > 20 && <li>…y {reporte.fallidas.length - 20} más (están en el archivo)</li>}
+                    </ul>
+                    <Button size="sm" variant="secondary" icon={<Download size={14} />} onClick={() => descargarFallidas(reporte.fallidas)}>
+                      Descargar las que fallaron (CSV)
+                    </Button>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8, lineHeight: 1.5 }}>
+                      El contenido que pegaste sigue arriba: corrígelo y vuelve a analizar. Lo que ya se
+                      importó saldrá marcado como repetido, así que no se creará dos veces.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

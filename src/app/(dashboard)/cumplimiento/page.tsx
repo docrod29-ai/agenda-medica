@@ -24,6 +24,8 @@ import {
   ShieldCheck, FileSearch, Inbox, Copy, ExternalLink, AlertTriangle, Check, Clock, Shield, FlaskConical, Download,
 } from 'lucide-react'
 import { motoresSinValidar } from '@/components/SelloMotor'
+import { ligarSolicitudArcoAExpediente, porQueNoSePuedeLigar } from '@/lib/compliance/ligar-solicitud-arco'
+import { copiaLegibleDeArcoAcceso } from '@/lib/compliance/copia-legible-arco'
 import { Tabs, Spinner, EmptyState, Modal, Button } from '@/components/ui'
 import { describirVacioDeUnaLista } from '@/lib/ui/vacio-de-una-lista'
 import { useToast } from '@/context/ToastContext'
@@ -84,6 +86,28 @@ export default function CumplimientoPage() {
   const [bitacora, setBitacora] = useState<AuditEntry[]>([])
   const [arcoList, setArcoList] = useState<ArcoRequest[]>([])
   const [porCancelar, setPorCancelar] = useState<ArcoRequest | null>(null)
+  /**
+   * ASE-010 — LA SOLICITUD QUE LLEGA SIN EXPEDIENTE.
+   *
+   * Toda solicitud real nace en el portal público y las reglas le prohíben
+   * señalar un expediente (si pudiera, cualquiera desde internet pediría
+   * suprimir el de un tercero). Ligarla es un acto de la clínica con la
+   * identificación oficial delante, y hasta hoy no existía la pantalla para
+   * hacerlo: el derecho estaba escrito y no se podía ejercer.
+   */
+  const [porLigar, setPorLigar] = useState<ArcoRequest | null>(null)
+  /**
+   * ASE-011/012 · C-007 — LA RESOLUCIÓN DEJA DE SER UN `prompt()`.
+   *
+   * Acceso y oposición se ejecutaban mandando `identidadVerificada: true`
+   * escrito a fuego en el cliente: el servidor documenta que «el médico afirma
+   * que verificó», y el cliente afirmaba por él. Rectificación y revocación
+   * caían a un `prompt()` nativo que guardaba un texto y no tocaba ni un dato.
+   * Ahora las cuatro pasan por el mismo diálogo, con la casilla de identidad
+   * que la cancelación ya exigía.
+   */
+  const [porResolver, setPorResolver] = useState<{ req: ArcoRequest; estado: 'resuelta' | 'rechazada' } | null>(null)
+  const [textoResolucion, setTextoResolucion] = useState('')
   const [ejecutando, setEjecutando] = useState(false)
   const [veredicto, setVeredicto] = useState<{ camino: string; queOcurre: string; porQueNoSeBorra: string } | null>(null)
   /** El médico afirma que verificó al titular. Nace en false SIEMPRE. */
@@ -221,7 +245,7 @@ export default function CumplimientoPage() {
       const res = await fetchAutenticado('/api/arco/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, motivo: req.descripcion, identidadVerificada: true }),
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, motivo: req.descripcion, identidadVerificada: identidadOk }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) { toast(d.error || 'No se pudo ejecutar la cancelación', 'error'); return }
@@ -257,7 +281,19 @@ export default function CumplimientoPage() {
    */
   const entregarAcceso = async (req: ArcoRequest) => {
     if (!clinicId || !req.id || !req.patientId) {
-      toast('Esta solicitud no está ligada a un expediente. Identifícala primero.', 'error')
+      toast('Esta solicitud no está ligada a un expediente. Lígala primero con «Ligar expediente».', 'error')
+      return
+    }
+    /**
+     * ASE-011 — LA AFIRMACIÓN SALE DE LA CASILLA, NUNCA DE UNA CONSTANTE.
+     *
+     * Aquí iba `identidadVerificada: true` escrito a fuego. El servidor
+     * documenta que «el candado no puede estar en el formulario… el médico
+     * afirma que verificó»; el cliente afirmaba por él, así que la firma que
+     * quedaba en la bitácora no correspondía a ningún acto de nadie.
+     */
+    if (!identidadOk) {
+      toast('Marca que verificaste la identidad del titular antes de entregarle su expediente.', 'error')
       return
     }
     setEjecutando(true)
@@ -265,22 +301,43 @@ export default function CumplimientoPage() {
       const res = await fetchAutenticado('/api/arco/acceso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: true }),
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: identidadOk }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) { toast(d.error || 'No se pudo armar la entrega', 'error'); return }
 
-      const blob = new Blob([JSON.stringify(d.expediente, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `arco_acceso_${req.id}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-
       // Lo que falta se DICE, también aquí: entregar un expediente incompleto
       // sin señalarlo es peor que no entregarlo.
-      const faltan = (d.faltantes ?? []) as { seccion: string }[]
+      const faltan = (d.faltantes ?? []) as { seccion: string; motivo?: string }[]
+
+      /**
+       * ASE-026 — SE ENTREGAN LOS DOS ARCHIVOS, DEL MISMO PAQUETE.
+       *
+       * El `.json` es sobre lo que se calculó el hash: es lo que se puede
+       * acreditar, y no se toca. Pero un `.json` no es una «copia comprensible»
+       * para el paciente de setenta años que ejerció su derecho, así que se
+       * entrega además la versión legible —con el MISMO hash impreso— que se
+       * abre en cualquier navegador y se guarda como PDF desde ahí.
+       */
+      const bajar = (contenido: string, tipo: string, nombre: string) => {
+        const blob = new Blob([contenido], { type: tipo })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url; a.download = nombre
+        document.body.appendChild(a); a.click(); a.remove()
+        URL.revokeObjectURL(url)
+      }
+      bajar(JSON.stringify(d.expediente, null, 2), 'application/json', `arco_acceso_${req.id}.json`)
+      bajar(
+        copiaLegibleDeArcoAcceso({
+          expediente: (d.expediente ?? {}) as Record<string, unknown>,
+          paqueteHash: String(d.paqueteHash ?? ''),
+          faltantes: faltan,
+          entregadoEn: new Date().toISOString(),
+        }),
+        'text/html;charset=utf-8',
+        `arco_acceso_${req.id}_copia_legible.html`,
+      )
       toast(faltan.length
         ? `Entregado con acuse ${String(d.paqueteHash).slice(0, 12)}…, pero ${faltan.length} sección(es) no se pudieron leer: ${faltan.map(f => f.seccion).join(', ')}.`
         : `Entregado. Acuse ${String(d.paqueteHash).slice(0, 12)}… guardado en la solicitud.`,
@@ -303,7 +360,12 @@ export default function CumplimientoPage() {
    */
   const ejecutarOposicion = async (req: ArcoRequest) => {
     if (!clinicId || !req.id || !req.patientId) {
-      toast('Esta solicitud no está ligada a un expediente. Identifícala primero.', 'error')
+      toast('Esta solicitud no está ligada a un expediente. Lígala primero con «Ligar expediente».', 'error')
+      return
+    }
+    // ASE-011: la misma constante quemada estaba aquí. Sale de la casilla.
+    if (!identidadOk) {
+      toast('Marca que verificaste la identidad del titular antes de ejecutar la oposición.', 'error')
       return
     }
     setEjecutando(true)
@@ -311,7 +373,7 @@ export default function CumplimientoPage() {
       const res = await fetchAutenticado('/api/arco/oponerse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: true }),
+        body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: identidadOk }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) { toast(d.error || 'No se pudo ejecutar la oposición', 'error'); return }
@@ -331,36 +393,106 @@ export default function CumplimientoPage() {
     }
   }
 
-  const resolverArco = async (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => {
-    if (!clinicId || !req.id || !user?.uid) return
-    /**
-     * El ACCESO ya no se resuelve escribiendo: se ejecuta y se entrega.
-     *
-     * Rechazarlo sí sigue siendo un texto —una negativa es una decisión con su
-     * fundamento, no una operación de datos—.
-     */
-    if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); return }
-    /**
-     * La OPOSICIÓN tampoco se resuelve escribiendo: apaga el contacto.
-     *
-     * Se «resolvía» con el mismo `prompt()` y no se apagaba nada — el paciente
-     * que ejercía su derecho por escrito seguía recibiendo recordatorios,
-     * mientras que el que contestaba «BAJA» por WhatsApp sí dejaba de
-     * recibirlos. La vía formal era la única que no servía.
-     */
-    if (req.tipo === 'oposicion' && estado === 'resuelta') { await ejecutarOposicion(req); return }
-    const resolucion = prompt(`Describe brevemente qué se hizo (${estado}):`)
-    if (!resolucion) return
+  /**
+   * C-007/ASE-012 — RESOLVER YA NO ES ESCRIBIR EN UN `prompt()` DEL NAVEGADOR.
+   *
+   * Era el último `prompt()` nativo de `src/app`: sin foco atrapado, sin
+   * Escape, sin poder leer lo que se está resolviendo mientras se escribe. Y
+   * para rectificación y revocación era peor que fricción: se guardaba un texto
+   * y **no se corregía el dato ni se apagaba el consentimiento**.
+   */
+  const abrirResolucion = (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => {
+    setTextoResolucion('')
+    setIdentidadOk(false)
+    // La cancelación conserva su propio diálogo: antes de ejecutarla hay que
+    // leer el veredicto del servidor (si se puede suprimir o sólo bloquear).
+    if (req.tipo === 'cancelacion' && estado === 'resuelta') { consultarCamino(req); return }
+    setPorResolver({ req, estado })
+  }
+
+  const confirmarResolucion = async () => {
+    if (!clinicId || !porResolver || !user?.uid) return
+    const { req, estado } = porResolver
+    const texto = textoResolucion.trim()
+
+    if (estado === 'resuelta' && !req.patientId) {
+      toast('Liga la solicitud a un expediente antes de resolverla.', 'error'); return
+    }
+    if (estado === 'resuelta' && !identidadOk) {
+      toast('Marca que verificaste la identidad del titular.', 'error'); return
+    }
+    if (!texto) {
+      toast(estado === 'rechazada'
+        ? 'Escribe el fundamento del rechazo: una negativa sin motivo no se sostiene ante el INAI.'
+        : 'Escribe qué se hizo. Es la constancia de cómo se atendió el derecho.', 'error')
+      return
+    }
+
+    setEjecutando(true)
     try {
-      await resolverSolicitudArco(clinicId, req.id, {
-        estado, resolucion, resueltoPor: user.uid,
-      })
-      toast(`Solicitud ${estado}`, 'success')
-      // refresh
-      const arco = await listarSolicitudesArco(clinicId)
-      setArcoList(arco)
+      /**
+       * El ACCESO no se resuelve escribiendo: se ejecuta y se entrega (REG-154).
+       * Rechazarlo sí sigue siendo un texto — una negativa es una decisión con
+       * su fundamento, no una operación de datos —, y por eso el textarea de
+       * arriba es obligatorio en los dos casos pero sólo aquí se ejecuta algo.
+       */
+      if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); setPorResolver(null); return }
+      /**
+       * La OPOSICIÓN tampoco: apaga el contacto. El paciente que ejercía su
+       * derecho por escrito seguía recibiendo recordatorios mientras el que
+       * contestaba «BAJA» por WhatsApp sí dejaba de recibirlos — la vía formal
+       * era la única que no servía.
+       */
+      if (req.tipo === 'oposicion' && estado === 'resuelta') { await ejecutarOposicion(req); setPorResolver(null); return }
+      /**
+       * ASE-012 — LA REVOCACIÓN DEL CONSENTIMIENTO APAGA EL CONTACTO.
+       *
+       * «Revocar» y «oponerse» terminan en el mismo hecho comprobable: que
+       * dejen de salir mensajes hacia ese paciente. La ruta que ya sabe hacerlo
+       * —y dejar constancia de lo que NO puede apagar sola— es `arco/oponerse`,
+       * así que se reutiliza en vez de escribir una segunda que diverja.
+       * Lo que la revocación exige ADEMÁS —marcar el consentimiento del
+       * expediente como revocado— necesita un campo nuevo en `Patient` y va en
+       * el handoff: aquí queda dicho en la resolución, no fingido.
+       */
+      if (estado === 'resuelta' && req.tipo === 'revocacion') {
+        await ejecutarOposicion(req)
+        await resolverSolicitudArco(clinicId, req.id!, {
+          estado, resueltoPor: user.uid,
+          resolucion: `Consentimiento revocado. ${texto}`,
+        })
+        setPorResolver(null)
+        setArcoList(await listarSolicitudesArco(clinicId))
+        return
+      }
+      await resolverSolicitudArco(clinicId, req.id!, { estado, resolucion: texto, resueltoPor: user.uid })
+      toast(estado === 'resuelta' ? 'Solicitud resuelta' : 'Solicitud rechazada, con su fundamento', 'success')
+      setPorResolver(null)
+      setArcoList(await listarSolicitudesArco(clinicId))
     } catch {
-      toast('Error al resolver', 'error')
+      toast('No se pudo guardar la resolución', 'error')
+    } finally {
+      setEjecutando(false)
+    }
+  }
+
+  /** ASE-010 — escribe el vínculo solicitud ↔ expediente. */
+  const ligarExpediente = async (req: ArcoRequest, patientId: string, documento: string) => {
+    if (!clinicId || !user?.uid) return
+    setEjecutando(true)
+    try {
+      const motivo = await ligarSolicitudArcoAExpediente(clinicId, req, patientId, {
+        uid: user.uid, email: user.email ?? undefined,
+        identificacionVista: documento, ahora: new Date().toISOString(),
+      })
+      if (motivo) { toast(motivo, 'error'); return }
+      toast('Solicitud ligada al expediente. Ya se puede ejecutar.', 'success')
+      setPorLigar(null)
+      setArcoList(await listarSolicitudesArco(clinicId))
+    } catch {
+      toast('No se pudo ligar la solicitud al expediente', 'error')
+    } finally {
+      setEjecutando(false)
     }
   }
 
@@ -412,8 +544,113 @@ export default function CumplimientoPage() {
       )}
 
       {tab === 'arco' && (
-        <ArcoPanel requests={arcoList} loading={loading} onResolver={resolverArco} onCancelar={consultarCamino} />
+        <ArcoPanel requests={arcoList} loading={loading} onResolver={abrirResolucion} onLigar={(r: ArcoRequest) => { setPorLigar(r); setIdentidadOk(false) }} />
       )}
+
+      {/*
+        ASE-010 — LIGAR LA SOLICITUD CON SU EXPEDIENTE.
+        El mismo buscador que usa el filtro de la bitácora (le pregunta al
+        servidor, no filtra un recorte) y la afirmación explícita de qué
+        identificación se vio, que es lo que el Art. 29 pide y lo que queda en
+        la bitácora con el nombre de quien lo hizo.
+      */}
+      {porLigar && (
+        <LigarExpedienteModal
+          req={porLigar}
+          clinicId={clinicId}
+          ejecutando={ejecutando}
+          onCerrar={() => setPorLigar(null)}
+          onLigar={(patientId, documento) => ligarExpediente(porLigar, patientId, documento)}
+        />
+      )}
+
+      {/*
+        C-007/ASE-011/ASE-012 — RESOLVER, CON FOCO ATRAPADO Y ESCAPE.
+        Sustituye al `prompt()` nativo, que era el último de `src/app`. La
+        casilla de identidad es la misma disciplina que la cancelación ya
+        exigía; el texto es obligatorio porque es la constancia.
+      */}
+      <Modal
+        open={!!porResolver}
+        onClose={() => { setPorResolver(null); setTextoResolucion(''); setIdentidadOk(false) }}
+        title={porResolver?.estado === 'rechazada' ? 'Rechazar la solicitud' : 'Resolver la solicitud'}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => { setPorResolver(null); setTextoResolucion(''); setIdentidadOk(false) }}>Volver</Button>
+            <Button loading={ejecutando} onClick={confirmarResolucion}>
+              {porResolver?.estado === 'rechazada' ? 'Rechazar con este fundamento' : 'Resolver'}
+            </Button>
+          </>
+        }
+      >
+        {porResolver && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text)' }}>{ARCO_TIPO_LABEL[porResolver.req.tipo]}</strong>
+              {' · '}{porResolver.req.solicitante.nombre}
+              <div style={{ marginTop: 6, padding: 8, background: 'var(--s2)', borderRadius: 6, fontSize: 12 }}>
+                {porResolver.req.descripcion}
+              </div>
+            </div>
+
+            {/*
+              ASE-012 — RECTIFICAR ES CORREGIR EL DATO, NO NARRARLO.
+              El `prompt()` guardaba un texto y no tocaba `patients/{id}`. El
+              dato se corrige donde se corrige —el editor del paciente— y aquí
+              queda la constancia de qué se cambió.
+            */}
+            {porResolver.estado === 'resuelta' && porResolver.req.tipo === 'rectificacion' && porResolver.req.patientId && (
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--border)', borderRadius: 10 }}>
+                Corrige el dato en el expediente y vuelve aquí a dejar constancia de qué cambiaste
+                (antes → después).{' '}
+                <a href={`/pacientes?editar=${encodeURIComponent(porResolver.req.patientId)}`} target="_blank" rel="noreferrer"
+                  style={{ color: 'var(--nexus)', textDecoration: 'underline' }}>
+                  Abrir su expediente para corregirlo
+                </a>
+              </div>
+            )}
+
+            {porResolver.estado === 'resuelta' && porResolver.req.tipo === 'revocacion' && (
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 10, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
+                Al resolver se dará de baja su contacto: dejan de salirle recordatorios y mensajes.
+                Lo que el sistema no pueda apagar solo se te dirá para que lo hagas a mano.
+              </div>
+            )}
+
+            <div className="form-group">
+              <label className="label" htmlFor="arco-resolucion">
+                {porResolver.estado === 'rechazada' ? 'Fundamento del rechazo *' : 'Qué se hizo *'}
+              </label>
+              <textarea
+                id="arco-resolucion"
+                className="input"
+                rows={4}
+                value={textoResolucion}
+                onChange={e => setTextoResolucion(e.target.value)}
+                placeholder={porResolver.estado === 'rechazada'
+                  ? 'Por ejemplo: no se acreditó la identidad del titular tras dos requerimientos.'
+                  : 'Por ejemplo: se corrigió la fecha de nacimiento de 1980-03-15 a 1980-05-13.'}
+              />
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
+                Esto es la constancia de cómo se atendió el derecho. Se guarda en la solicitud y
+                queda en la bitácora con tu nombre y la fecha.
+              </p>
+            </div>
+
+            {porResolver.estado === 'resuelta' && (
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={identidadOk} onChange={e => setIdentidadOk(e.target.checked)} style={{ marginTop: 3 }} />
+                <span>
+                  Verifiqué la identidad del titular (o de su representante) por un medio fiable.
+                  <span style={{ display: 'block', color: 'var(--text3)', marginTop: 2 }}>
+                    El formulario público no la comprueba: quien lo llena escribe lo que quiera.
+                  </span>
+                </span>
+              </label>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/*
         EL VEREDICTO SE ENSEÑA ANTES, NO DESPUÉS.
@@ -468,7 +705,7 @@ export default function CumplimientoPage() {
               El médico afirma que verificó al titular, y esa afirmación queda
               en la bitácora con su nombre.
             */}
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--text2)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={identidadOk}
@@ -855,7 +1092,7 @@ function Bitacora({
   )
 }
 
-function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: ArcoRequest[]; loading: boolean; onResolver: (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => void; onCancelar?: (req: ArcoRequest) => void }) {
+function ArcoPanel({ requests, loading, onResolver, onLigar }: { requests: ArcoRequest[]; loading: boolean; onResolver: (req: ArcoRequest, estado: 'resuelta' | 'rechazada') => void; onLigar: (req: ArcoRequest) => void }) {
   if (loading) return <Spinner center label="Cargando…" />
   if (requests.length === 0) {
     return (
@@ -915,32 +1152,46 @@ function ArcoPanel({ requests, loading, onResolver, onCancelar }: { requests: Ar
                     nota firmada bloquea el expediente y explica por qué no se
                     puede borrar.
                   */}
-                  {r.tipo === 'cancelacion' && r.patientId && onCancelar && (
-                    <button onClick={() => onCancelar(r)} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 50%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
-                      Ejecutar cancelación…
-                    </button>
-                  )}
                   {/*
-                    SIN EXPEDIENTE LIGADO NO HAY BOTÓN — Y AHORA SE DICE.
-                    Una solicitud del portal público no puede traer `patientId`
-                    (las reglas lo impiden: si pudiera, cualquiera desde
-                    internet señalaría el expediente de un tercero y el panel
-                    ofrecería suprimirlo de un clic). Antes el botón
-                    simplemente no aparecía y nadie sabía por qué.
+                    ASE-010 — LA PANTALLA QUE FALTABA.
+
+                    Una solicitud del portal público NO puede traer `patientId`:
+                    las reglas lo impiden, y con razón —si pudiera, cualquiera
+                    desde internet señalaría el expediente de un tercero y el
+                    panel ofrecería suprimirlo de un clic—. Pero eso dejaba
+                    TODAS las solicitudes reales sin camino: el panel mandaba a
+                    «ejecutarla desde su expediente», y en el expediente no hay
+                    ninguna acción ARCO. Aquí se liga, con la identificación
+                    delante, que es lo que pide el Art. 29 de la LFPDPPP.
                   */}
-                  {r.tipo === 'cancelacion' && !r.patientId && (
-                    <span style={{ fontSize: 11, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.5 }}>
-                      Llegó sin expediente ligado. Identifica al paciente con su identificación
-                      delante y ejecuta la cancelación desde su expediente: una solicitud del
-                      portal público dice quién <em>dice</em> ser el solicitante, no a qué
-                      expediente corresponde.
-                    </span>
+                  {!r.patientId ? (
+                    <>
+                      <span style={{ fontSize: 12, color: 'var(--text3)', maxWidth: 420, lineHeight: 1.5 }}>
+                        Llegó sin expediente ligado: el formulario público dice quién <em>dice</em> ser
+                        el solicitante, no a qué expediente corresponde.
+                      </span>
+                      <button onClick={() => onLigar(r)} className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }}>
+                        Ligar expediente…
+                      </button>
+                    </>
+                  ) : (
+                    /*
+                      ASE-011 — EL VERBO DICE QUÉ VA A PASAR.
+                      «Marcar resuelta» era el mismo botón para los cinco tipos,
+                      y en tres de ellos no marcaba nada: entregaba, apagaba el
+                      contacto o suprimía un expediente. Un botón que hace algo
+                      irreversible tiene que decirlo antes.
+                    */
+                    <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 12, padding: '4px 10px' }}>
+                      {r.tipo === 'acceso' ? 'Entregar su expediente…'
+                        : r.tipo === 'cancelacion' ? 'Ejecutar cancelación…'
+                        : r.tipo === 'oposicion' ? 'Ejecutar oposición…'
+                        : r.tipo === 'revocacion' ? 'Revocar el consentimiento…'
+                        : 'Registrar la corrección…'}
+                    </button>
                   )}
                   <button onClick={() => onResolver(r, 'rechazada')} style={{ background: 'transparent', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                     Rechazar
-                  </button>
-                  <button onClick={() => onResolver(r, 'resuelta')} className="btn btn-primary" style={{ fontSize: 11.5, padding: '4px 10px' }}>
-                    Marcar resuelta
                   </button>
                 </div>
               )}
@@ -962,7 +1213,14 @@ function EstadoBadge({ estado }: { estado: ArcoEstado }) {
     recibida: { label: 'RECIBIDA', color: 'var(--blue)', bg: 'rgba(59,130,246,0.15)' },
     en_proceso: { label: 'EN PROCESO', color: 'var(--amber)', bg: 'color-mix(in srgb, var(--amber) 15%, transparent)' },
     resuelta: { label: 'RESUELTA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-    rechazada: { label: 'RECHAZADA', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+    /*
+      D-008 — el gris literal #9ca3af sobre su propio fondo medía 2.16:1 en
+      tema claro (el equipo rojo lo midió con `contraste-wcag.mjs`): por debajo
+      del 3:1 que exige WCAG 1.4.11 para un elemento no textual, y muy por
+      debajo del 4.5:1 de un texto. Los tokens `--badge-gris-*` ya existen
+      medidos en globals.css y cambian con el tema.
+    */
+    rechazada: { label: 'RECHAZADA', color: 'var(--badge-gris-t)', bg: 'var(--badge-gris-b)' },
   }
   const m = map[estado]
   return (
@@ -1036,5 +1294,118 @@ function EstadoCsp({ clinicId }: { clinicId: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * ASE-010 — EL BUSCADOR QUE LIGA UNA SOLICITUD CON SU EXPEDIENTE.
+ *
+ * Reutiliza `useBusquedaDePacientes`, que es el que le PREGUNTA AL SERVIDOR:
+ * filtrar un recorte del directorio contestaría «no existe» de un paciente que
+ * sí está, y aquí eso significaría no poder atender su derecho.
+ *
+ * Y no propone candidatos por nombre parecido a propósito. Ligar decide a quién
+ * se le entrega —o a quién se le suprime— el expediente: un emparejamiento
+ * automático «probable» sería el mismo defecto que este repositorio ya conoce
+ * (fundir con quien no es no se ve como un error). Lo elige una persona con la
+ * identificación delante.
+ */
+function LigarExpedienteModal({ req, clinicId, ejecutando, onCerrar, onLigar }: {
+  req: ArcoRequest
+  clinicId: string | null
+  ejecutando: boolean
+  onCerrar: () => void
+  onLigar: (patientId: string, documento: string) => void
+}) {
+  const [busca, setBusca] = useState('')
+  const [elegido, setElegido] = useState<{ id: string; nombre: string } | null>(null)
+  const [documento, setDocumento] = useState(req.solicitante.identificacion ?? '')
+  const busqueda = useBusquedaDePacientes(clinicId, busca)
+  const noSePuede = porQueNoSePuedeLigar(req)
+
+  return (
+    <Modal
+      open
+      onClose={onCerrar}
+      title="Ligar la solicitud con un expediente"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onCerrar}>Volver</Button>
+          <Button
+            disabled={!elegido || !documento.trim() || ejecutando || !!noSePuede}
+            loading={ejecutando}
+            onClick={() => elegido && onLigar(elegido.id, documento)}
+          >Ligar y dar por verificada la identidad</Button>
+        </>
+      }
+    >
+      <div style={{ display: 'grid', gap: 12 }}>
+        {noSePuede && (
+          <div style={{ fontSize: 12, color: 'var(--amber)' }}>{noSePuede}</div>
+        )}
+        <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+          Quien llenó el formulario dijo llamarse <strong>{req.solicitante.nombre}</strong>
+          {req.solicitante.telefono ? ` · ${req.solicitante.telefono}` : ''}
+          {req.solicitante.curp ? ` · CURP ${req.solicitante.curp}` : ''}.
+          <span style={{ display: 'block', color: 'var(--text3)', marginTop: 4 }}>
+            Eso es lo que dice ser, no a qué expediente corresponde. Búscalo tú, con su
+            identificación oficial delante.
+          </span>
+        </div>
+
+        {elegido ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <span className="nx-ident">{elegido.nombre}</span>
+            <button type="button" onClick={() => { setElegido(null); setBusca('') }}
+              style={{ background: 'none', border: 'none', color: 'var(--nexus)', cursor: 'pointer', fontSize: 12, minHeight: 44, padding: '0 6px' }}>
+              Elegir otro
+            </button>
+          </div>
+        ) : (
+          <div>
+            <label className="label" htmlFor="arco-buscar-paciente">Expediente del titular</label>
+            <input
+              id="arco-buscar-paciente"
+              className="input"
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Nombre o teléfono del paciente…"
+              style={{ width: '100%' }}
+            />
+            {busqueda.resultados.slice(0, 6).map(p => (
+              <button key={p.id} type="button" onClick={() => setElegido({ id: String(p.id), nombre: p.nombre })}
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)', color: 'var(--text)', cursor: 'pointer', marginTop: 4, fontSize: 12, minHeight: 44 }}>
+                {p.nombre}{p.telefono ? ` · ${p.telefono}` : ''}
+              </button>
+            ))}
+            {!busqueda.textoCorto && busqueda.resultados.length === 0 && (
+              <div style={{ fontSize: 12, marginTop: 6, color: busqueda.sePudoPreguntar ? 'var(--text3)' : 'var(--amber)' }}>
+                {busqueda.buscando
+                  ? 'Buscando…'
+                  : busqueda.sePudoPreguntar
+                    ? 'Sin coincidencias. La búsqueda es por el principio del nombre o del teléfono.'
+                    : 'No se pudo consultar el directorio: esto NO significa que el paciente no exista.'}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="form-group">
+          <label className="label" htmlFor="arco-documento">Qué identificación viste *</label>
+          <input
+            id="arco-documento"
+            className="input"
+            value={documento}
+            onChange={e => setDocumento(e.target.value)}
+            placeholder="INE folio 1234567890"
+            style={{ width: '100%' }}
+          />
+          <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0', lineHeight: 1.5 }}>
+            Se guarda el texto que escribas, nunca una imagen del documento. Queda en la bitácora
+            con tu nombre: es lo que sostiene que la entrega —o la supresión— se hizo a su titular.
+          </p>
+        </div>
+      </div>
+    </Modal>
   )
 }

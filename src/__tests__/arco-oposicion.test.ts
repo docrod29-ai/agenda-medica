@@ -142,15 +142,24 @@ describe('ESTÁ CONECTADO — lo que más veces ha faltado', () => {
     expect(pagina).toContain('/api/arco/oponerse')
   })
 
-  it('y sale ANTES del `prompt()`, no después', () => {
+  it('y el `prompt()` ya no existe: no hay «antes» que discutir', () => {
     /**
-     * Si el `prompt()` quedara arriba, el médico escribiría un texto y la ruta
-     * no llegaría a correr: el defecto entero, intacto, con código nuevo detrás.
+     * Este caso pedía que la ejecución saliera ANTES del `prompt()`: si el
+     * `prompt()` quedaba arriba, el médico escribía un texto y la ruta no
+     * llegaba a correr — el defecto entero, intacto, con código nuevo detrás.
+     *
+     * C-007 (Panel de Lujo 2026-09) retiró el `prompt()` de la pantalla: era el
+     * último de `src/app` fuera de comentarios, y sin foco atrapado ni Escape.
+     * La garantía que este caso protegía se vuelve más fuerte, no más débil —
+     * ya no hay que ordenar dos caminos, hay uno—, así que se afirma lo que
+     * ahora es cierto: la ejecución existe y el `prompt()` no. El diálogo que
+     * lo sustituye tiene su propio golden en
+     * `una-solicitud-arco-real-se-puede-ejecutar.test.ts`.
      */
     const iOpo = pagina.indexOf("req.tipo === 'oposicion' && estado === 'resuelta'")
-    const iPrompt = pagina.indexOf('prompt(`Describe brevemente')
     expect(iOpo).toBeGreaterThan(0)
-    expect(iOpo).toBeLessThan(iPrompt)
+    const sinComentarios = pagina.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(sinComentarios, 'volvió un prompt() nativo a la pantalla').not.toMatch(/\bprompt\s*\(/)
   })
 
   it('la ruta está declarada en el registro de autorización', () => {
