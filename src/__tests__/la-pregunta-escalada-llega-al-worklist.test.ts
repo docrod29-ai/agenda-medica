@@ -181,9 +181,10 @@ describe('REG-521 · la escalación abre una tarea en el worklist', () => {
       estado: 'solicitada',
       origen: 'portal:pregunta',
       preguntaId: 'preg-1',
-      detalle: 'Me falta el aire desde anoche.',
+      // PO-005: el título son las palabras del paciente; el motivo es el subtítulo.
+      titulo: '«Me falta el aire desde anoche.»',
     })
-    expect(String(t!.datos.titulo)).toMatch(/^Pregunta del paciente: /)
+    expect(String(t!.datos.detalle)).toMatch(/^Pregunta del paciente: /)
     expect(t!.opciones).toEqual({ merge: true })
     // Sin teléfono no había a quién avisar — y eso ya no significa que nadie se entere.
     expect(avisarAlConsultorio).not.toHaveBeenCalled()
@@ -242,11 +243,17 @@ describe('REG-521 · la función pura que arma la tarea', () => {
     expect(prioridadDeUnaPregunta('ESCALATE_TO_CLINICIAN')).toBe('alta')
   })
 
-  it('el título dice POR QUÉ llegó, sin diagnóstico ni opinión', () => {
-    expect(tareaDeUnaPregunta(base).titulo).toBe('Pregunta del paciente: pregunta por cambiar una dosis')
-    expect(tareaDeUnaPregunta({ ...base, clase: 'URGENT_REVIEW_REQUIRED', motivo: 'dificultad_respiratoria' }).titulo)
+  it('el título son las palabras del paciente (PO-005) y el subtítulo dice POR QUÉ llegó, sin diagnóstico ni opinión', () => {
+    expect(tareaDeUnaPregunta(base).titulo).toBe('«¿Puedo tomarme el doble?»')
+    expect(tareaDeUnaPregunta(base).detalle).toBe('Pregunta del paciente: pregunta por cambiar una dosis')
+    expect(tareaDeUnaPregunta({ ...base, clase: 'URGENT_REVIEW_REQUIRED', motivo: 'dificultad_respiratoria' }).detalle)
       .toBe('Pregunta del paciente: dificultad para respirar')
-    expect(tareaDeUnaPregunta({ ...base, motivo: null }).titulo).toMatch(/no se pudo contestar desde el plan/)
+    expect(tareaDeUnaPregunta({ ...base, motivo: null }).detalle).toMatch(/no se pudo contestar desde el plan/)
+    // Una pregunta larga se recorta en una palabra entera, no a media palabra.
+    const larga = tareaDeUnaPregunta({ ...base, texto: 'el pie se me puso morado y frío con la férula y no sé si es normal o tengo que ir a que me la quiten hoy mismo' })
+    expect(larga.titulo.length).toBeLessThanOrEqual(74)
+    expect(larga.titulo).toMatch(/^«el pie se me puso morado y frío con la férula/)
+    expect(larga.titulo.endsWith('…»')).toBe(true)
   })
 
   it('no pone `venceEn` ni ningún campo en `undefined`: la fecha sería inventada y el undefined revienta en Firestore', () => {

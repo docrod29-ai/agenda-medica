@@ -17,6 +17,8 @@ export interface DatosProactivos {
   clinica?: string
   direccion?: string
   telefono?: string
+  /** Enlace de la reseña (sólo `resena`). */
+  enlace?: string
 }
 
 export interface PlantillaWa {
@@ -28,7 +30,7 @@ export interface PlantillaWa {
   construirParametros: (d: DatosProactivos) => string[]
 }
 
-export type ClavePlantilla = 'recordatorio24h' | 'recordatorioMismoDia' | 'listaEspera'
+export type ClavePlantilla = 'recordatorio24h' | 'recordatorioMismoDia' | 'listaEspera' | 'resena'
 
 /**
  * LO QUE ESTAS PLANTILLAS **NO** PUEDEN LLEVAR HOY: el enlace de la teleconsulta.
@@ -78,6 +80,18 @@ export const PLANTILLAS_DEFAULT: Record<ClavePlantilla, PlantillaWa> = {
     lang: 'es_MX',
     // {{1}} paciente · {{2}} médico · {{3}} fecha · {{4}} hora
     construirParametros: d => [d.paciente ?? '', d.medico ?? '', d.fecha ?? '', d.hora ?? ''],
+  },
+  /**
+   * La solicitud de reseña era el ÚNICO envío del cron que no pasaba por aquí
+   * (Panel de Lujo ASM-008): salía como texto libre fuera de la ventana de
+   * 24 h, sin plantilla, sin horas de silencio ni tope, y se marcaba
+   * «solicitada» aunque el proveedor la rechazara. Ahora es la cuarta clave.
+   */
+  resena: {
+    name: 'solicitud_resena',
+    lang: 'es_MX',
+    // {{1}} paciente · {{2}} médico · {{3}} enlace
+    construirParametros: d => [d.paciente ?? '', d.medico ?? '', d.enlace ?? ''],
   },
 }
 

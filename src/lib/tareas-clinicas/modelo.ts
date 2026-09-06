@@ -480,11 +480,22 @@ export function estaVencida(t: Pick<TareaClinica, 'venceEn' | 'estado'>, ahoraMs
  * Lo CRÍTICO escala sin esperar a vencer: si un resultado crítico no tiene dueño,
  * el problema es ahora mismo, no cuando pase la fecha.
  */
-export function debeEscalar(t: Pick<TareaClinica, 'venceEn' | 'estado' | 'ownerUid' | 'prioridad'>, ahoraMs: number): { escalar: boolean; motivo: string } {
+export function debeEscalar(t: Pick<TareaClinica, 'venceEn' | 'estado' | 'ownerUid' | 'prioridad'> & { tipo?: string }, ahoraMs: number): { escalar: boolean; motivo: string } {
   if (t.estado === 'cerrada' || t.estado === 'cancelada') return { escalar: false, motivo: '' }
   const sinDueno = !t.ownerUid
   if (t.prioridad === 'critica' && sinDueno) {
     return { escalar: true, motivo: 'Prioridad crítica sin nadie asignado.' }
+  }
+  /**
+   * UNA PREGUNTA DE PACIENTE SIN DUEÑO ESCALA EN EL ACTO (Panel de Lujo RT-006).
+   *
+   * «¿Puedo dejar de tomar la pastilla de la presión?» abría una tarea sin
+   * dueño y sin fecha: no vencía nunca, no escalaba nunca. Cuánto puede
+   * esperar es política del consultorio y no se inventa; lo que no necesita
+   * cifra es esto: hay un humano esperando a otro humano y nadie la ha tomado.
+   */
+  if (t.tipo === 'pregunta_paciente' && sinDueno) {
+    return { escalar: true, motivo: 'Un paciente pregunta y nadie la ha tomado.' }
   }
   if (estaVencida(t, ahoraMs)) {
     return { escalar: true, motivo: sinDueno ? 'Venció y nadie la tomó.' : 'Venció y sigue abierta.' }

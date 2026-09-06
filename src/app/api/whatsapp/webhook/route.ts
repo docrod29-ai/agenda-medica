@@ -47,6 +47,11 @@ import { getAvailableSlots, getDaySchedule, validarHorarioDia, descansosEnMinuto
 import { candidatosDeTelefono } from '@/lib/whatsapp/telefono-candidatos'
 import { urgenciaDelMensaje, mensajeDeUrgencia, avisoDeUrgenciaAlConsultorio } from '@/lib/paciente/urgencia'
 import { citaYaAgendada, type IntentoDeCitaDelBot, type CitaEscrita } from '@/lib/whatsapp/cita-ya-agendada'
+import { sesionCaducada } from '@/lib/whatsapp/vigencia-sesion'
+import { respuestaAlRecordatorio } from '@/lib/whatsapp/respuesta-al-recordatorio'
+import { hablaDeMedicamentoOSintoma, textoDePreguntaEscalada, ORIGEN_PREGUNTA_WHATSAPP } from '@/lib/whatsapp/pregunta-clinica'
+import { textoDelEntrante, esMensajeSinTexto, textoSoloLeoTexto } from '@/lib/whatsapp/texto-del-entrante'
+import { tareaDeUnaPregunta } from '@/lib/tareas-clinicas/de-una-pregunta'
 
 /**
  * Carga los bloqueos (vacaciones/ausencias) de la clínica para el bot — y lo que
@@ -86,7 +91,17 @@ async function cargarBloques(clinicId: string, fecha?: string, medicoId?: string
  * nunca contabilizado y el motor de riesgo ciego para ese paciente.
  * Devuelve el id del paciente, o '' si algo falla (nunca rompe el agendado).
  */
-async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<string> {
+/**
+ * Cómo se eligió el expediente. `porConfirmar` sólo viene cuando el bot NO
+ * tenía nombre utilizable: el consultorio tiene que confirmarlo antes de dictar
+ * y el cron no acuña enlace de portal sobre él (Panel de Lujo RT-008).
+ */
+export interface ExpedienteDelBot {
+  id: string
+  porConfirmar?: 'telefono-sin-nombre' | 'varios-con-ese-telefono'
+}
+
+async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<ExpedienteDelBot> {
   try {
     // El criterio vive en `lib/whatsapp/telefono-candidatos.ts`: aquí estaba bien
     // y en los otros dos sitios que buscan por teléfono no, así que ahora es uno
@@ -123,9 +138,20 @@ async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre
         return { id: d.id, nombre: x.nombre, telefono: x.telefono, whatsapp: x.whatsapp, curp: x.curp, fechaNacimiento: x.fechaNacimiento, edad: x.edad }
       })
       const nombreUtil = (nombre || '').trim()
-      if (nombreUtil.length < 4) return candidatosPac[0].id
+      if (nombreUtil.length < 4) {
+        /**
+         * SIN NOMBRE NO SE ADIVINA ENTRE VARIOS (RT-008). Con un solo expediente
+         * bajo ese teléfono se usa, pero MARCADO «elegido por teléfono, sin
+         * nombre» para que la consulta lo enseñe antes de dictar. Con dos o más
+         * —la madre y la hija con el WhatsApp de la casa— no se toma el primero
+         * que devuelva el índice: la cita nace sin expediente y con la marca, y
+         * es el consultorio quien la cuelga de la persona correcta.
+         */
+        if (candidatosPac.length === 1) return { id: candidatosPac[0].id, porConfirmar: 'telefono-sin-nombre' }
+        return { id: '', porConfirmar: 'varios-con-ese-telefono' }
+      }
       const elegido = elegirExpedienteParaCita({ nombre: nombreUtil, telefono: diez }, candidatosPac)
-      if (elegido) return elegido.id
+      if (elegido) return { id: elegido.id }
       // Hay expedientes con ese número, pero ninguno es esta persona → se crea.
     }
     const np = await pRef.add({
@@ -134,8 +160,8 @@ async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre
       noShowCount: 0, cancelacionCount: 0,
       createdAt: now, updatedAt: now, creadoPor: 'bot-whatsapp',
     })
-    return np.id
-  } catch { return '' }
+    return { id: np.id }
+  } catch { return { id: '' } }
 }
 
 // Sin fallback público: si no está configurado, la verificación GET fallará
@@ -381,7 +407,12 @@ async function avisarCancelacion(
 function detectFAQ(text: string): string | null {
   const t = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
   if (/horario|hora|atiende|atencion|abren|cierran|cuando/.test(t)) return 'horario'
-  if (/costo|precio|cobr|cuanto|pag|consulta/.test(t)) return 'costo'
+  /**
+   * «cuanto» a secas casaba «¿cuántos mL le doy?» (PP-003). Sólo cuenta
+   * pegado a dinero. «consulta» sola tampoco: «¿cuánto dura la consulta?» no
+   * es una pregunta de precio.
+   */
+  if (/costo|precio|tarifa|honorario|\bcobr|cuanto (cuesta|vale|sale|cobra|cobran|es la consulta|seria|es)\b|\bpag(o|ar|an|os)\b|formas? de pago|tarjeta|efectivo/.test(t)) return 'costo'
   if (/direccion|donde|ubicacion|llegar|mapa|domicilio/.test(t)) return 'direccion'
   if (/seguro|aseguradora|deducible|poliza/.test(t)) return 'seguros'
   if (/padece|enfermed|trata|especialidad|atiende|infectolog|infeccion/.test(t)) return 'padecimientos'
@@ -570,16 +601,21 @@ export async function handleMessage(from: string, body: string, clinicId: string
   const estado = session?.estado || 'inicio'
   const datos = session?.datos || {}
 
-  // ── Check session expiry (>2 hours = reset) ──────────────────
-  if (session?.lastMessageAt) {
-    const last = new Date(session.lastMessageAt).getTime()
-    const elapsed = Date.now() - last
-    if (elapsed > 2 * 60 * 60 * 1000) {
-      await clearSession(clinicId, from)
-      await send(from, buildMenu(clinicName))
-      await saveSession(clinicId, from, { estado: 'menu', datos: {} })
-      return
-    }
+  /**
+   * ── CADUCIDAD DE LA SESIÓN ──────────────────────────────────────────────
+   *
+   * Dos horas para una conversación que INICIÓ el paciente. Pero la sesión
+   * que deja el recordatorio (`confirmando_cita`) espera una respuesta a un
+   * mensaje del CONSULTORIO, mandado 23-26 h antes de la cita: con el mismo
+   * reloj, el «SÍ» de la tarde caía aquí, se borraba y se contestaba el menú
+   * (Panel de Lujo ASM-006). Ahora esa sesión vive hasta la hora de la cita,
+   * y el recordatorio lo dice. Ver `lib/whatsapp/vigencia-sesion.ts`.
+   */
+  if (sesionCaducada(session, Date.now(), config?.zonaHoraria || TZ_DEFAULT)) {
+    await clearSession(clinicId, from)
+    await send(from, buildMenu(clinicName))
+    await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+    return
   }
 
   /**
@@ -617,8 +653,30 @@ export async function handleMessage(from: string, body: string, clinicId: string
    */
   if (estado === 'confirmando_cita' || estado === 'confirmando_cancelacion') {
     const citaId = String(session?.datos?.citaId ?? '')
-    const esSi = /^(si|sí|s|ok|okay|confirmo|confirmado|va|claro|asi es|así es|1)\b/.test(tLow)
-    const esNo = /^(no|n|cancelar|cancela|no puedo|2)\b/.test(tLow)
+    /**
+     * UN SOLO VOCABULARIO (ASM-012): SÍ / NO / CAMBIAR, el mismo que piden las
+     * plantillas y el texto libre. «confirmar», «confirmada», «reagendar» y
+     * «otra fecha» caían a «no entendí» mientras el mensaje las pedía.
+     * Ver `lib/whatsapp/respuesta-al-recordatorio.ts`.
+     */
+    const respuesta = respuestaAlRecordatorio(text)
+    const esSi = respuesta === 'si'
+    const esNo = respuesta === 'no'
+    if (citaId && respuesta === 'cambiar' && estado === 'confirmando_cita') {
+      /**
+       * «CAMBIAR» no cancela solo: se pregunta. Cambiar de fecha por aquí es
+       * cancelar ésta y agendar otra, y eso el paciente tiene que confirmarlo
+       * con la cita a la vista (se pregunta, no se adivina).
+       */
+      const f = String(session?.datos?.fecha ?? ''), h = String(session?.datos?.hora ?? '')
+      await send(from, [
+        `Para cambiar de fecha, primero cancelamos esta cita y después agendamos otra.`,
+        f && h ? `¿Cancelo la cita del ${formatDate(f)} a las ${h}? Responde *SÍ* para cancelarla o *NO* para dejarla.` : `¿Cancelo tu cita? Responde *SÍ* para cancelarla o *NO* para dejarla.`,
+        `Si prefieres, llámanos al ${adminPhone || 'consultorio'} y la movemos por teléfono.`,
+      ].join('\n\n'))
+      await saveSession(clinicId, from, { estado: 'confirmando_cancelacion', datos: { citaId, cancelarSolo: '1', reagendar: '1' } })
+      return
+    }
     if (citaId && (esSi || esNo)) {
       try {
         const citaRef = adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId)
@@ -650,7 +708,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
               estado: 'cancelada',
               updatedAt: new Date().toISOString(), updatedPor: 'paciente-whatsapp',
             })
-            await send(from, 'Listo, cancelamos tu cita. Si quieres otra fecha escribe *agendar* y te ayudamos. 🙌')
+            await send(from, String(session?.datos?.reagendar ?? '') === '1'
+              ? 'Listo, cancelamos esa cita. Para agendar la nueva fecha escribe *agendar* y te enseño los horarios. 🙌'
+              : 'Listo, cancelamos tu cita. Si quieres otra fecha escribe *agendar* y te ayudamos. 🙌')
             await avisarCancelacion(clinicId, citaId, snap.data() as Record<string, unknown>, from, adminPhone, send)
           } else {
             await send(from, 'De acuerdo, tu cita sigue en pie. ¿Algo más? 🙌')
@@ -730,6 +790,23 @@ export async function handleMessage(from: string, body: string, clinicId: string
    */
   const intencion = intencionDelMensaje(text, detectFAQ)
   const faqKey = intencion.tipo === 'faq' ? intencion.clave : null
+
+  /**
+   * ¿HABLA DE MEDICAMENTO O DE SÍNTOMA? ENTONCES NO ES PREGUNTA FRECUENTE.
+   *
+   * «¿cuántos mL le doy de amoxicilina?» recibía el COSTO de la consulta,
+   * porque el detector de FAQ casaba «cuanto» por subcadena (Panel de Lujo
+   * PP-003). Este canal es para citas: lo clínico no se contesta, se ESCALA —
+   * la misma tarea `pregunta_paciente` que abre el portal, y el aviso al
+   * consultorio. Sólo en estados de reposo: a mitad de un alta, «2» es una
+   * opción, no un síntoma.
+   */
+  const ESTADOS_EN_VUELO = ['agendar_nombre', 'agendar_tipo', 'agendar_fecha', 'agendar_hora', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'cancelar_elegir', 'aviso_privacidad']
+  if (intencion.tipo !== 'agendar' && intencion.tipo !== 'cancelar' && !ESTADOS_EN_VUELO.includes(estado) && hablaDeMedicamentoOSintoma(text)) {
+    await escalarPreguntaClinica(clinicId, from, text, config, adminPhone, send)
+    await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+    return
+  }
 
   // Pedir cita explícitamente arranca el alta desde CUALQUIER estado de reposo:
   // antes había que estar en el menú y escribir justo «1» o «agendar».
@@ -1009,7 +1086,8 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
       // Vincula al expediente (fuera de la transacción de la cita, como el booking).
-      const pacienteIdBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const expedienteBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const pacienteIdBot = expedienteBot.id
 
       /**
        * REVALIDAR ANTES DE ESCRIBIR — no sólo el choque con otra cita.
@@ -1111,6 +1189,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           nuevoFolio = nref.id
           tx.set(nref, {
             pacienteId: pacienteIdBot, pacienteNombre: datos.nombre, pacienteTelefono: from,
+            ...(expedienteBot.porConfirmar ? { expedientePorConfirmar: expedienteBot.porConfirmar } : {}),
             fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
             estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
             medicoId: doctorId || '', doctorId: doctorId || '',
@@ -1301,7 +1380,8 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const medicoIdBot = datos.medicoId || doctor?.id || ''
       // Vincula al expediente: usa el de la sesión de lista de espera si vino, y si no
       // lo resuelve por teléfono (crea si hace falta) para no dejar la cita huérfana.
-      const pacienteIdLE = datos.pacienteId || await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const expedienteLE = datos.pacienteId ? { id: datos.pacienteId } : await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const pacienteIdLE = expedienteLE.id
       const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
       const [sh, sm] = slotHora.split(':').map(Number)
       const sStart = sh * 60 + sm, sEnd = sStart + duracion
@@ -1362,6 +1442,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
           citaIdListaEspera = refLE.id
           tx.set(refLE, {
             pacienteId: pacienteIdLE,
+            ...(expedienteLE.porConfirmar ? { expedientePorConfirmar: expedienteLE.porConfirmar } : {}),
             pacienteNombre: datos.nombre,
             pacienteTelefono: from,
             fechaHora: `${slotFecha} ${slotHora}`,
@@ -1553,6 +1634,93 @@ function buildInfoMenu(config: ClinicConfig | null): string {
   ].join('\n')
 }
 
+/**
+ * LA PREGUNTA CLÍNICA QUE LLEGA POR WHATSAPP SE ESCALA, NO SE CONTESTA (PP-003).
+ *
+ * Misma tarea que abre el portal (`tareaDeUnaPregunta`), con origen propio
+ * para que `/pendientes` diga por dónde entró. Nace con DUEÑO —el titular del
+ * consultorio— para que no sea «de nadie» (RT-006). El paciente se busca por
+ * teléfono; si hay más de un expediente con ese número no se adivina: la
+ * tarea lleva el teléfono y el consultorio la cuelga de quien corresponda.
+ */
+async function escalarPreguntaClinica(
+  clinicId: string,
+  from: string,
+  texto: string,
+  config: ClinicConfig | null,
+  adminPhone: string,
+  send: (to: string, msg: string) => Promise<boolean>,
+): Promise<void> {
+  const ahoraIso = new Date().toISOString()
+  let patientId = ''
+  let patientNombre: string | undefined
+  try {
+    const snap = await adminDb.collection('clinics').doc(clinicId).collection('patients')
+      .where('telefono', 'in', candidatosDeTelefono(from)).limit(10).get()
+    if (snap.size === 1) {
+      patientId = snap.docs[0].id
+      patientNombre = String((snap.docs[0].data() as { nombre?: string }).nombre ?? '') || undefined
+    }
+  } catch { /* sin expediente resuelto la tarea sale igual: lo importante es que exista */ }
+  let ownerUid = ''
+  try {
+    const clinicSnap = await adminDb.collection('clinics').doc(clinicId).get()
+    ownerUid = String((clinicSnap.data() as { ownerId?: string } | undefined)?.ownerId ?? '')
+  } catch { /* sin dueño resuelto, la regla de escalación de pregunta sin dueño la sube sola */ }
+  const preguntaId = `wa_${telefonoRedactado(from).replace(/\D/g, '')}_${Date.now().toString(36)}`
+  const tarea = tareaDeUnaPregunta({
+    clinicId,
+    patientId,
+    patientNombre: patientNombre ?? `WhatsApp ${telefonoRedactado(from)}`,
+    preguntaId,
+    clase: 'ESCALATE_TO_CLINICIAN',
+    motivo: null,
+    texto: texto.slice(0, 500),
+    ahoraIso,
+    origen: ORIGEN_PREGUNTA_WHATSAPP,
+    ownerUid: ownerUid || undefined,
+    ownerNombre: ownerUid ? (config?.nombreMedico || undefined) : undefined,
+  })
+  try {
+    await adminDb.collection('clinics').doc(clinicId).collection('tareas_clinicas').doc(`pregunta__${preguntaId}`).set(tarea, { merge: true })
+  } catch (e) {
+    safeLog.error('[Bot] no se pudo abrir la tarea de la pregunta clínica:', String(e))
+  }
+  await send(from, textoDePreguntaEscalada(adminPhone))
+  if (adminPhone && adminPhone !== from) {
+    await send(adminPhone, `🩺 Pregunta clínica por WhatsApp (${telefonoRedactado(from)}): quedó en Pendientes. No se le contestó nada clínico.`)
+  }
+}
+
+/**
+ * UN AUDIO, UNA FOTO O UN STICKER NO SE IGNORAN (ASM-013). El bot contesta que
+ * sólo lee texto y, si ese teléfono está contestando a un recordatorio, deja
+ * en la cita la marca `respuestaSinTexto` para que la asistente llame.
+ */
+export async function manejarMensajeSinTexto(from: string, tipo: string, clinicId: string): Promise<void> {
+  const send = async (to: string, msg: string): Promise<boolean> => {
+    const { ok } = await sendWhatsApp(clinicId, to, msg)
+    return ok
+  }
+  const clinicRef = adminDb.collection('clinics').doc(clinicId)
+  let adminPhone = ''
+  try {
+    const cfg = (await clinicRef.collection('config').doc('main').get()).data() as ClinicConfig | undefined
+    adminPhone = cfg?.telefonoAdmin || cfg?.whatsappConsultorio || ''
+  } catch { /* sin teléfono se contesta igual */ }
+  await registrarEntrante(clinicId, from)
+  try {
+    const session = await getSession(clinicId, from)
+    const citaId = String(session?.datos?.citaId ?? '')
+    if (citaId && (session?.estado === 'confirmando_cita' || session?.estado === 'confirmando_cancelacion')) {
+      await clinicRef.collection('appointments').doc(citaId)
+        .update({ respuestaSinTexto: { at: new Date().toISOString(), tipo } })
+        .catch(() => {})
+    }
+  } catch { /* la marca es ayuda, no requisito */ }
+  await send(from, textoSoloLeoTexto(adminPhone))
+}
+
 // ── GET: Meta webhook verification ───────────────────────────
 
 export async function GET(req: NextRequest) {
@@ -1612,20 +1780,36 @@ export async function POST(req: NextRequest) {
     if (!hayMensajes) return NextResponse.json({ ok: true })
 
     for (const msg of messages) {
-      if (msg.type !== 'text') continue
       const from: string = msg.from
-      const text: string = msg.text?.body || ''
-      if (!from || !text) continue
+      if (!from) continue
+      /**
+       * BOTONES E INTERACTIVOS SON TEXTO; AUDIO Y FOTO SE CONTESTAN (ASM-013).
+       * Antes `if (msg.type !== 'text') continue`: el botón «Confirmar» de una
+       * plantilla y un audio con «no voy a poder ir» se ignoraban sin decir
+       * nada. Ver `lib/whatsapp/texto-del-entrante.ts`.
+       */
+      const text = textoDelEntrante(msg)
+      const sinTexto = text == null && esMensajeSinTexto(msg)
+      if (!text && !sinTexto) continue
 
       // Idempotencia: si Meta reentrega el mismo wamid, no re-procesar (evita
       // doble respuesta / doble acción). Fail-open: si el dedup falla, procesa.
       const { nuevo } = await marcarProcesado(msg.id)
       if (!nuevo) continue
 
-      // Handle async, don't block webhook response
-      handleMessage(from, text, clinicId).catch(err => {
+      /**
+       * SE ESPERA A TERMINAR (ASM-014). Contestar 200 con el trabajo en vuelo
+       * dejaba la confirmación a medias cuando la función se cortaba, y el
+       * dedup ya estaba marcado: ni Meta ni el paciente podían rescatarla. Meta
+       * tolera ~20 s y este código ya acota sus lecturas; el otro webhook
+       * (360dialog) ya esperaba.
+       */
+      try {
+        if (text) await handleMessage(from, text, clinicId)
+        else await manejarMensajeSinTexto(from, String(msg.type ?? ''), clinicId)
+      } catch (err) {
         safeLog.error(`[Bot] Error handling message from ${telefonoRedactado(from)}:`, err)
-      })
+      }
     }
 
     return NextResponse.json({ ok: true })

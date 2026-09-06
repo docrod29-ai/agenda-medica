@@ -47,6 +47,8 @@ export async function enviarProactivo(
    * cola lo necesita para no gastarle un reintento a un mensaje que está bien.
    */
   veredicto?: Veredicto
+  /** Por qué no salió, cuando el resultado es `omitido`. */
+  motivo?: string
 }> {
   // Horas de silencio: no enviar proactivos de madrugada. El recordatorio no se
   // marca enviado → el siguiente ciclo del cron lo reintenta cuando pase el silencio.
@@ -93,9 +95,14 @@ export async function enviarProactivo(
     return { resultado: r.ok ? 'enviado' : 'fallo', via: 'plantilla', veredicto: r.veredicto }
   }
 
-  // omitir: fuera de ventana y sin plantilla aprobada
-  console.warn(
-    `[whatsapp/proactivo] omitido (fuera de ventana 24h, sin plantilla '${opts.clave}' configurada) clínica ${clinicId}`,
-  )
-  return { resultado: 'omitido', via: 'ninguno' }
+  /**
+   * OMITIDO: fuera de ventana y sin plantilla aprobada. Antes esto era un
+   * `console.warn` que nadie leía mientras las casillas de Notificaciones
+   * seguían en verde (Panel de Lujo ASM-005). La omisión ya no se dice en un
+   * log: se DEVUELVE con su motivo, y el llamador la escribe en la cita y en
+   * `whatsapp_no_entregados`, que es donde la asistente la puede ver.
+   */
+  return { resultado: 'omitido', via: 'ninguno', motivo: MOTIVO_OMITIDO }
 }
+
+export const MOTIVO_OMITIDO = 'sin-plantilla-fuera-de-ventana'
