@@ -358,6 +358,18 @@ export default function MiPortalPage() {
   useEffect(() => { cargar() }, [cargar])
 
   /**
+   * CON UN ENLACE DE UN SOLO DOCUMENTO, SE ABRE EN ESE DOCUMENTO — PP-005.
+   *
+   * El destino por omisión es «Hoy», y con este enlace «Hoy» está vacío por
+   * construcción: el servidor no devuelve citas. Quien recibe la receta la
+   * abriría en una pantalla en blanco y tendría que buscar la pestaña correcta
+   * para ver lo único que le mandaron.
+   */
+  useEffect(() => {
+    if (sesion?.alcance === 'documento') setDestino('documentos')
+  }, [sesion?.alcance])
+
+  /**
    * MANDAR LA PREGUNTA.
    *
    * La pantalla NO clasifica: manda el texto y pinta lo que el servidor
@@ -602,6 +614,22 @@ export default function MiPortalPage() {
   const proximas = sesion.citas.filter(c => !ESTADO_TERMINAL.has(c.estado) && instanteMX(c.fechaHora.slice(0, 10), c.fechaHora.slice(11, 16), tzClinica).getTime() > ahora)
   const pasadas = sesion.citas.filter(c => !proximas.includes(c)).reverse()
 
+  /**
+   * ── PP-005 · UN ENLACE DE UN DOCUMENTO NO FINGE SER EL PORTAL ────────────
+   *
+   * Con alcance `documento` el servidor no devuelve citas, ni plan, ni
+   * preguntas: enseñar los cinco destinos sería ofrecerle a quien recibió la
+   * receta cuatro pantallas vacías y una tarjeta que le dice que le pida acceso
+   * a un médico que no es el suyo. Se enseña lo que este enlace abre.
+   *
+   * Con alcance `agenda` los destinos se quedan TODOS: las pestañas clínicas
+   * explican cómo conseguir el acceso, y esconderlas dejaría al paciente sin
+   * saber que existe. Mostrar en vez de esconder.
+   */
+  const destinosVisibles = sesion.alcance === 'documento'
+    ? DESTINOS.filter(d => d.id === 'documentos')
+    : DESTINOS
+
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 96px' }}>
       {/*
@@ -645,7 +673,7 @@ export default function MiPortalPage() {
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
           <h1 className="t-display" style={{ marginTop: 4 }}>Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}</h1>
           <p style={{ color: 'var(--text2)', fontSize: 16, marginTop: 4, lineHeight: 1.55 }}>
-            {DESTINOS.find(d => d.id === destino)?.pista}
+            {destinosVisibles.find(d => d.id === destino)?.pista}
           </p>
         </div>
 
@@ -1473,6 +1501,14 @@ export default function MiPortalPage() {
           {/* ── Cerrar este enlace (PC-018) ─────────────────────────────── */}
           <section aria-labelledby="tit-cerrar" style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 16 }}>
             <h3 id="tit-cerrar" className="t-h3" style={{ margin: '0 0 6px' }}>Cerrar este enlace</h3>
+            {/*
+              PI-017: «este enlace es personal y caduca» iba en 12 px al pie de
+              una tarjeta que no hacía nada. Es de lo que más le importa al
+              paciente saber, y ahora vive donde puede hacer algo con ello.
+            */}
+            <p style={{ fontSize: 16, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+              Este enlace es tuyo y caduca solo a los pocos días.
+            </p>
             <p style={{ fontSize: 14, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
               Si lo reenviaste sin querer, o crees que lo tiene alguien que no
               debería, ciérralo. Dejarán de funcionar <strong>todos</strong> los
@@ -1549,7 +1585,7 @@ export default function MiPortalPage() {
         pantalla estirada. Ver `.mi-barra-destinos` en globals.css.
       */}
       <nav id="secciones-portal" aria-label="Secciones" className="mi-barra-destinos">
-        {DESTINOS.map(d => {
+        {destinosVisibles.map(d => {
           const activo = destino === d.id
           return (
             <button key={d.id} onClick={() => setDestino(d.id)}

@@ -1,0 +1,58 @@
+[
+  {
+    "archivo": "src/__tests__/dando-pecho-no-es-una-forma-menor-de-decir-lactancia.test.ts",
+    "minCasos": 5,
+    "hallazgos": ["MG-014"]
+  },
+  {
+    "archivo": "src/__tests__/como-y-cuando-dentro-de-otra-pregunta-no-son-una-pregunta-de-toma.test.ts",
+    "minCasos": 5,
+    "hallazgos": ["PI-001", "PI-002"]
+  },
+  {
+    "archivo": "src/__tests__/la-urgencia-no-la-frena-el-limite-de-tasa.test.ts",
+    "minCasos": 8,
+    "hallazgos": ["PI-004"]
+  },
+  {
+    "archivo": "src/__tests__/al-paciente-solo-bajan-los-diagnosticos-que-su-medico-confirmo.test.ts",
+    "minCasos": 7,
+    "hallazgos": ["PC-001", "PO-001", "PO-002"]
+  },
+  {
+    "archivo": "src/__tests__/el-motivo-clinico-no-viaja-en-la-url-de-google.test.ts",
+    "minCasos": 5,
+    "hallazgos": ["PO-010", "MG-012", "PC-008"]
+  },
+  {
+    "archivo": "src/__tests__/lo-que-se-declara-de-whatsapp-y-lo-que-se-manda-por-whatsapp.test.ts",
+    "minCasos": 7,
+    "hallazgos": ["PG-005"]
+  },
+  {
+    "archivo": "src/__tests__/el-enlace-del-paciente-abre-menos-y-se-puede-cerrar.test.ts",
+    "minCasos": 17,
+    "hallazgos": ["PP-005", "PO-009", "PC-018", "PP-008", "PG-011", "PO-014", "PI-013", "PI-009", "PI-010"]
+  },
+  {
+    "archivo": "src/__tests__/las-doce-preguntas-del-paciente.test.ts",
+    "minCasos": 59,
+    "hallazgos": ["MG-013", "PG-001", "PP-001", "PP-002", "PC-003", "PO-003", "PI-011", "MG-014", "PI-001", "PI-002"],
+    "nota": "La puerta permanente del §7. El fixture pasó de 29 a 49 casos: los 20 nuevos son los del Panel de Lujo (`pl-01`…`pl-20`), incluidos DOS controles en la dirección contraria (`pl-19` la palabra «sangre» en un estudio, `pl-20` el sueño sin «no despierta») para que la puerta pueda fallar en los dos sentidos."
+  },
+  {
+    "archivo": "src/__tests__/lo-que-el-paciente-pregunta-se-clasifica-antes-de-contestarse.test.ts",
+    "minCasos": 68,
+    "hallazgos": ["PO-018", "MC-016", "MO-010", "MP-013", "PI-020", "PG-021", "PG-005"]
+  },
+  {
+    "archivo": "src/__tests__/portal-alcance.test.ts",
+    "minCasos": 18,
+    "hallazgos": ["PC-001", "PO-001"]
+  },
+  {
+    "archivo": "src/__tests__/el-aviso-urgente-del-portal-llegaba-el-ultimo.test.ts",
+    "minCasos": 15,
+    "hallazgos": ["PC-005", "PI-014", "PG-010"]
+  }
+]

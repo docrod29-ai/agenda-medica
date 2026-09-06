@@ -210,7 +210,12 @@ describe('el encabezado dice dónde estás', () => {
     // combinaciones de destino, ancho y tema — encima del plan de cuidado y
     // encima de las recetas.
     expect(CODIGO, 'volvió el subtítulo único').not.toContain('Aquí puedes gestionar tus citas.')
-    expect(CODIGO).toContain("DESTINOS.find(d => d.id === destino)?.pista")
+    /*
+      La lista sobre la que se busca es ahora `destinosVisibles`: con un enlace
+      de un solo documento (PP-005) el portal no enseña los cinco destinos, y
+      la pista tiene que salir de los que de verdad se pintan.
+    */
+    expect(CODIGO).toContain("find(d => d.id === destino)?.pista")
     const pistas = (CODIGO.match(/pista: '/g) ?? []).length
     expect(pistas, 'algún destino se quedó sin decir qué es').toBe(5)
   })
