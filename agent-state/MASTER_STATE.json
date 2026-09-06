@@ -22,13 +22,7 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1183.md",
-    " M docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1184.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M firestore.rules.estado.json"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
