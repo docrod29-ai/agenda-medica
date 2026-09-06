@@ -25,7 +25,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import type { ClinicConfig, Patient, RecetaConfig } from '@/types'
 import { PAPER_SIZES, papelPersonalizado } from '@/lib/receta-template'
-import { paginarParaDocumento, etiquetaVia, type PaginaReceta } from '@/lib/receta-paginacion'
+import { paginarParaDocumento, etiquetaVia, avisoDeDesborde, type PaginaReceta } from '@/lib/receta-paginacion'
 import type { Medicamento } from '@/types/expediente'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { alergiasParaElPapel } from '@/lib/impreso-medico'
@@ -292,6 +292,16 @@ export function useRecetaPaperOrientado(recetaConfig: RecetaConfig): { widthMm: 
 /** Cuenta las hojas que generará el documento — para el preview wrapper del padre. */
 export function contarPaginas(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): number {
   return calcularPaginas(data, config, recetaConfig).length
+}
+
+/**
+ * Lo que NO cabe en la hoja, dicho para que la pantalla lo enseñe (ZL-018).
+ *
+ * Cadena vacía cuando todo cabe. Se calcula con la MISMA paginación que se
+ * imprime: si se calculara aparte, el aviso y el papel podrían discrepar.
+ */
+export function avisoDeRecorte(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): string {
+  return avisoDeDesborde(calcularPaginas(data, config, recetaConfig))
 }
 
 function calcularPaginas(data: RecetaData, config: ClinicConfig | null, recetaConfig: RecetaConfig): PaginaReceta[] {

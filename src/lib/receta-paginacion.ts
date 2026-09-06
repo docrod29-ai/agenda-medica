@@ -34,6 +34,21 @@ export interface PaginaReceta {
   total: number
   esPrimera: boolean
   esUltima: boolean
+  /**
+   * ── EL BLOQUE QUE NO CABE EN NINGUNA HOJA — ZL-018 ────────────────────────
+   *
+   * Un solo medicamento con una indicación muy larga (un esquema de insulina
+   * por glucemia, 1 200 caracteres) puede medir MÁS que la hoja entera. El
+   * repartidor lo colocaba igual —«si la página está vacía, entra»— y la hoja
+   * lo recortaba con `overflow: hidden`, en silencio. El médico no lo ve: la
+   * vista previa está escalada. El paciente se lleva la receta con el esquema
+   * de dosis cortado.
+   *
+   * No se parte el bloque (partir una indicación por la mitad es su propio
+   * riesgo) ni se bloquea la impresión: se DECLARA, y la vista previa lo
+   * enseña. Nada se recorta en silencio.
+   */
+  desbordada?: { que: string; sobraMm: number }[]
 }
 
 export interface OpcionesPaginacion {
@@ -197,13 +212,26 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
   const capacidadDe = (idx: number) =>
     idx === 0 ? disponiblePrimera : disponibleContinuacion - reservaFirmaContinuacion
 
+  /** Bloques que NO caben ni en una hoja vacía, por página (ZL-018). */
+  const desbordes: Array<{ que: string; sobraMm: number }[]> = [[]]
+
   for (const b of bloques) {
     const idx = paginas.length - 1
     if (usado + b.alturaMm > capacidadDe(idx) && (paginas[idx].meds.length > 0 || paginas[idx].ests.length > 0)) {
       paginas.push({ meds: [], ests: [] })
+      desbordes.push([])
       usado = 0
     }
-    const pagina = paginas[paginas.length - 1]
+    const iActual = paginas.length - 1
+    const pagina = paginas[iActual]
+    /**
+     * ZL-018 — el bloque mide más que la hoja ENTERA: entra en una página
+     * vacía y se recorta por abajo. Antes esto no dejaba ninguna señal.
+     */
+    if (b.alturaMm > capacidadDe(iActual)) {
+      const que = b.meds?.[0]?.nombre || b.ests?.[0] || 'un bloque de la receta'
+      desbordes[iActual].push({ que, sobraMm: Math.round((b.alturaMm - capacidadDe(iActual)) * 10) / 10 })
+    }
     if (b.meds) pagina.meds.push(...b.meds)
     if (b.ests) pagina.ests.push(...b.ests)
     usado += b.alturaMm
@@ -213,6 +241,7 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
   const idxUltima = paginas.length - 1
   if (usado + colaFinalMm > capacidadDe(idxUltima) && (paginas[idxUltima].meds.length > 0 || paginas[idxUltima].ests.length > 0)) {
     paginas.push({ meds: [], ests: [] })
+    desbordes.push([])
   }
 
   // ── 4. Materializar ───────────────────────────────────────────
@@ -226,8 +255,29 @@ export function paginarReceta(opts: OpcionesPaginacion): PaginaReceta[] {
     total,
     esPrimera: i === 0,
     esUltima: i === total - 1,
+    ...(desbordes[i]?.length ? { desbordada: desbordes[i] } : {}),
   }))
 }
+
+/** ¿Alguna hoja lleva un bloque que no cabe? Para decirlo en pantalla. */
+export function hayDesborde(paginas: readonly PaginaReceta[]): boolean {
+  return paginas.some(p => (p.desbordada?.length ?? 0) > 0)
+}
+
+/** Lo que se le dice al médico cuando un renglón no cabe en la hoja. */
+export function avisoDeDesborde(paginas: readonly PaginaReceta[]): string {
+  const que = paginas.flatMap(p => p.desbordada ?? []).map(d => d.que)
+  if (!que.length) return ''
+  const lista = [...new Set(que)].join(', ')
+  return `No cabe completo en la hoja: ${lista}. Se imprimirá cortado por abajo. ` +
+    'Acorta la indicación, usa una hoja más grande o baja el tamaño de letra en ' +
+    'Configuración → Recetas.'
+}
+
+export const POR_QUE_EL_DESBORDE_SE_DECLARA =
+  'Porque la hoja recorta con overflow:hidden y la vista previa va escalada: ' +
+  'el médico firma una receta cuyo final no ve, y el paciente se lleva el ' +
+  'esquema de dosis cortado sin que ninguna marca lo diga.'
 
 /**
  * Helper de alto nivel: calcula las páginas para un RecetaData + RecetaConfig.

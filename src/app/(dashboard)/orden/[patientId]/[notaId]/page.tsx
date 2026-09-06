@@ -25,7 +25,7 @@ import { getNota } from '@/lib/expediente/firestore'
 import { getPatient } from '@/lib/firestore'
 import type { NotaMedica } from '@/types/expediente'
 import type { Patient } from '@/types'
-import { RecetaDocumento, dimensionesImpresion, contarPaginas, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
+import { RecetaDocumento, dimensionesImpresion, contarPaginas, avisoDeRecorte, useRecetaPaperOrientado } from '@/components/RecetaDocumento'
 import { RecetaPreviewWrapper } from '@/components/RecetaPreviewWrapper'
 import { PAPER_SIZES } from '@/lib/receta-template'
 import { descargarPaginasComoPDF } from '@/lib/pdf-download'
@@ -918,7 +918,10 @@ export default function GeneradorOrdenPage() {
               indicaciones,
             }
             const host = dimensionesImpresion(recetaConfigOri)
-            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)   // misma config que el documento
+            const numPages = contarPaginas(dataPreview, configFirma, recetaConfig)
+            // ZL-018 — un bloque más alto que la hoja se imprime cortado por
+            // abajo, en silencio. Aquí se dice, con el mismo cálculo que imprime.
+            const recorte = avisoDeRecorte(dataPreview, configFirma, recetaConfig)   // misma config que el documento
             return (
               <>
                 <div className="nx-meta" style={{ textAlign: 'center', marginBottom: 8 }}>
@@ -927,6 +930,13 @@ export default function GeneradorOrdenPage() {
                   {estudios.length > 6 && ' · checklist 2 columnas'}
                   {host.esHostCarta && <> · impresa en carta <Scissors size={11} className="ds-icon" style={{ display: 'inline' }} /></>}
                 </div>
+                {recorte && (
+                  <div role="status" style={{
+                    marginBottom: 8, padding: '8px 12px', borderRadius: 10,
+                    background: 'var(--badge-amber-b)', border: '1.5px solid var(--amber)',
+                    fontSize: 12, color: 'var(--text)', lineHeight: 1.45,
+                  }}>{recorte}</div>
+                )}
                 <RecetaPreviewWrapper
                   paperWidthMm={host.widthMm}
                   paperHeightMm={host.heightMm}
