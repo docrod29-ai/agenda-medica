@@ -57,12 +57,51 @@
       }
     },
     "2_refutacion": {
-      "estado": "pendiente",
-      "lotes_hechos": 0
+      "estado": "en_curso",
+      "hechos": [
+        "S",
+        "B",
+        "N",
+        "MI",
+        "MP",
+        "A",
+        "C",
+        "D",
+        "MG",
+        "MC",
+        "MO"
+      ],
+      "pendientes": [
+        "AS-mensajeria",
+        "AS-expedientes",
+        "AS-recepcion",
+        "P-gineco",
+        "AS-cobros",
+        "AS-enfermeria",
+        "P-interna",
+        "P-cirugia",
+        "P-ortopedia",
+        "P-pediatria"
+      ]
     },
     "3_reproduccion": {
-      "estado": "pendiente",
-      "reproducciones": []
+      "estado": "parcial — P0 y P1 de oleadas 1-2 hechos; faltan los de asistentes/pacientes tras refutación",
+      "reproducciones": [
+        "REP-001 MP-005",
+        "REP-002 N-001",
+        "REP-003 N-002",
+        "REP-010",
+        "REP-011",
+        "REP-012",
+        "REP-013",
+        "REP-014",
+        "REP-015",
+        "REP-016",
+        "REP-017",
+        "REP-018",
+        "REP-019",
+        "REP-020"
+      ]
     },
     "4_riesgo": {
       "estado": "pendiente"
@@ -77,5 +116,5 @@
       "estado": "pendiente"
     }
   },
-  "actualizado": "2026-09-06T04:10Z"
+  "actualizado": "2026-09-06T04:05Z"
 }
