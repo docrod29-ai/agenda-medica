@@ -73,12 +73,19 @@ const EXPLICADOS: Record<string, RegExp> = {
   'src/lib/clinical/safety-gate.ts::invariantesProtegidos': /compuerta clínica/,
   'src/lib/uci/benchmark.ts::correrBenchmark': /se corre a mano/,
   'src/lib/expediente/versioning.ts::obtenerVersion': /Redundante/,
-  /**
-   * TR-VOZ. Compara una transcripción contra su GOLD, y en una consulta de
-   * verdad no hay gold: si lo hubiera, no haría falta transcribir. Evaluación,
-   * misma categoría que `correrBenchmark`.
+  /*
+   * `leerConsulta` SE FUE DE AQUÍ el 5-sep-2026, y no porque se conectara.
+   *
+   * La explicación decía la verdad —evalúa contra un gold, y en una consulta
+   * real no hay gold— pero estaba en la lista equivocada: el barrido lo daba
+   * por «sin ningún uso» y era falso. Lo llama
+   * `scripts/medir-wer-limpio.ts:131`. El universo de llamadores no incluía
+   * `scripts/` (REG-512).
+   *
+   * Ahora sale en el cubo «sólo lo llama una herramienta», que es lo que es. Su
+   * razón no se pierde: vive en `los-motores-llegan-al-medico.test.ts`, en el
+   * caso que vigila que no vuelva a declararse muerto.
    */
-  'src/lib/asr/lo-que-pesa-de-un-error.ts::leerConsulta': /Evaluación, no camino del médico/,
 }
 
 describe('el residuo está explicado, uno a uno', () => {
