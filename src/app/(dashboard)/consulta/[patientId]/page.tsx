@@ -3469,6 +3469,20 @@ export default function ConsultaActivaPage() {
   }, [searchParams, internamientoParam, notaIdParam, toast, voz, audio])
 
   const autoRestRef = useRef(false)
+  /**
+   * ── ¿ESTE ESPEJO LO ESCRIBIÓ ESTE MISMO MONTAJE? (ASN-001) ────────────────
+   *
+   * El espejo en memoria se reescribe en CADA render con lo que hay vivo en
+   * pantalla. Un espejo escrito por este montaje no es un respaldo que
+   * recuperar: es el estado de hace un instante, siempre más viejo que el que
+   * se está pintando. Reponerlo encima es, literalmente, deshacerle una tecla
+   * al médico.
+   *
+   * Con esta marca la restauración sólo puede leer lo que dejó OTRO montaje —
+   * volver de otra pantalla, una recarga, un cierre inesperado—, que es para
+   * lo que se escribió.
+   */
+  const espejoPropioRef = useRef(false)
   useEffect(() => {
     if (uciSeedRef.current) return   // la semilla de UCI manda sobre el respaldo vacío
     if (!patientId || autoRestRef.current) return
@@ -3476,6 +3490,8 @@ export default function ConsultaActivaPage() {
     //   la nota estaba viva en memoria y se pone tal cual la dejaste.
     // 2º localStorage: respaldo tras recarga/crash (con aviso).
     const mem = borradorMem.leer(respaldoKey) as Record<string, unknown> | null
+    /* Nunca reponer sobre el estado vivo el espejo que este montaje escribió. */
+    if (mem && espejoPropioRef.current) { autoRestRef.current = true; return }
     let b = mem
     if (!b) {
       try {
@@ -3490,9 +3506,32 @@ export default function ConsultaActivaPage() {
         }
       } catch { /* */ }
     }
-    if (!b) return
-    const vacio = !resumen.trim() && !secciones.some(s => s.value?.trim()) &&
-      diagnosticos.length === 0 && medicamentos.length === 0 && !voz.transcripcion.trim()
+    /**
+     * Sin respaldo NO hay nada que restaurar, ni ahora ni después: lo único que
+     * podría aparecer más tarde es el espejo de este mismo montaje, y ése no se
+     * repone jamás. Se marca la decisión como tomada para que el efecto deje de
+     * correr en cada commit (ASN-001).
+     */
+    if (!b) { autoRestRef.current = true; return }
+    /**
+     * ── ¿ESTÁ VACÍO? LA MISMA LISTA QUE «¿HAY ALGO QUE PERDER?» (ASN-001) ────
+     *
+     * Esto era una SEXTA copia escrita a mano de la pregunta que
+     * `CAMPOS_DEL_BORRADOR` unificó (REG-300/REG-392), y la copia estaba
+     * incompleta: no miraba signos, estudios, preop ni próxima consulta. Con
+     * eso, un formulario donde el médico ya había tecleado «154» de peso se
+     * declaraba vacío, `queHacerConElRespaldoLocal` contestaba `APLICAR_SOLO` y
+     * el espejo de hace una tecla se reponía ENCIMA de lo vivo: «154» quedaba
+     * «14» sin aviso (Panel de Lujo 2026-09, ASN-001, reproducido 3/3 en vivo).
+     *
+     * Las dos preguntas tienen ahora UNA sola respuesta. Añadir un campo al
+     * borrador lo añade a las dos a la vez, que es justo lo que la lista
+     * canónica existía para garantizar.
+     */
+    const vacio = !hayAlgoQuePerder({
+      resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden,
+      preop, proximoSeguimiento, transcripcion: voz.transcripcion,
+    })
     /**
      * APLICAR SOLO y OFRECER son dos decisiones, no una. Antes las gobernaba la
      * misma prueba (`vacio`) y por eso al reabrir una nota concreta el respaldo
@@ -3572,7 +3611,9 @@ export default function ConsultaActivaPage() {
     if (!mem) toast('Recuperé tu nota sin guardar de este paciente ✓', 'success')  // solo si vino de localStorage
     // `firmada` entra en las deps porque la decisión la mira: sobre una nota
     // firmada no se repone nada (es inmutable, NOM-024).
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, diagnosticos, medicamentos, voz, toast, borradorMem, firmada])
+    // `firmada` y los campos del borrador entran en las deps porque `vacio` los
+    // mira: la lista es la misma de `CAMPOS_DEL_BORRADOR` (ASN-001).
+  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -3627,7 +3668,12 @@ export default function ConsultaActivaPage() {
      * contenido se escribe; si está vacío y sin firmar, se deja como está.
      */
     if (e.firmada) borradorMem.borrar(respaldoKey)
-    else if (hay) borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    else if (hay) {
+      // Queda constancia de que ESTE montaje escribió el espejo: la
+      // restauración no puede reponerlo encima de lo vivo (ASN-001).
+      espejoPropioRef.current = true
+      borradorMem.escribir(respaldoKey, { tipo: e.tipo, resumen: e.resumen, secciones: e.secciones, signos: e.signos, diagnosticos: e.diagnosticos, medicamentos: e.medicamentos, estudiosOrden: e.estudiosOrden, preop: e.preop, proximoSeguimiento: e.proximoSeguimiento, transcripcion: e.transcripcion, notaId: notaIdRef.current })
+    }
   })
   /**
    * RESTAURAR LA POSICIÓN al volver a la nota.
