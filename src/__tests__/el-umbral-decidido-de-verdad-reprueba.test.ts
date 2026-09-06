@@ -4,7 +4,7 @@
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
  * El 31-ago-2026 el médico dueño fijó el primero de los quince umbrales de IA
- * (D-029): para `nota-consulta`, hasta 1 de cada 100 campos dictados puede
+ * (D-038): para `nota-consulta`, hasta 1 de cada 100 campos dictados puede
  * perderse y CERO pueden inventarse. REG-549 lo dejó escrito en
  * `contratos-de-evaluacion.ts` con su fuente y sus dos ejes.
  *
@@ -75,7 +75,7 @@ const salidaCorrecta = (): SalidaGenerada[] =>
 const correr = (generadas: SalidaGenerada[], umbral: Umbral = UMBRAL_DE_LA_NOTA) =>
   aplicarUmbral(umbral, loMedidoDeLaNota(evaluarConjunto(CASOS_ORO, generadas).resumen))
 
-describe('EL UMBRAL DE D-029 SE APLICA, no sólo se declara', () => {
+describe('EL UMBRAL DE D-038 SE APLICA, no sólo se declara', () => {
   it('el veredicto sale del contrato, no de una copia', () => {
     /**
      * Si el número viviera aquí duplicado, cambiarlo en el contrato no cambiaría
@@ -191,7 +191,7 @@ describe('LOS TRES HUECOS QUE NO SON VERDE', () => {
      */
     /**
      * Se toma del censo, no por nombre: cuando escribí esto el ejemplo era
-     * `transcribir`, y AL DÍA SIGUIENTE el médico lo decidió (D-030). Una prueba
+     * `transcribir`, y AL DÍA SIGUIENTE el médico lo decidió (D-039). Una prueba
      * que nombra una capacidad concreta caduca en cuanto el trabajo avanza.
      */
     const quedanPendientes = sinUmbral()
@@ -255,7 +255,7 @@ describe('LO QUE ESTA COMPUERTA NO PUEDE MEDIR, dicho a tiempo', () => {
      * fuera CERO.
      *
      * Es más estricto, no más laxo, así que se aplica igual. Lo que no se puede
-     * hacer es callarlo: nadie debe leer «pasa» y creer que el 1 % de D-029 está
+     * hacer es callarlo: nadie debe leer «pasa» y creer que el 1 % de D-038 está
      * puesto a prueba.
      */
     const { resumen } = evaluarConjunto(CASOS_ORO, salidaCorrecta())

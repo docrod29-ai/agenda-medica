@@ -763,7 +763,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      *
      * 443 son las DOS PRIMERAS de la lista de catorce que se le pasó al dueño el
      * 31-ago-2026, y traen la lección de vuelta con una vuelta de tuerca: una de
-     * las dos (D-024) **no cambió una sola línea de conducta**. Sólo cambió su
+     * las dos (D-033) **no cambió una sola línea de conducta**. Sólo cambió su
      * estatus, de regir por conservación a regir por decisión.
      *
      * Parece cosmético y no lo es: un valor por omisión que nadie eligió acaba

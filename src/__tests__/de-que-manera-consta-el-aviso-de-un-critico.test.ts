@@ -6,13 +6,13 @@
  * El censo dejaba dos preguntas abiertas sobre el valor crítico de laboratorio,
  * las dos del médico. **El 31-ago-2026 el dueño contestó las dos.**
  *
- * **D-027 · el plazo: ninguno.** Se le ofrecieron 1 h, 4 h, 24 h y «que no venza
+ * **D-036 · el plazo: ninguno.** Se le ofrecieron 1 h, 4 h, 24 h y «que no venza
  * nunca», y eligió el último. Así que `venceEn` no se pone y `estaVencida` no
  * opina sobre un crítico — igual que antes, pero ahora por decisión y no por
  * conservación. Lo que queda en pie es que se PREGUNTA al cerrar: sin plazo, la
  * pregunta es la única defensa.
  *
- * **D-028 · quién cuenta: los cuatro.** Hablar con el paciente, hablar con un
+ * **D-037 · quién cuenta: los cuatro.** Hablar con el paciente, hablar con un
  * cuidador autorizado, entregárselo a otro médico tratante y **un mensaje
  * enviado**. Con sus palabras: «al que sea».
  *
@@ -68,7 +68,7 @@ const critica = (cierre?: Partial<TareaClinica['cierre']>): TareaClinica => ({
   ...(cierre ? { cierre: cierre as TareaClinica['cierre'] } : {}),
 })
 
-describe('D-027 · un crítico no vence, y eso ahora es decisión', () => {
+describe('D-036 · un crítico no vence, y eso ahora es decisión', () => {
   it('sin `venceEn` no vence, por muy viejo que sea', () => {
     const hace30dias = Date.now() - 30 * 24 * 3600 * 1000
     expect(estaVencida({ estado: 'completada' }, Date.now())).toBe(false)
@@ -96,7 +96,7 @@ describe('D-027 · un crítico no vence, y eso ahora es decisión', () => {
   })
 })
 
-describe('D-028 · las cuatro cuentan como avisado', () => {
+describe('D-037 · las cuatro cuentan como avisado', () => {
   const TODAS: ComoSeAviso[] = [
     'hablado_con_paciente', 'hablado_con_cuidador', 'entregado_a_otro_medico', 'mensaje_enviado',
   ]

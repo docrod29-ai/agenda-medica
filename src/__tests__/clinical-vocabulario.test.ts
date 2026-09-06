@@ -486,7 +486,7 @@ function procedenciaDe(c: ConceptoCanonico, s: string): string | null {
    * 3 · oráculo de laboratorio: producción YA hace ese mapeo.
    *
    * Se le pasa la UNIDAD del propio concepto (REG-553). Desde que el diferencial
-   * leucocitario se desambigua por unidad (§25.2 de D-032), `analitoDe('neutrofilos')`
+   * leucocitario se desambigua por unidad (§25.2 de D-041), `analitoDe('neutrofilos')`
    * a secas devuelve `null` a propósito — y sin la unidad este oráculo declararía
    * huérfano un sinónimo que producción sí resuelve. Sigue exigiendo la clave
    * EXACTA: preguntar con la unidad no afloja nada, sólo pregunta bien.

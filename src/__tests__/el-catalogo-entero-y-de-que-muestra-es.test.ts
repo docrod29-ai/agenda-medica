@@ -59,7 +59,7 @@ import {
   ANALITOS, ANALITOS_EN_TEXTO, CLAVES_DEL_CATALOGO, analitoDe, analitoPorClave, especimenDe,
   LO_QUE_LA_MUESTRA_NO_RESUELVE,
 } from '@/lib/expediente/laboratorio/analitos'
-import CATALOGO from '@/lib/expediente/laboratorio/catalogo-d032.json'
+import CATALOGO from '@/lib/expediente/laboratorio/catalogo-d041.json'
 
 const RAIZ = process.cwd()
 
@@ -156,7 +156,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
      * Si alguien edita el documento del dueño y no regenera, o edita el JSON a
      * mano, esto se pone rojo. Es la misma mecánica que el tablero derivado.
      */
-    const salida = execFileSync('node', ['scripts/laboratorio/catalogo-d032.mjs', '--verificar'], {
+    const salida = execFileSync('node', ['scripts/laboratorio/catalogo-d041.mjs', '--verificar'], {
       cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     })
     expect(salida).toMatch(/Catálogo al día/)
@@ -201,7 +201,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
     const modulo = readFileSync(join(RAIZ, 'src/lib/expediente/laboratorio/analitos.ts'), 'utf8')
     expect(modulo).toMatch(/se contradice en/)
     expect(modulo).toMatch(/no se elige una/)
-    const script = readFileSync(join(RAIZ, 'scripts/laboratorio/catalogo-d032.mjs'), 'utf8')
+    const script = readFileSync(join(RAIZ, 'scripts/laboratorio/catalogo-d041.mjs'), 'utf8')
     expect(script).toMatch(/se contradice a sí mismo/)
   })
 

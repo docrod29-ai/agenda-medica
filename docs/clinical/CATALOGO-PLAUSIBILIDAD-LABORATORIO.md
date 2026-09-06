@@ -4,7 +4,7 @@
 
 - **Autor:** Dr. David Alonso Rodríguez Luna (dueño del producto, internista e infectólogo).
 - **Entregado:** 2-sep-2026, en respuesta a la petición de REG-552.
-- **Registrado como:** D-032.
+- **Registrado como:** D-041.
 
 Este documento existe porque la regla 1 de seguridad clínica prohíbe inventar una
 cifra clínica. Los `min` y `max` del catálogo de analitos **no se inventaron**:

@@ -1,8 +1,8 @@
 /**
- * GOLDEN — REG-552. El umbral de `laboratorio-vision` (D-031) se aplica.
+ * GOLDEN — REG-552. El umbral de `laboratorio-vision` (D-040) se aplica.
  *
  * Al escribirse salía ROJO (7 de 46, 15,2 %). REG-553 cerró la causa con los
- * números del médico (D-032) y hoy mide 1 de 46. La historia se conserva abajo
+ * números del médico (D-041) y hoy mide 1 de 46. La historia se conserva abajo
  * porque explica POR QUÉ existen estos analitos y estos casos.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ const UMBRAL: Umbral = CONTRATOS.find(c => c.capacidad === 'laboratorio-vision')
  *
  *  · 1-sep-2026 (REG-552): **7** de 46. Seis eran cobertura del catálogo.
  *  · 2-sep-2026 (REG-553): **1** de 46. El médico entregó el catálogo maestro de
- *    plausibilidad (D-032) y los seis analitos entraron con SUS números.
+ *    plausibilidad (D-041) y los seis analitos entraron con SUS números.
  *
  * La que queda es la glucosa en mmol/L, y no se arregla con más analitos: el
  * analito ya está y lo tira el rango plausible. Pide normalización de unidad,
@@ -82,9 +82,9 @@ const FILAS_QUE_NO_LLEGAN = 0
 /**
  * EL SEGUNDO NÚMERO, QUE NO SE PUEDE CALLAR — REG-554.
  *
- * Desde que la fila fuera de rango ya no se tira (§1 de D-032), «llega al panel»
+ * Desde que la fila fuera de rango ya no se tira (§1 de D-041), «llega al panel»
  * y «entra a la serie temporal» dejaron de ser lo mismo. El eje del médico
- * (D-031) mide lo primero y hoy da CERO. Pero dos filas llegan marcadas y sin
+ * (D-040) mide lo primero y hoy da CERO. Pero dos filas llegan marcadas y sin
  * gráfica, y si sólo se midiera el eje, esas dos desaparecerían del informe justo
  * cuando dejaron de desaparecer del panel.
  *
@@ -200,7 +200,7 @@ describe('EL CONJUNTO EXISTE — antes decía «no existe»', () => {
   })
 })
 
-describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
+describe('EL UMBRAL DE D-040 SE APLICA — y hoy REPRUEBA', () => {
   it('el veredicto sale del contrato: tres ejes, dos en cero', () => {
     expect(PENDIENTE_DEL_MEDICO in UMBRAL).toBe(false)
     const lectura = aplicarUmbral(UMBRAL, medirElFoso(corpus()))
@@ -213,7 +213,7 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
      * LA HISTORIA DE ESTE NÚMERO, QUE ES LO QUE HACE HONESTO EL CERO:
      *
      *  · 1-sep (REG-552): 7 de 46 fuera. 15,2 %. ROJO.
-     *  · 2-sep (REG-553): 1 de 46. El médico entregó los rangos (D-032).
+     *  · 2-sep (REG-553): 1 de 46. El médico entregó los rangos (D-041).
      *  · 2-sep (REG-554): 0 de 46 — pero NO porque se recuperara nada más, sino
      *    porque su §1 dice que la fila fuera de rango se acepta provisionalmente
      *    en vez de tirarse. Cambió la política, no sólo el número.
@@ -378,7 +378,7 @@ describe('AL REVÉS POR EL OTRO LADO — no se pasa de frenada', () => {
 describe('LO QUE NO SE LE PREGUNTÓ, dicho a tiempo', () => {
   it('el analito inventado queda declarado como decisión pendiente', () => {
     /**
-     * Que en la nota decidiera 0 % de alucinación (D-029) no lo decide aquí. Son
+     * Que en la nota decidiera 0 % de alucinación (D-038) no lo decide aquí. Son
      * dos capacidades, y extender una decisión de una a otra es adivinar con
      * papeleo.
      */

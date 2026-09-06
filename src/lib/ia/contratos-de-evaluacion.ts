@@ -114,7 +114,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     metrica: 'exactitud por campo y proxy de alucinación (`ia/evaluacion.ts`)',
     umbral: {
       /**
-       * DECIDIDO por el médico dueño el 31-ago-2026 (D-029). Dos ejes, porque
+       * DECIDIDO por el médico dueño el 31-ago-2026 (D-038). Dos ejes, porque
        * sus dos errores no cuestan lo mismo — ver `UmbralDecidido.ejes`.
        *
        * `valor` es el más LAXO de los dos, a propósito: quien lea sólo este
@@ -122,7 +122,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
        */
       valor: 0.01,
       fuente:
-        'DECIDIDO por el médico dueño el 31-ago-2026 (D-029), sobre la métrica de '
+        'DECIDIDO por el médico dueño el 31-ago-2026 (D-038), sobre la métrica de '
         + '`ia/evaluacion.ts` y el conjunto sintético de `casos-oro.ts`. Se le '
         + 'plantearon 0 %, 1 %, 5 % y «no reprueba, sólo se mide» para cada eje, y '
         + 'la advertencia de que un umbral inalcanzable deja la compuerta siempre '
@@ -160,7 +160,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     metrica: 'WER ponderado por consecuencia clínica, no WER a secas (TR-VOZ.error-clinicamente-pesado)',
     umbral: {
       /**
-       * El valor suelto es el MÁS LAXO de los tres ejes, igual que en D-029:
+       * El valor suelto es el MÁS LAXO de los tres ejes, igual que en D-038:
        * quien lea sólo este campo no puede llevarse mejor impresión que la real.
        */
       valor: 0.05,
@@ -168,7 +168,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
         'TRES ejes, y sólo UNO lo decidió el médico. Los dos ceros salen de una regla YA ESCRITA '
         + '(`src/lib/asr/politica-critica.ts`): un cambio de cifra, de unidad o de lateralidad está '
         + 'PROHIBIDO, no penalizado — no entra en ninguna media, porque una media se compensa con '
-        + 'volumen. El tercero, el error ordinario, lo fijó el médico dueño el 1-sep-2026 (D-030) sobre '
+        + 'volumen. El tercero, el error ordinario, lo fijó el médico dueño el 1-sep-2026 (D-039) sobre '
         + 'la medición real de `synthetic-data/dialogos-consulta`, que ese día daba 1,7 %.',
       ejes: [
         {
@@ -187,7 +187,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
         {
           nombre: 'ordinario', valor: 0.05,
           porQue:
-            'DECIDIDO por el médico dueño el 1-sep-2026 (D-030), con la medición delante: 1,7 % ese día. '
+            'DECIDIDO por el médico dueño el 1-sep-2026 (D-039), con la medición delante: 1,7 % ese día. '
             + 'Se plantearon 2 %, 5 %, 10 % y ninguno. Eligió 5 % —tres veces lo medido— porque esto no '
             + 'vigila la calidad de la redacción: vigila un DERRUMBE. Si el proveedor degrada el modelo '
             + 'en silencio (ya pasó: REG-167) el error ordinario sube y los críticos siguen en cero, así '
@@ -296,10 +296,10 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     conjunto: '`synthetic-data/laboratorio-hojas/HOJAS.jsonl` (REG-552): 8 hojas sintéticas, 46 filas, escritas como se imprimen en México — abreviaturas («Glu», «TGO», «Hto»), coma decimal, valores censurados («>400»), unidades del SI y analitos fuera del catálogo. Ninguna hoja real puede entrar sin ser sintética (regla de datos). MIDE EL FOSO DETERMINISTA, NO LA VISIÓN: las filas entran como si el modelo las hubiera leído perfectas, así que dos de los tres ejes sólo se ejercen al revés. Medir la visión de verdad pide imágenes y llamadas de API, y es la mitad que falta.',
     metrica: 'exactitud por analito, con la unidad',
     umbral: {
-      /** El más LAXO de los tres ejes, igual que en D-029 y D-030. */
+      /** El más LAXO de los tres ejes, igual que en D-038 y D-039. */
       valor: 0.05,
       fuente:
-        'DECIDIDO por el médico dueño el 1-sep-2026 (D-031), sobre `synthetic-data/laboratorio-hojas`. TRES ejes, '
+        'DECIDIDO por el médico dueño el 1-sep-2026 (D-040), sobre `synthetic-data/laboratorio-hojas`. TRES ejes, '
         + 'porque los errores no cuestan lo mismo. Y queda UNA pregunta sin hacerle, declarada a propósito en '
         + 'LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO: cuántos analitos INVENTADOS se toleran. Se mide y se reporta, '
         + 'pero no se le pone umbral, porque no se lo pregunté y no se adivina.',
@@ -406,7 +406,7 @@ export const POR_QUE_EL_NOMBRE_IMPORTA =
 
    ── POR QUÉ EXISTE (REG-550) ────────────────────────────────────────────────
 
-   El 31-ago-2026 el médico dueño fijó el primer umbral (D-029, REG-549). Quedó
+   El 31-ago-2026 el médico dueño fijó el primer umbral (D-038, REG-549). Quedó
    escrito arriba, con su fuente y sus ejes… y **nadie corría nada contra él**:
    el arnés medía por un lado, el número vivía por otro, y entre los dos no había
    una sola función. Un umbral que no reprueba nada es exactamente lo que este
@@ -419,7 +419,7 @@ export const POR_QUE_EL_NOMBRE_IMPORTA =
    ── POR QUÉ VIVE AQUÍ Y NO EN EL ARNÉS (REG-551) ────────────────────────────
 
    Nació dentro de `ia/evaluacion.ts`, pegada al único arnés que existía. Al día
-   siguiente el médico fijó el umbral de `transcribir` (D-030) y ese se mide con
+   siguiente el médico fijó el umbral de `transcribir` (D-039) y ese se mide con
    OTRO instrumento —`asr/lo-que-pesa-de-un-error.ts`, que cuenta errores
    pesados, no campos—. Dos instrumentos, un solo tipo `Umbral`: la compuerta
    pertenece al tipo, no a uno de los dos medidores. Cada arnés traduce lo suyo a
@@ -590,7 +590,7 @@ export const LO_QUE_LA_COMPUERTA_NO_HACE: readonly string[] = Object.freeze([
  *
  * Poner cero «porque es obvio» sería exactamente lo que la regla 1 prohíbe: una
  * decisión clínica que nadie tomó, con aspecto de acordada. Que en la nota
- * decidiera 0 % de alucinación (D-029) no lo decide aquí — son dos capacidades,
+ * decidiera 0 % de alucinación (D-038) no lo decide aquí — son dos capacidades,
  * y extender una decisión de una a otra es adivinar con papeleo.
  */
 export const LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO =

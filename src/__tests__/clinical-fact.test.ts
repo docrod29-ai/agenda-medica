@@ -414,7 +414,7 @@ describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
     /**
      * EL HUECO CRECIÓ, Y ESO ES LO QUE ESTE GUARDIÁN EXISTE PARA QUE SE VEA.
      *
-     * REG-553 metió ocho analitos del catálogo del dueño (D-032) y con ellos dos
+     * REG-553 metió ocho analitos del catálogo del dueño (D-041) y con ellos dos
      * unidades que el motor de cantidades todavía no sabe expresar: `fL` (VCM) y
      * `ng/mL` (ferritina, vitamina D). No se «arregló» ampliando `FACTORES` de
      * paso: ampliarlo toca un guardián deliberado de otra unidad de trabajo, y

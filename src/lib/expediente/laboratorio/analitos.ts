@@ -15,7 +15,7 @@
  * Puro y determinista → testeable.
  */
 
-import CATALOGO from './catalogo-d032.json'
+import CATALOGO from './catalogo-d041.json'
 
 export interface Analito {
   /** Clave canónica estable (la serie temporal se agrupa por esto). */
@@ -27,7 +27,7 @@ export interface Analito {
   /** Unidad convencional esperada. */
   unidad: string
   /**
-   * CUANDO EL NOMBRE NO BASTA — regla §25.2 del catálogo del dueño (D-032).
+   * CUANDO EL NOMBRE NO BASTA — regla §25.2 del catálogo del dueño (D-041).
    *
    * «Neutrófilos 75 %» y «Neutrófilos 7.5 ×10³/µL» son resultados DISTINTOS y
    * el nombre impreso es el mismo. Si el analito declara esto, sólo se reconoce
@@ -35,7 +35,7 @@ export interface Analito {
    * `noReconocidas` y se conserva como texto.
    *
    * Mapear el porcentaje a la serie del absoluto metería un 75 donde va un 7,5:
-   * un valor mal leído, y ése es el eje que el médico puso en CERO (D-031).
+   * un valor mal leído, y ése es el eje que el médico puso en CERO (D-040).
    */
   exigeUnidad?: RegExp
   /**
@@ -107,7 +107,7 @@ const ANALITOS_A_MANO: Analito[] = [
   { clave: 'cloro', etiqueta: 'Cloro', patron: /\b(cloro|cl)\b/i, unidad: 'mEq/L', min: 50, max: 150, refMin: 98, refMax: 107, grupo: 'electrolitos', especimen: 'suero' },
   { clave: 'tsh', etiqueta: 'TSH', patron: /\b(tsh|tirotropina)\b/i, unidad: 'µUI/mL', min: 0.001, max: 200, refMin: 0.4, refMax: 4, grupo: 'tiroides', especimen: 'suero' },
   /**
-   * ── AÑADIDOS POR D-032 (REG-553) ───────────────────────────────────────────
+   * ── AÑADIDOS POR D-041 (REG-553) ───────────────────────────────────────────
    *
    * Los `min`/`max` NO se inventaron: son los del catálogo maestro de
    * plausibilidad del médico dueño, `docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`
@@ -136,7 +136,7 @@ const ANALITOS_A_MANO: Analito[] = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   EL CATÁLOGO COMPLETO DE D-032 — REG-556.
+   EL CATÁLOGO COMPLETO DE D-041 — REG-556.
 
    ── POR QUÉ NO ESTÁ TECLEADO AQUÍ ────────────────────────────────────────────
 
@@ -146,7 +146,7 @@ const ANALITOS_A_MANO: Analito[] = [
    captura en otro.
 
    Los números salen del documento del médico dueño leídos por máquina
-   (`scripts/laboratorio/catalogo-d032.mjs` → `catalogo-d032.json`). Lo único
+   (`scripts/laboratorio/catalogo-d041.mjs` → `catalogo-d041.json`). Lo único
    escrito a mano aquí es el VOCABULARIO —qué grupo y qué muestra tiene cada
    sección— y eso son veinte líneas, no cuatrocientas cifras.
 
@@ -318,7 +318,7 @@ function analitosDelCatalogo(): Analito[] {
     if (previa) {
       if (previa.unidad !== fila.unidad || previa.min !== fila.min || previa.max !== fila.max) {
         throw new Error(
-          `El catálogo de D-032 se contradice en «${clave}»: ${previa.min}–${previa.max} ${previa.unidad} `
+          `El catálogo de D-041 se contradice en «${clave}»: ${previa.min}–${previa.max} ${previa.unidad} `
           + `frente a ${fila.min}–${fila.max} ${fila.unidad}. Se le pregunta al médico dueño; no se elige una.`,
         )
       }
@@ -481,7 +481,7 @@ function norm(s: string): string {
  * A qué analito canónico corresponde un nombre de estudio. `null` si no se
  * reconoce (mejor no graficar que graficar en la serie equivocada).
  *
- * ── POR QUÉ ADMITE LA UNIDAD (REG-553, regla §25.2 de D-032) ────────────────
+ * ── POR QUÉ ADMITE LA UNIDAD (REG-553, regla §25.2 de D-041) ────────────────
  *
  * Hay nombres que NO identifican un analito por sí solos. «Neutrófilos» puede
  * ser 75 (%) o 7,5 (×10³/µL), y son dos series distintas: meter el porcentaje

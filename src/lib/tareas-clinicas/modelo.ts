@@ -215,7 +215,7 @@ export interface TareaClinica {
 export type AvisoAlPaciente = 'avisado' | 'no_avisado' | 'no_aplica'
 
 /**
- * DE QUÉ MANERA CONSTA EL AVISO — decisión del dueño, 31-ago-2026 (D-028).
+ * DE QUÉ MANERA CONSTA EL AVISO — decisión del dueño, 31-ago-2026 (D-037).
  *
  * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo constaba sí /
  * todavía no / no hacía falta, **sin a quién ni por qué vía**.
@@ -285,7 +285,7 @@ export interface CierreDeTarea {
   /** Si se le avisó al paciente. Sin valor = no se registró. */
   readonly avisoAlPaciente?: AvisoAlPaciente
   /**
-   * De qué manera consta el aviso (D-028). Opcional **a propósito**: exigirlo
+   * De qué manera consta el aviso (D-037). Opcional **a propósito**: exigirlo
    * convertiría el cierre en un formulario, y un worklist que cuesta se
    * abandona. Sin valor con `avisado` = se avisó y no se dijo cómo, que es
    * exactamente lo que pasaba antes de este campo.
@@ -389,7 +389,7 @@ export function preguntasAlCerrar(
 }
 
 export const LA_DECISION_DEL_PLAZO =
-  'DECIDIDO por el médico dueño el 31-ago-2026 (D-027): un valor crítico NO '
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-036): un valor crítico NO '
   + 'vence. Se le ofrecieron 1 h, 4 h, 24 h y ninguno, y eligió ninguno. Así que '
   + '`venceEn` no se pone en las tareas de resultado crítico y `estaVencida` no '
   + 'opina sobre ellas — igual que antes, pero ahora por decisión y no por '
@@ -397,7 +397,7 @@ export const LA_DECISION_DEL_PLAZO =
   + 'la pregunta es la única defensa que queda.'
 
 export const LA_DECISION_DE_QUIEN_CUENTA =
-  'DECIDIDO por el médico dueño el 31-ago-2026 (D-028): cuentan como avisado '
+  'DECIDIDO por el médico dueño el 31-ago-2026 (D-037): cuentan como avisado '
   + 'hablar con el paciente, hablar con un cuidador autorizado, entregárselo a '
   + 'otro médico tratante Y un mensaje enviado — «al que sea», con sus palabras. '
   + 'Se le advirtió expresamente de que un mensaje puede morir sin acuse '

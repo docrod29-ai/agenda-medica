@@ -214,7 +214,7 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
 
    ── CÓMO SE TRADUCE CADA EJE, Y POR QUÉ ASÍ ─────────────────────────────────
 
-   El médico decidió (D-029) sobre «medicamentos o diagnósticos dictados que
+   El médico decidió (D-038) sobre «medicamentos o diagnósticos dictados que
    faltan» y «medicamentos añadidos». Este arnés mide CAMPOS. La traducción es de
    quien escribe el código, así que se dice entera y se elige siempre la lectura
    MÁS ESTRICTA — nunca la que hace pasar más fácil:

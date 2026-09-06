@@ -16,7 +16,7 @@
  * ── CÓMO SE RESOLVIÓ ─────────────────────────────────────────────────────────
  *
  * El médico dueño entregó el 2-sep-2026 un catálogo maestro de plausibilidad
- * (D-032), que vive íntegro en
+ * (D-041), que vive íntegro en
  * `docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`. Los ocho números salen
  * de su §31, citado. **No se arregló el umbral: se arregló la causa.**
  *
@@ -30,7 +30,7 @@
  * Y el nombre impreso en la hoja es **el mismo**. `analitoDe` sólo miraba el
  * nombre, así que habría metido el 75 en la serie del absoluto. Eso no es un
  * analito perdido: es un **valor mal leído**, y ése es el eje que el propio
- * médico puso en CERO el día anterior (D-031).
+ * médico puso en CERO el día anterior (D-040).
  *
  * O sea que añadir el diferencial sin mirar la unidad habría cambiado un defecto
  * declarado —una fila que se conserva como texto— por uno silencioso con la
@@ -83,7 +83,7 @@ describe('LOS OCHO ANALITOS, CON LOS NÚMEROS DEL MÉDICO', () => {
     { clave: 'linfocitosPct', unidad: '%', min: 0, max: 100 },
   ]
 
-  it.each(D032)('$clave entra con el rango exacto de D-032', ({ clave, unidad, min, max }) => {
+  it.each(D032)('$clave entra con el rango exacto de D-041', ({ clave, unidad, min, max }) => {
     const a = analitoPorClave(clave)
     expect(a, `falta ${clave}`).not.toBeNull()
     expect(a!.unidad).toBe(unidad)
@@ -112,7 +112,7 @@ describe('LOS OCHO ANALITOS, CON LOS NÚMEROS DEL MÉDICO', () => {
      */
     const doc = readFileSync(CATALOGO, 'utf8')
     expect(doc).toMatch(/Dr\. David Alonso Rodríguez Luna/)
-    expect(doc).toMatch(/D-032/)
+    expect(doc).toMatch(/D-041/)
     expect(doc).toMatch(/Plausibility ≠ normalidad ≠ valor crítico ≠ decisión clínica/)
     // Y los ocho números del §31 están ahí, no sólo en el código.
     for (const { clave, max } of D032) {
@@ -123,7 +123,7 @@ describe('LOS OCHO ANALITOS, CON LOS NÚMEROS DEL MÉDICO', () => {
   it('el módulo CITA el documento, no se lo apropia', () => {
     const modulo = readFileSync(join(RAIZ, 'src/lib/expediente/laboratorio/analitos.ts'), 'utf8')
     expect(modulo).toMatch(/CATALOGO-PLAUSIBILIDAD-LABORATORIO/)
-    expect(modulo).toMatch(/D-032/)
+    expect(modulo).toMatch(/D-041/)
     expect(modulo).toMatch(/NO se inventaron/)
   })
 })

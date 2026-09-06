@@ -160,7 +160,7 @@ describe('la procedencia se dice, y sólo cuando hay algo que decir', () => {
     expect(Boolean(d.descripcion?.trim() && d.tipoOrigen !== 'medico')).toBe(false)
   })
 
-  it('AVISA Y NO BLOQUEA — decisión del dueño, 31-ago-2026 (D-025)', () => {
+  it('AVISA Y NO BLOQUEA — decisión del dueño, 31-ago-2026 (D-034)', () => {
     /**
      * Hasta esta fecha regía por CONSERVACIÓN: se avisaba y no se obligaba
      * porque obligar era fijar política clínica, y eso es del médico. El dueño

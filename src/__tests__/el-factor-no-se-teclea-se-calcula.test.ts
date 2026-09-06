@@ -90,7 +90,7 @@ describe('LOS DOS TESTIGOS — el método se demuestra, no se afirma', () => {
 
   it('los dos están declarados como testigos, no como fuente', () => {
     expect(TESTIGOS_DEL_DOCUMENTO).toHaveLength(2)
-    for (const t of TESTIGOS_DEL_DOCUMENTO) expect(t.donde).toMatch(/D-032 §/)
+    for (const t of TESTIGOS_DEL_DOCUMENTO) expect(t.donde).toMatch(/D-041 §/)
     const doc = readFileSync(join(RAIZ, 'docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md'), 'utf8')
     expect(doc).toMatch(/ng\/mL × 2\.496 ≈ nmol\/L/)
     expect(doc).toMatch(/canonical_value: 1\.58/)

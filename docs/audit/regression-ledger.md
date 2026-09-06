@@ -17635,7 +17635,7 @@ conservación. Se anota en el ledger porque una de las dos cambia un aviso de
 seguridad clínica, y porque la pregunta que se le hizo al dueño estaba mal
 formulada — y eso también hay que dejarlo escrito.
 
-### D-023 · el embarazo como diferencial cuenta para avisar
+### D-032 · el embarazo como diferencial cuenta para avisar
 
 REG-530 encontró que **el comentario del copiloto y su código llevaban años
 contradiciéndose**: el comentario decía que un presuntivo o un diferencial «sí
@@ -17676,7 +17676,7 @@ Probado al revés en las dos direcciones: devolviendo la conducta vieja caen tre
 casos, y haciendo que avise sin diagnóstico gestacional —que sería pasarse de
 frenada— caen otros tres.
 
-### D-024 · el modelo caído: generar y marcar
+### D-033 · el modelo caído: generar y marcar
 
 La conducta **no cambia**: se confirma la que había, opción A. Lo que cambia es
 su estatus, y no es lo mismo aunque el código sea idéntico: **un valor por
@@ -17709,7 +17709,7 @@ Como REG-546: no repara un defecto, cierra dos preguntas. **Ninguna de las dos
 cambia comportamiento** — una confirma lo que hay y la otra difiere. Con las dos,
 `WS-10.pantalla-de-certeza` pasa de `PARTIAL` a `PROVEN`.
 
-### D-025 · firmar avisa, y no bloquea
+### D-034 · firmar avisa, y no bloquea
 
 Se le plantearon tres opciones: avisar sin obligar, bloquear la firma, o bloquear
 sólo el diagnóstico que va a imprimirse. Eligió la primera, que es la que ya
@@ -17732,7 +17732,7 @@ tenía era uno que fijara que **no bloquea**. Ahora hay dos:
 Probado al revés: convertir el aviso en bloqueo tira tres casos; quitar el aviso,
 uno.
 
-### D-026 · el diagnóstico de ingreso de hospital sigue siendo cadena libre
+### D-035 · el diagnóstico de ingreso de hospital sigue siendo cadena libre
 
 **Diferido.** Convertirlo en un diagnóstico con tipo es un cambio de modelo con
 migración de los episodios existentes, y toca el documento del episodio — que es
@@ -17759,7 +17759,7 @@ decisión sin sus alternativas no se puede revisar dentro de seis meses.
 Dos decisiones más del dueño. Con ellas `WS-11.laboratorio` pasa de `PARTIAL` a
 `PROVEN`.
 
-### D-027 · un crítico no vence
+### D-036 · un crítico no vence
 
 Se le ofrecieron 1 h, 4 h, 24 h y «que no venza nunca». Eligió el último, que es
 lo que ya regía. Así que `venceEn` no se pone y `estaVencida` no opina sobre un
@@ -17770,7 +17770,7 @@ la única defensa**. Si alguien la quitara, un crítico podría cerrarse sin que
 conste nada y sin que nada venciera nunca — «lo vi» y «localicé a alguien»
 otra vez indistinguibles, que es lo que hace crítico a un valor crítico.
 
-### D-028 · las cuatro vías cuentan
+### D-037 · las cuatro vías cuentan
 
 Hablar con el paciente, hablar con un cuidador autorizado, entregárselo a otro
 médico tratante **y un mensaje enviado**. Con sus palabras: «al que sea».
@@ -17822,7 +17822,7 @@ se llama.
 
 ## REG-559 — la cabecera dice de qué muestra es, y nadie la estaba leyendo
 
-**Eje.** Laboratorio · §27.3 de D-032 · regla 4 de seguridad clínica.
+**Eje.** Laboratorio · §27.3 de D-041 · regla 4 de seguridad clínica.
 **Fecha.** 5-sep-2026.
 **Prueba.** `src/__tests__/la-muestra-viene-de-la-cabecera.test.ts` (15 casos).
 
@@ -18034,7 +18034,7 @@ triglicéridos con la convención · convertir equivalentes sin la valencia.
 
 ## REG-557 — la hoja que no dijo la unidad dejaba constancia de haberla dicho
 
-**Eje.** Laboratorio · §27.1 y §33 de D-032. **Fecha.** 2-sep-2026.
+**Eje.** Laboratorio · §27.1 y §33 de D-041. **Fecha.** 2-sep-2026.
 **Prueba.** `src/__tests__/la-hoja-muda-no-inventa-su-unidad.test.ts`.
 
 ### Qué fallaba
@@ -18110,7 +18110,7 @@ desde la lectura de la hoja, que es el §32 del catálogo y no está.
 
 ## REG-556 — el catálogo entero, y el defecto vivo que apareció al cargarlo
 
-**Eje.** Laboratorio · D-032 §26 y §27.3. **Fecha.** 2-sep-2026.
+**Eje.** Laboratorio · D-041 §26 y §27.3. **Fecha.** 2-sep-2026.
 **Prueba.** `src/__tests__/el-catalogo-entero-y-de-que-muestra-es.test.ts`.
 
 ### Lo que iba a hacer, y lo que encontré
@@ -18148,8 +18148,8 @@ en orina» —que antes no casaba con nada— ahora casa.
 
 Un dígito cambiado en un límite de captura no rompe nada, no falla ninguna
 prueba, y convierte un límite en otro. Los números se leen por máquina del
-documento del dueño (`scripts/laboratorio/catalogo-d032.mjs` →
-`catalogo-d032.json`), y hay dos guardianes: el JSON contra el documento, y cada
+documento del dueño (`scripts/laboratorio/catalogo-d041.mjs` →
+`catalogo-d041.json`), y hay dos guardianes: el JSON contra el documento, y cada
 analito contra su fila. La frase «estas cifras son las suyas» es refutable.
 
 El script comprueba además que el documento **no se contradiga**: repite doce
@@ -18220,7 +18220,7 @@ suero. Cerrarlo pide el espécimen como CAMPO desde la lectura de la hoja (§27.
 
 ## REG-555 — el decimal se sugiere, y la sugerencia verosímil que había que NO dar
 
-**Eje.** Laboratorio · §29 de D-032. **Fecha.** 2-sep-2026.
+**Eje.** Laboratorio · §29 de D-041. **Fecha.** 2-sep-2026.
 **Prueba.** `src/__tests__/el-decimal-se-sugiere-no-se-corrige.test.ts`.
 
 ### Qué faltaba
@@ -18294,7 +18294,7 @@ fuerte, y no está.
 
 ## REG-554 — el valor correcto en otra unidad, y el equivocado que sí era plausible
 
-**Eje.** Laboratorio · §27 y §28 de D-032. **Fecha.** 2-sep-2026.
+**Eje.** Laboratorio · §27 y §28 de D-041. **Fecha.** 2-sep-2026.
 **Prueba.** `src/__tests__/el-numero-correcto-en-otra-unidad.test.ts`.
 
 ### Eran dos, y la segunda nadie la había mirado
@@ -18363,7 +18363,7 @@ dato sin decírselo (seguridad clínica §3).
 ### El número cambió de significado, así que ahora son dos
 
 Con la fila ya no tirada, «llega al panel» y «entra a la serie» dejaron de ser lo
-mismo. El eje del médico (D-031) mide lo primero: **0 de 46**. Pero **2 llegan
+mismo. El eje del médico (D-040) mide lo primero: **0 de 46**. Pero **2 llegan
 sin gráfica** —glucosa mmol/L y PCR mg/dL, las dos por falta de factor— y eso se
 cuenta aparte, con su propio trinquete. Si sólo se midiera el eje, esas dos
 desaparecerían del informe justo cuando dejaron de desaparecer del panel.
@@ -18395,7 +18395,7 @@ cobertura del catálogo**, y no se pudieron arreglar ese día porque un analito
 necesita su rango plausible y un rango plausible es una cifra clínica.
 
 El médico dueño entregó al día siguiente un **catálogo maestro de plausibilidad**
-(D-032) — ~200 analitos con su unidad canónica y sus límites de captura, más las
+(D-041) — ~200 analitos con su unidad canónica y sus límites de captura, más las
 reglas de modelado. Vive íntegro en
 `docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`, con su autor y su fecha.
 
@@ -18412,7 +18412,7 @@ Y el nombre impreso en la hoja es **el mismo**. `analitoDe` sólo miraba el
 nombre, así que habría metido el 75 en la serie del absoluto. Eso no es un
 analito perdido —que se nota, y que se conserva como texto—: es un **valor mal
 leído**, con la forma correcta, invisible. Y ése es el eje que el propio médico
-había puesto en CERO el día anterior (D-031).
+había puesto en CERO el día anterior (D-040).
 
 Añadir el diferencial sin mirar la unidad habría cambiado un defecto declarado
 por uno silencioso. **Peor que no añadirlo.**
@@ -18486,7 +18486,7 @@ defensa hace lo correcto —mejor fuera que un punto falso en la gráfica— per
 paciente cuyo laboratorio reporte en unidades del SI **se queda sin serie de
 glucosa y nadie se lo dice**.
 
-### Lo que decidió el médico (D-031)
+### Lo que decidió el médico (D-040)
 
 | Eje | Umbral | Por qué |
 |---|---|---|
@@ -18498,7 +18498,7 @@ glucosa y nadie se lo dice**.
 
 Un **analito inventado** —una fila en el panel que no está en la hoja— no tiene
 umbral, porque no se lo pregunté. Se cuenta y se reporta; no reprueba. Que en la
-nota decidiera 0 % de alucinación (D-029) **no lo decide aquí**: son dos
+nota decidiera 0 % de alucinación (D-038) **no lo decide aquí**: son dos
 capacidades, y extender una decisión de una a otra es adivinar con papeleo. Queda
 en `LO_QUE_NO_SE_LE_PREGUNTO_DEL_LABORATORIO` con su `NEEDS_CLINICAL_REVIEW` y su
 guardián.
@@ -18514,7 +18514,7 @@ Y el 15,2 % **depende de las hojas que escribí yo**. Ocho químicas básicas
 habrían dado 0 %. Se escribieron para parecerse a las de verdad, y eso es un
 juicio mío, no una medición del producto. Queda dicho en la cabecera del golden.
 
-### Trinquete, con el patrón que el propio dueño fijó en D-030
+### Trinquete, con el patrón que el propio dueño fijó en D-039
 
 Sellado en 7 filas: sólo puede bajar. Bajarlo es añadir analitos al catálogo, y
 eso pide rango plausible con fuente — una cifra que no se inventa. Como en
@@ -18586,7 +18586,7 @@ hija—. El motor **se comió la frase entera**: se perdió la cifra y se perdi�
 quién la dijo. (De paso funde a la hija con la paciente en un solo hablante, que
 es un defecto de diarización y esta lectura, que sólo ve texto, no vigila.)
 
-### Lo que decidió el médico (D-030) y lo que no
+### Lo que decidió el médico (D-039) y lo que no
 
 Tres ejes que **no se suman**, y sólo uno es suyo:
 
@@ -18700,7 +18700,7 @@ ese umbral fuera **cero**.
 
 Eso es más estricto, no más laxo, así que se aplica igual. Lo que no se puede
 hacer es callarlo: cada lectura lo declara (`elConjuntoNoAlcanzaElUmbral`) y el
-`porQue` lo dice con todas las letras. **Para ejercer el 1 % de D-029 harían
+`porQue` lo dice con todas las letras. **Para ejercer el 1 % de D-038 harían
 falta ≥ 100 campos esperados, y ese conjunto no existe.** Hay contraprueba con
 cien campos sintéticos: la limitación es del corpus, no del código.
 
@@ -18737,7 +18737,7 @@ pendiente en un número.
 
 **Eje.** WS-12.contratos-de-evaluacion. **Fecha.** 31-ago-2026.
 
-### D-029 · el umbral de `nota-consulta`
+### D-038 · el umbral de `nota-consulta`
 
 Quince de los diecisiete contratos esperaban una cifra del médico. El dueño fijó
 el primero, el de la nota, y lo fijó **con dos números distintos**:

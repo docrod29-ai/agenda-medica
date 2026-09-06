@@ -63,7 +63,7 @@ export interface ResultadoValidado {
   /** Se puso en una serie temporal (analito reconocido y valor plausible). */
   graficable: boolean
   /**
-   * ── LO QUE D-032 §27.1 EXIGE CONSERVAR (REG-554) ──────────────────────────
+   * ── LO QUE D-041 §27.1 EXIGE CONSERVAR (REG-554) ──────────────────────────
    *
    * «Nunca eliminar la unidad original después de normalizar.» Si sólo se
    * guardara el valor canónico, nadie podría discutir una conversión ni auditar

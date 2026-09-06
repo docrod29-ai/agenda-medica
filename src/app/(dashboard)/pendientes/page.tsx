@@ -800,7 +800,7 @@ export default function PendientesPage() {
               dirá que no consta, no que no se avisó.
             </span>
             {/**
-              * REG-548 · DE QUÉ MANERA consta el aviso (D-028).
+              * REG-548 · DE QUÉ MANERA consta el aviso (D-037).
               *
               * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo
               * constaba sí / todavía no / no hacía falta, sin a quién ni por qué

@@ -141,7 +141,7 @@ function etiquetaDelAviso(t: Pick<TareaClinica, 'cierre'>): string {
     /**
      * REG-548 · la etiqueta dice DE QUÉ MANERA, cuando consta.
      *
-     * El dueño decidió (D-028) que las cuatro vías cuentan como avisado,
+     * El dueño decidió (D-037) que las cuatro vías cuentan como avisado,
      * incluido un mensaje enviado, sabiendo que un mensaje puede morir sin acuse
      * — este producto lo mide en dos pantallas (REG-535, REG-541).
      *

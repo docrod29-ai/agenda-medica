@@ -1,7 +1,7 @@
 {
   "_generado": "DERIVADO. No editar a mano: sale de docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md",
-  "_comoSeRegenera": "node scripts/laboratorio/catalogo-d032.mjs",
-  "_porQue": "Los límites de plausibilidad son cifras clínicas del médico dueño (D-032). Leerlos por máquina hace falsable la afirmación de que son los suyos.",
+  "_comoSeRegenera": "node scripts/laboratorio/catalogo-d041.mjs",
+  "_porQue": "Los límites de plausibilidad son cifras clínicas del médico dueño (D-041). Leerlos por máquina hace falsable la afirmación de que son los suyos.",
   "filas": [
     {
       "seccion": 2,

@@ -104,7 +104,7 @@ los seis es un defecto**. Verificado uno a uno, leyendo el código:
 | `invariantesProtegidos` | Deriva el conjunto protegido para la **compuerta clínica**; su consumidor es esa compuerta |
 | `correrBenchmark` | Arranque de un banco de pruebas que **se corre a mano** y se paga |
 | `obtenerVersion` | **Redundante**: `listarVersiones` ya devuelve las versiones enteras, así que restaurar no necesita una segunda lectura |
-| `leerElMotor` | **Evaluación, no camino del médico.** Agrega las lecturas de muchas consultas contra su GOLD y las compara con el umbral de D-030; en una consulta de verdad no hay gold — si lo hubiera, no haría falta transcribir. Sus consumidores son el CI (`el-motor-de-voz-tiene-techo`, sobre los 12 diálogos sintéticos) y `scripts/medir-wer-limpio.ts`, que necesita el corpus de 6 000 audios del dueño. REG-551 lo puso en el sitio de `leerConsulta`, que ya no es huérfana: la llama esta función |
+| `leerElMotor` | **Evaluación, no camino del médico.** Agrega las lecturas de muchas consultas contra su GOLD y las compara con el umbral de D-039; en una consulta de verdad no hay gold — si lo hubiera, no haría falta transcribir. Sus consumidores son el CI (`el-motor-de-voz-tiene-techo`, sobre los 12 diálogos sintéticos) y `scripts/medir-wer-limpio.ts`, que necesita el corpus de 6 000 audios del dueño. REG-551 lo puso en el sitio de `leerConsulta`, que ya no es huérfana: la llama esta función |
 
 **Un residuo explicado no es deuda: es una decisión.** Conectar `obtenerVersion`
 añadiría una lectura de Firestore para traer lo que ya está en memoria; conectar

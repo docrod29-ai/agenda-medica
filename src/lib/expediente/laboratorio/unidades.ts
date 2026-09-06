@@ -1,5 +1,5 @@
 /**
- * NORMALIZACIÓN DE UNIDAD Y ESTADO DE VALIDACIÓN — §27 y §28 de D-032.
+ * NORMALIZACIÓN DE UNIDAD Y ESTADO DE VALIDACIÓN — §27 y §28 de D-041.
  *
  * ── QUÉ PASABA ANTES ────────────────────────────────────────────────────────
  *
@@ -52,7 +52,7 @@ export type EstadoDeValidacion =
   /** Unidad conocida y valor fuera de los límites de captura. */
   | 'VERIFY_VALUE_OR_UNIT'
   /**
-   * LA HOJA NO DIJO LA UNIDAD — §33 de D-032, REG-557.
+   * LA HOJA NO DIJO LA UNIDAD — §33 de D-041, REG-557.
    *
    * Se asume la canónica, que es lo que este código hacía desde siempre y lo que
    * casi siempre acierta. Lo que cambia es que **deja de ser silencioso**: el
@@ -237,8 +237,8 @@ export function conversionPara(a: Analito, unidadOrigen: string): Conversion | n
  * sin usarlas, y su golden lo comprueba. Si el método se rompiera, caen.
  */
 export const TESTIGOS_DEL_DOCUMENTO = Object.freeze([
-  { que: 'creatinina 140 µmol/L → 1,58 mg/dL', donde: 'D-032 §27.1' },
-  { que: 'vitamina D ng/mL × 2,496 ≈ nmol/L', donde: 'D-032 §6' },
+  { que: 'creatinina 140 µmol/L → 1,58 mg/dL', donde: 'D-041 §27.1' },
+  { que: 'vitamina D ng/mL × 2,496 ≈ nmol/L', donde: 'D-041 §6' },
 ])
 
 /**
@@ -359,7 +359,7 @@ export interface Dictamen {
  * que no puede afirmar, lo marca.
  *
  * @param unidadReportada  tal cual venía en la hoja. Vacía = se asume la
- *   canónica, que es lo que este código ya hacía antes de D-032. Su §33 tiene un
+ *   canónica, que es lo que este código ya hacía antes de D-041. Su §33 tiene un
  *   estado propio para eso (`MISSING_UNIT`) y todavía no está: queda declarado.
  */
 export function dictaminar(a: Analito, valor: number, unidadReportada?: string): Dictamen {

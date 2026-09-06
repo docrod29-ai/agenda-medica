@@ -38,7 +38,7 @@ export const TERMINOS_DESCONOCIDOS: readonly string[] = [
   '   ',
   // Esta lista lleva TRES mudanzas y las tres por la misma razón buena: el
   // catálogo creció. 'ferritina' salió en REG-553 (entró con los números de
-  // D-032); 'procalcitonina' y 'haptoglobina' en REG-556, cuando entró el
+  // D-041); 'procalcitonina' y 'haptoglobina' en REG-556, cuando entró el
   // catálogo ENTERO del dueño — 220 analitos.
   //
   // Ahora hacen falta términos que NO estén en el documento del dueño, y ya no
