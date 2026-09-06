@@ -3,6 +3,36 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1183 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1183.md`](PAQUETE-PRODUCCION-2026-09-06-v1183.md).
+
+**27 commits desde v1182** (17 cortes + fusión + contabilidad) · 40 rutas de
+API, 5 pantallas, 8 módulos nuevos, 17 pruebas nuevas · `firestore.rules` sin
+tocar.
+
+Un día de auditoría con seis frentes en paralelo (API, voz, medicación,
+test-the-test, seguridad, experiencia del paciente), verificado hallazgo por
+hallazgo antes de tocar nada, y diecisiete cortes chicos, cada uno con su
+prueba que falla sin el arreglo (REG-515 a REG-531). Lo que más pesa para el
+médico: la **receta** ahora cruza lo de hoy con la medicación vigente y la
+creatinina del expediente (REG-523), avisa cuando la misma sustancia va dos
+veces —«Paracetamol» y «Tempra»— con la suma contra el techo del catálogo
+(REG-524), y no supone adulto cuando falta la edad (REG-520). Para el
+paciente: el enlace revocado ya no abre la sala de video (REG-515), la
+cancelación ARCO apaga su portal (REG-522), y su pregunta escalada llega a
+alguien aunque el consultorio no tenga teléfono (REG-517, REG-519). Para la
+seguridad: cuarenta rutas dejan de devolver el error crudo (REG-530), el
+redactor de logs cumple lo que prometía (REG-528) y el candado del canal de
+WhatsApp resiste una carrera (REG-529).
+
+Y una lección que queda escrita: la primera verificación en navegador de la
+rama destapó REG-531 con las 33 pruebas de la receta en verde. Un `git diff`
+que se ve bien no es una pantalla que funciona.
+
+---
+
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
 **PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
