@@ -284,4 +284,328 @@ arreglos, no valida ninguna cifra clínica, no estima esfuerzo, no decide
 prioridad de reparación y no acepta ningún residual. Los residuales críticos de
 la §3 están **abiertos** hasta que el dueño los firme.
 
-<!-- LOTE 2 PENDIENTE -->
+## Lote 2 — asistentes y pacientes
+
+Fecha: 2026-09-06 · Lote 2 (cuatro asistentes, cinco pacientes).
+Mismo autor, misma escala y mismo filtro que el lote 1. La numeración continúa
+en **R-36**; **no he tocado ninguna fila del lote 1**, ni
+`agent-state/RISK_REGISTER.md`, ni `src/`.
+
+Dos cosas que este lote cambia respecto del anterior, dichas antes de la tabla:
+
+- El lote 1 miró **lo que el médico escribe**. Éste mira **lo que sale del
+  consultorio**: el mensaje, el cobro, el enlace, el documento que el paciente
+  descarga y la pregunta que hace a las 2 a.m. Casi todo lo nuevo es de la
+  familia «el dato tiene que LLEGAR» y de su reverso, que no estaba nombrado:
+  **llega, pero al destinatario equivocado, o con más de lo que debía llevar**.
+- **Diez de los treinta y dos hallazgos no abren fila nueva.** Son la misma
+  puerta que ya tienen R-14, R-20, R-26, R-28 y R-31, por una ruta distinta.
+  Van a §6. Duplicarlos habría inflado el registro y escondido lo importante:
+  que el problema es **uno** y que ahora se ha demostrado en cinco
+  especialidades a la vez.
+
+---
+
+## 5. Filas nuevas del lote 2
+
+| # | Peligro | Sev | Control actual | Riesgo residual | Estado |
+|---|---|---|---|---|---|
+| R-36 | **P0** · **Ningún cobro se puede anular.** Con cita, la transacción escribe antes de leer y Firestore la rechaza siempre (ASC-001); sin cita, la regla compara `citaId`/`patientId` por acceso directo sobre un documento que no los tiene y deniega (ASC-002). Borrar está prohibido por reglas (`firestore.rules:982`) | 4 | Ninguno. `quien-anulo.test.ts` es puro y nunca ejecuta `cancelarCobro`; `firestore-rules-guard.test.ts` hace grep del texto de la regla, no la evalúa. Lo que ve la persona es el mensaje crudo del SDK | **Alto**: la única vía de corrección del libro de cobros está rota al **100 %**, y lo que se capturó mal se queda en Finanzas, en el corte, en las comisiones y en el CSV del contador. Un cobro duplicado al paciente no puede llevar constancia de su corrección | Nuevo · **no liberable** |
+| R-37 | El libro de cobros se puede **falsear desde el navegador** y el sello de la cortesía **se borra**: `cobroId` y `cobradoEn` no aparecen en ninguna regla de `appointments` (ASC-003), y `quitarExencion` vacía motivo y autor sin `logAudit` (ASC-004) | 4 | Parcial y en el sitio equivocado: el corte cruza cobros reales, pero `estaSaldada` acepta el OR y da por saldada la cita que sólo tiene `cobroId`. Antes de quitar la cortesía hay un `confirm()` del navegador: eso no es un control de servidor | **Alto**: es el hueco que cerró REG-003 para la cortesía, abierto por las otras dos puertas, y **con el agravante de que borra el sello en vez de conservarlo**. El emulador con rol `secretaria` permitió las tres escrituras, incluida `cobroId:''` para volver a cobrar una cita ya saldada | Nuevo · no liberable |
+| R-38 | **El mensaje con datos del paciente sale al teléfono equivocado**: cualquier número que no empiece por 52 se convierte en silencio en uno mexicano (`+1 619…` → `526195551234`, ASM-002), y corregir el teléfono del expediente **no corrige el de sus citas**, que es de donde lee el cron (ASM-004) | 4 | Ninguno en los dos caminos. Ningún formulario pide código de país; `whatsapp-telefono.test.ts` sólo cubre números mexicanos. No existe reconciliador entre `patients` y `appointments`: `pacienteTelefono` sólo se escribe al crear la cita | **Alto**: el recordatorio lleva nombre completo, médico, fecha, hora y nombre del consultorio —que suele nombrar la especialidad— y el envío se reporta «ok». El equipo rojo matiza que 619 no es LADA asignada en México, así que ese caso concreto lo rechaza el proveedor: **la mutación silenciosa y la ausencia total de validación de país quedan confirmadas**, y basta que los diez dígitos caigan en numeración asignada | Nuevo · no liberable |
+| R-39 | La confirmación por WhatsApp sólo funciona si el paciente contesta **en menos de 2 h**: el bloque de caducidad de sesión corre 44 líneas **antes** del que atiende SÍ/NO y hace `return`, así que borra la sesión y manda el menú de bienvenida (ASM-006) | 3 | Ninguno: el texto del cron dice «Responde SÍ» y **no dice el plazo**. `bot-si-no-cancela.test.ts` comprueba cadenas del código, no la caducidad | **Medio**: el recordatorio sale 23-26 h antes; el paciente que contesta al salir del trabajo recibe «¡Bienvenido! 1️⃣ Agendar cita…» y cree que confirmó. El «NO» tampoco cancela, así que el hueco no llega a la lista de espera. Es el argumento de venta de la agenda | Nuevo · liberable sólo si el mensaje declara el plazo; hoy, no |
+| R-40 | **Un paciente, dos expedientes.** Buscar por un apellido a secas contesta «Ninguno de los 6 expedientes coincide» aunque exista (ASE-001); el importador guarda `15/03/1980` tal cual, así que no hay `edad` y el motor de duplicados declara «dos personas» para siempre (ASE-003); y un Excel con apellidos en columnas separadas importa 1 200 pacientes **sólo con el nombre de pila** (ASE-004) | 4 | Parcial e insuficiente: `buscarPosiblesDuplicados` rescata dos palabras parecidas, pero con una sola palabra la similitud es 0.67 contra un umbral de 0.8 y devuelve `[]`. En la importación, **ninguno**: no hay validación de fecha ni de CURP y la pantalla no lista las columnas descartadas | **Alto**: es un ataque directo al invariante `UN PACIENTE · UNA IDENTIDAD · UN EXPEDIENTE LONGITUDINAL`, y quien paga es el paciente cuyas alergias y antecedentes quedan en la mitad que nadie abre. Un menor importado sin `edad` **no dispara ninguna herramienta pediátrica** (lo dice el comentario del propio código): agrava R-14 y R-13 | Nuevo · no liberable |
+| R-41 | **El derecho ARCO que llega no se puede ejecutar**: las solicitudes nacen `origen:'portal-publico'` sin `patientId`, no existe pantalla que las ligue, y el panel manda a «ejecutarla desde su expediente», donde `grep 'arco'` da cero resultados (ASE-010) | 4 | Parcial y fuera del producto: las rutas `/api/arco/acceso` y `/cancelar` funcionan **si alguien les pasa `patientId` por curl**. En la aplicación sólo quedan «Rechazar» y un `prompt()` de texto libre. Las reglas dejan la puerta abierta (`:775-781`) y ningún código la cruza | **Alto**: incumplimiento LFPDPPP demostrable **con la propia bitácora del producto** —solicitudes recibidas, ninguna ejecutada por la vía documentada—, y con el plazo de 20 días hábiles que la misma pantalla cuenta en voz alta. Con R-31 cierra el cuadro: el derecho no se puede ejercer, y el que sí se ejerció se puede deshacer sin rastro | Nuevo · no liberable |
+| R-42 | **Cerrar sesión no limpia los expedientes del navegador del mostrador**, y la pantalla promete lo contrario: sin una consulta abierta que conteste al evento, `salirSeguro` sale por la rama de `window.location.href` sin `limpiarCacheFirestore()` ni `limpiarBorradoresLocales()` (ASE-013) | 4 | Sólo en el camino menos frecuente: cuando hay una consulta abierta **y** contesta, sí se purga. `AutoLogout`, `Sidebar`, `FlowRail`, el layout y Operaciones pasan todos por la misma función y heredan el hueco. `salir-seguro.test.ts` tiene 6 casos y **ninguno de `salirSeguro`** | **Alto**: la persistencia local está activa en producción; los expedientes quedan legibles en IndexedDB del equipo compartido de recepción después de cerrar sesión, mientras `operaciones/page.tsx:343` dice «nada del consultorio se queda guardado aquí». Contradice `data-privacy.md` en el cierre de sesión más común del día. **Una promesa falsa es peor que no hacer la promesa** | Nuevo · no liberable |
+| R-43 | **El freno de peticiones se cobra sobre la pregunta urgente**: `preguntar` está dentro de `ACCIONES_CLINICAS`, cada carga del portal gasta 3 del cupo de 15/10 min y a la sexta recarga la pregunta «me duele el pecho y me falta el aire» recibe 429 «Demasiadas consultas a tus documentos» (PI-004) | 4 | Sólo la franja `ViaDeUrgencia` con el 911, que sobrevive porque `session` no es acción clínica. Con 429 la ruta **no llega a `clasificarPregunta`**: no hay tarea crítica, no hay WhatsApp al consultorio, no queda registro | **Alto**: el código se contradice a sí mismo por escrito («preguntar tiene su propio freno, y no es el de la agenda») y ese freno propio nunca se cobra porque el clínico va antes. Cinco recargas en diez minutos es lo normal en un teléfono con mala señal a las 2 a.m. **Un canal de escalación que se cierra justo cuando se usa de verdad no es un canal** | Nuevo · no liberable |
+| R-44 | **El paciente lee como suyos diagnósticos descartados, presuntivos, resueltos y propuestos por la IA**, en un documento con cédula que reenvía al jefe o lleva a la farmacia: la ruta del portal concatena `n.diagnosticos` sin filtrar `tipo`, `estado` ni `tipoOrigen`, en la receta descargable (PO-001), en «Mis recetas» (PC-001) y en el resumen del paquete liberado (PO-002) | 4 | Ninguno en `documentos`, que no pasa por liberación alguna. Para el paquete, parcial: nace `DRAFT` y la previsualización se lo enseña al médico rotulado «Motivo:» — pero rotulado así nadie lo lee como la lista de diagnósticos del paciente | **Alto**: **veinte líneas arriba, en el mismo `.map`, la ruta sí aplica la puerta de prescripción**, con 28 líneas de comentario explicando por qué una lista cruda no puede salir impresa bajo una cédula. La asimetría dentro de una sola expresión es el defecto. Es la forma exacta de REG-329, que declaró por escrito no cubrir el paquete. Aviso: copiar `diagnosticoParaImprimir` **no cierra el caso** — `find(definitivo) ?? conTexto[0]` imprime el descartado cuando es el único con texto | Nuevo · no liberable |
+| R-45 | **Un enlace del paciente abre más de lo que hacía falta y viaja reenviado**: el enlace clínico da 7 días de acceso a todo el expediente del niño y permite cancelar, reagendar y preguntar en su nombre, sin forma de compartir sólo la receta o el justificante (PP-005); y el enlace de **agenda** —el que emite cualquier persona del mostrador— devuelve el `motivo` clínico de cada cita y lo incrusta en el `details` del enlace a Google Calendar (PO-010) | 4 | Parcial: dos niveles de alcance con guarda de servidor (E0-06), TTL de 7 días **razonado por escrito en el código**, revocación por el médico, frenos por token y el aviso «este enlace es personal: no lo compartas». No hay bitácora de aperturas ni tercer alcance | **Alto en privacidad**: el reenvío a la guardería, a la escuela o al patrón no es el abuso, **es el caso de uso normal**, y hoy el producto sólo sabe decir «no lo compartas». En PO-010 hay además PHI en un **parámetro de URL hacia un tercero**, que es lo que `security-tenant.md` prohíbe con esas palabras; el riesgo estaba identificado (`patient-token.ts:19`) y se mitigó con caducidad en vez de con alcance | Nuevo · el alcance lo decide el dueño; el `motivo` en la URL, no liberable |
+| R-46 | **Lo que el paciente acepta no describe lo que el sistema hace**: el aviso publicado dice que Meta/WhatsApp «no trata datos de salud» mientras el portal le manda al consultorio el nombre y la pregunta íntegra (PG-005, decidido en D-034 el 5-sep y nunca reflejado en el aviso); el consentimiento de grabación dice «se conserva temporalmente en este dispositivo» y el audio sube a Storage 24 h (PG-003); y al reservar se marca «he leído el aviso de privacidad», que es un `<strong>` y no un enlace, junto a un «consentimiento informado para la atención médica» por casilla (PG-006, PO-007) | 4 | Parcial y del lado del servidor: el aviso **integral** sí lista Firebase y AssemblyAI como subencargados, y `booking/route.ts:249-257` guarda `versionAviso` y el `sha256` del aviso de ese consultorio, así que lo aceptado es reproducible y fechado. Nada de eso lo ve el paciente en el momento de aceptar | **Medio-alto (legal, y de confianza)**: el aviso integral es el primer documento que lee un regulador y hoy afirma lo contrario de lo que el código hace desde el 5-sep. Un «consentimiento informado» por casilla, sin información, no protege a nadie —y es hermano de R-27, que dijo lo mismo del consentimiento quirúrgico impreso | Nuevo · requiere revisión legal del dueño |
+
+### Detalle de clasificación (lo que no cabe en el formato del registro)
+
+| # | Hallazgos | A quién daña | Prob. | Por qué esa probabilidad | ¿Verificado? | ¿Liberable? |
+|---|---|---|---|---|---|---|
+| R-36 | ASC-001 (P0), ASC-002 | Consultorio, contador; paciente si se le cobró de más | **Cierta** | Determinista al 100 % para todo cobro con cita; el suelto lo deniegan las reglas. No hay camino alternativo | Sí: emulador con proyecto aparte, borrado al terminar; salida literal del error de la regla. REP-030 y REP-031 escritos, sin salida guardada | **No** |
+| R-37 | ASC-003, ASC-004 | Consultorio (sustracción de efectivo indetectable); médico | Media | Exige intención y consola para ASC-003; ASC-004 son dos clics en la interfaz normal | Sí: emulador con rol `secretaria`, las tres escrituras PERMITIDAS. REP-032 escrito, sin salida guardada | No |
+| R-38 | ASM-002, ASM-004 | Paciente (PHI a un tercero), médico | Alta para ASM-004, media para ASM-002 | Corregir un teléfono es la corrección más frecuente del día y no surte efecto; la mutación de país necesita un paciente extranjero | Sí: la lógica ejecutada en node, seis entradas con su salida | No |
+| R-39 | ASM-006 | Paciente, médico (no-show) | Alta | La ventana útil real son 2 h de las 23-26 h que dura el recordatorio | Sí: leído el orden literal del webhook | Con el plazo escrito |
+| R-40 | ASE-001, ASE-003, ASE-004 | Paciente (expediente partido), asistente, negocio | Alta | Buscar por apellido es la tarea de 40 veces al día; los apellidos en columnas son el formato de casi cualquier sistema mexicano | Sí: ejecutado con jiti — `similitudNombre = 0.666` contra umbral 0.8; `edadEnAnios('15/03/1980') = null`; `compararPacientes(...) = null`; mapeo `["nombre",null,null,…]` | No |
+| R-41 | ASE-010 | Paciente (derecho), responsable del tratamiento | Alta | Ocurre en **toda** solicitud recibida por el portal: es el único origen que existe | Sí: seguido del otro lado — ninguna escritura manda `patientId`, cero `arco` en el expediente | No |
+| R-42 | ASE-013 | Paciente (privacidad), asistente | Alta | Es la rama por omisión: cerrar sesión desde Pacientes, Agenda u Operaciones, y el cierre por inactividad | Sí: leído el archivo entero, seis llamadores, un solo purgador | No |
+| R-43 | PI-004 | Paciente | Media-alta | Tres peticiones por carga sobre un cupo de 15/10 min: cinco recargas | Sí: observado en vivo con `pac-001` y verificado el orden en la ruta | No |
+| R-44 | PO-001, PC-001, PO-002 | Paciente, médico (medicolegal) | Alta | Ocurre en toda nota firmada con más de un diagnóstico | Sí: respuesta real del emulador con seis diagnósticos sintéticos concatenados | No |
+| R-45 | PP-005, PO-010 | Paciente (privacidad) | Alta | El reenvío del documento a la guardería o al patrón es el uso normal; el enlace de agenda lo emite cualquier miembro | Sí: recorrido con enlace real; `details=Ajuste%20de%20metformina` en la URL de Google | Alcance: dueño |
+| R-46 | PG-005, PG-003, PG-006, PO-007 | Paciente, responsable del tratamiento | Alta | Publicado hoy; la reserva pública es la puerta de entrada del paciente nuevo | Sí: cadena completa decisión → emisor → ruta → documento publicado | Revisión legal |
+
+---
+
+## 6. Filas del lote 1 que reciben evidencia nueva
+
+**No abro fila nueva para nada de esta sección.** Es la misma puerta por otra
+ruta, y separarla habría hecho creer que son problemas distintos.
+
+### R-20 — «La IA del paciente contesta donde debía escalar» · el residual sube de Alto a **Alto y estructural**
+
+El lote 1 lo vio en ginecología (MG-013, MG-014) y se pudo leer como el hueco de
+una especialidad. **No lo es.** Este lote lo demuestra en las cuatro restantes, y
+además parte el peligro en dos mecanismos que conviene no confundir:
+
+1. **Se contesta cuando debía escalar** (PI-001, PI-002, con MG-014). Esto es
+   peor que un vocabulario corto: `PREGUNTA_POR_TOMA` **sobre-captura por
+   subcadena** (sin `\b`, «como» y «cuando» casan dentro de otras palabras), así
+   que «si no como, ¿me tomo la metformina?» y «¿puedo saltarme el paracetamol
+   hoy?» devuelven `ANSWER_FROM_APPROVED_PLAN` con `avisarAlConsultorio:false`.
+   Un efecto adverso contado con la palabra «cuando» («cuando tomo la furosemida
+   me da mucha sed, ¿es normal?») recibe la pauta y **no llega a Pendientes**;
+   la misma queja sin «cuando» sí escala. El destino por omisión deja de ser
+   escalar: eso **refuta el invariante que el módulo se atribuye en su propia
+   cabecera** («vocabulario incompleto pierde precisión, nunca seguridad»).
+2. **Se escala como ordinario lo que era urgencia** (PG-001, PP-001, PP-002,
+   PC-003, PO-003, con MG-013). Cinco especialidades, un solo archivo y una sola
+   línea: `urgencia.ts:48`. Obstetricia (sangrado con dolor, no siento al bebé),
+   pediatría (39.5 °C y no despierta), postoperatorio (herida roja con fiebre,
+   sale pus, no para de sangrar) y vascular (el pie morado y frío bajo la
+   férula). El equipo rojo mantiene **P2/parcial** en todos porque el hueco está
+   **declarado por escrito** en el módulo, que es exactamente lo que manda
+   `clinical-safety.md §5`, y ampliarlo es política clínica: `NEEDS_CLINICAL_REVIEW`.
+   **Estoy de acuerdo con esa clasificación y en desacuerdo con leerla como
+   tranquilidad**: un caso declarado no es un caso atendido, y cinco
+   especialidades pidiendo lo mismo el mismo día es una decisión pendiente del
+   dueño, no una nota al pie (§7.14).
+
+Dos matices que sí son accionables **sin** decisión clínica y que separo para que
+no se pierdan dentro de lo anterior:
+
+- **PP-002** — `ingesta_accidental_o_sobredosis` **ya está implementada** y es
+  una de las cinco del §6. Sólo falta la palabra «dosis»: «se tomó doble dosis
+  sin querer» → `null`, mientras «se tomó dos pastillas de más» → URGENT. No es
+  un hueco de criterio, es un hueco de vocabulario dentro de una categoría
+  cubierta.
+- **PP-001** — «no despierta», «no reacciona», «está aletargado» son sinónimos
+  coloquiales de «no responde», que **ya está dentro** de los síntomas
+  neurológicos agudos. Lo que sí es política clínica nueva es escalar por la
+  edad del token (fiebre en el lactante).
+- **PC-003** — `TEXTO_ESCALACION` no lleva la vía que `mensajeDeUrgencia` sí
+  lleva. La franja del 911 está arriba en la misma pantalla —el equipo rojo
+  corrige aquí al auditor—, pero la respuesta a **su** pregunta le dice que
+  espere.
+
+### R-28 — «Los signos de alarma y las indicaciones no llegan al paciente» · confirmado en tres especialidades y **con una corrección**
+
+PC-002, PG-002 y PO-004 son MC-002 por tres rutas. Lo nuevo:
+
+- La plantilla `nota_alta` **ya tiene `signosAlarma` como clave estructurada y
+  obligatoria** (`templates.ts:62`): el producto sabe modelar el campo, y
+  `componerPaquete` sigue devolviendo `warningSigns: []` a pelo. No falta el
+  concepto: falta que el compositor mire las secciones de la nota.
+- **Corrección al lote 1 y al equipo rojo de ginecología**: PG-002 anotó que
+  `indicacionesDelMedico` «sí viaja por la hoja impresa». **Es falso a la
+  salida.** El equipo rojo de ortopedia lo verificó: `grep -rn
+  'indicacionesDelMedico' src/` devuelve dos líneas, las dos dentro de
+  `como-se-lo-explico.ts`, **cero llamadores**. Las indicaciones del médico no
+  llegan ni al portal ni a la hoja del paciente: sólo a la receta impresa. R-28
+  se ensancha, no se estrecha.
+
+### R-14 — «La red de dosis pediátrica está ciega» · nueva causa, aguas arriba
+
+R-14 decía que el copiloto llama al motor **sin edad**. ASE-003 añade el escalón
+anterior: un paciente **importado** puede no tener `edad` en absoluto, porque
+`edadEnAnios('15/03/1980')` devuelve `null` y el importador guarda la fecha tal
+cual. El propio código lo dice en su comentario (`migracion/page.tsx:212-214`).
+Una migración de 1 200 filas deja a todos esos menores fuera de las herramientas
+pediátricas **antes** de que ningún motor tenga oportunidad de fallar.
+
+### R-31 — «Un bloqueo ARCO se puede deshacer sin rastro» · ahora se ve el cuadro entero
+
+Con R-41/ASE-010 el ciclo ARCO está roto por los dos extremos: **lo que llega no
+se puede ejecutar**, y **lo que se ejecutó se puede revertir desde el navegador**.
+R-31 deja de ser un caso de borde con intención y pasa a ser la mitad de un
+mecanismo que no funciona en ninguno de sus dos sentidos.
+
+### R-26 — «Se hace y no queda rastro» · un primo en el dinero
+
+R-26 clasificó entidades clínicas que se imprimen y no se persisten. ASC-004 es
+la misma lección en el libro de cobros: **quitar** una cortesía no deja
+`logAudit` —la cortesía al ponerla sí lo deja— y además **borra** `exentoMotivo`,
+`exentoPor` y `exentoEn`. No es que el rastro no se escriba: es que el rastro que
+ya existía se destruye. Lo dejo dentro de R-37, y lo anoto aquí porque es el
+mismo defecto de diseño que R-26 vio en la carta de referencia.
+
+### Lo que este lote **no** cambió
+
+- **R-33 (anticipo de Stripe)** — el equipo rojo declara explícitamente que
+  ASC-001 **no** es duplicado de N-002: aquél es a quién le llega el dinero,
+  éste es si se puede corregir. Son dos filas distintas y las dos siguen.
+- **R-02 (fatiga de alerta)**, **R-08 (motores sin validar)**, **R-09/R-10/R-11
+  (alergias)**, **R-13** — sin evidencia nueva en este lote. No las toco.
+
+---
+
+## 7. Riesgos existentes que cambian de estado (`RISK_REGISTER.md`)
+
+Se añade a la §2 del lote 1; no la sustituye.
+
+### R-05 — «Un alérgeno mal transcrito hace que el cruce nunca salte» · una cuarta capa, aguas arriba de las tres del lote 1
+
+El lote 1 añadió emparejamiento, fuente e impresión. R-40 añade la capa cero:
+**el expediente correcto puede no ser el que está abierto.** Si la búsqueda por
+apellido dice «no existe» y se crea un segundo expediente, o si el mismo paciente
+importado y capturado a mano son dos personas para `compararPacientes`, entonces
+las alergias están escritas —bien transcritas, bien emparejadas, bien impresas—
+en la mitad del expediente que nadie abrió. Ningún motor puede cruzar lo que no
+está en el documento que se cargó.
+
+### R-06 — «Datos de un consultorio visibles en otro» · sigue **Controlado**, y la precisión que pedía el lote 1 se vuelve urgente
+
+Nada de este lote toca el aislamiento **entre** consultorios. Tres hallazgos
+tocan lo que la fila no cubre y hoy se puede leer como si cubriera:
+
+- **entre roles**: el emulador con `secretaria` permitió escribir `cobroId`
+  inventado, borrarlo de una cita cobrada y quitar la cortesía sin motivo ni
+  autor (ASC-003, ASC-004). `updateAppointment` es un `updateDoc` **sin lista
+  blanca de campos**, contra lo que pide `security-tenant.md`.
+- **entre personas del mismo mostrador**: los expedientes siguen en IndexedDB
+  después de cerrar sesión (ASE-013).
+- **hacia fuera**: `motivo` clínico en un parámetro de URL a Google (PO-010).
+
+Recomiendo que R-06 diga **qué aísla** (consultorio↔consultorio) y que exista una
+fila hermana para el aislamiento **por rol y por dispositivo**, que hoy no tiene
+ninguna. Redactarla es del dueño; señalar que falta es mío.
+
+### R-07 — «Pérdida de datos sin poder restaurar» · sigue **Parcial**, con un tercer modo de fallo
+
+El lote 1 añadió «lo que nunca se persistió». Este añade **lo que entró mal y el
+respaldo restaurará fielmente**: 1 200 pacientes sin apellidos (ASE-004) y con
+fechas de nacimiento que ningún motor sabe leer (ASE-003), y un libro de cobros
+que no se puede corregir por diseño (R-36, con `allow delete: if false`). El
+simulacro de ida y vuelta seguirá saliendo en verde: **mide fidelidad, no
+corrección**, y no puede distinguir una copia buena de un dato malo.
+
+---
+
+## 8. Lo que sólo puede aceptar el dueño (continúa la §3 del lote 1)
+
+11. **R-36 · Qué se hace con los cobros ya capturados mal.** El defecto tiene
+    arreglo técnico, pero la pregunta que no es técnica es qué pasa con lo que ya
+    está asentado: `delete` está prohibido por reglas, y hoy no hay ninguna vía
+    de corrección. Recomendación por omisión: arreglar la transacción y la regla,
+    y **no** abrir un borrado — la corrección de un libro contable se hace con un
+    asiento de anulación, no borrando. Cuál es esa vía la decide el dueño porque
+    define el corte de caja y lo que ve el contador.
+12. **R-20 ampliado · Qué signos de alarma vigila el portal.** Cinco
+    especialidades han pedido lo mismo el mismo día: obstetricia, pediatría,
+    postoperatorio, vascular e infecciosa. El vocabulario de `urgencia.ts` es
+    literalmente el §6 de `patient-facing-ai.md`, que es **especificación del
+    dueño**: ampliarlo es política clínica final y no lo puede hacer ningún
+    agente. Recomendación por omisión: cerrar primero las dos piezas que **no**
+    requieren criterio nuevo (la palabra «dosis» en una categoría ya
+    implementada, y los sinónimos de «no responde»), y llevar el resto a una sola
+    decisión con el internista real. Mientras tanto, decir en el portal qué **no**
+    vigila —hoy no lo dice.
+13. **R-45 · El alcance de un enlace del paciente.** Hoy sólo existen dos
+    niveles y el reenvío es el uso normal, no el abuso. Qué se construye —receta
+    sola, justificante, constancia, cuidador autorizado con bitácora— es una
+    decisión de producto y de privacidad. **Lo que no espera a esa decisión** es
+    el `motivo` clínico en el `details` de un enlace a Google Calendar: eso
+    contradice `security-tenant.md` por escrito y lo cuento como no liberable.
+14. **R-46 · Redacción legal.** Tres textos que un regulador leería primero: el
+    aviso integral que niega que WhatsApp trate datos de salud (cuando D-034
+    decidió lo contrario el 5-sep), el consentimiento de grabación que dice «en
+    este dispositivo», y la casilla de «consentimiento informado para la atención
+    médica» al reservar. `NEEDS_LEGAL_REVIEW`: no es criterio de un agente.
+    Recomendación por omisión: la del aviso de WhatsApp son dos banderas y
+    regenerar el texto, y no debería esperar a las otras dos.
+15. **R-37 · Un rol de mostrador que puede marcar una cita como pagada.** Es la
+    misma familia que R-12 (E0-06) y la misma pregunta: o hay lista blanca de
+    campos en servidor, o el dueño re-acepta el residual **a sabiendas y con
+    fecha**. Aquí el daño es dinero, no secreto médico, y por eso va aparte.
+16. **R-41 · El plazo de 20 días hábiles ya está corriendo** para cualquier
+    solicitud ARCO recibida. Esto no es sólo una reparación: si hay solicitudes
+    reales pendientes, hay una obligación con fecha. El dueño es quien sabe si
+    las hay.
+
+---
+
+## 9. Nota de método del lote 2 — qué leí y qué no
+
+**Leí completo**: `docs/ai/NEXUSMED_AUDITORIA_PANEL_DE_LUJO_MASTER_PROMPT.md` §5
+Fase 4 · `agent-state/RISK_REGISTER.md` (las ocho filas) · este archivo entero,
+el lote 1, antes de escribir una línea.
+
+**Insumo, en pares auditor↔equipo rojo** (9 pares, `crudos/`): `AS-recepcion`,
+`AS-cobros`, `AS-mensajeria`, `AS-expedientes`, `P-interna`, `P-cirugia`,
+`P-gineco`, `P-pediatria` y `P-ortopedia` — este último existía ya al empezar y
+lo incluí, como se me encargó.
+
+**Filtro aplicado**, idéntico al del lote 1: veredicto rojo `confirmado` o
+`parcial`, con `prioridad_final` **del equipo rojo** P0 o P1; más los P2 con
+`severidad` 4 o 5. Salen **32 hallazgos** de 202 veredictos. **22** abren las
+once filas nuevas R-36…R-46; **10** van a §6 como evidencia de filas del lote 1
+(PI-001, PI-002, PG-001, PP-001, PP-002, PC-003, PO-003 → R-20; PC-002, PG-002,
+PO-004 → R-28) y no se cuentan aparte.
+
+**Uso la prioridad del equipo rojo, también cuando me incomoda.** El rojo **subió**
+ASC-001 a P0 y PO-010 de P2 a P1, y **bajó** PO-001 de P0 a P1, PC-002 y PG-002 a
+P2, PC-003, PG-001, PP-001, PP-002, PO-002, PO-003, PG-003, PG-006 y PP-005 a P2.
+Respeté todas. Donde no estoy de acuerdo con la **lectura** de una bajada lo digo
+en el texto y no en el número (§6, urgencias declaradas).
+
+**AS-recepcion aporta cero filas.** No es un descuido: el equipo rojo bajó sus
+dos P1 a P3 con evidencia —el 500 al agendar sólo lo produce la **siembra
+sintética**, porque toda alta real escribe `DEFAULT_CONFIG` entero— y ninguno de
+sus P2 llega a severidad 4. Lo dejo dicho porque un lote sin filas parece un lote
+sin revisar, y no lo es. Dos de sus hallazgos rozan filas existentes sin entrar
+por el filtro (ASR-011, segundo expediente a un homónimo, que toca R-40 y R-24;
+ASR-005, cancelar sin confirmación disparando WhatsApp): su sitio es
+`12-FACILIDAD-DE-USO.md`.
+
+**Verificación**: mientras escribía esto, la Fase 3 depositó los tres primeros
+ficheros del lote —`REP-030` y `REP-031` (R-36) y `REP-032` (R-37), más
+`REP-070` para el hallazgo de enfermería que aquí no clasifico—. **No hay
+todavía un `SALIDA-*.txt` con su ejecución**, así que los cuento como escritos y
+no como corridos: nueve de los once peligros de este lote siguen sin fichero.
+Lo que sí tienen todos es verificación del equipo rojo con herramientas reales,
+y la distingo de la argumentada en la tabla de detalle: **emulador de Firestore** con proyecto aparte
+y borrado al terminar (ASC-001, ASC-002, ASC-003, ASC-004, PO-001), **ejecución
+del motor real con jiti o node** (ASE-001, ASE-003, ASE-004, ASM-002, PI-001,
+PI-002, PC-003, PP-001, PP-002, PO-003) y **recorrido en vivo con enlaces de
+paciente sintéticos** (PI-004, PP-005, PO-010, PG-006). Ninguna de esas salidas
+está sellada en `invariantes-clinicos.json`: **hoy no hay prueba en el árbol que
+falle por ninguno de estos once peligros**, y por tanto nada impide que
+reaparezcan. Eso es parte del riesgo residual de cada fila, no una nota al pie.
+
+**No leí, y por tanto este lote no cubre**:
+
+- El par de **enfermería**: `AS-enfermeria.json` existe (14 hallazgos, seis P1
+  del auditor) y **`R-AS-enfermeria.json` no existía al escribir esto**. No
+  clasifico hipótesis sin verificar: la regla del panel es que lo que dice un
+  auditor simulado es hipótesis hasta que el rojo lo ancle. Dicho para que no se
+  pierda, y **sin valor de riesgo asignado**: ASN-001 (el primer signo vital
+  pierde una cifra) y ASN-005 (`154 lb` se convierte en 154 kg sin decirlo, que
+  es el vecino directo de R-15 y de REG-013) son los dos que más probablemente
+  acaben en el registro; para el primero ya hay `REP-070` escrito, y aun así no
+  lo clasifico sin su veredicto rojo. Requieren su lote 3.
+- **`R-ataques-propios.json`** no existe. Los ataques del propio equipo rojo
+  quedan sin clasificar.
+- **`reproducciones/SALIDA-ASISTENTES.txt`** no existe. Las reproducciones que
+  leí son las del lote 1 (`SALIDA-P0.txt`, `SALIDA-P1.txt`), que no cubren nada
+  de este lote.
+- Los P2 con severidad ≤3 y los P3 de los nueve pares: fricción y mejora, su
+  sitio es `12-FACILIDAD-DE-USO.md` y `08-MEJORAS-CLASE-MUNDIAL.md`.
+- Los **refutados** (10 en estos pares). El rojo ya citó `archivo:línea` que los
+  impide.
+- **No verifiqué el código por mi cuenta**, igual que en el lote 1. Clasifico
+  sobre la evidencia del auditor y la verificación del rojo; donde discrepan, uso
+  la del rojo y lo digo (PC-003, PG-003, PO-001, PP-001, PP-005 y la corrección
+  de PG-002 que trajo PO-004).
+- **No toqué** `agent-state/RISK_REGISTER.md`, `src/`, `firestore.rules` ni
+  ningún archivo fuera de este directorio, ni las filas del lote 1.
+
+**Y lo que no hago, otra vez, porque no es mío**: no propongo arreglos, no valido
+cifras clínicas, no estimo esfuerzo y **no acepto ningún residual**. Los
+residuales de la §8 están **abiertos** hasta que el dueño los firme.
+
+<!-- LOTE 2 HECHO · 2026-09-06 -->
+<!-- No existían al escribir el lote 2: crudos/R-AS-enfermeria.json · crudos/R-ataques-propios.json · reproducciones/SALIDA-ASISTENTES.txt (ninguna salida de ejecución para REP-030/031/032/070, que sí aparecieron durante la escritura) -->
+
