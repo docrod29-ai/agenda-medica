@@ -145,7 +145,7 @@ export function NerPanel({ entidades, negacionesCorregidas, avisosTemporales, ca
             corresponde.
           */}
           {c.alternativa_sugerida && (
-            <div style={{ fontSize: 13, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text)', marginTop: 6, padding: '6px 10px', background: 'var(--s2)', borderRadius: 6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
               <Lightbulb size={13} className="ds-icon" color="var(--amber)" style={{ flexShrink: 0, marginTop: 2 }} />
               <span>
                 Alternativa que propone el modelo, <b>sin verificar</b>: <strong>{c.alternativa_sugerida}</strong>.
@@ -370,7 +370,7 @@ function ChipConCita({ estilo, cita, children }: { estilo: React.CSSProperties; 
         {children}
       </button>
       {abierta && (
-        <span style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.45, maxWidth: 320 }}>
+        <span style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.45, maxWidth: 320 }}>
           En el dictado: «{cita}»
         </span>
       )}
@@ -388,12 +388,12 @@ function ProcedenciaDeLaEntidad({ cita }: { cita?: string }) {
         type="button"
         onClick={() => setAbierta(a => !a)}
         aria-expanded={abierta}
-        style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 600, color: 'var(--nexus)', cursor: 'pointer', textDecoration: 'underline' }}
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 10.5, fontWeight: 600, color: 'var(--nexus)', cursor: 'pointer', textDecoration: 'underline' }}
       >
         {abierta ? 'Ocultar de dónde salió' : 'De dónde salió'}
       </button>
       {abierta && (
-        <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>En el dictado: «{cita}»</div>
+        <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 3, lineHeight: 1.45 }}>En el dictado: «{cita}»</div>
       )}
     </div>
   )

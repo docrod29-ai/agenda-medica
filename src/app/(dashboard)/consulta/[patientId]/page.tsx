@@ -5261,7 +5261,7 @@ export default function ConsultaActivaPage() {
         {hayAlergias && laLecturaAnadeAlgo(String(patient?.alergias ?? ''), alergenosDelPaciente) && (
           <span
             className="nx-critico nx-lectura-alergenos"
-            style={{ fontSize: 12.5, fontWeight: 700 }}
+            style={{ fontSize: 12, fontWeight: 700 }}
             title="Lo que el sistema entiende como alérgeno a partir de lo escrito"
           >
             se lee: {alergenosDelPaciente.join(' · ')}
@@ -5586,7 +5586,7 @@ export default function ConsultaActivaPage() {
 
       {/* Continuidad: contexto de las últimas visitas (solo lectura) */}
       {contextoPrevio && (
-        <div className="nx-ctx" style={{ fontSize: 12.5, color: 'var(--text2)' }}>
+        <div className="nx-ctx" style={{ fontSize: 12, color: 'var(--text2)' }}>
           <FileText size={14} className="ds-icon" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
             <strong style={{ color: 'var(--text)' }}>Visitas anteriores:</strong> {contextoPrevio}
@@ -5596,7 +5596,7 @@ export default function ConsultaActivaPage() {
 
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12.5, color: 'var(--text2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12, color: 'var(--text2)' }}>
           <BedDouble size={15} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
           Nota de <strong>Hospitalización</strong> — al guardar/firmar regresas al episodio, no a Consulta.
         </div>
@@ -5629,7 +5629,7 @@ export default function ConsultaActivaPage() {
           background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+          <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
             Hay un <strong>respaldo local</strong> de una nota sin terminar en este dispositivo
             {respaldoMeta?.ts
               ? <> — guardado a las {new Date(respaldoMeta.ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</>
@@ -5660,7 +5660,7 @@ export default function ConsultaActivaPage() {
           background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)',
         }}>
           <ShieldCheck size={16} style={{ color: 'var(--nexus)', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
+          <span style={{ fontSize: 12, color: 'var(--text2)', flex: 1, minWidth: 160 }}>
             Este paciente tiene una <strong>consulta sin cerrar</strong>
             {borradorDelServidor.fecha ? ` del ${formatDateMX(borradorDelServidor.fecha)}` : ''}
             {borradorDelServidor.conSignos ? ', con signos vitales ya capturados' : ''}.
@@ -5934,7 +5934,7 @@ export default function ConsultaActivaPage() {
                     Aquí sólo queda lo que ese panel NO tiene: lo que pasa
                     DESPUÉS de grabar. */}
                 {!mandaElPanelDeEscucha && (
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                     {audio.estado === 'listo' ? 'Transcripción lista'
                       : 'Grabar la conversación completa (médico + paciente)'}
                   </div>
@@ -6364,13 +6364,13 @@ export default function ConsultaActivaPage() {
         if (nuevos.length === 0) return null
         return (
           <div style={{
-            marginBottom: 14, borderRadius: 11, padding: '11px 13px',
+            marginBottom: 14, borderRadius: 10, padding: '11px 13px',
             border: '1px solid var(--nexus-borde)', background: 'var(--nexus-tenue)',
           }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
               {nuevos.length === 1 ? 'Del dictado salió 1 estudio' : `Del dictado salieron ${nuevos.length} estudios`} que no están en la orden
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text3)', margin: '3px 0 8px', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12, color: 'var(--text3)', margin: '3px 0 8px', lineHeight: 1.5 }}>
               Revísalos: se agregan a la orden médica sólo si tú lo pides.
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 9 }}>
@@ -6380,7 +6380,7 @@ export default function ConsultaActivaPage() {
                   type="button"
                   onClick={() => setEstudiosOrden(prev => [...prev, t])}
                   title="Agregar este estudio a la orden"
-                  style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}
+                  style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--s2)', color: 'var(--text2)', cursor: 'pointer' }}
                 >
                   + {t}
                 </button>
@@ -6390,7 +6390,7 @@ export default function ConsultaActivaPage() {
               type="button"
               onClick={() => { setEstudiosOrden(prev => [...prev, ...nuevos]); toast(`${nuevos.length} ${nuevos.length === 1 ? 'estudio agregado' : 'estudios agregados'} a la orden`, 'success') }}
               className="nx-acc-caja"
-              style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+              style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
             >
               Agregarlos todos a la orden
             </button>
@@ -6551,7 +6551,7 @@ export default function ConsultaActivaPage() {
         <button
           onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗
         </button>
       )}
@@ -7273,7 +7273,7 @@ export default function ConsultaActivaPage() {
               border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
               background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--amber)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: 'var(--amber)' }}>
                 <AlertTriangle size={14} /> Revisa lo capturado antes de seguir
               </div>
               <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
@@ -7299,7 +7299,7 @@ export default function ConsultaActivaPage() {
               border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
               background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
             }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--amber)' }}>
                 {correccionesDeSignos.length === 1
                   ? 'Estás corrigiendo un signo que ya estaba guardado'
                   : `Estás corrigiendo ${correccionesDeSignos.length} signos que ya estaban guardados`}
@@ -7334,7 +7334,7 @@ export default function ConsultaActivaPage() {
                     }
                   }}
                   className="nx-acc-caja"
-                  style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+                  style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
                 >
                   Dejar constancia en la nota
                 </button>
@@ -7361,20 +7361,20 @@ export default function ConsultaActivaPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
                 <div>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>
                     Verifica el peso antes de calcular dosis por kilo
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
                     {revisionDelPeso.motivo}
                     {pesoPrevio && ` (el peso anterior es del ${formatDateMX(pesoPrevio.fecha)}).`}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
+                  <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4, lineHeight: 1.45 }}>
                     Mientras tanto la revisión de dosis por kilo de esta consulta no corre.
                   </div>
                   {!firmada && (
                     <button type="button" onClick={() => setPesoConfirmado(true)}
                       className="nx-acc-caja"
-                      style={{ marginTop: 9, border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}>
+                      style={{ marginTop: 9, border: '1px solid var(--border)', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}>
                       Confirmar peso: {signosNum.peso} kg
                     </button>
                   )}
@@ -7659,12 +7659,12 @@ export default function ConsultaActivaPage() {
       {!firmada && avisoQuirurgicoAnticoagulante && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, marginBottom: 4,
-          padding: '11px 13px', borderRadius: 11,
+          padding: '11px 13px', borderRadius: 10,
           border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
           background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
         }}>
           <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
-          <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
             {avisoQuirurgicoAnticoagulante}
           </div>
         </div>
@@ -7845,7 +7845,7 @@ export default function ConsultaActivaPage() {
         <>
           {/* ── Chat de corrección por IA ── */}
           {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 12, background: 'var(--nexus-tenue)', padding: 14 }}>
+            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
               </div>

@@ -176,7 +176,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, pesoPr
                 <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
                 <div>
                   <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>Verifica el peso antes de calcular</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
                     {revPeso.motivo}
                     {fechaDelPesoPrevio && ` (la medición anterior es del ${fechaDelPesoPrevio}).`}
                   </div>
@@ -332,7 +332,7 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, pesoPr
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura la edad en meses para revisar el esquema.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 340, overflowY: 'auto' }}>
-              <p style={{ fontSize: 11.5, color: 'var(--text3)', margin: '0 0 3px', lineHeight: 1.45 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 3px', lineHeight: 1.45 }}>
                 Esto es el <b>esquema que corresponde a la edad</b>, no el estado real del paciente:
                 el expediente no guarda qué vacunas se aplicaron. Verifica la cartilla.{' '}
                 {/* MI-003: el registro clasifica este motor como no revisado y hasta hoy

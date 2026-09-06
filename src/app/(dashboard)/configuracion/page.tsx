@@ -1502,7 +1502,7 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
           */}
         <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
           Token de verificación: el mismo valor que tengas en{' '}
-          <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>WHATSAPP_WEBHOOK_TOKEN</code>{' '}
+          <code style={{ background: 'var(--s2)', padding: '2px 6px', borderRadius: 4, fontSize: 10.5 }}>WHATSAPP_WEBHOOK_TOKEN</code>{' '}
           en Vercel. Tiene que coincidir <strong>exactamente</strong> con el que teclees en Meta;
           si no, la verificación del webhook se rechaza.
         </p>

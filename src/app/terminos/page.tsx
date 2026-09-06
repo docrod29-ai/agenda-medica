@@ -138,7 +138,7 @@ export default function TerminosPage() {
         <a href="/privacidad" style={{ color: 'var(--teal)', fontWeight: 600 }}>Aviso de Privacidad</a>.
       </Section>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text2)' }}>
+      <p style={{ marginTop: 36, fontSize: 12, color: 'var(--text2)' }}>
         Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
       </main>

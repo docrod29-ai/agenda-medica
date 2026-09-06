@@ -221,10 +221,10 @@ export function PanelCirugia({ onAgregarANota, alergias, estadoInicial, onCambio
                 display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 9,
                 border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)',
                 background: 'color-mix(in srgb, var(--red) 7%, transparent)',
-                borderRadius: 9, padding: '10px 12px',
+                borderRadius: 10, padding: '10px 12px',
               }}>
                 <AlertTriangle size={15} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
-                <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
                   <b style={{ color: 'var(--red)' }}>El expediente declara alergia a betalactámicos.</b>{' '}
                   Revisa el esquema antes de elegirlo: la columna «Alergia a betalactámicos» de la tabla de
                   arriba es la alternativa de cada cirugía. La reacción cruzada la juzgas tú.
@@ -233,7 +233,7 @@ export function PanelCirugia({ onAgregarANota, alergias, estadoInicial, onCambio
             )}
             <div style={{ border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', background: 'color-mix(in srgb, var(--blue) 8%, transparent)', borderRadius: 9, padding: '10px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</span>
                 <SelloMotor id="profilaxis-quirurgica" />
               </div>
               <ul style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>

@@ -164,7 +164,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, gestacionInicial,
             <>
               <div style={{ padding: '10px 12px', borderRadius: 9, border: '1px solid color-mix(in srgb, var(--rosa) 35%, transparent)', background: 'color-mix(in srgb, var(--rosa) 10%, transparent)', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--rosa)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--rosa)' }}>
                     {gest.semanas} semanas {gest.dias} días · {gest.trimestre}º trimestre
                   </span>
                   {/* MI-003: el registro clasifica este motor y hasta hoy eso no salía
@@ -215,7 +215,7 @@ export function PanelGineco({ sexo, edadAnios, onAgregarANota, gestacionInicial,
           )}
           {/* Nada cambia en silencio: si el ciclo no sirve, se dice cuál se usó. */}
           {metodo === 'fum' && ciclo.trim() !== '' && !cicloValido && (
-            <p style={{ fontSize: 11.5, color: 'var(--amber)', margin: '6px 0 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--amber)', margin: '6px 0 0', lineHeight: 1.5 }}>
               «{ciclo}» no es una duración de ciclo válida: el cálculo usa 28 días. Corrígela si el ciclo de la paciente es otro.
             </p>
           )}
