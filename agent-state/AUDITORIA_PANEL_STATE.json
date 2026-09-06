@@ -1,0 +1,24 @@
+{
+  "programa": "Auditoría Panel de Lujo",
+  "prompt": "docs/ai/NEXUSMED_AUDITORIA_PANEL_DE_LUJO_MASTER_PROMPT.md",
+  "salida": "docs/audit/panel-de-lujo-2026-09/",
+  "rama": "claude/medical-app-audit-team-8c37y7",
+  "aprobado_por_dueno": "2026-09-06",
+  "fase_actual": 1,
+  "fases": {
+    "0_linea_base": { "estado": "en_curso", "inventario": "hecho", "vitest": null, "lint": null, "build": null, "mantenimiento": null, "app_levantada": null },
+    "1_auditoria_paralela": {
+      "estado": "en_curso",
+      "oleada_1": { "estado": "lanzada", "agentes": ["A-ingeniero-software","B-ingeniero-ia","C-programador","S-ciberseguridad","D-diseno","N-negocio","M-internista","M-pediatra"], "hechos": [] },
+      "oleada_2": { "estado": "pendiente", "agentes": ["M-cirujano","M-ginecologo","M-ortopedista","AS-recepcion","AS-cobros","AS-mensajeria","AS-expedientes","AS-enfermeria"], "hechos": [] },
+      "oleadas_pacientes": { "estado": "pendiente", "agentes": ["P-interna","P-cirugia","P-gineco","P-ortopedia","P-pediatria"], "hechos": [] }
+    },
+    "2_refutacion": { "estado": "pendiente", "lotes_hechos": 0 },
+    "3_reproduccion": { "estado": "pendiente", "reproducciones": [] },
+    "4_riesgo": { "estado": "pendiente" },
+    "5_completitud": { "estado": "pendiente" },
+    "6_mejoras": { "estado": "pendiente" },
+    "7_entrega": { "estado": "pendiente" }
+  },
+  "actualizado": "2026-09-06T03:05Z"
+}
