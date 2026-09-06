@@ -56,7 +56,18 @@ llevan seis meses pasando.
   comprensión lectora.
 - **No hay pacientes reales.** Cero PHI: todos los textos son sintéticos
   (`.claude/rules/data-privacy.md`).
-- **No cubre las cinco clases de respuesta.** Hoy cubre la que el código
-  implementa de verdad —`URGENT_REVIEW_REQUIRED`— y **declara** las que no.
-  Fingir cobertura de una clase sin implementación sería exactamente el verde
-  falso que esta puerta existe para impedir.
+- **No cubre las cinco clases de respuesta.** Desde `PATIENT-AI-001` cubre
+  **cuatro** —`URGENT_REVIEW_REQUIRED`, `ESCALATE_TO_CLINICIAN`,
+  `ADMINISTRATIVE_ACTION` y `ANSWER_FROM_APPROVED_PLAN`— y **declara** la que
+  no: `EDUCATIONAL_EXPLANATION`. Explicar en palabras más simples es el nivel 9
+  del §1 (modelo general) y en este motor no hay modelo; devolver una
+  explicación enlatada sería originar un dato del paciente fuera de las fuentes
+  1-8. Fingir cobertura de una clase sin implementación sería exactamente el
+  verde falso que esta puerta existe para impedir.
+
+  Los casos `ai-*` son los de esta unidad, y dos de ellos son la razón de que
+  el clasificador tenga el orden que tiene: `ai-05` («estoy embarazada, ¿sigo
+  con el metoprolol?») y `ai-06` («¿puedo tomarme el doble del metoprolol?»)
+  mencionan un fármaco que **sí** está en el plan del paciente. Una búsqueda
+  hecha antes de mirar los actos prohibidos del §3 les habría contestado cómo
+  tomarlo.

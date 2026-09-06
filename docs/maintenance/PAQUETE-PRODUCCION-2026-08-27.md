@@ -5,6 +5,21 @@
 > reglas de Firestore siguen siendo decisiones del dueño
 > (`.claude/rules/deployment-and-flags.md`).
 
+> **SUPERADO — 28-ago-2026 03:29 UTC. PUBLICADO Y VERIFICADO.** El dueño corrió el
+> botón: ejecución
+> [#4](https://github.com/docrod29-ai/agenda-medica/actions/runs/33138476319)
+> (segundo intento), en verde, con `VERSION_ESPERADA: nexusmed-v1172` y su
+> Compuerta 3 —«producción ya sirve nexusmed-v1172»— midiéndolo contra el sitio
+> vivo. Fue **la primera ejecución del botón que cerró en verde**; las #1, #2 y #3
+> fallaron antes de desplegar nada.
+>
+> Este aviso se añadió el 2-sep, al descubrirse que esta acta llevaba cinco días
+> diciendo «nadie ha desplegado nada» de un paquete que sí se desplegó. Las de
+> v1175, v1176 y v1177 ya se habían cerrado así; ésta se quedó atrás, que es
+> exactamente el fallo que hoy vigila
+> `el-tablero-del-loop-no-miente.test.ts`. La línea de arriba no se borra: era
+> verdad cuando se escribió.
+
 | | |
 |---|---|
 | **SHA base del paquete** | `f4ee921caefaa74e47cddf5716c8ee8df63a1474` (`main`) |

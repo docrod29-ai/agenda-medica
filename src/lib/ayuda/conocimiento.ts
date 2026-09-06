@@ -13,6 +13,31 @@ export type SeccionGuia = {
 }
 
 export const GUIA: SeccionGuia[] = [
+  /* ────────────────────────────────────────────────────────────────────────
+     AUDITADA CONTRA EL PRODUCTO, no contra la memoria.
+
+     La guía cubría 14 temas. Faltaban doce de los que un médico necesita —y
+     entre ellos, **firmar**, que es el acto medicolegal del producto, y todo
+     el ciclo de la orden hasta el resultado. Como esta misma base alimenta al
+     bot de soporte (`/api/ayuda-bot`), el hueco no era sólo de la guía: el bot
+     tampoco podía contestar sobre la firma, las órdenes, los resultados, el
+     portal ni qué hacer cuando algo falla.
+
+     Cada sección de aquí abajo se escribió MIRANDO la pantalla que describe:
+     los rótulos, los estados y los caminos son los que existen hoy. Lo que el
+     producto no hace, no se documenta.
+     ──────────────────────────────────────────────────────────────────────── */
+  {
+    id: 'que-es', titulo: '¿Qué es Ausculta?', roles: ['todos'],
+    intro: 'En una frase: escucha la consulta y te deja la nota hecha, sin que dejes de mirar al paciente.',
+    pasos: [
+      { t: 'Lo que hace', d: 'Grabas la consulta y Ausculta separa lo que dijo el paciente de lo que dijiste tú, entiende lo que el paciente AFIRMA y lo que NIEGA, y redacta la nota. Tú la revisas, la corriges y la firmas.' },
+      { t: 'Lo que guarda', d: 'Cada frase de la nota conserva el segundo del dictado del que salió. Tocas la frase y oyes ese momento: para revisarla hoy, y para sostenerla dentro de tres años.' },
+      { t: 'Lo que NO hace por su cuenta', d: 'No calcula una dosis ni una escala con inteligencia artificial: eso lo hace código con pruebas. No rellena un hueco para que la nota se vea completa. No cambia nada en silencio. Y no firma nada: firmas tú.' },
+      { t: 'Y alrededor', d: 'Agenda con recordatorios, recetas y órdenes con tu membrete, seguimiento de resultados, y un portal donde el paciente ve lo que tú liberaste.' },
+    ],
+    tips: ['Si sólo vas a leer una sección de esta guía, que sea «Nota por voz».'],
+  },
   {
     id: 'inicio', titulo: 'Primeros pasos', roles: ['todos'],
     intro: 'Lo mínimo para arrancar el primer día.',
@@ -51,16 +76,16 @@ export const GUIA: SeccionGuia[] = [
       'Si el audio es largo, no lo pierdes: queda guardado y lo reprocesas.',
       'La nota se puede re-proyectar a otro tipo (evolución, interconsulta) sin volver a dictar.',
     ],
-    ojo: ['La separación de voces (médico/paciente) requiere que el dueño tenga configurada la llave de AssemblyAI; si no, transcribe sin separar.'],
+    ojo: ['La separación de voces (médico/paciente) necesita que el dueño la tenga habilitada en la configuración del consultorio. Si no está, Ausculta transcribe igual pero SIN separar quién dijo qué — y te lo dice, en vez de repartir las frases al azar.'],
   },
   {
     id: 'menu-ia', titulo: 'Menú de IA y créditos (MUY importante)', roles: ['medico', 'dueno'],
     intro: 'Cada nota se hace con un "motor" de IA. Elegir bien te ahorra créditos.',
     pasos: [
-      { t: '⚡ Rápida (Haiku)', d: 'La más económica. Ideal para notas simples o de seguimiento. Cuesta 1 crédito.' },
-      { t: '⭐ Estándar (Sonnet 5 + separación de voces)', d: 'El día a día, muy buena. Cuesta 3 créditos. Es el default del plan Clínica.' },
-      { t: '💎 Máxima (Opus 4.8 + GPT-5 + 2ª opinión)', d: 'El máximo razonamiento, para casos complejos. Cuesta 10 créditos. Es el default del plan Pro.' },
-      { t: '¿Por qué cuestan distinto?', d: 'Porque los modelos de IA cuestan distinto de verdad: Rápida es un modelo ligero y barato; Máxima usa DOS inteligencias top (Opus de Anthropic + GPT-5 de OpenAI) que son mucho más caras. Los créditos son proporcionales a ese costo real.' },
+      { t: '⚡ Rápida', d: 'Estructura la nota y resume el caso, con la menor espera. Para nota rutinaria o de seguimiento simple. Cuesta 1 crédito.' },
+      { t: '⭐ Estándar', d: 'Añade separación de voces médico–paciente, detección de omisiones, revisión básica de seguridad y escalas clínicas calculadas con código. Para la consulta compleja. Cuesta 3 créditos, y es lo que trae el plan Clínica.' },
+      { t: '💎 Máxima', d: 'Añade un segundo verificador independiente que revisa la nota, evidencia con PMID comprobado y revisión farmacológica (dosis, interacciones, función renal). Para el caso difícil. Cuesta 10 créditos, y es lo que trae el plan Pro.' },
+      { t: '¿Por qué cuestan distinto?', d: 'Porque hacen distinto trabajo: Rápida es un solo paso; Máxima razona más, busca evidencia y luego una segunda inteligencia independiente revisa lo que la primera escribió. Los créditos son proporcionales a ese costo real, no a un margen.' },
       { t: '¿Cuántas notas alcanzan mis créditos?', d: 'Depende del motor. Ej. con 200 créditos (plan Clínica): ~66 notas Estándar, o 20 Máximas, o 200 Rápidas, o una mezcla. El plan Pro trae 450 créditos.' },
       { t: 'Cuando se acaban los créditos', d: 'La IA NO se detiene: sigue GRATIS en ⚡ Rápida (hasta un tope generoso al mes). Para recuperar la IA máxima, compras más créditos o subes de plan. Nunca te quedas sin poder trabajar.' },
       { t: 'Comprar más créditos (recarga)', d: 'Cuando quieras más IA máxima, compras un paquete de recarga. Se suman al instante a los del mes.' },
@@ -75,7 +100,7 @@ export const GUIA: SeccionGuia[] = [
     intro: 'Arregla la nota escribiendo, sin volver a dictar.',
     pasos: [
       { t: 'Escribe el cambio', d: 'En la nota, en "Corregir por chat", escribe qué está mal: "la dosis de amoxicilina es 500 mg", "quita la diabetes", "el Dx correcto es apendicitis".' },
-      { t: 'La IA corrige SOLO eso', d: 'Cambia únicamente lo que pediste, sin inventar ni tocar lo demás. Usa doble cerebro (Claude + GPT) para verificar que no se pase.' },
+      { t: 'La IA corrige SOLO eso', d: 'Cambia únicamente lo que pediste, sin inventar ni tocar lo demás. Una segunda inteligencia, independiente de la que escribió, verifica que no se haya pasado.' },
       { t: 'Deshacer', d: 'Si no te gustó, "Deshacer" regresa la nota a como estaba.' },
     ],
     tips: ['También puedes editar a mano cualquier campo (diagnósticos, medicamentos, texto).'],
@@ -87,7 +112,7 @@ export const GUIA: SeccionGuia[] = [
       { t: 'Abre el Consultor', d: 'En el menú, "Consultor IA". Es un chat clínico tipo OpenEvidence.' },
       { t: 'Haz tu pregunta', d: 'Escribe tu duda ("mejor antibiótico para… en paciente con…", dosis, esquemas). Presiona Enter.' },
       { t: 'Respuesta con evidencia', d: 'Busca en PubMed (NEJM, JAMA, Cochrane, Lancet) y responde citando los artículos [n] que la respaldan, más dosis oficiales (FDA) y la guía mexicana (GPC/CENETEC) cuando aplica.' },
-      { t: 'Doble cerebro', d: 'La respuesta la redacta Claude y la revisa/mejora GPT contra la misma evidencia — verás "Razonado por Claude + GPT".' },
+      { t: 'Segunda opinión automática', d: 'Una inteligencia redacta la respuesta y otra, independiente, la revisa contra la MISMA evidencia antes de enseñártela. Verás en pantalla que pasó por las dos.' },
       { t: 'Sobre un paciente', d: 'Desde el expediente puedes abrir el Consultor con el contexto del paciente para que personalice (edad, alergias, tratamiento).' },
     ],
     tips: ['Cada pregunta gasta una fracción de crédito (mucho menos que una nota).'],
@@ -185,6 +210,104 @@ export const GUIA: SeccionGuia[] = [
       { t: 'La consola del dueño', d: '/superadmin: ves todas las clínicas, quién paga, das pase libre, cambias nivel de IA, eliminas consultorios de prueba. Botones "Contabilidad" (ingresos, costos, utilidad, export CSV) y "Soporte" (buzón de mensajes).' },
       { t: 'Recarga y facturación', d: 'Los clientes compran recargas de créditos y piden su factura (CFDI) solos desde la app.' },
     ],
+  },
+  {
+    id: 'cuenta', titulo: 'Tu cuenta, contraseña y sesión', roles: ['todos'],
+    intro: 'Entrar, salir, recuperar la contraseña y el segundo factor.',
+    pasos: [
+      { t: 'Entrar', d: 'Con tu correo y contraseña, o con el botón «Continuar con Google». Si entras con Google, elige SIEMPRE el correo correcto en el selector: con otro correo verás una cuenta vacía distinta, no la tuya.' },
+      { t: 'Olvidaste la contraseña', d: 'Escribe tu correo en el campo de arriba y pulsa «¿Olvidaste tu contraseña?». Te llega un enlace para ponerte una nueva. Revisa también la carpeta de spam.' },
+      { t: 'Verificación en dos pasos', d: 'Si tu cuenta la tiene activada, después de la contraseña te pide el código de 6 dígitos de tu app de autenticación. Si el código no lo acepta, abre la app y escribe el ACTUAL: caducan cada 30 segundos.' },
+      { t: 'La sesión se cierra sola', d: 'Tras un rato sin usarla, Ausculta cierra la sesión. Es a propósito: en un consultorio la pantalla queda a la vista de quien pase.' },
+      { t: 'Al cerrar sesión', d: 'Se borra lo que estaba guardado en ese navegador. Si compartes computadora, cierra sesión al terminar.' },
+    ],
+    ojo: ['Ausculta nunca te pedirá tu contraseña por correo ni por WhatsApp.'],
+  },
+  {
+    id: 'pacientes', titulo: 'Pacientes y expediente', roles: ['recepcion', 'medico'],
+    intro: 'Dar de alta, buscar y leer la historia completa de alguien.',
+    pasos: [
+      { t: 'Buscar antes de crear', d: 'Escribe el nombre en el buscador. Ausculta busca también con los apellidos al revés y con variantes de escritura, justamente para que no acabes con la historia partida en dos expedientes.' },
+      { t: 'Dar de alta', d: 'Pacientes → «Nuevo». Nombre, fecha de nacimiento, sexo y teléfono bastan para empezar; lo demás se llena solo con las consultas.' },
+      { t: 'Abrir el expediente', d: 'Toca al paciente. Arriba, lo que hay que saber ahora: alergias, problemas activos y lo que está tomando. Abajo, la línea de tiempo con todo lo que ha pasado.' },
+      { t: 'Leer la línea de tiempo', d: 'Va de lo más reciente a lo más antiguo: consultas, notas firmadas, recetas, órdenes, resultados y documentos. Puedes filtrar por tipo.' },
+      { t: 'Alergias', d: 'Las alergias que aparecen no son sólo las que alguien tecleó: Ausculta las relee de las notas ya firmadas. Una alergia dicha en una consulta de hace dos años sigue avisando hoy.' },
+    ],
+    tips: ['Desde el expediente puedes abrir el Consultor con el contexto de ESE paciente, para que la respuesta tenga en cuenta su edad, sus alergias y lo que toma.'],
+  },
+  {
+    id: 'estado-paciente', titulo: 'Sospechado, confirmado, activo, resuelto', roles: ['medico'],
+    intro: 'Qué significa cada etiqueta del expediente. Confundirlas es el error caro.',
+    pasos: [
+      { t: 'Sugerido ≠ confirmado', d: 'Lo que la IA propone sale marcado como propuesto hasta que tú lo confirmas. Un diagnóstico propuesto no entra al expediente como diagnóstico del paciente.' },
+      { t: 'Descartado es descartado', d: 'Si marcas algo como descartado, deja de contar como diagnóstico: no llega a los motores de seguridad ni al texto que la IA redacta. «Embarazo descartado» no puede volverse «cursa embarazo».' },
+      { t: 'Activo ≠ histórico', d: 'Lo que el paciente tiene hoy y lo que tuvo se pintan distinto. Una mención de pasado —«le dieron warfarina cuando la operaron»— se señala mientras recetas, pero NO se convierte en medicación vigente por su cuenta.' },
+      { t: 'La duda se conserva', d: 'Si el paciente dijo «creo que me dijeron que tenía anemia», eso queda como una duda registrada, no como «Anemia». Y llega a la consulta siguiente.' },
+      { t: 'Vacío es vacío', d: 'Un campo en blanco significa que nadie lo dijo — no que el paciente lo niegue. Ausculta no lo rellena para que la nota se vea completa.' },
+    ],
+    ojo: ['Ausculta nunca reclasifica sola lo que tú marcaste. Si algo cambió de estado, fuiste tú o quedó registrado quién fue.'],
+  },
+  {
+    id: 'firma', titulo: 'Firmar la nota', roles: ['medico'],
+    intro: 'El acto medicolegal del producto. Qué revisa antes, qué pasa después y qué hacer si el botón está apagado.',
+    pasos: [
+      { t: 'Antes de firmar, revisa la barra de avisos', d: 'Tres cosas nunca se pliegan y hay que resolverlas: una alergia del paciente contra algo que estás recetando, una contradicción con lo que el paciente negó, y una dosis peligrosa. El resto de los avisos sí se pliegan.' },
+      { t: 'Si el botón está apagado', d: 'Dice su motivo. Suele ser un campo que la NOM-004 exige y que está vacío, o un aviso que no se ha resuelto. No adivines: lee lo que dice el botón.' },
+      { t: 'Firmar', d: 'Al firmar, la nota queda sellada. Ya no se edita: si hay que corregirla, se hace una nota nueva que la referencia — así lo pide la norma y así se sostiene después.' },
+      { t: 'Lo que se guarda con la firma', d: 'Además del texto: los avisos que revisaste, las dudas que quedaron abiertas y la procedencia de cada frase. Todo eso se sella ANTES del hash, o la nota se reabriría marcada como alterada.' },
+      { t: 'Firmar no es liberar', d: 'Firmar la nota y darle información al paciente son dos actos distintos, y se registran aparte. El paciente NUNCA ve un borrador.' },
+    ],
+    ojo: ['Antes de firmar puedes editar y descartar libremente. Después, no. Tómate el momento de revisar.'],
+  },
+  {
+    id: 'ordenes', titulo: 'Órdenes, resultados y seguimiento', roles: ['medico'],
+    intro: 'Pedir un estudio no cierra nada. Aquí se sigue hasta que hay una decisión.',
+    pasos: [
+      { t: 'Pedir el estudio', d: 'Desde la consulta, «Orden». Sale con tu membrete y tu firma, y el paciente se la lleva impresa o la recibe por WhatsApp.' },
+      { t: 'Dónde vive después', d: 'En «Pendientes». Ahí está todo lo que quedó abierto, agrupado por lo que hay que hacer: Vencidos · Necesita revisión · Esperando resultado · Necesita agendar · Esperando al paciente · Otros.' },
+      { t: 'Cuando llega el resultado', d: 'Se adjunta a la orden. La tarea pasa a «Necesita revisión»: hecha, pero nadie la ha mirado todavía.' },
+      { t: 'Revisar no es decidir', d: 'Al revisarla registras qué decidiste (ajustar tratamiento, repetir, citar, nada). Son dos pasos distintos a propósito: un resultado leído y un resultado sobre el que se actuó no son lo mismo.' },
+      { t: 'Si el resultado es crítico', d: 'Además hay que dejar constancia de que se avisó al paciente. Un resultado crítico cerrado sin que nadie llamara no puede verse igual que uno donde sí se llamó.' },
+      { t: 'Cerrar', d: 'Cerrar pasa por un formulario corto. No es lo mismo que mover la tarea de estado, y no se puede cerrar sin haber mirado el resultado.' },
+    ],
+    tips: ['Lo que hay que escalar aparece arriba y aparte, no mezclado con lo demás.'],
+  },
+  {
+    id: 'portal', titulo: 'El portal del paciente', roles: ['medico', 'recepcion'],
+    intro: 'Lo que el paciente ve, y lo que no.',
+    pasos: [
+      { t: 'Cómo entra', d: 'Con un enlace seguro, sin contraseña. El enlace está atado a ESE paciente de ESE consultorio.' },
+      { t: 'Qué ve', d: 'Sus próximas citas, sus recetas, los documentos que le liberaste, y puede reagendar.' },
+      { t: 'Qué NO ve', d: 'Nada que esté en borrador. Un paquete de información al paciente nace en borrador y sólo lo ve cuando alguien autorizado lo libera, con la fecha y el nombre de quién lo hizo.' },
+      { t: 'Cuidadores', d: 'Un familiar autorizado es una autorización explícita, revocable y con bitácora — no un segundo dueño del expediente.' },
+    ],
+    ojo: ['Un enlace de paciente se reenvía por WhatsApp y acaba en sitios que nadie controla. Compártelo sólo con quien debe tenerlo.'],
+  },
+  {
+    id: 'privacidad', titulo: 'Privacidad y seguridad', roles: ['todos'],
+    intro: 'Qué protege Ausculta, y qué te toca a ti.',
+    pasos: [
+      { t: 'Tu consultorio está aislado', d: 'Ningún otro consultorio puede ver a tus pacientes. El aislamiento se aplica en el servidor, no escondiendo botones en la pantalla.' },
+      { t: 'Permisos por rol', d: 'Tu asistente ve agenda y datos de contacto; la información clínica sensible y la configuración, no. No es una vista simplificada: son permisos de verdad.' },
+      { t: 'La información es tuya', d: 'Puedes llevártela. Al cancelar te entregamos la exportación completa de pacientes y expedientes.' },
+      { t: 'Derechos del paciente', d: 'Si un paciente pide su expediente, se le ENTREGA: el expediente completo más un acuse. Si algo no se pudo leer, se declara en vez de omitirlo.' },
+      { t: 'Lo que te toca a ti', d: 'Cierra sesión en computadoras compartidas, no compartas tu contraseña, y activa la verificación en dos pasos si atiendes desde varios equipos.' },
+    ],
+    tips: ['El estado de cada control de seguridad está publicado en la página /seguridad, incluidos los que todavía no están listos.'],
+  },
+  {
+    id: 'problemas', titulo: 'Cuando algo falla', roles: ['todos'],
+    intro: 'Los tropiezos más comunes y qué hacer con cada uno.',
+    pasos: [
+      { t: 'Se fue el internet a media consulta', d: 'Sigue grabando. El audio no se pierde: queda guardado y lo procesas cuando vuelva la conexión. Verás un aviso de que estás sin red.' },
+      { t: 'La IA tardó o falló', d: 'El audio sigue ahí. Vuelve a «Procesar con IA»: no hay que volver a dictar. Si cambiaste de pantalla mientras pensaba, siguió trabajando y el resultado te espera.' },
+      { t: 'La nota entendió algo mal', d: 'Corrígela: a mano en el campo, o por chat («la dosis es 500 mg»). El cambio es real, no cosmético — lo que quitas de la nota sale de la nota.' },
+      { t: 'No separó las voces', d: 'Ausculta te dice por qué en vez de repartir las frases al azar. Suele ser audio con mucho ruido, o que la separación no está habilitada en la configuración del consultorio.' },
+      { t: 'La receta salió descuadrada', d: 'Configuración → «Recetas, órdenes y notas» → «Ajustar dónde caen los datos», y arrastra la etiqueta a su sitio. Se hace una vez.' },
+      { t: 'Entré y la cuenta está vacía', d: 'Casi siempre es haber entrado con otro correo de Google. Cierra sesión y vuelve a entrar eligiendo el correo correcto en el selector.' },
+      { t: 'Se acabaron los créditos', d: 'La IA no se detiene: sigue en ⚡ Rápida sin costo hasta un tope al mes. Para recuperar la máxima, recarga o sube de plan.' },
+    ],
+    tips: ['Si nada de esto lo resuelve, Configuración → «Soporte y sugerencias», o pregúntale al asistente de esta misma guía.'],
   },
   {
     id: 'navegacion', titulo: 'Trucos y móvil', roles: ['todos'],

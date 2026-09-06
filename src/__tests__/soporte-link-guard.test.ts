@@ -10,8 +10,10 @@ import { resolve } from 'node:path'
 describe('soporte-link-guard', () => {
   it('el pie de la landing enlaza Soporte a /contacto, no a mailto:', () => {
     const page = readFileSync(resolve(process.cwd(), 'src/app/page.tsx'), 'utf8')
-    // La línea del enlace "Soporte"
-    const match = page.match(/href="([^"]+)"[^>]*>Soporte<\/a>/)
+    // La línea del enlace "Soporte". Acepta <a> y <Link>: el pie de la portada
+    // pasó a <Link> con el rediseño y el REQUISITO —que no sea mailto:— es el
+    // mismo. Atar el guardián a la etiqueta era atarlo a una implementación.
+    const match = page.match(/href="([^"]+)"[^>]*>Soporte<\/(?:a|Link)>/)
     expect(match, 'no se encontró el enlace Soporte en el pie').not.toBeNull()
     expect(match![1]).toBe('/contacto')
   })

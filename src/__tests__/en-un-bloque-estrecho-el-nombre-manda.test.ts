@@ -46,26 +46,13 @@
  *
  * Con la regla puesta y medido otra vez, los bloques de la semana pasaron de
  * decir «08:00» a decir «R…», «M…», «Ta…». Ya no se corta nada en silencio —
- * que era el defecto— pero **una letra no es un nombre**. Ninguna tipografía
- * arregla eso: el ancho no da, y no lo va a dar.
+ * que era el defecto— pero **una letra no es un nombre**: el ancho no da.
  *
- * Así que la agenda **abre en DÍA cuando la pantalla es de teléfono**. La vista
- * de día ya existía, tiene la columna entera y escribe «HH:MM — nombre
- * completo»: es la que responde a la pregunta con la que un médico abre la
- * agenda en el teléfono, que es a quién tengo ahora. La semana no se quita —
- * sigue a un toque para quien quiera el panorama— y en cuanto el médico elige
- * una vista, la suposición se calla: **una preferencia dicha gana a una
- * preferencia supuesta**.
- *
- * Y la vista es DERIVADA, no un estado que haya que sincronizar. La primera
- * versión la copiaba a un estado desde un `useEffect`, y el lint de React lo
- * cazó con razón doble: encadena renders, y —lo importante— **un efecto no se
- * entera de que la ventana cambió**. Un teléfono que gira, o una ventana de
- * escritorio que alguien estrecha, se quedaban con la respuesta del primer
- * render para siempre. `useSyncExternalStore` es la herramienta: `matchMedia`
- * es un sistema al que uno se SUSCRIBE, no un estado que haya que copiar. En
- * el servidor no hay ventana, así que la instantánea del servidor contesta
- * «no es un teléfono» en vez de adivinar.
+ * La consecuencia —que en un teléfono la agenda abra en DÍA— la resolvió la
+ * rama de transformación, y su guardián es
+ * `el-calendario-abre-en-dia-en-el-telefono`. Aquí no se repite: lo que este
+ * archivo sella es la ETIQUETA del bloque estrecho, que sigue haciendo falta
+ * en la vista de semana y en la de mes.
  *
  * ── Y LA REGLA SE COLGÓ DEL SITIO EQUIVOCADO, DE PASO ───────────────────────
  *
@@ -189,50 +176,7 @@ describe('en un bloque estrecho de la agenda, el nombre manda', () => {
     expect(reglaDe('.nx-agenda-hora')).toContain('flex: 0 0 auto')
   })
 
-  it('8 · en pantalla de teléfono la agenda abre en DÍA, no en semana', () => {
-    // 41 px por columna no dan para un nombre por mucho que se trunque bien.
-    expect(CALENDARIO).toContain('const esTelefono = useEsTelefono()')
-    expect(CALENDARIO).toContain("(esTelefono ? 'dia' : 'semana')")
-  })
-
-  it('9 · la vista que el médico elige gana a la que se le supone', () => {
-    // Una preferencia dicha manda sobre una supuesta, y sigue mandando si el
-    // teléfono gira: por eso la elección va primero en el `??`.
-    expect(CALENDARIO).toMatch(
-      /const view: View = vistaElegidaPorElMedico \?\? \(esTelefono \? 'dia' : 'semana'\)/)
-    // Y TODOS los sitios donde el médico elige pasan por el mismo camino: si
-    // uno escribiera la vista por su cuenta, la suposición volvería a pisarla.
-    expect(CALENDARIO).not.toMatch(/setView\(/)
-    expect(CALENDARIO).toContain('onClick={() => elegirVista(v)}')
-  })
-
-  it('10 · la semana no se quita: sigue a un toque', () => {
-    // Abrir en día es una preferencia, no una amputación.
-    expect(CALENDARIO).toContain("(['dia', 'semana', 'mes'] as View[])")
-  })
-
-  it('11 · la vista se DERIVA del ancho; no se copia a un estado desde un efecto', () => {
-    /**
-     * Copiarla encadena renders —lo dice el lint de React— y, peor, se queda
-     * con la respuesta del primer render: una ventana que se estrecha o un
-     * teléfono que gira no cambiarían nada. Y el ancho no se lee durante el
-     * render: el servidor no tiene ventana y la hidratación se rompería.
-     */
-    const hook = readFileSync(join(RAIZ, 'src/hooks/useEsTelefono.ts'), 'utf8')
-    expect(hook).toContain('useSyncExternalStore')
-    // Se SUSCRIBE al cambio; si no, no se entera de que la ventana cambió.
-    expect(hook).toContain("addEventListener('change'")
-    expect(hook).toContain("removeEventListener('change'")
-    // Y declara qué contesta cuando no hay ventana, en vez de adivinar.
-    expect(hook).toMatch(/const enElServidor = \(\) => false/)
-    // El umbral es el mismo que la hoja de estilos llama «teléfono».
-    expect(hook).toContain("'(max-width: 640px)'")
-    expect(CSS).toContain('@media (max-width: 640px)')
-    // Nada de efectos que empujen la vista.
-    expect(CALENDARIO).not.toContain('useEffect')
-  })
-
-  it('12 · la línea estrecha no le prohíbe partirse a la tarjeta del día', () => {
+  it('8 · la línea estrecha no le prohíbe partirse a la tarjeta del día', () => {
     // `.nx-agenda-bloque` la comparten los tres tamaños de bloque. Colgar de
     // ella el nowrap sacó la tarjeta del día 198 px fuera de la pantalla.
     const bloque = reglaDe('.nx-agenda-bloque')
@@ -241,7 +185,7 @@ describe('en un bloque estrecho de la agenda, el nombre manda', () => {
     expect(reglaDe('.nx-agenda-etiqueta')).toContain('white-space: nowrap')
   })
 
-  it('13 · la etiqueta estrecha es UN elemento, no dos sueltos en el bloque', () => {
+  it('9 · la etiqueta estrecha es UN elemento, no dos sueltos en el bloque', () => {
     // Si el nombre y la hora cuelgan directos del bloque, la regla de una sola
     // línea no tiene de dónde colgarse sin volver a alcanzar a la tarjeta.
     const cuerpo = CALENDARIO.slice(
@@ -252,7 +196,7 @@ describe('en un bloque estrecho de la agenda, el nombre manda', () => {
     expect(cuerpo).not.toContain('<>')
   })
 
-  it('14 · la hora exacta y el nombre completo siguen alcanzables en el bloque', () => {
+  it('10 · la hora exacta y el nombre completo siguen alcanzables en el bloque', () => {
     // Retirar la hora de la vista sólo es aceptable porque no se pierde.
     const semana = CALENDARIO.slice(CALENDARIO.indexOf('function WeekView'), CALENDARIO.indexOf('function DayView'))
     expect(semana).toContain('title={`${a.pacienteNombre}')

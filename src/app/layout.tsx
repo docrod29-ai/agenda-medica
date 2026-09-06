@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google"
 import localFont from "next/font/local"
 import "./globals.css"
-import { MARCA, LEMA } from "@/lib/marca"
+import { MARCA, LEMA, DESCRIPCION } from "@/lib/marca"
 import { GUION_TEMA } from "@/lib/tema"
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -99,7 +99,7 @@ export const metadata: Metadata = {
     default: MARCA,
     template: `%s · ${MARCA}`,
   },
-  description: "El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.",
+  description: DESCRIPCION,
   applicationName: MARCA,
   appleWebApp: {
     capable: true,

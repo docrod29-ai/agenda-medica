@@ -6022,7 +6022,7 @@ llamaba**: la regla «escrito, probado y sin conectar» del propio repositorio.
 
 Y lo derivado manda sobre lo guardado: un número guardado es la foto del día que
 se escribió. Quien se registró con 66 sigue teniendo 66 cinco años después, y de
-esa cifra cuelgan el ajuste renal y la dosis pediátrica. → **REG-417**.
+esa cifra cuelgan el ajuste renal y la dosis pediátrica. → **REG-513**.
 
 ### 91c · La alergia se decía DOS VECES en la misma franja
 
@@ -6036,7 +6036,7 @@ como cadena aunque digan lo mismo — y se cumplía **siempre**.
 
 Es REG-311 —«dos avisos del mismo dato compiten, y el segundo se aprende a
 ignorar»— reapareciendo **en horizontal** cuando se fusionaron los dos avisos
-verticales. Ahora se compara por conjunto normalizado. → **REG-418**.
+verticales. Ahora se compara por conjunto normalizado. → **REG-514**.
 
 **Y el guardián de RTC-14 clavaba el defecto**: exigía esa expresión literal.
 Estaba en verde mientras el defecto estaba en pantalla, porque comprobaba que el
@@ -6325,7 +6325,7 @@ pantalla es un chat vacío con cuatro ejemplos arriba y un campo abajo. Declarad
   una superficie de evidencia, lo que ocupa el lugar de la evidencia tiene que
   ser inconfundiblemente no-evidencia.
 - **No está en región viva**: quien usa lector de pantalla no se entera de que su
-  pregunta falló. Anunciar el flujo delta a delta sería REG-419 otra vez, así que
+  pregunta falló. Anunciar el flujo delta a delta sería REG-515 otra vez, así que
   hay que anunciar la CONCLUSIÓN — decisión de diseño, no hecha.
 - El vacío de 506 px, sin tocar.
 - El paciente no aparece por ningún lado en la superficie de evidencia: «¿aplica
@@ -6374,7 +6374,7 @@ viene». La mitad de esa frase no estaba.
 Pero `ahoraHHMM` estaba en el **tipo** de props y **no se desestructuraba**. El
 padre lo mandaba, el tipo lo declaraba, y la firma lo tiraba al suelo: no es que
 no se usara, es que **era imposible usarlo**. Y `momentoDeCita` mapeaba estado →
-momento sin recibir el reloj nunca. → **REG-422**.
+momento sin recibir el reloj nunca. → **REG-518**.
 
 ### 95b · Un momento nuevo, porque «hecho» habría sido mentira
 
@@ -6440,7 +6440,7 @@ tamaño, bajo «Diagnósticos activos». Un hecho puesto por el médico y una
 propuesta del modelo que nadie avaló, iguales.
 
 La causa: `ResumenPaciente` empujaba `d.descripcion` **pelada**. `tipo` y
-`tipoOrigen` viajaban en el documento firmado y se tiraban ahí. → **REG-423**.
+`tipoOrigen` viajaban en el documento firmado y se tiraban ahí. → **REG-519**.
 
 ### 96c · El modelo ya lo sabía todo, y el producto ya lo había decidido
 
@@ -6513,7 +6513,7 @@ El primero lo introduje en la **unidad 95**. Un `color-mix` contra `transparent`
 se apoya en el fondo, y el fondo es justo lo que cambia entre temas.
 
 El segundo lo encontró el arnés, y cae en la franja del **dato más letal del
-producto**, fallando por una centésima. → **REG-424**.
+producto**, fallando por una centésima. → **REG-520**.
 
 Lo que sí pasó a la primera: `.nx-ctx` (19.57 : 1 y 6.94 : 1) y
 `.nx-accion-en-prosa` (5.76 : 1) en claro.

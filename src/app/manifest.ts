@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next'
+import { DESCRIPCION } from '@/lib/marca'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Ausculta',
     short_name: 'Ausculta',
-    description: 'El consultorio, conectado. Agenda, expediente, recetas y cobros en una sola herramienta.',
+    description: DESCRIPCION,
     start_url: '/dashboard',
     scope: '/',
     display: 'standalone',

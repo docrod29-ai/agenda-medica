@@ -4,6 +4,13 @@
 > «PREPARADO, NO PUBLICADO» de abajo describe el momento en que se escribió y
 > ya no es cierto. Lo que sigue vale como acta de lo que se declaró; para el
 > estado de hoy ver [`ESTADO-DE-PRODUCCION-2026-08-31.md`](ESTADO-DE-PRODUCCION-2026-08-31.md).
+>
+> **La ejecución que lo confirma** (añadida el 2-sep, porque este aviso afirmaba
+> el despliegue sin citarla — el mismo defecto que cerró REG-505): ejecución
+> [#8](https://github.com/docrod29-ai/agenda-medica/actions/runs/33352973942),
+> arrancada a las 03:10:28 UTC y cerrada en verde a las 03:12:06, con
+> `VERSION_ESPERADA: nexusmed-v1175` y su Compuerta 3 midiéndolo contra el sitio
+> vivo. Las #6 y #7, minutos antes, fallaron sin desplegar.
 
 > **Estado: PREPARADO, NO PUBLICADO.** Este documento describe exactamente qué se
 > publicaría. Nadie ha desplegado nada. Publicar a producción y desplegar reglas

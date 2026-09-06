@@ -38,7 +38,10 @@
  * franja, no una pantalla.
  */
 import { Mic, Pause, Play, Square, Loader2 } from 'lucide-react'
-import { PALABRA, reloj } from '@/lib/encuentro/vocabulario-de-la-escucha'
+/* El reloj sale del vocabulario común: esta pantalla llevaba su propio
+   `mmss` mientras la píldora y la franja decían lo mismo con otro formato.
+   Cuatro relojes, dos formatos, un solo estado. Ver REG-515. */
+import { reloj } from '@/lib/encuentro/vocabulario-de-la-escucha'
 
 export type EstadoDeLaBarra = 'listo' | 'grabando' | 'pausado' | 'procesando'
 
@@ -110,31 +113,15 @@ export function MientrasHablas(p: MientrasHablasProps) {
     <div
       role="region"
       aria-label="Grabación de la consulta"
-      className="nx-mientras-hablas"
+      aria-live="polite"
       style={{
         /*
-          NO SE VA DE LA PANTALLA — Y ANTES SÍ SE IBA.
-          ────────────────────────────────────────────
-          Esto decía `position: sticky; bottom: 0`, y la cabecera de este
-          archivo promete que «en la computadora se queda pegada arriba al
-          desplazarse». No lo hacía. `sticky` con `bottom` sólo sujeta al
-          elemento al que uno se ACERCA desde arriba: lo pega al borde inferior
-          mientras baja hacia él. En cuanto se pasa de largo, lo suelta.
-          Medido con la consulta grabando: al bajar 1621 px la barra quedaba en
-          `top: -1155`, o sea fuera de la pantalla; a 390 px, en -1718.
-          Es decir: **justo en la consulta larga, que es para lo que existe,
-          desaparecía.** Y lo único que quedaba entonces era una píldora
-          flotante con un reloj — que es la señal que esta misma cabecera
-          advierte que MIENTE: «un contador de tiempo sigue corriendo aunque el
-          micrófono esté silenciado; una barra que se mueve, no».
-          `fixed` es lo que hace lo que el comentario decía. Lo que ocupa se le
-          devuelve al contenido con `--nx-alto-barra-voz` (ver globals.css), para
-          que la barra no tape lo que hay debajo: taparlo sería cambiar un
-          defecto por otro, y ya pasó — la píldora tapaba tres controles a 390.
+          `sticky` sirve para los dos: en el teléfono se queda abajo al alcance
+          del pulgar, y en la computadora se pega al borde inferior de la
+          ventana al desplazarse. Un solo comportamiento, dos dispositivos.
         */
-        position: 'fixed', left: 0, right: 0, bottom: 'var(--nx-fondo-barra-voz, 0px)', zIndex: 30,
-        margin: '0 auto', maxWidth: 'min(1100px, calc(100vw - 24px))',
-        padding: '12px 14px',
+        position: 'sticky', bottom: 0, zIndex: 30,
+        marginTop: 12, padding: '12px 14px',
         borderRadius: 14,
         background: 'var(--s1)',
         border: `1px solid ${grabando ? 'var(--nexus)' : 'var(--border)'}`,
@@ -142,56 +129,16 @@ export function MientrasHablas(p: MientrasHablasProps) {
         display: 'flex', flexDirection: 'column', gap: 10,
       }}
     >
-      {/*
-        ── EL ANUNCIO DICE EL ESTADO, NO LA HORA ────────────────────────────
-        Este contenedor llevaba `aria-live="polite"` y DENTRO lleva el reloj de
-        la grabación. Medido el 1-sep con la consulta grabando: SEIS regiones
-        vivas en pantalla, y ésta releía la duración entera cada segundo. Para
-        quien usa lector de pantalla eso no es información: es un goteo continuo
-        de cifras encima de todo lo demás, en la pantalla donde está hablando
-        con un paciente.
-
-        Lo que hay que anunciar es el CAMBIO —empezó, se pausó, se está armando
-        la nota, falló—, no el paso del tiempo. Así que el `aria-live` baja del
-        contenedor a este renglón invisible, que sólo cambia cuando cambia el
-        estado, y `SE_ANUNCIA` deja fuera `grabando` justo por el reloj.
-      */}
-      <span
-        role="status"
-        aria-live="polite"
-        style={{
-          position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
-          overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
-        }}
-      >
-        {p.estado === 'pausado' ? PALABRA.pausado
-          : p.estado === 'procesando' ? PALABRA.estructurando
-            : p.estado === 'listo' ? '' : ''}
-      </span>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {botonPrincipal(p)}
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/*
-              LA PALABRA SALE DEL VOCABULARIO COMÚN. Ésta decía «Escuchando»
-              mientras la barra superior, la banda de transporte y el control
-              flotante decían «Grabando» — del mismo segundo, en la misma
-              pantalla. No son cuatro fuentes de verdad (todas escuchan el mismo
-              `EVENTO_GRABANDO`): era la PRESENTACIÓN la que estaba duplicada, y
-              cada copia había elegido su palabra.
-
-              Y es «Grabando» y no «Escuchando» a propósito: el paciente firmó un
-              consentimiento para que la conversación SE GRABE, el audio se
-              guarda, y `data-privacy` declara que la voz es biométrica. La
-              palabra suave es la palabra equivocada justo aquí.
-            */}
             <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
               {p.estado === 'listo' ? 'Grabar la consulta'
-                : p.estado === 'pausado' ? PALABRA.pausado
-                  : p.estado === 'procesando' ? PALABRA.estructurando
-                    : PALABRA.grabando}
+                : p.estado === 'pausado' ? 'En pausa'
+                  : p.estado === 'procesando' ? 'Armando la nota…'
+                    : 'Escuchando'}
             </span>
             {activo && (
               <span style={{ fontSize: 14, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums' }}>

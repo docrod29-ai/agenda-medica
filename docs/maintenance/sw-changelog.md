@@ -3,6 +3,122 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
+
+**3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
++530 / −40 · **3 de código de producto** · cero regresiones cerradas, cero rutas
+de API, cero pantallas nuevas, `firestore.rules` sin tocar.
+
+Dos peticiones del dueño mirando la pantalla de Operaciones, y las dos son la
+misma idea: **que el índice no compita con el trabajo del día**.
+
+**Hospital y UCI salen de la navegación** (D-030). Dos productos en ALPHA —se
+usan, no se venden— encabezando el índice por delante de la consulta y su
+agenda. Pausar no es borrar: las rutas siguen vivas, las pantallas y los motores
+intactos, y las filas del menú siguen escritas con su etiqueta y su «para qué».
+Se reactiva vaciando una lista. No es una defensa de seguridad: el entitlement
+sigue siendo quien decide el acceso.
+
+**El resto de la administración pasa a un cajón** (D-031). Nueve destinos de
+negocio, cumplimiento y documentos ocupaban dos pantallazos antes de lo que se
+usa a diario. Ahora esperan tras «Ver la gestión del consultorio», enteros y a
+un clic. El botón cuenta sus destinos de lo que va a pintar —ya filtrado por
+modo, por módulo y por la pausa—, así que no puede prometer de más.
+
+Ordenar por cadencia ya no bastaba: el problema no era el ORDEN, era la
+CANTIDAD visible de golpe.
+
+---
+
+## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
+
+**97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de
+producto** · **22 regresiones cerradas**. Cero rutas de API nuevas, cero
+pantallas nuevas.
+
+**Este paquete toca `firestore.rules`, y es lo único que no se publica solo.**
+Entra la colección `preguntas_paciente` —lo que el paciente le pregunta a su
+médico, con la clase que le puso el servidor—. Mientras no se despliegue, esa
+colección cae en el comodín de denegación y quien escribe es el servidor con
+Admin SDK: **no hay hueco abierto, hay una regla explícita que aún no rige**.
+
+Lo demás: el destino «Preguntar» del portal deja de ser un párrafo que dice
+«llame por teléfono» y pasa a clasificar y escalar **sin modelo de lenguaje** —
+lo que responde es una cadena que ya venía en el paquete que el médico liberó—;
+seis defectos que se leían correctos y no lo eran (un despliegue que anunciaba
+índices sin mandarlos, un acta de seguridad publicando «cero vulnerabilidades»
+sobre 21, y un documento que mandaba activar una casilla de GitHub que habría
+dejado `main` cerrada para siempre); ocho superficies del médico miradas en un
+teléfono; y seis decisiones del dueño que no cambian comportamiento pero cierran
+preguntas abiertas.
+
+---
+
+## v1179 — la durabilidad del expediente, la firma de la receta, y los índices que nunca se publicaron
+
+**Publicado el 1-sep 23:51 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #15).
+El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-09-01-v1179.md`](PAQUETE-PRODUCCION-2026-09-01-v1179.md).
+
+**40 commits desde v1178** (24 directos + 16 merges) · 121 archivos ·
++17 571 / −693 · **49 de código de producto** · **18 regresiones cerradas**.
+Cero rutas de API nuevas, cero pantallas nuevas.
+
+**Este paquete tocaba `firestore.indexes.json`, y es el primero que de verdad los
+ENVIÓ** — pero no a la primera: la ejecución #14 murió con un `403` porque a la
+credencial le faltaba `roles/datastore.indexAdmin`, y el acta acusó a las reglas,
+que eran lo único que había salido bien (REG-433). El dueño concedió el rol en
+IAM y la #15 pasó.
+
+Enviar no es construir: si Firestore **terminó de construirlos** sigue sin poder
+verse desde el repositorio.
+
+### Lo que cambia para el médico
+
+**El respaldo se puede conciliar, y la restauración tiene cinco candados**
+(#349, REG-417…420). El pie del archivo lleva recuento por colección y huella del
+conjunto, así que «restauramos 10 000 documentos» ya se puede desmentir si
+faltaban 300. Y lo que más pesa: **un paciente cuya supresión ARCO consta en el
+consultorio de destino no vuelve** al restaurar un respaldo anterior — ni con
+`sobrescribir=1`, ni en modo ensayo.
+
+**La firma de la receta deja de ser transferible** (#355, REG-432). El permiso de
+las imágenes de papelería pasa de ligar `path|exp` a ligar
+`versión + path + dueño + consultorio + caducidad`, y de durar 24 h a durar 15
+min. Antes, una URL filtrada servía un día entero y cruzaba consultorios.
+
+Y **si el membrete no carga, ahora te avisa antes de imprimir** en vez de
+entregar una receta incompleta en silencio. Ese defecto no existía: lo iba a
+crear el propio arreglo, y se cerró con él.
+
+**Cuatro consultas vivas llevaban meses sin índice** (#425, REG-421…424, 429,
+431). Y el guardián que debía cazarlo se saltaba lo que no entendía.
+
+### Los índices: la parte que hay que leer despacio
+
+`firebase.json` **nunca declaró dónde estaban los índices**. `firebase deploy
+--only firestore:indexes` no falla cuando no encuentra nada que publicar:
+devuelve éxito. Así que todas las actas anteriores registraron el paso en
+`success` **y no publicaron un solo índice** (REG-431).
+
+Con la línea puesta, este despliegue publica los **12 índices compuestos por
+primera vez**. Construirlos sobre colecciones con datos tarda de minutos a horas.
+
+Lo que impide que eso rompa una pantalla es REG-424: la consulta buena se
+intenta, y **sólo** si el error dice que falta el índice se cae al camino de
+antes, devolviendo `degradada: true` — y eso sube hasta donde se ve («no se pudo
+ordenar por urgencia: lo que se ve son los más antiguos»). Un permiso denegado o
+una red caída **siguen subiendo**: si esto los absorbiera, convertiría una fuga
+de aislamiento en una lista corta, que es peor porque no se ve.
+
+---
+
 ## v1178 — el portal del paciente y el documento firmado entran a los arneses
 
 **40 commits desde v1177** · 10 archivos de código de producto · **cero rutas de

@@ -1,52 +1,79 @@
 # AUSCULTA — último punto seguro
 
-## Checkpoint · 3-sep-2026 — **el producto, mirado en un navegador de punta a punta**
+## Checkpoint · 6-sep-2026 — **fusionado con `main`: 155 commits de distancia, 12 archivos en conflicto, resueltos**
 
 ```
 CURRENT_BRANCH=claude/ausculta-product-excellence-52rqck
 CURRENT_HEAD=(este commit)
 CURRENT_PR=(sin PR — la rama está empujada, no fusionada)
-CURRENT_WORKSTREAM=Ausculta Product Excellence — las doce cosas que pidió el dueño, cerradas
-LAST_COMPLETED_UNIT=102 · el recorrido completo del médico (REG-430)
+LAST_COMPLETED_UNIT=103 · la fusión con main
 CURRENT_PARTIAL_UNIT=(ninguna)
-EXACT_NEXT_ACTION=Nada empezado a medias. Lo que queda declarado y NO hecho: (1) el panel del instrumento sigue diciendo «Grabando» junto a la barra de voz — un rótulo de más, medido y declarado en REG-430; (2) la respuesta de Evidencia sigue BLOCKED_EXTERNAL por falta de clave de IA y de PubMed; (3) `la-cifra-de-seguridad-no-se-pudre` está en rojo desde antes de este trabajo: `npm audit` pasó de 9 a 11 avisos (0 críticos, 0 altos) y su arreglo es `node scripts/seguridad/auditar.mjs`, que toca un documento del dueño y por eso no se hizo aquí.
-FILES_IN_SCOPE=src/components/MientrasHablas.tsx · src/app/globals.css · src/app/(dashboard)/{finanzas,calendario,consulta}/ · src/context/ToastContext.tsx · src/lib/pacientes/estado-clinico.ts · src/hooks/useEsTelefono.ts · scripts/carril-excelencia/
-FILES_LOCKED=(ninguno — un solo writer)
-TESTS_PASSED=12146
-TESTS_FAILED=2
-KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts (exige que 10.255.255.1 trague paquetes; el proxy del contenedor rechaza al instante — NO tocar la aserción) · la-cifra-de-seguridad-no-se-pudre.test.ts (deriva de `npm audit`, ver EXACT_NEXT_ACTION). Los dos fallan también en árbol limpio.
+EXACT_NEXT_ACTION=La rama ya está al día con main y en verde. Lo que queda es del dueño: (1) abrir el PR y fusionar; (2) desplegar reglas e índices de Firestore; (3) la clave de IA, que destraba Evidencia y la transcripción de verdad; (4) un iPhone real — sin WebKit NADA de este carril prueba iPhone; (5) pentest y PITR.
+TESTS_PASSED=12695
+TESTS_FAILED=1
+KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.255.255.1 trague paquetes y el proxy del contenedor rechaza al instante. Es intermitente: en una corrida de la suite entera pasó. NO tocar la aserción.
 BUILD=compila
-BLOCKED_EXTERNAL=iPhone/WebKit real (el binario no está y su descarga está bloqueada: NADA de este carril prueba iPhone) · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
-DO_NOT_REGRESS=REG-425…REG-430
+BLOCKED_EXTERNAL=iPhone/WebKit real · clave de IA · PubMed · despliegue de firestore.rules · PITR · pentest
+DO_NOT_REGRESS=REG-513…REG-526
 ```
 
-### Los arneses nuevos de este carril
+### La fusión, y lo que enseñó
+
+`main` había avanzado **155 commits**. Al fusionar aparecieron 12 archivos en
+conflicto y, más interesante, **tres decisiones de producto tomadas dos veces
+por separado**: la agenda que abre en Día en el teléfono, `minmax(0, 1fr)` en la
+rejilla del mes, y derivar `ultimaCita` de las citas en la siembra.
+
+En las tres **gana `main`**, y no por ser el tronco: por estar selladas con
+guardianes que no son de este carril. Concretamente:
+
+- La **píldora flotante de grabación**: este carril la había retirado haciendo
+  `fixed` la barra de voz. `main` la conserva y la esconde cuando el panel está
+  a la vista, y lo tiene sellado en
+  `grabar-nunca-es-rojo-y-se-manda-desde-un-sitio.test.ts` junto con otras cinco
+  reglas (grabar nunca es rojo, un solo cronómetro, un solo botón de pausa). Las
+  dos soluciones son incompatibles. Se revierte la de aquí entera.
+- La **vista del calendario**: `main` la elige al montar y NO la re-impone al
+  girar, y lo tiene sellado. Este carril la derivaba con `useSyncExternalStore`.
+  Se revierte.
+
+De este lado se conserva lo que valía por su cuenta y no chocaba: la píldora y
+la barra usan ahora el **vocabulario común** (`rotulo`, `reloj`) en vez de dos
+`padStart` propios — la regla de REG-515, que aquel cambio no había alcanzado.
+
+**Los REG de este carril se renumeraron 417→513 … 430→526**: `main` había usado
+417-430 para regresiones distintas. Se renumeró sólo lo que no existía en
+`origin/main`, línea por línea.
+
+### Dos defectos que salieron DE la fusión
+
+- El observador de la píldora quedó vigilando **otro elemento** (`ref` en el
+  `<div>` equivocado). Lo cazó el guardián de `main`.
+- `nada-flotante-tapa-un-control` buscaba el botón del tour con
+  `hasText: /^saltar$/i`. Con expresión regular, `hasText` mira el texto CRUDO,
+  y el del botón lleva saltos de línea: **el tour no se cerraba nunca**, y el
+  guardián llevaba midiendo la pantalla del tour —una capa `fixed` con z-index
+  200— y diciendo «ok». Ahora se busca por nombre accesible y **se comprueba que
+  la capa se fue**; si sigue ahí, se para.
+
+### Los arneses de este carril
 
 | Comando | Qué mide |
 |---|---|
-| `npm run arnes:telefono-navegador` | Las 28 pantallas a 390 px: arrastre lateral y recorte mudo. Es el navegador que `scripts/calidad/cabe-en-un-telefono.mjs` declara no ser. |
+| `npm run arnes:telefono-navegador` | Las 28 pantallas a 390 px: arrastre lateral y recorte mudo. |
 | `npm run arnes:confirmacion` | El teclado del diálogo destructivo: 9 comprobaciones. |
-| `npm run arnes:regresion-visual` | Línea base de 14 capturas. `--fijar` la fija, `--estabilidad` mide su propio ruido (0.0000 %). |
+| `npm run arnes:regresion-visual` | 14 capturas contra línea base. `--estabilidad` mide su propio ruido. |
 | `npm run arnes:dia-del-medico` | El día entero: entrar, ver, abrir, consentir, grabar, detener, firmar, cobrar, recuperar el audio. |
 
-### Cerrado en esta tanda
-
-| REG | Qué |
-|---|---|
-| 425 | Finanzas escondía una cifra de dinero tras un arrastre lateral, y el trinquete preguntaba del lado equivocado de la frontera |
-| 426 | En la agenda de un teléfono el bloque decía la hora y se comía el nombre del paciente |
-| 427 | El arnés escribía el tipo de cita con su etiqueta: diez citas con el tipo en blanco, en todas las capturas del repositorio |
-| 428 | El diálogo que existe para que nada se borre sin querer borraba con un Enter apuntado a otra cosa |
-| 429 | Todas las tardes, a partir de las seis, el producto envejecía un día a quien se hubiera atendido ese día |
-| 430 | La barra que dice «no se va de la pantalla» se iba de la pantalla |
-
-### La lección que se repitió en las seis
+### La lección que se repitió
 
 Un guardián puede estar escrito, correr y salir verde sin vigilar nada: porque
-pregunta del lado equivocado de la frontera (425), porque mira una carpeta de
-menos (428), porque prueba una forma del dato que nadie envía y a una hora en la
-que el defecto no se asoma (429), o porque mide la pantalla en un estado en el
-que nadie trabaja (430). **Visitar la ruta no es medirla.**
+pregunta del lado equivocado de la frontera (REG-521), porque mira una carpeta
+de menos (REG-524), porque prueba una forma del dato que nadie envía y a una
+hora en la que el defecto no se asoma (REG-525), porque mide la pantalla en un
+estado en el que nadie trabaja (REG-526), o porque su localizador nunca casa y
+mide la pantalla de otra cosa (el tour, arriba). **Visitar la ruta no es
+medirla.**
 
 ---
 
@@ -69,7 +96,7 @@ KNOWN_ENVIRONMENT_FAILURES=ops-timeout-y-punto-ciego.test.ts — exige que 10.25
 BUILD=compila con los placeholders NEXT_PUBLIC_FIREBASE_* del CI; sin ellos falla en «collect page data» (auth/invalid-api-key), que es del entorno
 P0_OPEN=(ninguno interno)
 P1_OPEN=(ninguno interno — P1-20 abierto y cerrado con REG-364)
-BLOCKED_EXTERNAL=P1-6 E0-06 alergias · P1-14 índice compuesto · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
+BLOCKED_EXTERNAL=P1-6 E0-06 alergias · iPhone/WebKit real · despliegue de firestore.rules · PITR/restore real · pentest · licencias de evidencia
 DO_NOT_REGRESS=REG-323 · REG-501…REG-376
 ```
 
@@ -169,11 +196,29 @@ Dos huecos que vivían en comentarios sueltos pasan a ser artefactos con lista:
 
 | Qué | Dónde | Comando del dueño |
 |---|---|---|
-| Índices compuestos (P1-14, worklist, lista de espera, citas, resumen) | `firestore.indexes.json` + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` |
+| Índices compuestos — las 4 consultas YA los usan (REG-421), así que el despliegue va **ANTES** de fusionar | `firestore.indexes.json` (9 índices) + `docs/ops/INDICES-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:indexes` y **verlos `Enabled` en la consola** |
 | Reglas escritas y sin desplegar (`members`, bloque `clinico`, los `match` de REG-340) | `firestore.rules.estado.json` + `docs/ops/REGLAS-DE-FIRESTORE.md` | `npx firebase deploy --only firestore:rules` |
 
 Los dos siguen `BLOCKED_EXTERNAL`. La diferencia es que ahora se puede pedir de
 una vez y se sabe qué se rompe mientras tanto. **Conviene pedir las dos juntas.**
+
+> **Al día del 2-sep-2026 — el primero está CERRADO.** No se corrige el renglón
+> de arriba, se le añade éste: lo que decía era cierto cuando se escribió.
+>
+> Los índices son **doce**, no nueve —REG-422 y REG-423 encontraron tres más—, y
+> el comando de la tabla **no habría funcionado por DOS motivos**, no uno:
+>
+> 1. `firebase.json` nunca declaró `firestore.indexes.json`, así que devolvía
+>    `success` sin publicar nada (REG-431);
+> 2. arreglado eso, la cuenta de servicio contestó **403**: le faltaba
+>    `roles/datastore.indexAdmin`. Publicar reglas y crear índices son permisos
+>    distintos, y tenía sólo el primero.
+>
+> El dueño concedió el rol, la ejecución #15 del botón los publicó el 1-sep 23:51
+> UTC, y él los vio `Enabled` en la consola el 2-sep. El detalle vive en
+> `docs/ops/INDICES-DE-FIRESTORE.md`.
+>
+> El segundo —las reglas escritas y sin desplegar— **sigue abierto**.
 
 ### Lo que el tablero decía y el código desmentía
 
@@ -200,18 +245,32 @@ Los dos hacían **pasar pruebas vacías**, así que quedan anotados:
 Cualquier prueba anterior que afirmara sobre escrituras con este doble hay que
 mirarla de nuevo: pudo estar en verde por esto.
 
-### El índice que falta ya no vive en comentarios
+### Los índices: declarados, usados, y esperando el despliegue (REG-421)
 
-`firestore.indexes.json` + `docs/ops/INDICES-DE-FIRESTORE.md` reúnen los cuatro
-módulos que hoy están peor por no tener índice compuesto (worklist P1-14, lista de
-espera, citas del paciente, resumen de notas). Sigue `BLOCKED_EXTERNAL` —lo
-despliega el dueño con `npx firebase deploy --only firestore:indexes`— pero ahora
-es **una acción concreta y no un hueco invisible**.
+Los cuatro sacrificios que vivían en comentarios están **reparados**: worklist,
+lista de espera, citas del paciente y resumen de notas ya piden orden y cota.
+
+Y al comprobar el guardián **al revés** antes de tocar nada, se descubrió que no
+fallaba: se saltaba en silencio las consultas cuya colección no sabía leer, y
+comparaba presencia de campos en vez de orden. Debajo había **dos consultas vivas
+sin índice** — `getWaitlist` y `listarInvitaciones`. Son nueve índices ahora.
+
+**EL ORDEN DE DESPLIEGUE ES LO ÚNICO PELIGROSO QUE QUEDA AQUÍ.** Los índices van
+**antes** que el código: una consulta sin su índice no devuelve lista vacía, falla
+entera. Y el botón de producción no protege de esto —su compuerta 3 exige que el
+sitio ya sirva la versión antes de publicar los índices—, así que se despliegan
+aparte, se ven `Enabled` en la consola, y sólo entonces se fusiona.
+
+El detalle operativo, con los nueve índices y quién los usa, en
+`docs/ops/INDICES-DE-FIRESTORE.md`.
 
 ### Herramientas que el resto del programa puede usar
 
 1. **`_harness/firestore-admin-en-memoria.ts`** — `doc`, `getAll`, `batch`,
-   `tx.getAll` y un gancho de interceptación **en la lectura**.
+   `tx.getAll`, un gancho de interceptación **en la lectura** y, desde REG-421,
+   `orderBy` con las DOS mitades de lo que Firestore hace: ordenar **y excluir
+   los documentos a los que les falta el campo del orden**. La segunda es la que
+   convierte «una entrada sin `prioridad`» en «una entrada que desaparece».
 2. **`_harness/firestore-cliente-en-memoria.ts`** — cuenta documentos leídos,
    entiende `getCountFromServer`, `startAfter` **en la dirección del orden**, y
    sabe simular una **lectura caída** —global (`fallos.lectura`) o en una

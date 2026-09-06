@@ -9,7 +9,7 @@
  * fin sin quedarse atascado?** Eso sólo se sabe recorriéndolo.
  *
  * Y recorriéndolo aparecieron cosas que ninguna medición por pantalla iba a
- * dar: la barra de voz se iba de la pantalla al bajar por la nota (REG-430), y
+ * dar: la barra de voz se iba de la pantalla al bajar por la nota (REG-526), y
  * la consulta sólo se estaba midiendo EN REPOSO, que es un estado en el que
  * nadie trabaja.
  *
@@ -110,13 +110,30 @@ await paso(5, 'Pide grabar y da el consentimiento', async () => {
 })
 
 await paso('5b','Baja por la nota: ¿sigue el control a mano?', async () => {
+  /**
+   * La pregunta NO es «¿sigue la barra?» sino «¿puede parar?». Grabar una
+   * consulta dura veinte minutos y en ese rato el médico se desplaza por la
+   * nota; si al final del scroll no hay ningún control de detener, la única
+   * salida es volver a subir buscándolo.
+   *
+   * El diseño de la rama de voz lo resuelve así: el panel de escucha se va con
+   * el scroll y una píldora flotante aparece justo cuando el panel deja de
+   * verse. Así que aquí se mide el RESULTADO —hay con qué parar— y no una
+   * implementación concreta.
+   */
   await p.evaluate(() => { const m=document.querySelector('main')||document.scrollingElement; m.scrollTop = m.scrollHeight })
   await p.waitForTimeout(1400)
   const d = await p.evaluate(() => {
-    const b = document.querySelector('.nx-mientras-hablas')?.getBoundingClientRect()
-    return { visible: !!(b && b.top < innerHeight && b.bottom > 0), top: b?Math.round(b.top):null }
+    const paradas = [...document.querySelectorAll('button')].filter(b => {
+      const t = (b.textContent || b.getAttribute('aria-label') || '')
+      if (!/deten|termin|parar|finaliz/i.test(t)) return false
+      const r = b.getBoundingClientRect()
+      return r.height > 0 && r.top < innerHeight && r.bottom > 0
+    }).map(b => (b.textContent || b.getAttribute('aria-label') || '').trim())
+    return { paradas }
   })
-  return `barra de voz visible al final: ${d.visible} (top ${d.top})`
+  if (d.paradas.length === 0) return '✗ al final de la nota no queda con qué detener'
+  return `con qué parar al final: ${JSON.stringify(d.paradas)}`
 })
 
 await paso(6, 'Detiene la grabación', async () => {

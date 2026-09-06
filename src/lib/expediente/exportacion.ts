@@ -87,6 +87,10 @@ export const SECCIONES: SeccionExpediente[] = [
     clave: 'paquetes_visita', ruta: 'paquetes_visita',
     descripcion: 'Lo que se le entregó al paciente de cada consulta: sus medicamentos en palabras sencillas, los estudios, el seguimiento y quién lo aprobó. Se entregan también los borradores: el derecho de acceso es sobre SUS datos, y un paquete que se compuso y no se liberó sigue siendo un dato suyo.',
   },
+  {
+    clave: 'preguntas_paciente', ruta: 'preguntas_paciente',
+    descripcion: 'Lo que preguntó por el portal y lo que se le contestó, con la fecha de cada una. Va entero —incluida la clasificación interna que le puso el servidor y el motivo por el que se escaló— porque el derecho de acceso es sobre SUS datos, y cómo se trató su pregunta es un dato suyo: es lo que le permite saber por qué una duda acabó con un humano y otra no.',
+  },
 ]
 
 /**

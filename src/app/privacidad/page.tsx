@@ -2,6 +2,7 @@
 // URL fija /privacidad — la que pide Meta para la revisión de la app de WhatsApp
 // (además de los avisos por consultorio en /privacidad/[clinicId]).
 import type { Metadata } from 'next'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { CORREO_PRIVACIDAD } from '@/lib/contacto'
 
 export const metadata: Metadata = {
@@ -13,9 +14,23 @@ const ACTUALIZADO = 'julio de 2026'
 
 export default function PrivacidadGeneralPage() {
   return (
-    <main style={{ maxWidth: 780, margin: '0 auto', padding: '48px 22px 80px', color: '#1a1a1a', background: '#fff', lineHeight: 1.7, fontSize: 16 }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: '#0b1220' }}>Aviso de Privacidad</h1>
-      <p style={{ color: '#667', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de la columna.
+
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas. Puesto sin
+      más dentro de la raíz, el menú heredaba los 780 px de la columna de
+      lectura y salía apretado, con «Cómo funciona» y «Ver el producto»
+      partidos en dos renglones — además de quedar DENTRO de `<main>`, que es
+      justo lo que un landmark de navegación no debe hacer.
+
+      Se envuelve, pues: el menú a lo ancho, y la columna estrecha debajo, que
+      es donde tiene sentido leer un texto legal.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ maxWidth: 780, margin: '0 auto', padding: '32px 22px 80px', color: 'var(--text)', lineHeight: 1.7, fontSize: 16 }}>
+      <h1 style={{ fontSize: 30, fontWeight: 800, margin: '0 0 6px', color: 'var(--text)' }}>Aviso de Privacidad</h1>
+      <p style={{ color: 'var(--text2)', margin: '0 0 28px', fontSize: 14 }}>Plataforma Ausculta · Última actualización: {ACTUALIZADO}</p>
 
       <p>
         Ausculta es una plataforma de <strong>agenda médica y expediente clínico electrónico</strong> para consultorios y
@@ -117,18 +132,40 @@ export default function PrivacidadGeneralPage() {
         Dudas sobre este aviso o sobre el tratamiento de datos: <strong>{CORREO_PRIVACIDAD}</strong>.
       </Section>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: '#889' }}>
+      <p style={{ marginTop: 36, fontSize: 13, color: 'var(--text2)' }}>
         Ausculta — Agenda médica y expediente clínico electrónico · México.
       </p>
-    </main>
+      </main>
+    </div>
   )
 }
 
 function Section({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  /**
+   * EL CUERPO NO SE ENVUELVE EN UN `<p>`.
+   *
+   * Envolvía TODO hijo en `<p style={{ margin: 0 }}>`, y la sección 7 le pasa
+   * una `<ul>` con los encargados. Un `<ul>` dentro de un `<p>` es HTML
+   * inválido: el navegador cierra el párrafo y saca la lista fuera, así que el
+   * árbol que pinta el servidor y el que construye el cliente **no coinciden**.
+   * React lo dice en la consola, medido en el navegador:
+   *
+   *     In HTML, <ul> cannot be a descendant of <p>. This will cause a
+   *     hydration error.
+   *     Hydration failed because the server rendered HTML didn't match…
+   *
+   * Y una hidratación fallida no es cosmética: React descarta el árbol del
+   * servidor y vuelve a pintar en cliente. En el aviso de privacidad, que es un
+   * documento legal, lo que se ve podía dejar de ser lo que se sirvió.
+   *
+   * El envoltorio se retira: cada sección pone sus propios `<p>`, que es lo que
+   * ya hacen las demás sin saberlo — el texto suelto se pinta igual dentro de
+   * la `<section>`.
+   */
   return (
     <section style={{ marginTop: 26 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: '#0b1220' }}>{titulo}</h2>
-      <p style={{ margin: 0 }}>{children}</p>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>{titulo}</h2>
+      {children}
     </section>
   )
 }

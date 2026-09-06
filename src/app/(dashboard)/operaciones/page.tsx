@@ -20,7 +20,7 @@ import {
   CalendarPlus, CalendarDays, Calendar, Clock, BedDouble, Activity,
   TrendingUp, Star, HeartHandshake, Pill, ShieldCheck, FileText, ArrowLeftRight,
   MessageCircle, BookOpen, Settings, CreditCard, LogOut, Moon, Sun, Monitor,
-  Download, Loader2,
+  Download, Loader2, ChevronDown, Briefcase,
   type LucideIcon,
 } from 'lucide-react'
 import { useClinic } from '@/context/ClinicContext'
@@ -32,6 +32,7 @@ import { estadoDeOperaciones, type EstadoDeOperaciones as EstadoOps } from '@/li
 import { EstadoDeOperaciones } from '@/components/operaciones/EstadoDeOperaciones'
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
+import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { useTema } from '@/hooks/useTema'
 import { useToast } from '@/context/ToastContext'
@@ -59,8 +60,21 @@ import { descargarRespaldo } from '@/lib/clinica/descargar-respaldo'
  * resistencia»). Esta pantalla era la última que hablaba sólo con etiquetas.
  */
 type Item = { href: string; label: string; para: string; icon: LucideIcon; modos: 'ambos' | 'medico' }
-/** `cadencia` ordena la página: lo de todos los días arriba, lo de una vez abajo. */
-type Grupo = { titulo: string; cadencia: string; items: Item[] }
+/**
+ * `cadencia` ordena la página: lo de todos los días arriba, lo de una vez abajo.
+ *
+ * `secundario` va un paso más allá de ordenar: SACA el grupo de la primera
+ * lectura y lo mete en un cajón cerrado (§«revelación progresiva»). Lo pidió el
+ * dueño mirando la pantalla: nueve destinos de negocio, cumplimiento y
+ * documentos —cosas de cada semana, cada mes o de vez en cuando— ocupaban dos
+ * pantallazos por delante de lo que se usa a diario, y eso no es un índice
+ * amigable: es una lista de todo lo que el programa sabe hacer.
+ *
+ * Ordenar por cadencia ya no bastaba porque el problema no era el ORDEN, era la
+ * CANTIDAD visible de golpe. Un grupo marcado aquí sigue existiendo entero, con
+ * su cabecera y su cadencia: sólo se lee cuando se abre.
+ */
+type Grupo = { titulo: string; cadencia: string; items: Item[]; secundario?: true }
 
 const GRUPOS: Grupo[] = [
   {
@@ -91,6 +105,17 @@ const GRUPOS: Grupo[] = [
    *    son. El título viejo afirmaba que el área admin contenía «lo clínico»,
    *    y eso era justo lo que §11 pide que no pase.
    */
+  /**
+   * EN PAUSA desde el 4-sep-2026 — decisión del dueño.
+   *
+   * El grupo entero desaparece del índice: `enPausa` filtra sus dos destinos y
+   * un grupo sin destinos no se pinta. La prioridad es **la consulta y su
+   * agenda**, y Hospital/UCI siguen en ALPHA («se usan, no se venden»).
+   *
+   * Se queda AQUÍ ESCRITO, no borrado: la etiqueta, el icono y el «para qué»
+   * de cada destino son el trabajo que costaría rehacer. Volver a ofrecerlo es
+   * vaciar `MODULOS_EN_PAUSA` en `@/lib/navegacion/modulos-en-pausa`.
+   */
   {
     titulo: 'Hospital y UCI',
     cadencia: 'Cuando hay pacientes internados',
@@ -102,6 +127,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Negocio',
     cadencia: 'Cada semana o cada mes',
+    secundario: true,
     items: [
       { href: '/crm', label: 'CRM', para: 'De dónde llegan los pacientes y qué pasó con cada contacto', icon: TrendingUp, modos: 'medico' },
       { href: '/resenas', label: 'Reseñas', para: 'Lo que escriben los pacientes, y pedirlo cuando toca', icon: Star, modos: 'medico' },
@@ -114,6 +140,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Cumplimiento y documentos',
     cadencia: 'De vez en cuando',
+    secundario: true,
     items: [
       { href: '/cumplimiento', label: 'Cumplimiento', para: 'NOM-004, avisos de privacidad y derechos ARCO', icon: ShieldCheck, modos: 'medico' },
       { href: '/legal', label: 'Documentos legales', para: 'Consentimientos y formatos que el paciente firma', icon: FileText, modos: 'medico' },
@@ -209,7 +236,7 @@ function useEstadoOperativo(clinicId: string | null | undefined) {
     const desde = hoyISO()
     Promise.all([
       rescatar(getAppointments(clinicId, [where('fechaHora', '>=', desde + ' 00:00')]), 'citas'),
-      rescatar(getWaitlist(clinicId), 'lista de espera'),
+      rescatar(getWaitlist(clinicId).then(r => r.entradas), 'lista de espera'),
       rescatar(listarItems(clinicId), 'farmacia'),
     ]).then(([citas, listaEspera, farmacia]) => {
       if (!vivo) return
@@ -231,9 +258,19 @@ export default function OperacionesPage() {
     .map(g => ({
       ...g,
       items: g.items.filter(it =>
-        (it.modos === 'ambos' || mode === 'medico') && rutaPermitida(clinic, it.href)),
+        (it.modos === 'ambos' || mode === 'medico')
+        && rutaPermitida(clinic, it.href)
+        // Módulos EN PAUSA: declarados arriba, no ofrecidos hoy. Un grupo que
+        // se queda sin destinos desaparece entero por el `.filter` de abajo.
+        && !enPausa(it.href)),
     }))
     .filter(g => g.items.length > 0)
+
+  // Dos lecturas, no una lista: lo de todos los días se ve al abrir; lo demás
+  // espera detrás del cajón. La marca vive en el dato (`secundario`), no en el
+  // orden del arreglo, para que mover un grupo no cambie qué se esconde.
+  const primarios = grupos.filter(g => !g.secundario)
+  const secundarios = grupos.filter(g => g.secundario)
 
   return (
     <div className="nx-canvas" style={{ paddingBottom: 60 }}>
@@ -243,7 +280,7 @@ export default function OperacionesPage() {
           `PageHeader`, que además garantiza el subtítulo por tipo. */}
       <PageHeader
         title="Operaciones"
-        subtitle="La administración del consultorio y los módulos de hospital, aparte del trabajo clínico del día. Cada cosa dice para qué sirve, y los grupos van de lo que se usa todos los días a lo que se configura una vez."
+        subtitle="La administración del consultorio, aparte del trabajo clínico del día. A la vista, lo que se usa todos los días; lo de cada semana o de vez en cuando espera dentro de un botón. Cada cosa dice para qué sirve."
       />
 
       <EstadoDeOperaciones estado={estado} cargando={cargando} />
@@ -266,31 +303,11 @@ export default function OperacionesPage() {
           * cajas iguales eran 19 fronteras compitiendo por atención. Dentro,
           * las filas se separan con una línea, que es lo que hace una lista.
           */}
-        {grupos.map(g => (
-          <section key={g.titulo}>
-            <CabeceraDeGrupo titulo={g.titulo} cadencia={g.cadencia} />
-            <div style={CAJA_DE_GRUPO}>
-              {g.items.map((it, i) => (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className="nx-op-fila"
-                  style={{
-                    ...FILA_DE_GRUPO,
-                    borderTop: i === 0 ? 'none' : '1px solid var(--border)',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <it.icon size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>{it.label}</span>
-                    <span className="nx-meta" style={{ display: 'block' }}>{it.para}</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))}
+        {primarios.map(g => <GrupoDeDestinos key={g.titulo} grupo={g} />)}
+
+        {/* Lo de cada semana, cada mes y de vez en cuando: existe entero,
+            pero detrás de UN botón. Ver `CajonDeLoSecundario`. */}
+        <CajonDeLoSecundario grupos={secundarios} />
 
         {/* RTC-15 → RTC-29 (§11): el respaldo del consultorio ATERRIZA aquí.
             Vivía en la cabecera primaria de /pacientes, junto a «Nuevo
@@ -331,6 +348,120 @@ export default function OperacionesPage() {
         </section>
       </div>
     </div>
+  )
+}
+
+/**
+ * UN GRUPO DE DESTINOS — la anatomía de RTC-29, ahora en una pieza.
+ *
+ * Era JSX escrito una vez dentro del `map` de la página. Al aparecer el cajón
+ * hacía falta pintarlo en DOS sitios, y copiarlo habría sido volver al defecto
+ * que RTC-29 pagó: dos dialectos para la misma lista. Se extrae tal cual —
+ * mismo borde, mismo 44, mismas líneas entre filas— sin cambiar nada de lo que
+ * ya estaba aprobado.
+ */
+function GrupoDeDestinos({ grupo }: { grupo: Grupo }) {
+  return (
+    <section>
+      <CabeceraDeGrupo titulo={grupo.titulo} cadencia={grupo.cadencia} />
+      <div style={CAJA_DE_GRUPO}>
+        {grupo.items.map((it, i) => (
+          <Link
+            key={it.href}
+            href={it.href}
+            className="nx-op-fila"
+            style={{
+              ...FILA_DE_GRUPO,
+              borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+              textDecoration: 'none',
+            }}
+          >
+            <it.icon size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>{it.label}</span>
+              <span className="nx-meta" style={{ display: 'block' }}>{it.para}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * EL CAJÓN DE LO SECUNDARIO — revelación progresiva, no una pantalla nueva.
+ *
+ * QUÉ PROBLEMA RESUELVE: la primera lectura del índice enseñaba nueve destinos
+ * de negocio, cumplimiento y documentos por delante de lo que se usa a diario.
+ * El dueño lo dijo mirándolo: confunde. Y confundir aquí es caro, porque quien
+ * abre esta pantalla suele venir buscando UNA cosa concreta.
+ *
+ * POR QUÉ UN CAJÓN Y NO OTRA PANTALLA: mandarlos a una ruta aparte los habría
+ * dejado a dos clics y a una pantalla que nadie visita — «esconder» acaba
+ * siendo «perder», y estos destinos se usan de verdad, sólo que no hoy. Un
+ * cajón deja el índice completo en un sitio y a un clic de distancia.
+ *
+ * LO QUE EL BOTÓN PROMETE ES LO QUE HAY DENTRO: el nombre de los grupos y el
+ * número de destinos se CUENTAN de lo que se va a pintar, ya filtrado por modo,
+ * por módulo contratado y por pausa. Escribir «9 destinos» a mano habría
+ * envejecido mal el día que alguien añada uno — o peor, habría prometido a una
+ * secretaria destinos que su modo no le enseña.
+ *
+ * CERRADO AL ENTRAR, a propósito: el estado limpio de esta pantalla es «lo de
+ * hoy». No se recuerda entre visitas —eso sería estado por dispositivo para
+ * ahorrar un clic— y por eso tampoco hay nada que se desincronice.
+ */
+function CajonDeLoSecundario({ grupos }: { grupos: Grupo[] }) {
+  const [abierto, setAbierto] = useState(false)
+  // Sin grupos secundarios visibles (un plan que no incluye ninguno, o el modo
+  // secretaria) no se pinta un botón que abre la nada.
+  if (grupos.length === 0) return null
+
+  const destinos = grupos.reduce((n, g) => n + g.items.length, 0)
+  const nombres = grupos.map(g => g.titulo.toLowerCase()).join(', ')
+
+  return (
+    <section>
+      <div style={CAJA_DE_GRUPO}>
+        <button
+          onClick={() => setAbierto(v => !v)}
+          aria-expanded={abierto}
+          aria-controls="ops-cajon-secundario"
+          className="nx-op-fila"
+          style={{ ...FILA_DE_GRUPO, cursor: 'pointer' }}
+        >
+          <Briefcase size={17} className="nx-op-icono" style={{ color: 'var(--text3)', flexShrink: 0 }} aria-hidden="true" />
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 500 }}>
+              {abierto ? 'Ocultar la gestión del consultorio' : 'Ver la gestión del consultorio'}
+            </span>
+            <span className="nx-meta" style={{ display: 'block' }}>
+              {nombres} — {destinos} {destinos === 1 ? 'destino' : 'destinos'} que no hacen falta a diario
+            </span>
+          </span>
+          <ChevronDown
+            size={17}
+            style={{
+              color: 'var(--text3)', flexShrink: 0,
+              transition: 'transform var(--mov-rapido) var(--mov-curva)',
+              transform: abierto ? 'rotate(180deg)' : 'none',
+            }}
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+
+      {/* El contenedor existe siempre —`aria-controls` apunta a algo real— y lo
+          de dentro se monta al abrir. No se usa el atributo `hidden` porque el
+          `display:flex` inline lo pisaría y el cajón se quedaría abierto. */}
+      <div id="ops-cajon-secundario">
+        {abierto && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 26, marginTop: 14 }}>
+            {grupos.map(g => <GrupoDeDestinos key={g.titulo} grupo={g} />)}
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 

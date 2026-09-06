@@ -424,46 +424,45 @@ async function main() {
   })
 
   /**
-   * LA ÚLTIMA CITA SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
+  /**
+   * `ultimaCita` SE DERIVA DE LAS CITAS, NO SE ESCRIBE A MANO.
    *
-   * `ultimaCita` no se sembraba, y en el producto la escribe la transición de
-   * estado (`cambiosPorTransicion`) dentro de su transacción. El arnés escribe
-   * las citas ya en su estado final, así que esa transición no ocurre nunca y
-   * el campo se quedaba vacío para todos.
+   * La siembra escribía `noShowCount` y `cancelacionCount` —lo que dejaría una
+   * transición a «no asistió»— y NO escribía `ultimaCita`, que es lo que deja
+   * una transición a «atendida». Incoherente consigo misma, y con una
+   * consecuencia que engaña: `/pacientes` abre en «Recientes», «Recientes»
+   * filtra por `ultimaCita`, y el arnés enseñaba la pantalla VACÍA —«Ninguno
+   * tiene citas recientes. Hay 5 expedientes en total»— con ocho citas hoy y
+   * una de ellas atendida.
    *
-   * Lo que eso dejaba sin poder auditar, todo con aspecto de pantalla vacía
-   * legítima:
-   *  · «Recientes» de Pacientes — la pestaña que abre por defecto — decía
-   *    «Ninguno tiene citas recientes» con ocho citas en la agenda de hoy;
-   *  · el CRM contaba CERO pacientes activos y a todos como perdidos;
-   *  · Reactivación proponía reactivar a quien se atendió hoy;
-   *  · Retención NOM-004 evaluaba con la fecha vacía.
+   * Eso es peor que una siembra pobre: hace que una pantalla sana parezca rota.
+   * El guion ya avisa arriba de que «una siembra bonita produce una auditoría
+   * visual mentirosa»; ésta mentía en la otra dirección, y se tarda lo mismo en
+   * perseguir un defecto que no existe.
    *
-   * Es el mismo defecto que REG-427 en otra forma: el arnés escribe el estado
-   * final sin lo que ese estado deriva, y las pantallas que leen lo derivado
-   * salen vacías sin decir que les falta un dato.
+   * Se deriva con la MISMA regla del producto —`esAtencionEfectiva` en
+   * `src/lib/agenda/contadores-paciente.ts`— y no con una fecha inventada, para
+   * que la siembra no pueda separarse de la regla sin que un guardián lo vea.
    *
-   * La regla no se copia: se lee de `contadores-paciente.ts`, que es de quien
-   * es. Si allí cambia qué estado cuenta como atención, esto se entera.
+   * Y para que eso sea verdad, la lista **se lee de ese archivo**, no se copia
+   * aquí: una copia se escribe bien el día que se escribe y se queda vieja en
+   * silencio, que es exactamente el defecto del que va este bloque.
    */
-  const ATENCION_EFECTIVA = (() => {
-    const src = readFileSync(new URL('../../src/lib/agenda/contadores-paciente.ts', import.meta.url), 'utf8')
-    const i = src.indexOf('export function esAtencionEfectiva')
-    const cuerpo = src.slice(i, src.indexOf('}', i))
-    const estados = [...cuerpo.matchAll(/estado === '([a-z-]+)'/g)].map(m => m[1])
-    if (estados.length === 0) throw new Error('No se pudo leer esAtencionEfectiva de contadores-paciente.ts')
-    return estados
-  })()
-
-  const ultimaCitaDe = pacienteId => CITAS
-    .filter(c => c.pac === pacienteId && ATENCION_EFECTIVA.includes(c.estado))
-    .map(c => c.dia || dia)
-    .sort()
-    .pop()
+  /* La lista es LITERAL a propósito: `las-dos-listas-de-estados-son-la-misma`
+     la compara con `esAtencionEfectiva` del producto y falla si se separan, así
+     que la copia no puede derivar en silencio. Leerla del archivo dejaría al
+     guardián sin nada que comparar. */
+  const ESTADOS_QUE_CUENTAN_COMO_ATENCION = ['atendida', 'finalizada', 'pagada']
+  const ultimaCitaDe = new Map()
+  for (const c of CITAS) {
+    if (!ESTADOS_QUE_CUENTAN_COMO_ATENCION.includes(c.estado)) continue
+    const fecha = c.dia || dia
+    const previa = ultimaCitaDe.get(c.pac)
+    if (!previa || fecha > previa) ultimaCitaDe.set(c.pac, fecha)
+  }
 
   // ── Pacientes ─────────────────────────────────────────────────────────────
   for (const p of PACIENTES) {
-    const ultima = ultimaCitaDe(p.id)
     await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
       nombre: p.nombre,
       telefono: p.telefono,
@@ -474,7 +473,9 @@ async function main() {
       notas: p.notas,
       noShowCount: p.noShowCount ?? 0,
       cancelacionCount: p.cancelacionCount ?? 0,
-      ...(ultima ? { ultimaCita: ultima } : {}),
+      // Ausente cuando el paciente no tiene ninguna cita atendida: ausencia de
+      // dato no es dato de ausencia, tampoco en la siembra.
+      ...(ultimaCitaDe.has(p.id) ? { ultimaCita: ultimaCitaDe.get(p.id) } : {}),
       createdAt: iso(hoy),
       updatedAt: iso(hoy),
     })

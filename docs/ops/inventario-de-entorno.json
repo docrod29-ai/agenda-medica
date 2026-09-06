@@ -1,0 +1,1841 @@
+{
+  "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
+  "generado": "2026-09-05",
+  "total": 130,
+  "variables": [
+    {
+      "nombre": "ANCHOS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "390,1440",
+      "defectoDe": "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+        "scripts/carril-excelencia/capturar-con-sesion.mjs",
+        "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
+        "scripts/carril-excelencia/el-texto-largo-cabe.mjs",
+        "scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs"
+      ]
+    },
+    {
+      "nombre": "ANTHROPIC_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/ayuda-bot/route.ts",
+      "archivos": [
+        "src/app/api/ayuda-bot/route.ts",
+        "src/app/api/consultor-evidencia/route.ts",
+        "src/app/api/expediente/antibiograma-razonar/route.ts",
+        "src/app/api/expediente/antibiograma-vision/route.ts",
+        "src/app/api/expediente/atribuir-roles/route.ts",
+        "src/app/api/expediente/corregir/route.ts",
+        "src/app/api/expediente/evidencia/route.ts",
+        "src/app/api/expediente/extraer-entidades/route.ts",
+        "src/app/api/expediente/laboratorio-vision/route.ts",
+        "src/app/api/expediente/procesar/route.ts",
+        "src/app/api/health/route.ts",
+        "src/app/api/inmuno/redactar/route.ts",
+        "src/app/api/receta/detectar-campos/route.ts",
+        "src/app/api/uci/copilot/route.ts",
+        "src/lib/ai-keys.ts"
+      ]
+    },
+    {
+      "nombre": "ANTHROPIC_MODEL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/expediente/corregir/route.ts",
+      "archivos": [
+        "src/app/api/expediente/corregir/route.ts",
+        "src/app/api/expediente/extraer-entidades/route.ts",
+        "src/app/api/expediente/procesar/route.ts",
+        "src/app/api/receta/detectar-campos/route.ts"
+      ]
+    },
+    {
+      "nombre": "ANTHROPIC_MODEL_VISION",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/expediente/antibiograma-vision/route.ts",
+        "src/app/api/expediente/laboratorio-vision/route.ts"
+      ]
+    },
+    {
+      "nombre": "ARNES_AUTH",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "127.0.0.1:9099",
+      "defectoDe": "scripts/design/sembrar-emulador.mjs",
+      "archivos": [
+        "scripts/design/sembrar-emulador.mjs"
+      ]
+    },
+    {
+      "nombre": "ARNES_FIRESTORE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "127.0.0.1:8080",
+      "defectoDe": "scripts/design/sembrar-emulador.mjs",
+      "archivos": [
+        "scripts/design/sembrar-emulador.mjs"
+      ]
+    },
+    {
+      "nombre": "ARNES_PROYECTO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "demo-nexusmed-v10",
+      "defectoDe": "scripts/design/sembrar-emulador.mjs",
+      "archivos": [
+        "scripts/design/sembrar-emulador.mjs"
+      ]
+    },
+    {
+      "nombre": "ARNES_URL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "http://localhost:3200",
+      "defectoDe": "scripts/design/capturar-flujo-dorado.mjs",
+      "archivos": [
+        "scripts/design/capturar-flujo-dorado.mjs"
+      ]
+    },
+    {
+      "nombre": "ASR_IGNORAR_CACHE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/asr-benchmark-audio.ts"
+      ]
+    },
+    {
+      "nombre": "ASR_MODELO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "whisper-1",
+      "defectoDe": "scripts/asr-benchmark-audio.ts",
+      "archivos": [
+        "scripts/asr-benchmark-audio.ts"
+      ]
+    },
+    {
+      "nombre": "ASR_MODELOS_DIARIZACION",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "universal-3-5-pro,universal-2",
+      "defectoDe": "scripts/medir-diarizacion.ts",
+      "archivos": [
+        "scripts/medir-diarizacion.ts"
+      ]
+    },
+    {
+      "nombre": "ASSEMBLYAI_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/medir-diarizacion.ts",
+        "scripts/medir-sesgo-vocabulario.ts",
+        "src/app/api/expediente/transcribir-diarizado/route.ts",
+        "src/lib/ai-keys.ts"
+      ]
+    },
+    {
+      "nombre": "AUTH_EMULADOR",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "http://127.0.0.1:9099",
+      "defectoDe": "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+        "scripts/carril-excelencia/las-listas-largas.mjs"
+      ]
+    },
+    {
+      "nombre": "AXE_SESION",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/carril-excelencia/axe-recorridos.mjs"
+      ]
+    },
+    {
+      "nombre": "BASE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "http://localhost:3300",
+      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+        "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+        "scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
+        "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+        "scripts/carril-excelencia/el-foco-se-ve.mjs",
+        "scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
+        "scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
+        "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
+        "scripts/carril-excelencia/el-texto-largo-cabe.mjs",
+        "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+        "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
+        "scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
+        "scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs",
+        "scripts/carril-excelencia/las-listas-largas.mjs",
+        "scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
+        "scripts/carril-excelencia/todo-dialogo-se-cierra-con-escape.mjs",
+        "scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+        "scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
+        "scripts/carril-excelencia/una-caida-parcial-no-es-un-dia-libre.mjs"
+      ]
+    },
+    {
+      "nombre": "CABEZA_DE_MAIN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "CAPTURA_BASE_URL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "http://localhost:3000",
+      "defectoDe": "scripts/design/atribuir-js-consulta-v15.mjs",
+      "archivos": [
+        "scripts/design/atribuir-js-consulta-v15.mjs",
+        "scripts/design/axe-detalle-contraste-v15.mjs",
+        "scripts/design/axe-encuentro-v15.mjs",
+        "scripts/design/axe-familia-documental-v15.mjs",
+        "scripts/design/axe-v10.mjs",
+        "scripts/design/capturar-acento-en-el-shell-v15.mjs",
+        "scripts/design/capturar-admin-se-calla-v15.mjs",
+        "scripts/design/capturar-atras-de-la-app-v15.mjs",
+        "scripts/design/capturar-avisos-landmark-v15.mjs",
+        "scripts/design/capturar-avisos-quietos-v15.mjs",
+        "scripts/design/capturar-bottom-nav-v15.mjs",
+        "scripts/design/capturar-cerrados-recientes-v15.mjs",
+        "scripts/design/capturar-chat-al-pulgar-v15.mjs",
+        "scripts/design/capturar-chat-contraste-v15.mjs",
+        "scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs",
+        "scripts/design/capturar-cierre-al-pulgar-v15.mjs",
+        "scripts/design/capturar-cierre-recuerda-lo-hecho-v15.mjs",
+        "scripts/design/capturar-clinical-spine-v15.mjs",
+        "scripts/design/capturar-copiloto-junto-a-hechos-v15.mjs",
+        "scripts/design/capturar-esquema-encabezados-v15.mjs",
+        "scripts/design/capturar-estado-de-accion-v15.mjs",
+        "scripts/design/capturar-fila-sin-anidado-v15.mjs",
+        "scripts/design/capturar-firmar-domina-v15.mjs",
+        "scripts/design/capturar-firmar-refleja-url-v15.mjs",
+        "scripts/design/capturar-flow-rail-quieto-v15.mjs",
+        "scripts/design/capturar-flow-rail-v15.mjs",
+        "scripts/design/capturar-golden-flow.mjs",
+        "scripts/design/capturar-heroe-movil-v15.mjs",
+        "scripts/design/capturar-hoy-una-primaria-v15.mjs",
+        "scripts/design/capturar-instrument-strip-paciente-v15.mjs",
+        "scripts/design/capturar-login-registro-v15.mjs",
+        "scripts/design/capturar-nota-cromo-v15.mjs",
+        "scripts/design/capturar-operaciones-configuracion-v15.mjs",
+        "scripts/design/capturar-orden-cromo-v15.mjs",
+        "scripts/design/capturar-patient-anchor-v15.mjs",
+        "scripts/design/capturar-progreso-resultado-v15.mjs",
+        "scripts/design/capturar-pulgar-y-fabs-v15.mjs",
+        "scripts/design/capturar-push-optin-v15.mjs",
+        "scripts/design/capturar-receta-cromo-v15.mjs",
+        "scripts/design/capturar-redteam-v15.mjs",
+        "scripts/design/capturar-referencia-formulario-v15.mjs",
+        "scripts/design/capturar-repuntuacion-v29-v15.mjs",
+        "scripts/design/capturar-roles-continuidad-v15.mjs",
+        "scripts/design/capturar-roles-franja-v15.mjs",
+        "scripts/design/capturar-roles-hoy-v15.mjs",
+        "scripts/design/capturar-roles-pacientes-v15.mjs",
+        "scripts/design/capturar-roles-patient-anchor-v15.mjs",
+        "scripts/design/capturar-roles-tipograficos-v15.mjs",
+        "scripts/design/capturar-shell-consolidado-v15.mjs",
+        "scripts/design/capturar-stat-grid-v15.mjs",
+        "scripts/design/capturar-tactiles-de-enlace-v15.mjs",
+        "scripts/design/capturar-today-continuidad-v15.mjs",
+        "scripts/design/capturar-topbar-movil-v15.mjs",
+        "scripts/design/capturar-trial-banner-v15.mjs",
+        "scripts/design/capturas-v10.mjs",
+        "scripts/design/medir-alergias-duplicadas-v15.mjs",
+        "scripts/design/medir-anatomia-v29.mjs",
+        "scripts/design/medir-boton-que-navega-v15.mjs",
+        "scripts/design/medir-breakpoints-v15.mjs",
+        "scripts/design/medir-canvas-de-pagina-v15.mjs",
+        "scripts/design/medir-coherencia-de-producto-v15.mjs",
+        "scripts/design/medir-continuidad-v15.mjs",
+        "scripts/design/medir-cromo-flotante-v15.mjs",
+        "scripts/design/medir-dia-vacio-citas-v15.mjs",
+        "scripts/design/medir-el-alto-del-telefono.mjs",
+        "scripts/design/medir-encuentro-v29.mjs",
+        "scripts/design/medir-flujos-clinicos-v15.mjs",
+        "scripts/design/medir-grabacion-v15.mjs",
+        "scripts/design/medir-lente-contextual-v15.mjs",
+        "scripts/design/medir-lienzo-compartido-v15.mjs",
+        "scripts/design/medir-lienzo-escritorio-v15.mjs",
+        "scripts/design/medir-lista-vacia-pacientes-v15.mjs",
+        "scripts/design/medir-motion-inline-v15.mjs",
+        "scripts/design/medir-motion-reduced-v15.mjs",
+        "scripts/design/medir-motion-tokens-v15.mjs",
+        "scripts/design/medir-perf-v15.mjs",
+        "scripts/design/medir-pildoras-v15.mjs",
+        "scripts/design/medir-por-que-esta-aqui-v15.mjs",
+        "scripts/design/medir-porque-en-hoy-v15.mjs",
+        "scripts/design/medir-primario-del-expediente-v15.mjs",
+        "scripts/design/medir-primer-viewport-expediente-v15.mjs",
+        "scripts/design/medir-procedencia-expediente-v15.mjs",
+        "scripts/design/medir-prosa-en-el-sello-v15.mjs",
+        "scripts/design/medir-regreso-a-la-fuente-v15.mjs",
+        "scripts/design/medir-rtc19-clinico-v15.mjs",
+        "scripts/design/medir-rtc19-configuracion-v15.mjs",
+        "scripts/design/medir-rtc21-exportar-v15.mjs",
+        "scripts/design/medir-rtc22-marca-duplicada-v15.mjs",
+        "scripts/design/medir-rtc23-cascada-citas-v15.mjs",
+        "scripts/design/medir-rtc23-luna-hover-v15.mjs",
+        "scripts/design/medir-rtc24-nombres-del-encuentro-v15.mjs",
+        "scripts/design/medir-rtc25-textos-moviles-v15.mjs",
+        "scripts/design/medir-rtc28-tema-claro-v15.mjs",
+        "scripts/design/medir-tactiles-del-riel-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-2-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-v15.mjs",
+        "scripts/design/medir-vacio-del-expediente-v15.mjs",
+        "scripts/design/probar-opacidad-quieta-v15.mjs",
+        "scripts/design/verificar-dictado-diferido-v15.mjs",
+        "scripts/design/verificar-paneles-diferidos-v15.mjs",
+        "scripts/design/verificar-rtc08-v15.mjs",
+        "scripts/design/verificar-rtc09-rtc11-v15.mjs",
+        "scripts/design/verificar-rtc15-v15.mjs",
+        "scripts/design/verificar-rtc29-v15.mjs",
+        "scripts/design/verificar-rtc30-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "CAPTURA_CHROMIUM_DESCARGADO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/design/capturar-acento-en-el-shell-v15.mjs",
+        "scripts/design/capturar-admin-se-calla-v15.mjs",
+        "scripts/design/capturar-atras-de-la-app-v15.mjs",
+        "scripts/design/capturar-avisos-landmark-v15.mjs",
+        "scripts/design/capturar-avisos-quietos-v15.mjs",
+        "scripts/design/capturar-bottom-nav-v15.mjs",
+        "scripts/design/capturar-cerrados-recientes-v15.mjs",
+        "scripts/design/capturar-chat-al-pulgar-v15.mjs",
+        "scripts/design/capturar-chat-contraste-v15.mjs",
+        "scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs",
+        "scripts/design/capturar-cierre-al-pulgar-v15.mjs",
+        "scripts/design/capturar-cierre-recuerda-lo-hecho-v15.mjs",
+        "scripts/design/capturar-clinical-spine-v15.mjs",
+        "scripts/design/capturar-copiloto-junto-a-hechos-v15.mjs",
+        "scripts/design/capturar-esquema-encabezados-v15.mjs",
+        "scripts/design/capturar-estado-de-accion-v15.mjs",
+        "scripts/design/capturar-fila-sin-anidado-v15.mjs",
+        "scripts/design/capturar-firmar-domina-v15.mjs",
+        "scripts/design/capturar-firmar-refleja-url-v15.mjs",
+        "scripts/design/capturar-flow-rail-quieto-v15.mjs",
+        "scripts/design/capturar-flow-rail-v15.mjs",
+        "scripts/design/capturar-golden-flow.mjs",
+        "scripts/design/capturar-heroe-movil-v15.mjs",
+        "scripts/design/capturar-hoy-una-primaria-v15.mjs",
+        "scripts/design/capturar-instrument-strip-paciente-v15.mjs",
+        "scripts/design/capturar-login-registro-v15.mjs",
+        "scripts/design/capturar-nota-cromo-v15.mjs",
+        "scripts/design/capturar-operaciones-configuracion-v15.mjs",
+        "scripts/design/capturar-orden-cromo-v15.mjs",
+        "scripts/design/capturar-patient-anchor-v15.mjs",
+        "scripts/design/capturar-progreso-resultado-v15.mjs",
+        "scripts/design/capturar-pulgar-y-fabs-v15.mjs",
+        "scripts/design/capturar-push-optin-v15.mjs",
+        "scripts/design/capturar-receta-cromo-v15.mjs",
+        "scripts/design/capturar-redteam-v15.mjs",
+        "scripts/design/capturar-referencia-formulario-v15.mjs",
+        "scripts/design/capturar-roles-continuidad-v15.mjs",
+        "scripts/design/capturar-roles-franja-v15.mjs",
+        "scripts/design/capturar-roles-hoy-v15.mjs",
+        "scripts/design/capturar-roles-pacientes-v15.mjs",
+        "scripts/design/capturar-roles-patient-anchor-v15.mjs",
+        "scripts/design/capturar-roles-tipograficos-v15.mjs",
+        "scripts/design/capturar-shell-consolidado-v15.mjs",
+        "scripts/design/capturar-stat-grid-v15.mjs",
+        "scripts/design/capturar-tactiles-de-enlace-v15.mjs",
+        "scripts/design/capturar-today-continuidad-v15.mjs",
+        "scripts/design/capturar-topbar-movil-v15.mjs",
+        "scripts/design/capturar-trial-banner-v15.mjs",
+        "scripts/design/medir-breakpoints-v15.mjs",
+        "scripts/design/medir-continuidad-v15.mjs",
+        "scripts/design/medir-cromo-flotante-v15.mjs",
+        "scripts/design/medir-motion-inline-v15.mjs",
+        "scripts/design/medir-motion-tokens-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-2-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "CHROME",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+        "scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
+        "scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",
+        "scripts/carril-excelencia/la-pantalla-no-cambia-sola.mjs"
+      ]
+    },
+    {
+      "nombre": "CHROME_BIN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/carril-excelencia/axe-recorridos.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/axe-recorridos.mjs",
+        "scripts/carril-excelencia/capturar-con-sesion.mjs",
+        "scripts/carril-excelencia/capturar.mjs",
+        "scripts/carril-excelencia/documentos-del-encuentro.mjs",
+        "scripts/carril-excelencia/medir-portada.mjs",
+        "scripts/carril-excelencia/recorrido-asistente.mjs",
+        "scripts/carril-excelencia/recorrido-reserva.mjs",
+        "scripts/carril-excelencia/tactiles.mjs",
+        "scripts/carril-excelencia/teclado-reserva.mjs",
+        "scripts/carril-excelencia/trinquete-de-interfaz.mjs",
+        "scripts/design/medir-el-alto-del-telefono.mjs"
+      ]
+    },
+    {
+      "nombre": "CHROMIUM_PATH",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/design/axe-v10.mjs",
+      "archivos": [
+        "scripts/design/axe-v10.mjs",
+        "scripts/design/capturas-v10.mjs"
+      ]
+    },
+    {
+      "nombre": "CI",
+      "publica": false,
+      "deLaPlataforma": true,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/recovery/simulacro-recuperacion.mjs",
+        "src/__tests__/clinical-safety-gate.test.ts"
+      ]
+    },
+    {
+      "nombre": "CITAS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "90",
+      "defectoDe": "scripts/carril-excelencia/las-listas-largas.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/las-listas-largas.mjs"
+      ]
+    },
+    {
+      "nombre": "CLINICA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "consultorio-demo-v10",
+      "defectoDe": "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+        "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs"
+      ]
+    },
+    {
+      "nombre": "COMMITS_DETRAS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "COSTO_CREDITO_MXN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "1.5",
+      "defectoDe": "src/app/api/superadmin/contabilidad/route.ts",
+      "archivos": [
+        "src/app/api/superadmin/contabilidad/route.ts"
+      ]
+    },
+    {
+      "nombre": "CRON_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/cron/asientos/route.ts",
+        "src/app/api/cron/limpiar-audio/route.ts",
+        "src/app/api/cron/reminders/route.ts",
+        "src/app/api/cron/retencion/route.ts",
+        "src/app/api/cron/vigilante/route.ts"
+      ]
+    },
+    {
+      "nombre": "CSP_MODE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/superadmin/csp/route.ts",
+      "archivos": [
+        "src/__tests__/csp-guard.test.ts",
+        "src/app/api/seguridad/csp-estado/route.ts",
+        "src/app/api/superadmin/csp/route.ts"
+      ]
+    },
+    {
+      "nombre": "DAILY_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/telesalud/sala/route.ts",
+      "archivos": [
+        "src/__tests__/telesalud-sala-or.test.ts",
+        "src/app/api/telesalud/sala/route.ts"
+      ]
+    },
+    {
+      "nombre": "DESTINO_COHERENCIA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docs/design/capturas/v15-coherencia",
+      "defectoDe": "scripts/design/medir-coherencia-de-producto-v15.mjs",
+      "archivos": [
+        "scripts/design/medir-coherencia-de-producto-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "DESTINO_ENCUENTRO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docs/design/capturas/v15-encuentro-v29",
+      "defectoDe": "scripts/design/medir-encuentro-v29.mjs",
+      "archivos": [
+        "scripts/design/medir-encuentro-v29.mjs"
+      ]
+    },
+    {
+      "nombre": "DESTINO_FLUJOS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docs/design/capturas/v15-flujos",
+      "defectoDe": "scripts/design/medir-flujos-clinicos-v15.mjs",
+      "archivos": [
+        "scripts/design/medir-flujos-clinicos-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "DESTINO_GRABACION",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docs/design/capturas/v15-grabacion",
+      "defectoDe": "scripts/design/medir-grabacion-v15.mjs",
+      "archivos": [
+        "scripts/design/medir-grabacion-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "DIALOG360_PARTNER_ID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/whatsapp/360dialog-callback/route.ts",
+      "archivos": [
+        "src/app/api/whatsapp/360dialog-callback/route.ts"
+      ]
+    },
+    {
+      "nombre": "DIALOG360_PARTNER_TOKEN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/whatsapp/360dialog-callback/route.ts",
+      "archivos": [
+        "src/app/api/whatsapp/360dialog-callback/route.ts"
+      ]
+    },
+    {
+      "nombre": "ES_ANCESTRO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "ETIQUETA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "baseline",
+      "defectoDe": "scripts/design/medir-lienzo-escritorio-v15.mjs",
+      "archivos": [
+        "scripts/design/medir-lienzo-escritorio-v15.mjs",
+        "scripts/design/medir-primer-viewport-expediente-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_CP",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/facturama.ts",
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_PASSWORD",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/facturama.ts",
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_PRODUCT_CODE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "81112500",
+      "defectoDe": "src/lib/facturama.ts",
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_SANDBOX",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_SERIE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/facturama.ts",
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FACTURAMA_USER",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/facturama.ts",
+      "archivos": [
+        "src/lib/facturama.ts"
+      ]
+    },
+    {
+      "nombre": "FECHA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "6-ago-2026",
+      "defectoDe": "scripts/data-room/actualizar-cifras.mjs",
+      "archivos": [
+        "scripts/data-room/actualizar-cifras.mjs"
+      ]
+    },
+    {
+      "nombre": "FIREBASE_ADMIN_CLIENT_EMAIL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/migrate-to-multitenant.ts",
+        "src/lib/firebase-admin.ts"
+      ]
+    },
+    {
+      "nombre": "FIREBASE_ADMIN_PRIVATE_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/migrate-to-multitenant.ts",
+        "src/lib/firebase-admin.ts"
+      ]
+    },
+    {
+      "nombre": "FIREBASE_ADMIN_PROJECT_ID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/migrate-to-multitenant.ts",
+        "src/lib/firebase-admin.ts"
+      ]
+    },
+    {
+      "nombre": "FIREBASE_AUTH_EMULATOR_HOST",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "127.0.0.1:9099",
+      "defectoDe": "scripts/golden-path/gp-comun.mjs",
+      "archivos": [
+        "scripts/design/sembrar-capturas.mjs",
+        "scripts/design/sembrar-demo-v10.mjs",
+        "scripts/design/sembrar-rtc30.mjs",
+        "scripts/golden-path/gp-comun.mjs",
+        "scripts/golden-path/sembrar-gp-final.mjs",
+        "scripts/product/run-consultorio-load.mjs"
+      ]
+    },
+    {
+      "nombre": "FIRESTORE_EMULATOR_HOST",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "127.0.0.1:8080",
+      "defectoDe": "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/sembrar-historia-larga.mjs",
+        "scripts/carril-excelencia/documentos-del-encuentro.mjs",
+        "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+        "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
+        "scripts/carril-excelencia/las-listas-largas.mjs",
+        "scripts/carril-excelencia/sembrar-reserva.mjs",
+        "scripts/carril-excelencia/una-caida-parcial-no-es-un-dia-libre.mjs",
+        "scripts/design/capturar-nota-cromo-v15.mjs",
+        "scripts/design/capturar-orden-cromo-v15.mjs",
+        "scripts/design/capturar-receta-cromo-v15.mjs",
+        "scripts/design/capturar-referencia-formulario-v15.mjs",
+        "scripts/design/sembrar-capturas.mjs",
+        "scripts/design/sembrar-cita-por-delante-v15.mjs",
+        "scripts/design/sembrar-demo-v10.mjs",
+        "scripts/design/sembrar-receta-en-nota-firmada-v15.mjs",
+        "scripts/design/sembrar-rtc30.mjs",
+        "scripts/golden-path/gp-comun.mjs",
+        "scripts/golden-path/recorrer-paciente.mjs",
+        "scripts/golden-path/sembrar-gp-final.mjs",
+        "scripts/product/run-consultorio-load.mjs",
+        "scripts/simulacro-restauracion-firestore.mjs"
+      ]
+    },
+    {
+      "nombre": "GCLOUD_PROJECT",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "nexomed-agenda",
+      "defectoDe": "scripts/product/run-consultorio-load.mjs",
+      "archivos": [
+        "scripts/product/run-consultorio-load.mjs",
+        "scripts/simulacro-restauracion-firestore.mjs"
+      ]
+    },
+    {
+      "nombre": "GOOGLE_CLIENT_ID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/google-calendar.ts"
+      ]
+    },
+    {
+      "nombre": "GOOGLE_CLIENT_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/google-calendar.ts"
+      ]
+    },
+    {
+      "nombre": "GOOGLE_CLOUD_PROJECT",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "demo-nexusmed-v10",
+      "defectoDe": "scripts/carril-excelencia/sembrar-reserva.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/sembrar-reserva.mjs"
+      ]
+    },
+    {
+      "nombre": "GOOGLE_REDIRECT_URI",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/google-calendar.ts"
+      ]
+    },
+    {
+      "nombre": "GP_BASE_URL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "http://localhost:3000",
+      "defectoDe": "scripts/golden-path/gp-comun.mjs",
+      "archivos": [
+        "scripts/golden-path/gp-comun.mjs"
+      ]
+    },
+    {
+      "nombre": "GP_CHROMIUM",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/golden-path/gp-comun.mjs",
+      "archivos": [
+        "scripts/golden-path/gp-comun.mjs"
+      ]
+    },
+    {
+      "nombre": "GP_MINUTOS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "16",
+      "defectoDe": "scripts/golden-path/recorrer-medico.mjs",
+      "archivos": [
+        "scripts/golden-path/recorrer-medico.mjs"
+      ]
+    },
+    {
+      "nombre": "INFRA_MENSUAL_MXN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "1500",
+      "defectoDe": "src/app/api/superadmin/contabilidad/route.ts",
+      "archivos": [
+        "src/app/api/superadmin/contabilidad/route.ts"
+      ]
+    },
+    {
+      "nombre": "LIMITE_PRUEBA_IA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "30",
+      "defectoDe": "src/lib/ai-keys.ts",
+      "archivos": [
+        "src/lib/ai-keys.ts"
+      ]
+    },
+    {
+      "nombre": "META_APP_ID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/whatsapp/meta-connect/route.ts",
+      "archivos": [
+        "src/app/api/whatsapp/meta-connect/route.ts"
+      ]
+    },
+    {
+      "nombre": "META_APP_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/whatsapp/meta-connect/route.ts",
+      "archivos": [
+        "src/app/api/whatsapp/meta-connect/route.ts",
+        "src/app/api/whatsapp/webhook/route.ts"
+      ]
+    },
+    {
+      "nombre": "MIGRATION_OWNER_EMAIL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docrod29@gmail.com",
+      "defectoDe": "scripts/migrate-to-multitenant.ts",
+      "archivos": [
+        "scripts/migrate-to-multitenant.ts"
+      ]
+    },
+    {
+      "nombre": "NCBI_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/evidencia/pubmed.ts",
+      "archivos": [
+        "src/lib/evidencia/pubmed.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_APP_URL",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "https://agenda-medica-one.vercel.app",
+      "defectoDe": "src/app/(dashboard)/configuracion/page.tsx",
+      "archivos": [
+        "src/app/(dashboard)/configuracion/page.tsx",
+        "src/app/api/calendar/callback/route.ts",
+        "src/app/api/cron/reminders/route.ts",
+        "src/app/api/csp-report/route.ts",
+        "src/app/api/payment/create-checkout/route.ts",
+        "src/app/api/stripe/checkout/route.ts",
+        "src/app/api/stripe/portal/route.ts",
+        "src/app/api/stripe/recarga/route.ts",
+        "src/app/api/whatsapp/360dialog-callback/route.ts",
+        "src/app/api/whatsapp/meta-connect/route.ts",
+        "src/app/api/whatsapp/webhook/route.ts",
+        "src/app/robots.ts",
+        "src/app/sitemap.ts",
+        "src/lib/google-calendar.ts",
+        "src/lib/whatsapp.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_CORREO_PRIVACIDAD",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/contacto.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_CORREO_SOPORTE",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/contacto.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_API_KEY",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "arnes-visual-v10",
+      "defectoDe": "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+        "scripts/carril-excelencia/las-listas-largas.mjs",
+        "src/__tests__/setup.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_APP_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/setup.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/setup.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_EMULATORS",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/setup.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "demo-nexusmed-v10",
+      "defectoDe": "scripts/carril-excelencia/documentos-del-encuentro.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/documentos-del-encuentro.mjs",
+        "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+        "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs",
+        "scripts/carril-excelencia/las-listas-largas.mjs",
+        "scripts/carril-excelencia/una-caida-parcial-no-es-un-dia-libre.mjs",
+        "src/__tests__/setup.ts",
+        "src/lib/firebase-admin.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/config/imagen/route.ts",
+      "archivos": [
+        "src/__tests__/setup.ts",
+        "src/app/api/config/imagen/route.ts",
+        "src/app/api/cron/limpiar-audio/route.ts",
+        "src/app/api/receta/diseno/route.ts",
+        "src/lib/firebase.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_META_APP_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/(dashboard)/configuracion/page.tsx",
+      "archivos": [
+        "src/app/(dashboard)/configuracion/page.tsx"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_META_CONFIG_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/(dashboard)/configuracion/page.tsx",
+      "archivos": [
+        "src/app/(dashboard)/configuracion/page.tsx"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_META_PIXEL_ID",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/components/MetaPixel.tsx"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_SUPERADMIN_EMAILS",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/superadmin-client.ts"
+      ]
+    },
+    {
+      "nombre": "NEXT_PUBLIC_UMBRAL_CONFIANZA_AUDIO",
+      "publica": true,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/expediente/confianza-audio.ts"
+      ]
+    },
+    {
+      "nombre": "NODE_ENV",
+      "publica": false,
+      "deLaPlataforma": true,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/cron/limpiar-audio/route.ts",
+        "src/app/api/cron/reminders/route.ts",
+        "src/app/api/cron/retencion/route.ts",
+        "src/app/api/cron/vigilante/route.ts",
+        "src/lib/firebase.ts",
+        "src/lib/patient-token.ts",
+        "src/lib/receta-diseno-token.ts",
+        "src/lib/receta-token.ts"
+      ]
+    },
+    {
+      "nombre": "OPENAI_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/expediente/antibiograma-razonar/route.ts",
+      "archivos": [
+        "scripts/asr-benchmark-audio.ts",
+        "scripts/benchmark-voz-uci.ts",
+        "scripts/generar-corpus-dialogo.ts",
+        "src/app/api/expediente/antibiograma-razonar/route.ts",
+        "src/app/api/expediente/corregir/route.ts",
+        "src/app/api/expediente/procesar/route.ts",
+        "src/app/api/expediente/transcribir-chunk/route.ts",
+        "src/app/api/expediente/transcribir/route.ts",
+        "src/app/api/expediente/verificar-nota/route.ts",
+        "src/app/api/health/route.ts",
+        "src/app/api/uci/copilot/route.ts",
+        "src/lib/ai-keys.ts"
+      ]
+    },
+    {
+      "nombre": "OPENAI_TRANSCRIBE_MODEL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/expediente/transcribir-chunk/route.ts",
+        "src/app/api/expediente/transcribir/route.ts"
+      ]
+    },
+    {
+      "nombre": "OPS_ALERTA_WEBHOOK",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/ops/alerta.ts",
+      "archivos": [
+        "src/lib/ops/alerta.ts"
+      ]
+    },
+    {
+      "nombre": "PACIENTES",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "250",
+      "defectoDe": "scripts/carril-excelencia/las-listas-largas.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/las-listas-largas.mjs"
+      ]
+    },
+    {
+      "nombre": "PLAYWRIGHT_BROWSERS_PATH",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/design/capturar-acento-en-el-shell-v15.mjs",
+        "scripts/design/capturar-admin-se-calla-v15.mjs",
+        "scripts/design/capturar-atras-de-la-app-v15.mjs",
+        "scripts/design/capturar-avisos-landmark-v15.mjs",
+        "scripts/design/capturar-avisos-quietos-v15.mjs",
+        "scripts/design/capturar-bottom-nav-v15.mjs",
+        "scripts/design/capturar-cerrados-recientes-v15.mjs",
+        "scripts/design/capturar-chat-al-pulgar-v15.mjs",
+        "scripts/design/capturar-chat-contraste-v15.mjs",
+        "scripts/design/capturar-cierre-agenda-seguimiento-v15.mjs",
+        "scripts/design/capturar-cierre-al-pulgar-v15.mjs",
+        "scripts/design/capturar-cierre-recuerda-lo-hecho-v15.mjs",
+        "scripts/design/capturar-clinical-spine-v15.mjs",
+        "scripts/design/capturar-copiloto-junto-a-hechos-v15.mjs",
+        "scripts/design/capturar-esquema-encabezados-v15.mjs",
+        "scripts/design/capturar-estado-de-accion-v15.mjs",
+        "scripts/design/capturar-fila-sin-anidado-v15.mjs",
+        "scripts/design/capturar-firmar-domina-v15.mjs",
+        "scripts/design/capturar-firmar-refleja-url-v15.mjs",
+        "scripts/design/capturar-flow-rail-quieto-v15.mjs",
+        "scripts/design/capturar-flow-rail-v15.mjs",
+        "scripts/design/capturar-golden-flow.mjs",
+        "scripts/design/capturar-heroe-movil-v15.mjs",
+        "scripts/design/capturar-hoy-una-primaria-v15.mjs",
+        "scripts/design/capturar-instrument-strip-paciente-v15.mjs",
+        "scripts/design/capturar-login-registro-v15.mjs",
+        "scripts/design/capturar-nota-cromo-v15.mjs",
+        "scripts/design/capturar-operaciones-configuracion-v15.mjs",
+        "scripts/design/capturar-orden-cromo-v15.mjs",
+        "scripts/design/capturar-patient-anchor-v15.mjs",
+        "scripts/design/capturar-progreso-resultado-v15.mjs",
+        "scripts/design/capturar-pulgar-y-fabs-v15.mjs",
+        "scripts/design/capturar-push-optin-v15.mjs",
+        "scripts/design/capturar-receta-cromo-v15.mjs",
+        "scripts/design/capturar-redteam-v15.mjs",
+        "scripts/design/capturar-referencia-formulario-v15.mjs",
+        "scripts/design/capturar-roles-continuidad-v15.mjs",
+        "scripts/design/capturar-roles-franja-v15.mjs",
+        "scripts/design/capturar-roles-hoy-v15.mjs",
+        "scripts/design/capturar-roles-pacientes-v15.mjs",
+        "scripts/design/capturar-roles-patient-anchor-v15.mjs",
+        "scripts/design/capturar-roles-tipograficos-v15.mjs",
+        "scripts/design/capturar-shell-consolidado-v15.mjs",
+        "scripts/design/capturar-stat-grid-v15.mjs",
+        "scripts/design/capturar-tactiles-de-enlace-v15.mjs",
+        "scripts/design/capturar-today-continuidad-v15.mjs",
+        "scripts/design/capturar-topbar-movil-v15.mjs",
+        "scripts/design/capturar-trial-banner-v15.mjs",
+        "scripts/design/medir-breakpoints-v15.mjs",
+        "scripts/design/medir-continuidad-v15.mjs",
+        "scripts/design/medir-cromo-flotante-v15.mjs",
+        "scripts/design/medir-motion-inline-v15.mjs",
+        "scripts/design/medir-motion-tokens-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-2-v15.mjs",
+        "scripts/design/medir-trabajos-moviles-v15.mjs",
+        "scripts/design/probar-opacidad-quieta-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "PLAYWRIGHT_CHROMIUM_PATH",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+      "defectoDe": "scripts/ausculta-transformacion/cancelar-una-cita.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/cancelar-una-cita.mjs",
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+        "scripts/ausculta-transformacion/ningun-texto-cae-en-una-astilla.mjs"
+      ]
+    },
+    {
+      "nombre": "PLAYWRIGHT_LOCAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "pruebas",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/el-gate-mide-el-artefacto-que-revisa.test.ts"
+      ]
+    },
+    {
+      "nombre": "PORTAL_PACIENTE_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/receta-diseno-token.ts",
+      "archivos": [
+        "scripts/carril-excelencia/token-del-portal.mjs",
+        "src/__tests__/receta-token.test.ts",
+        "src/lib/patient-token.ts",
+        "src/lib/receta-diseno-token.ts",
+        "src/lib/receta-token.ts"
+      ]
+    },
+    {
+      "nombre": "PUBLICABLES_DIFIEREN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "RECETA_DISENO_COMPAT_SIN_FIRMA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/receta-diseno-token.ts"
+      ]
+    },
+    {
+      "nombre": "RECETA_DISENO_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/receta-diseno-token.ts"
+      ]
+    },
+    {
+      "nombre": "REGENERAR_MATRIZ",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "pruebas",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/matriz-acceso.test.ts"
+      ]
+    },
+    {
+      "nombre": "RETARDO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "1600",
+      "defectoDe": "scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs"
+      ]
+    },
+    {
+      "nombre": "ROLLBACK_AUTORIZADO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "RUTAS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "/dashboard,/citas,/calendario,/finanzas,/expediente/pac-001",
+      "defectoDe": "scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
+        "scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
+        "scripts/carril-excelencia/el-foco-se-ve.mjs",
+        "scripts/carril-excelencia/el-hueco-dice-que-esta-cargando.mjs",
+        "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
+        "scripts/carril-excelencia/nada-flotante-tapa-un-control.mjs",
+        "scripts/carril-excelencia/una-caida-no-borra-el-consultorio.mjs"
+      ]
+    },
+    {
+      "nombre": "SALIDA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "docs/audit/carril-excelencia/capturas",
+      "defectoDe": "scripts/carril-excelencia/capturar-con-sesion.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/capturar-con-sesion.mjs"
+      ]
+    },
+    {
+      "nombre": "SHA_AUTORIZADO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/ops/arbol-autorizado.mjs"
+      ]
+    },
+    {
+      "nombre": "SOLO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/design/capturar-repuntuacion-v29-v15.mjs"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_AGENDA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/__tests__/stripe-precios.test.ts",
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_AGENDA_ANUAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_CLINICA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/__tests__/stripe-precios.test.ts",
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_CLINICA_ANUAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/__tests__/stripe-precios.test.ts",
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_CLINICA_MEDICO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_HOSPITAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_HOSPITAL_ANUAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_PREMIUM",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_PREMIUM_ANUAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_PREMIUM_MEDICO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_RECARGA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_SECRET_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/health/route.ts",
+        "src/app/api/superadmin/costos/route.ts",
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_WEBHOOK_SECRET",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/stripe/webhook/route.ts",
+      "archivos": [
+        "src/app/api/stripe/webhook/route.ts"
+      ]
+    },
+    {
+      "nombre": "SUPERADMIN_EMAILS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/nucleo/autorizacion-servidor.test.ts",
+        "src/app/api/consultor-evidencia/route.ts",
+        "src/app/api/expediente/antibiograma-razonar/route.ts",
+        "src/app/api/expediente/antibiograma-vision/route.ts",
+        "src/app/api/expediente/atribuir-roles/route.ts",
+        "src/app/api/expediente/corregir/route.ts",
+        "src/app/api/expediente/evidencia/route.ts",
+        "src/app/api/expediente/extraer-entidades/route.ts",
+        "src/app/api/expediente/laboratorio-vision/route.ts",
+        "src/app/api/expediente/procesar/route.ts",
+        "src/app/api/expediente/transcribir-chunk/route.ts",
+        "src/app/api/expediente/transcribir-diarizado/route.ts",
+        "src/app/api/expediente/transcribir/route.ts",
+        "src/app/api/expediente/verificar-nota/route.ts",
+        "src/app/api/inmuno/redactar/route.ts",
+        "src/app/api/receta/detectar-campos/route.ts",
+        "src/app/api/uci/copilot/route.ts",
+        "src/lib/authz/fundador-servidor.ts",
+        "src/lib/superadmin.ts"
+      ]
+    },
+    {
+      "nombre": "TACTIL_SESION",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "scripts/carril-excelencia/tactiles.mjs"
+      ]
+    },
+    {
+      "nombre": "TEMA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "light",
+      "defectoDe": "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-tema-claro-tambien-cuenta.mjs"
+      ]
+    },
+    {
+      "nombre": "TEMAS",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "dark,light",
+      "defectoDe": "scripts/ausculta-transformacion/mirar-el-portal.mjs",
+      "archivos": [
+        "scripts/ausculta-transformacion/mirar-el-portal.mjs"
+      ]
+    },
+    {
+      "nombre": "TIPO_CAMBIO_USD_MXN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/superadmin/contabilidad/route.ts",
+      "archivos": [
+        "src/app/api/superadmin/contabilidad/route.ts"
+      ]
+    },
+    {
+      "nombre": "TTS_MODELO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "gpt-4o-mini-tts",
+      "defectoDe": "scripts/generar-corpus-dialogo.ts",
+      "archivos": [
+        "scripts/generar-corpus-dialogo.ts"
+      ]
+    },
+    {
+      "nombre": "TWILIO_ACCOUNT_SID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "TWILIO_AUTH_TOKEN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "TWILIO_WHATSAPP_FROM",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "VERCEL_ENV",
+      "publica": false,
+      "deLaPlataforma": true,
+      "ambito": "runtime",
+      "defectoLiteral": "local",
+      "defectoDe": "src/app/api/health/route.ts",
+      "archivos": [
+        "src/app/api/health/route.ts",
+        "src/lib/receta-diseno-token.ts"
+      ]
+    },
+    {
+      "nombre": "VERCEL_GIT_COMMIT_SHA",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/health/route.ts",
+      "archivos": [
+        "src/app/api/health/route.ts"
+      ]
+    },
+    {
+      "nombre": "VERCEL_URL",
+      "publica": false,
+      "deLaPlataforma": true,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/csp-report/route.ts"
+      ]
+    },
+    {
+      "nombre": "WHATSAPP_API_TOKEN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts",
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "WHATSAPP_PHONE_NUMBER_ID",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts",
+        "src/app/api/whatsapp/webhook/route.ts",
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "WHATSAPP_PROVIDER",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "meta",
+      "defectoDe": "src/lib/whatsapp-send.ts",
+      "archivos": [
+        "src/__tests__/una-caida-de-whatsapp-no-mata-la-cola.test.ts",
+        "src/lib/whatsapp-send.ts"
+      ]
+    },
+    {
+      "nombre": "WHATSAPP_VERIFY_TOKEN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/app/api/whatsapp/webhook/route.ts",
+      "archivos": [
+        "src/__tests__/el-token-de-whatsapp-no-tiene-valor-publicado.test.ts",
+        "src/app/api/whatsapp/webhook/route.ts"
+      ]
+    },
+    {
+      "nombre": "WHATSAPP_WEBHOOK_TOKEN",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/app/api/whatsapp/webhook/route.ts"
+      ]
+    },
+    {
+      "nombre": "ZONA_APARATO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "Pacific/Kiritimati",
+      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs"
+      ]
+    },
+    {
+      "nombre": "ZONA_CONSULTORIO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "scripts",
+      "defectoLiteral": "America/Mexico_City",
+      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+      "archivos": [
+        "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+        "scripts/carril-excelencia/la-banda-de-atencion-dice-la-verdad.mjs",
+        "scripts/carril-excelencia/la-cita-fuera-de-hora-se-ve.mjs"
+      ]
+    }
+  ]
+}

@@ -37,18 +37,40 @@ import { execSync } from 'child_process'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 
-function auditarProduccion() {
+/**
+ * EL ARNÉS TENÍA EL MISMO DEFECTO QUE VIGILABA — REG-511.
+ *
+ * Este lector acababa en `return {}`, y `{}` se lee como cero. Cuando `npm
+ * audit` no podía correr —dos `npm` a la vez, por ejemplo— el caso de abajo
+ * comparaba el documento contra ceros inventados y fallaba diciendo «el
+ * documento y `npm audit` se separaron. Corre el script».
+ *
+ * Es decir: mandaba a arreglar un documento CORRECTO, y el arreglo habría sido
+ * escribir esos mismos ceros. El guardián no sólo no cazaba el defecto: era el
+ * camino más corto para provocarlo.
+ *
+ * Ahora devuelve `null` cuando no pudo medir, y el caso lo dice con esas
+ * palabras en vez de acusar al documento. No se salta la comprobación: se
+ * declara que no se pudo hacer, que es lo que de verdad pasó.
+ */
+function auditarProduccion(): { total: number; critical: number; high: number } | null {
+  let crudo: string
   try {
-    const out = execSync('npm audit --omit=dev --json', {
+    crudo = execSync('npm audit --omit=dev --json', {
       cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
       maxBuffer: 32 * 1024 * 1024,
     })
-    return JSON.parse(out)
   } catch (e) {
     /* `npm audit` sale con código ≠ 0 cuando ENCUENTRA algo: es su resultado,
        no un error del arnés. El JSON viene igual por stdout. */
-    const stdout = (e as { stdout?: string }).stdout
-    try { return JSON.parse(stdout ?? '{}') } catch { return {} }
+    crudo = (e as { stdout?: string }).stdout ?? ''
+  }
+  try {
+    const v = JSON.parse(crudo)?.metadata?.vulnerabilities
+    if (typeof v?.total !== 'number') return null
+    return { total: v.total, critical: v.critical ?? 0, high: v.high ?? 0 }
+  } catch {
+    return null
   }
 }
 
@@ -70,19 +92,31 @@ describe('el documento existe y está derivado', () => {
 })
 
 describe('las cifras COINCIDEN con el comando, hoy', () => {
-  const m = auditarProduccion()?.metadata?.vulnerabilities ?? {}
+  const m = auditarProduccion()
+
+  it('el comando pudo medir — si no, se dice, no se inventa un cero', () => {
+    /* REG-511: sin esto, un audit que no corre se leía como «cero avisos». */
+    expect(
+      m,
+      '`npm audit --omit=dev` no devolvió cifras. NO es que el documento esté mal: ' +
+        'es que aquí no se pudo medir (suele ser otro `npm` corriendo a la vez). ' +
+        'Repita cuando la máquina esté libre; no escriba ceros.',
+    ).not.toBeNull()
+  })
 
   it('el total publicado es el real', () => {
+    if (!m) return
     const fila = doc.match(/\| Rama de producción[^|]*\| (\d+) \| \*\*(\d+)\*\* \| \*\*(\d+)\*\* \|/)
     expect(fila, 'no se encontró la fila de producción en el documento').toBeTruthy()
     const [, total, critical, high] = fila!
     expect(
       { total: Number(total), critical: Number(critical), high: Number(high) },
       'El documento y `npm audit` se separaron. Corre: node scripts/seguridad/auditar.mjs',
-    ).toEqual({ total: m.total ?? 0, critical: m.critical ?? 0, high: m.high ?? 0 })
+    ).toEqual({ total: m.total, critical: m.critical, high: m.high })
   })
 
   it('CERO high y CERO critical en lo que se sirve a los pacientes', () => {
+    if (!m) return
     /**
      * Ésta es la compuerta de verdad. No mide el documento: mide el producto.
      * Si mañana entra una `high` en la rama de producción, esto se pone rojo
@@ -132,7 +166,8 @@ describe('el script hace lo que dice', () => {
   const s = leer('scripts', 'seguridad', 'auditar.mjs')
 
   it('lee del comando, no de una constante', () => {
-    expect(s).toMatch(/npm audit\$\{soloProd \? ' --omit=dev' : ''\} --json/)
+    expect(s).toMatch(/soloProd \? 'npm audit --omit=dev' : 'npm audit'/)
+    expect(s).toMatch(/execSync\(`\$\{que\} --json`/)
   })
 
   it('trata el código de salida ≠ 0 como resultado, no como error', () => {
@@ -141,7 +176,62 @@ describe('el script hace lo que dice', () => {
      * lo tratara como fallo se quedaría mudo justo cuando hay algo que contar.
      */
     expect(s).toMatch(/cuando ENCUENTRA algo: eso no es un error/)
-    expect(s).toMatch(/JSON\.parse\(e\.stdout \?\? '\{\}'\)/)
+    expect(s).toMatch(/crudo = e\.stdout \?\? ''/)
+  })
+
+  it('pero NO confunde un fallo con un árbol limpio — REG-511', () => {
+    /**
+     * Hasta el 3-sep-2026 el `catch` acababa en `return {}`, y `{}` se lee como
+     * cero. Este caso fijaba esa línea, así que la fijaba rota: un fallo de
+     * verdad y un árbol sin vulnerabilidades devolvían lo mismo.
+     */
+    /* Se mira el CÓDIGO, no la prosa: el comentario del script cuenta la
+       historia y nombra `return {}` a propósito. */
+    const codigo = s.split('\n').filter(l => !/^\s*[*/]/.test(l)).join('\n')
+    expect(codigo, 'volvió el `return {}` que hacía indistinguible el fallo del cero')
+      .not.toMatch(/catch\s*\{[^}]*return \{\}/)
+    expect(codigo).toMatch(/typeof d\.metadata\.vulnerabilities\.total !== 'number'/)
+    expect(codigo).toMatch(/throw new Error/)
+  })
+
+  it('AL REVÉS: si `npm audit` no contesta, el documento NO se toca', () => {
+    /**
+     * La prueba con dientes, y sin fixture: se corre el script DE VERDAD con un
+     * `PATH` donde `npm` no existe. Antes de REG-511 eso escribía ceros; ahora
+     * tiene que salir con error y dejar el documento exactamente como estaba.
+     *
+     * Es el caso que reproduce el defecto tal como ocurrió: dos `npm` a la vez
+     * dejaron el audit vacío y el script publicó «0 vulnerabilidades» sobre un
+     * árbol que tenía 21, tres de ellas `high`.
+     */
+    const RUTA = join(process.cwd(), 'docs/seguridad/ESTADO-DEPENDENCIAS.md')
+    const antes = readFileSync(RUTA, 'utf8')
+
+    let salioMal = false
+    let mensaje = ''
+    try {
+      execSync(`${process.execPath} scripts/seguridad/auditar.mjs`, {
+        cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, PATH: join(process.cwd(), 'no-existe-a-proposito') },
+      })
+    } catch (e) {
+      salioMal = true
+      mensaje = String((e as { stderr?: string; stdout?: string }).stderr ?? '')
+    }
+
+    expect(salioMal, 'el script terminó BIEN sin poder medir nada').toBe(true)
+    expect(mensaje, 'falló, pero sin decir que la causa es que no pudo medir').toMatch(/REG-511/)
+    expect(readFileSync(RUTA, 'utf8'), 'tocó el documento sin haber medido').toBe(antes)
+  })
+
+  it('y no puede publicar un árbol completo con MENOS avisos que producción', () => {
+    /**
+     * Aritmética, no política: `npm audit` sin `--omit=dev` mira un
+     * superconjunto. Es la red que habría cazado el defecto aunque el JSON
+     * hubiera parseado, porque 0 nunca puede ser menor que 11.
+     */
+    expect(s).toMatch(/todo\.total < prod\.total/)
+    expect(s).toMatch(/NO se escribe nada/)
   })
 
   it('NO toca el análisis ni las decisiones', () => {

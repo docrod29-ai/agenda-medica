@@ -580,10 +580,24 @@ export default function CitasPage() {
               <CalendarDays size={16} />
             </button>
             {/* El input nativo enseñaría «08/09/2026» (formato US). Vive oculto
-                pero enfocable; el botón de arriba lo abre. */}
+                pero enfocable POR PROGRAMA; el botón de arriba lo abre.
+
+                `tabIndex={-1}` — «enfocable» y «parada del tabulador» no son lo
+                mismo, y aquí sólo hacía falta lo primero. Medido con el teclado a
+                390 px: este control de **1×1** se llevaba **TRES paradas
+                seguidas**, porque un `input[type=date]` nativo tiene un tramo
+                tabulable por día, mes y año. Tres pulsaciones de Tab dentro de
+                una caja de un píxel, con el anillo de foco de 2px dibujado sobre
+                ella — o sea, el foco existía y no se podía ver (WCAG 2.4.7).
+
+                No se pierde nada: el camino de teclado es el botón visible de
+                44×44 que hay justo antes («Elegir una fecha en el calendario»),
+                que abre el mismo selector nativo y ése sí se maneja con el
+                teclado. Ver REG-439. */}
             <input
               ref={fechaInputRef}
               className="riel-fecha-input"
+              tabIndex={-1}
               type="date" value={selectedDate} max={FECHA_MAXIMA_AGENDA}
               aria-label="Ir a una fecha"
               onChange={e => setSelectedDate(paramFecha(e.target.value))}
@@ -1101,6 +1115,10 @@ function RielEntrada({
             propio médico (sólo aparece el médico cuando hay más de uno). */}
         <div className="riel-nombre">
           {appt.pacienteNombre}
+          {/* `colorMedico` sin el segundo argumento a propósito: el guardia ya
+              está en la condición de arriba —`multiMedico &&`— así que si esto
+              se pinta es porque hay más de un médico, y el color sí distingue a
+              alguien. Ver la nota de colorMedico en DoctorFilter.tsx. */}
           {multiMedico && appt.medicoId && appt.medicoNombre && (
             <span className="riel-medico" style={{ color: colorMedico(appt.medicoId) }}>
               {appt.medicoNombre.replace(/^Dr\.?\s+|^Dra\.?\s+/i, '').split(' ')[0]}

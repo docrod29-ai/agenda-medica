@@ -308,7 +308,7 @@
       "irreversibilidad": 0,
       "complejidad": 2,
       "dependenciaExterna": 0,
-      "estado": "pendiente",
+      "estado": "CERRADO",
       "reversible": true,
       "origen": "PATIENT-UX-TRUTH-001 (V9) — auditoría del producto real, 8-ago-2026",
       "id": "PATIENT-TELE-002",
@@ -319,7 +319,8 @@
       "porQueImporta": "La videoconsulta se anuncia por WhatsApp. Sin enlace en el mensaje, el paciente depende de entrar al portal — que también le llega por WhatsApp, así que el camino existe, pero es un paso más justo cuando va con prisa.",
       "archivo": "src/lib/telesalud/donde-es.ts:70 · src/app/api/cron/reminders/route.ts:212 · src/app/api/whatsapp/webhook/route.ts:1083,1276",
       "plan": "Acuñar el token en el servidor con crearTokenPaciente(clinicId, patientId, 1, alcance agenda, portalTokenVersion) en los dos llamadores de servidor y pasarlo por DatosDeLugar.tokenPaciente. NO en src/lib/whatsapp.ts: ese módulo se importa desde el navegador y firmar ahí filtraría el secreto.",
-      "score": 55
+      "score": 55,
+      "cierre": "Verificado el 2-sep-2026, y NO se reparó nada: ya estaba cerrado y este renglón estaba desfasado. El hallazgo describía `api/cron/reminders` llamando a `dondeEsLaCita` sin `tokenPaciente`; hoy (route.ts:272) acuña `crearTokenPaciente(clinicId, appt.pacienteId, undefined, 'agenda', versionPortal)` sólo para teleconsulta, con la versión vigente del expediente para que una revocación lo tumbe, y degrada a '' con aviso sin PHI si falta el secreto de firma. Los DOS `tokenPaciente: ''` que quedan en `whatsapp/webhook` (1182 y 1413) no son el defecto: son una decisión escrita en el propio archivo — el bot agenda con semanas de antelación y un token muerto el día de la consulta respondería 404 «tu cita no existe», que es peor que no mandar enlace. Lo manda el recordatorio, cuya ventana es hoy y mañana. `lib/whatsapp.ts` tampoco puede firmarlo: lo importa el navegador y el secreto sólo vive en el servidor. Prueba: `el-enlace-de-la-teleconsulta-llega-al-paciente.test.ts` (14 casos) y `enlace-de-videoconsulta-lleva-token.test.ts` (7), más `donde-es-la-cita.test.ts` — 35 casos en verde medidos hoy."
     },
     {
       "seguridad": 4,
@@ -631,7 +632,7 @@
       "score": 30
     }
   ],
-  "actualizado": "2026-08-09",
+  "actualizado": "2026-09-02",
   "programaV9": {
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"

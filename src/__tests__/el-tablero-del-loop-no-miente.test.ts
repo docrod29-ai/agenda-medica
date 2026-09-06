@@ -33,26 +33,183 @@
  * Lo derivable se DERIVA del repositorio. Lo que es criterio —la iteración en
  * curso, los bloqueos, las decisiones del dueño— se sigue escribiendo a mano,
  * porque el criterio no sale de un `grep`.
+ *
+ * ── UNA CUARTA VEZ, Y AL REVÉS — REG-505 ────────────────────────────────────
+ *
+ * Las tres primeras fueron el tablero ATRASADO. La cuarta fue ADELANTADO, y no
+ * por descuido sino por la propia reparación: el campo se llamaba
+ * `ultimaVersionEnProduccion` y salía de `public/version.txt`, que es el REPO.
+ *
+ * Entre que el ciclo sube `sw.js` y que alguien pulsa el botón pasan días. En
+ * toda esa ventana el campo afirmaba del sitio vivo algo falso — y esa ventana
+ * es justo cuando se consulta el tablero: nadie pregunta qué hay en producción
+ * salvo cuando está decidiendo si desplegar. Medido el 31-ago: repo v1178,
+ * producción v1177.
+ *
+ * Derivar bien un dato de la fuente equivocada sigue siendo un dato equivocado,
+ * y encima llega con la autoridad de estar derivado: ya nadie lo mira con
+ * desconfianza.
+ *
+ * **La versión que sirve producción NO SE PUEDE DERIVAR de este repositorio.**
+ * Se declara con la ejecución que la confirmó. Es «ausencia de dato no es dato
+ * de ausencia» aplicado a la operación: lo que no se puede saber desde aquí no
+ * se rellena con lo más parecido que haya a mano.
+ *
+ * ── UNA QUINTA VEZ, EN OTRO PAPEL — REG-435 ─────────────────────────────────
+ *
+ * Las cuatro anteriores fueron el TABLERO. La quinta fue el ACTA, que es el
+ * documento que alguien abre justo antes de decidir si despliega.
+ *
+ * `PAQUETE-PRODUCCION-2026-08-27.md` llevaba cinco días encabezado por «Estado:
+ * PREPARADO, NO PUBLICADO. Nadie ha desplegado nada» — de un paquete, v1172, que
+ * el dueño había publicado el 28-ago con la ejecución #4 del botón. Las actas de
+ * v1175, v1176 y v1177 sí se habían cerrado con su aviso de SUPERADO; ésa se
+ * quedó atrás, y v1179 iba camino de quedarse igual.
+ *
+ * Se descubrió comprobando la #15 paso por paso y bajando después a mirar las
+ * actas hermanas: la de v1179 se estaba cerrando a mano, como las otras, y «a
+ * mano» es precisamente el diagnóstico que este archivo ya tenía escrito.
+ *
+ * ── POR QUÉ ESTE PAPEL EN CONCRETO ──────────────────────────────────────────
+ *
+ * Un acta de paquete no es documentación: es la entrada del procedimiento de
+ * despliegue. Que la de v1172 dijera «nadie ha desplegado nada» invita a
+ * desplegarla otra vez, y un despliegue arrastra TODO lo no desplegado
+ * (`.claude/rules/deployment-and-flags.md`). El daño no es un párrafo viejo: es
+ * un botón pulsado por una razón falsa.
+ *
+ * ── LA REGLA ────────────────────────────────────────────────────────────────
+ *
+ * Un acta de una versión que ya está en producción **no puede seguir diciendo
+ * que no se ha publicado**. Se le añade su aviso de SUPERADO con la ejecución
+ * que lo confirma — y NO se le borra el estado original: un acta reescrita deja
+ * de servir para reconstruir qué se sabía y cuándo.
+ *
+ * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
+ *
+ * · No comprueba que la ejecución citada exista ni que cerrara en verde. Eso
+ *   está en GitHub, no en el repositorio, y esta suite no sale a la red.
+ * · No comprueba el sentido contrario —un acta que se declare publicada sin
+ *   haberlo sido— más allá de exigirle una URL de ejecución.
+ * · No dice nada de las versiones POSTERIORES a la de producción: un acta
+ *   preparada y aún sin publicar es el caso normal, y debe poder existir.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 
 const leer = (...p: string[]) => readFileSync(join(process.cwd(), ...p), 'utf8')
 const estado = JSON.parse(leer('agent-state', 'MASTER_STATE.json'))
 
 describe('el tablero coincide con el repositorio', () => {
-  it('la versión que dice es la que hay en disco', () => {
+  it('la versión DEL REPO es la que hay en disco', () => {
     /**
-     * `public/version.txt` lo escribe el propio ciclo de despliegue. Si el
+     * `public/version.txt` lo escribe el ciclo de preparación del paquete. Si el
      * tablero dice otra cosa, el tablero está mintiendo.
      */
     const enDisco = leer('public', 'version.txt').trim()
     expect(
-      estado.ultimaVersionEnProduccion,
-      `El tablero dice ${estado.ultimaVersionEnProduccion} y en disco hay ${enDisco}. ` +
+      estado.versionEnElRepo,
+      `El tablero dice ${estado.versionEnElRepo} y en disco hay ${enDisco}. ` +
       'Corre: node scripts/agent-state/actualizar.mjs',
     ).toBe(enDisco)
+  })
+
+  it('EL CASO (REG-505): la de PRODUCCIÓN se DECLARA con su ejecución, no se deriva', () => {
+    /**
+     * Lo único que establece qué sirve producción es una ejecución del botón
+     * cerrada en verde, cuya Compuerta 3 lo comprobó contra el sitio vivo. Sin
+     * su evidencia el campo no es un dato: es un recuerdo.
+     */
+    const p = estado.ultimaVersionEnProduccion
+    expect(p, 'falta ultimaVersionEnProduccion').toBeTruthy()
+    expect(typeof p, 'ya no es una cadena: lleva su evidencia dentro').toBe('object')
+    expect(p.version).toMatch(/^nexusmed-v\d+$/)
+    expect(
+      p.confirmadaPor,
+      'una versión de producción sin la ejecución que la confirmó no es un dato',
+    ).toMatch(/actions\/runs\/\d+/)
+    expect(p.confirmadaEl).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('y el script NO la deriva — se comprueba en el script, no de palabra', () => {
+    /**
+     * PROBADO AL REVÉS: si alguien vuelve a hacer que el script escriba este
+     * campo, este caso cae. Es la única forma de que la regla sobreviva a quien
+     * la lea con prisa.
+     */
+    const script = leer('scripts', 'agent-state', 'actualizar.mjs')
+    const derivados = script.slice(script.indexOf('function derivar()'))
+    expect(
+      derivados.includes('ultimaVersionEnProduccion:'),
+      'el script volvió a derivar la versión de producción. No se puede saber desde el repo.',
+    ).toBe(false)
+  })
+
+  it('EL CASO (REG-435): un acta de una versión YA PUBLICADA no dice que no se publicó', () => {
+    /**
+     * PROBADO AL REVÉS: quitando el aviso de SUPERADO de
+     * `PAQUETE-PRODUCCION-2026-08-27.md` este caso cae nombrando ese archivo.
+     *
+     * Se comparan números de versión, no fechas ni nombres de archivo: hay actas
+     * con la versión en el nombre y actas sin ella, y el número es lo único que
+     * las dos puntas —acta y tablero— dicen igual.
+     */
+    const enProduccion = Number(estado.ultimaVersionEnProduccion.version.replace(/\D/g, ''))
+    expect(enProduccion, 'la versión de producción no trae número').toBeGreaterThan(0)
+
+    const dir = join(process.cwd(), 'docs', 'maintenance')
+    const actas = readdirSync(dir).filter(f => /^PAQUETE-PRODUCCION-.*\.md$/.test(f))
+    expect(actas.length, 'no se encontró ni un acta de paquete').toBeGreaterThan(3)
+
+    const sinCerrar: string[] = []
+    for (const f of actas) {
+      const txt = readFileSync(join(dir, f), 'utf8')
+      const m = txt.match(/^# Paquete de producción — `nexusmed-v(\d+)`/m)
+      if (!m) continue
+      if (Number(m[1]) > enProduccion) continue   // aún sin publicar: es lo normal
+
+      // El aviso de cierre, con la ejecución que lo confirma. Sin la URL sería
+      // una afirmación sin evidencia, que es el defecto que cerró REG-505.
+      const cerrada = /SUPERADO/.test(txt) && /actions\/runs\/\d+/.test(txt)
+      if (!cerrada) sinCerrar.push(`${f} (v${m[1]})`)
+    }
+
+    expect(
+      sinCerrar,
+      `producción sirve v${enProduccion}, y estas actas de versiones ya publicadas ` +
+      'siguen sin su aviso de SUPERADO con la ejecución que lo confirma: ' +
+      `${sinCerrar.join(', ')}. Un acta que dice «nadie ha desplegado nada» de algo ` +
+      'ya desplegado invita a desplegarlo otra vez.',
+    ).toEqual([])
+  })
+
+  it('y al cerrarla NO se le borra el estado original', () => {
+    /**
+     * La otra mitad de la regla, y la que se rompe sin querer: al cerrar la de
+     * v1179 se sustituyó su «PREPARADO, NO PUBLICADO» por «PUBLICADO», que es
+     * más limpio de leer y destruye el dato de qué se sabía al escribirla.
+     *
+     * Las actas ya cerradas lo dicen con sus palabras: «un acta que se reescribe
+     * deja de servir para reconstruir qué se sabía y cuándo».
+     */
+    const dir = join(process.cwd(), 'docs', 'maintenance')
+    const sinOriginal = readdirSync(dir)
+      .filter(f => /^PAQUETE-PRODUCCION-.*\.md$/.test(f))
+      .filter(f => {
+        const txt = readFileSync(join(dir, f), 'utf8')
+        return /SUPERADO/.test(txt) && !/Estado: PREPARADO, NO PUBLICADO/.test(txt)
+      })
+    expect(
+      sinOriginal,
+      `a estas actas se les borró el estado con el que nacieron: ${sinOriginal.join(', ')}. ` +
+      'El aviso de SUPERADO se AÑADE; el original se queda.',
+    ).toEqual([])
+  })
+
+  it('los dos campos existen y hoy NO coinciden — que es la demostración', () => {
+    expect(estado).toHaveProperty('versionEnElRepo')
+    expect(estado).toHaveProperty('ultimaVersionEnProduccion')
   })
 
   it('la última REG que dice es la última del ledger', () => {

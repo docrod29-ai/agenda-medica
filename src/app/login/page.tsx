@@ -10,10 +10,11 @@ import Link from 'next/link'
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
+import { EsperaDeLaPuerta } from '@/components/landing/EsperaDeLaPuerta'
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg)' }} />}>
+    <Suspense fallback={<EsperaDeLaPuerta />}>
       <LoginInner />
     </Suspense>
   )
@@ -137,27 +138,12 @@ function LoginInner() {
     }
   }
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
-        <Loader2 size={24} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} />
-      </div>
-    )
-  }
+  if (loading) return <EsperaDeLaPuerta comprobando />
 
   return (
     /* <main>: la página entera es el landmark — axe (landmark-one-main/region)
        lo pedía desde siempre; primera medición de la puerta en V15 lo pagó. */
-    <main style={{
-      minHeight: '100vh',
-      background: 'var(--bg)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 16,
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <main className="nx-puerta">
       {/* Background glow */}
       {/* Halo de marca discreto — cobalto soft */}
       <div style={{
@@ -169,40 +155,33 @@ function LoginInner() {
       {/* Motivo de red/nexo de marca — muy tenue, detrás del formulario */}
       <MarcaAuth style={{ top: '4%', left: '50%', transform: 'translateX(-50%)', width: 'min(760px, 120vw)', opacity: 0.14 }} />
 
-      <div style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
-        {/* Hero brand block */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          {/* Mark Ausculta — N geométrica */}
-          <div style={{
-            width: 56, height: 56, borderRadius: 14,
-            background: 'var(--s1)',
-            border: '1px solid var(--border2)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px',
-          }}>
-            <MarcaAusculta size={30} />
-          </div>
-          <h1 className="nx-display" style={{
-            fontSize: 36, color: 'var(--text)', margin: 0,
-            fontWeight: 500,
-          }}>
-            Ausculta
-          </h1>
-          <p style={{
-            fontSize: 14, color: 'var(--text2)', marginTop: 8,
-            letterSpacing: '-0.005em',
-          }}>
-            El consultorio, conectado.
+      <div className="nx-puerta-columna">
+        {/*
+          LA MARCA ES UN ENLACE A LA PORTADA, y no lo era.
+
+          Quien llega a /login sin cuenta —de un enlace compartido, de un
+          resultado de búsqueda, de una invitación caducada— se encontraba con
+          un formulario y NINGUNA salida: ni un enlace a la portada, ni a
+          precios, ni a nada. La única puerta era el navegador. Un logotipo que
+          no lleva a inicio es el enlace que todo el mundo intenta y no está.
+
+          Y la promesa dice la de HOY: «El consultorio, conectado» era el
+          posicionamiento retirado con la transformación de producto, y dejarlo
+          aquí partía en dos la experiencia — se venía de una portada que
+          promete una cosa y se entraba a una puerta que promete otra.
+        */}
+        <div className="nx-puerta-marca">
+          <Link href="/" className="nx-puerta-volver" aria-label="Ausculta — volver al inicio">
+            <span className="nx-puerta-sello"><MarcaAusculta size={28} /></span>
+            <h1 className="nx-display nx-puerta-nombre">Ausculta</h1>
+          </Link>
+          <p className="nx-puerta-promesa">
+            Sal de la consulta con la nota hecha.
           </p>
         </div>
 
         {/* Card */}
-        <div style={{
-          background: 'var(--s1)',
-          border: '1px solid var(--border)',
-          borderRadius: 14,
-          padding: '28px 28px',
-        }}>
+        <div className="nx-puerta-tarjeta">
           {mfaResolver ? (
             /* ── Segundo factor (2FA): pedir el código de 6 dígitos ── */
             <form onSubmit={handleMfa} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -384,10 +363,12 @@ function LoginInner() {
           )}
         </div>
 
-        {/* Registro — para quien AÚN no tiene cuenta */}
+        {/* Registro — para quien AÚN no tiene cuenta.
+            Sin caja: era una tarjeta con borde, fondo y radio para sostener UNA
+            frase, justo debajo de otra tarjeta. Dos cajas seguidas no crean
+            jerarquía; la crean el espacio y el peso del texto. */}
         <div style={{
-          textAlign: 'center', marginTop: 18, padding: '14px 16px',
-          background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12,
+          textAlign: 'center', marginTop: 18,
           fontSize: 14, color: 'var(--text2)',
         }}>
           ¿No tienes cuenta?{' '}

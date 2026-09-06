@@ -1,0 +1,26 @@
+[
+  {
+    "ruta": "/dashboard",
+    "ancho": 1440,
+    "elementosVisibles": 273,
+    "conMovimiento": 35,
+    "tarjetas": 6,
+    "tamanosTipograficos": 11,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 900,
+    "consola": []
+  },
+  {
+    "ruta": "/dashboard",
+    "ancho": 390,
+    "elementosVisibles": 254,
+    "conMovimiento": 37,
+    "tarjetas": 13,
+    "tamanosTipograficos": 11,
+    "pesosDeFuente": 5,
+    "desbordeHorizontal": false,
+    "alturaDocumento": 844,
+    "consola": []
+  }
+]

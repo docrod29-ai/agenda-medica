@@ -34,7 +34,16 @@ interface PdfOptions {
  */
 export async function descargarPaginasComoPDF(
   paginas: HTMLElement[],
-  opts: { filename: string; anchoMm: number; altoMm: number },
+  opts: {
+    filename: string; anchoMm: number; altoMm: number
+    /**
+     * Mismo aviso que en la impresión (#355): el PDF sale, pero sin membrete,
+     * firma o sello. Aquí pesa MÁS que al imprimir — un PDF se guarda y se
+     * reenvía, así que un documento incompleto sobrevive al momento en que el
+     * médico podría haberlo notado.
+     */
+    onAvisoPapeleria?: (mensaje: string) => void
+  },
 ): Promise<void> {
   if (typeof window === 'undefined') throw new Error('PDF solo en cliente')
   if (!paginas.length) throw new Error('Sin páginas para el PDF')
@@ -50,8 +59,16 @@ export async function descargarPaginasComoPDF(
   // rasterizan las URLs originales exactamente como antes.
   try {
     const { firmarImagenesDiseno } = await import('@/lib/receta-diseno-client')
-    await firmarImagenesDiseno(paginas.flatMap(p => Array.from(p.querySelectorAll('img'))))
-  } catch { /* sin firma: el PDF sale igual que siempre */ }
+    await firmarImagenesDiseno(paginas.flatMap(p => Array.from(p.querySelectorAll('img'))), {
+      onIncompleto: (faltan) => {
+        const msg = faltan === 1
+          ? 'Este PDF se va a guardar SIN una de sus imágenes de papelería (membrete, firma o sello): no se pudo cargar. El texto y la cédula van completos.'
+          : `Este PDF se va a guardar SIN ${faltan} de sus imágenes de papelería (membrete, firma o sello): no se pudieron cargar. El texto y la cédula van completos.`
+        // eslint-disable-next-line no-alert
+        if (opts.onAvisoPapeleria) opts.onAvisoPapeleria(msg); else window.alert(msg)
+      },
+    })
+  } catch { /* el acuñado nunca puede impedir que el PDF salga */ }
 
   const orientation = opts.anchoMm > opts.altoMm ? 'landscape' : 'portrait'
   const pdf = new jsPDF({ unit: 'mm', format: [opts.anchoMm, opts.altoMm], orientation, compress: true })

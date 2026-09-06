@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 import type { Metadata } from 'next'
 import { Shield, Lock, Users, FileClock, DatabaseBackup, Server, Bug, Bell, Brain, ArrowLeft } from 'lucide-react'
 import { SECURITY_CONTROLS, ESTADO_LABEL, esActivo, type SecurityState } from '@/config/security-controls'
@@ -32,8 +33,11 @@ function Badge({ estado }: { estado: SecurityState }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 'var(--r-pill)', whiteSpace: 'nowrap',
-      background: activo ? 'color-mix(in srgb, var(--green) 14%, transparent)' : 'color-mix(in srgb, var(--amber) 14%, transparent)',
-      color: activo ? '#16a34a' : '#d97706',
+      /* El fondo salía del token y el texto era un literal: media pareja
+         seguía al tema. En claro daba 2,61 : 1, medido por axe sobre la página
+         servida. Ver la nota en Copiloto.tsx. */
+      background: activo ? 'color-mix(in srgb, var(--green) var(--tinte), transparent)' : 'color-mix(in srgb, var(--amber) var(--tinte), transparent)',
+      color: activo ? 'var(--green-texto)' : 'var(--amber-texto)',
       border: `1px solid ${activo ? 'color-mix(in srgb, var(--green) 30%, transparent)' : 'color-mix(in srgb, var(--amber) 30%, transparent)'}`,
     }}>
       {ESTADO_LABEL[estado]}
@@ -43,12 +47,23 @@ function Badge({ estado }: { estado: SecurityState }) {
 
 export default function SeguridadPage() {
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 14, textDecoration: 'none', marginBottom: 28 }}>
-          <ArrowLeft size={15} /> Volver
-        </Link>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de `<main>`.
 
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas, y el propio
+      menú lista «Evidencia» y «Seguridad» como destinos: se pulsaba y se
+      aterrizaba en una página sin menú. `/evidencia` tenía UNA sola salida
+      interna medida.
+
+      Puesto sin más dentro de la raíz quedaba DENTRO de `<main>` —medido:
+      `main .nx-nav-publica` daba 1— y un landmark de navegación dentro del
+      landmark de contenido principal le miente a quien recorre la página por
+      landmarks. Se envuelve: menú fuera, contenido dentro.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ color: 'var(--text)' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--nexus-soft)', border: '1px solid var(--border2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--nexus)' }}>
             <Shield size={22} />
@@ -133,13 +148,27 @@ export default function SeguridadPage() {
           <p style={{ margin: '0 0 8px' }}>
             Para ejercer tus derechos ARCO (acceso, rectificación, cancelación, oposición) o reportar un
             incidente de seguridad, escríbenos a{' '}
-            <a href={`mailto:${CORREO_PRIVACIDAD}`} style={{ color: 'var(--nexus)' }}>{CORREO_PRIVACIDAD}</a>.
+            {/*
+              SUBRAYADO, NO SÓLO COLOR. axe lo midió sobre la página servida:
+              el acento contra el texto que lo rodea da 1,28 : 1 —el mínimo
+              para distinguir un enlace SÓLO por color es 3 : 1— y no llevaba
+              ninguna otra marca. Es WCAG 1.4.1: un enlace dentro de una frase
+              que sólo se distingue por el tono no existe para quien no
+              distingue ese tono. Misma razón que `a.nx-ident` y que el
+              «Crea una gratis →» de la puerta.
+            */}
+            <a
+              href={`mailto:${CORREO_PRIVACIDAD}`}
+              className="nx-enlace-tactil"
+              style={{ color: 'var(--nexus)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >{CORREO_PRIVACIDAD}</a>.
           </p>
           <p style={{ margin: 0, fontSize: 13, color: 'var(--text3)' }}>
             Consulta también nuestro <Link href="/terminos" style={{ color: 'var(--nexus)' }}>aviso de privacidad y términos</Link>.
           </p>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }

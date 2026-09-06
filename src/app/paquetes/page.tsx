@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { ArrowLeft, Check, ShieldCheck, Layers } from 'lucide-react'
 import { PAQUETES, incluyeDe } from '@/lib/specialty-packages'
 
@@ -15,13 +16,28 @@ const CONTEXTO_LABEL: Record<'activo' | 'contexto', string> = {
 
 export default function PaquetesPage() {
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de `<main>`.
+
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas, y el propio
+      menú lista «Evidencia» y «Seguridad» como destinos: se pulsaba y se
+      aterrizaba en una página sin menú. `/evidencia` tenía UNA sola salida
+      interna medida.
+
+      Puesto sin más dentro de la raíz quedaba DENTRO de `<main>` —medido:
+      `main .nx-nav-publica` daba 1— y un landmark de navegación dentro del
+      landmark de contenido principal le miente a quien recorre la página por
+      landmarks. Se envuelve: menú fuera, contenido dentro.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ color: 'var(--text)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '28px 20px 90px' }}>
         <Link href="/arquitectura" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 14, textDecoration: 'none', marginBottom: 16 }}>
           <ArrowLeft size={15} /> Ver los motores
         </Link>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus)', background: 'var(--nexus-soft, rgba(61,90,254,.09))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: 'var(--nexus)', background: 'var(--nexus-soft, var(--nexus-soft))', padding: '5px 11px', borderRadius: 'var(--r-pill)', marginBottom: 14 }}>
           <Layers size={14} /> Specialty Packages
         </div>
 
@@ -88,6 +104,7 @@ export default function PaquetesPage() {
           </Link>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }

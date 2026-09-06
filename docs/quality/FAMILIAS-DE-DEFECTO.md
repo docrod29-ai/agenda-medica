@@ -2,8 +2,8 @@
 
 **Formato**: §H7 del charter Master Loop V7 — cada defecto se convierte en
 aprendizaje permanente.
-**Abierto**: 6-ago-2026. **Actualizado**: 31-ago-2026.
-**Fuente**: los REG de `docs/audit/regression-ledger.md` (275 clasificados hoy).
+**Abierto**: 6-ago-2026. **Actualizado**: 3-sep-2026.
+**Fuente**: los REG de `docs/audit/regression-ledger.md` (320 clasificados hoy).
 
 > La tabla de «El resultado» es la foto del conteo del 6-ago y se conserva como
 > acta. Los números vivos salen de `src/lib/calidad/familias-de-defecto.ts`, que
@@ -25,26 +25,40 @@ Eso cambia dónde conviene mirar mañana.
 
 | Familia | Casos | Qué tienen en común |
 |---|---:|---|
-| **Escrito, probado y sin conectar** | **39** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
-| **El sistema se contradice a sí mismo** | **17** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
-| El habla real no cabía en el motor | 10 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
-| Nadie lo estaba midiendo | 20 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
-| El hueco tratado como dato | 5 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
-| Fuga entre consultorios y dinero | 5 | Un dato o un cobro cruza la frontera de su dueño |
-| El charter existía sin encarnar | 8 | Una sección del charter que vivía como carpeta vacía |
-| Estorba al médico | 7 | Correcto por dentro, insoportable por fuera |
-| Pérdida de datos | 11 | Trabajo del médico que desaparece o reaparece solo |
+| **Escrito, probado y sin conectar** | **84** | El módulo existe, tiene pruebas y está bien. Simplemente **no corre** en el camino que el médico recorre — o corre con una entrada incompleta |
+| **El sistema se contradice a sí mismo** | **45** | Dos partes afirman cosas incompatibles y **ninguna está mal por su cuenta**. El fallo vive en el hueco entre las dos |
+| El habla real no cabía en el motor | 18 | El motor cubre el español que uno *escribiría*, no el que se *habla* en un consultorio mexicano |
+| Nadie lo estaba midiendo | 49 | No es un defecto del producto: es la ausencia del instrumento que lo habría delatado |
+| El hueco tratado como dato | 13 | Lo que nadie dijo se guarda como si alguien lo hubiera dicho |
+| Fuga entre consultorios y dinero | 8 | Un dato o un cobro cruza la frontera de su dueño |
+| El charter existía sin encarnar | 10 | Una sección del charter que vivía como carpeta vacía |
+| Estorba al médico | 9 | Correcto por dentro, insoportable por fuera |
+| Pérdida de datos | 20 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
-| El mensaje mentía sobre la causa | 2 | Falla algo y el sistema culpa a otra cosa |
-| *Decisión del médico dueño, no defecto* | 2 | Cambiaron el comportamiento, pero nada estaba roto |
-| Al modelo de datos le faltaba un eje | 2 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
+| El mensaje mentía sobre la causa | 8 | Falla algo y el sistema culpa a otra cosa |
+| *Decisión del médico dueño, no defecto* | 4 | Cambiaron el comportamiento, pero nada estaba roto |
+| Al modelo de datos le faltaba un eje | 3 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
 ---
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 77 de 281, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 87 de 320, y el 7-ago-2026 volvió a ser la
 familia más grande.**
+
+Los tres últimos (REG-425, 426 y 427, 1-sep-2026) salieron de **abrir el producto
+en un teléfono**, y los tres son la familia en formas distintas: el gancho
+escrito y la regla no (`className="nx-fila-porque"`, una clase que no existía en
+ninguna hoja, y el toque del control se lo quedaba el velo de la fila); el
+respaldo que no cabe donde está escrito (`100vh` en un estilo EN LÍNEA no puede
+llevar su `100dvh` detrás); y la **condición previa** que falta (28 usos de
+`env(safe-area-inset-*)` corriendo y valiendo cero porque `viewport-fit=cover`
+era una línea en otro archivo que nadie vigilaba).
+
+Lo que enseñan juntos: **esta familia no se caza leyendo el diff de quien la
+comete.** Los tres diffs se ven bien. Se caza abriendo el producto y
+preguntándole al navegador — `document.elementFromPoint` en el centro del control
+es la única pregunta que responde «¿esto recibe el toque?».
 
 El miembro más reciente es **REG-335** (27-ago-2026), y es la familia
 describiendo su propia forma. `PaqueteDeVisita` llegó con su modelo, su máquina
@@ -128,7 +142,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 ## La segunda
 
-**«El sistema se contradice a sí mismo» — 46 de 281.**
+**«El sistema se contradice a sí mismo» — 48 de 320.**
 
 Sumó REG-377 (30-ago-2026), que enseña algo sobre las **deudas con fecha de
 caducidad puesta**. Desde REG-199 el módulo del sello llevaba escrito que
@@ -209,15 +223,22 @@ tercero que compare**.
 
 ## Lo que dicen las dos rarezas
 
-**«Nadie lo estaba midiendo» — 45 de 281**, y cada uno destapó otros al encenderse.
+**«Nadie lo estaba midiendo» — 58 de 320**, y cada uno destapó otros al encenderse.
 El WER, el foso de vocabulario, el arnés de alucinación: ninguno era un fallo del
 producto: era la falta del instrumento.
 
-El miembro más reciente es **REG-331** (27-ago-2026), y es esta familia dicha en
-voz alta: veintitrés defectos de accesibilidad en las seis pantallas que ve el
-paciente, con 10 425 casos en verde. No se rompió nada — es que ese eje no lo
-medía nadie. El instrumento (`npm run a11y:paciente`) los encontró todos el día
-que se encendió, que es exactamente lo que hace esta familia cada vez.
+**REG-331** (27-ago-2026) es esta familia dicha en voz alta: veintitrés defectos
+de accesibilidad en las seis pantallas que ve el paciente, con 10 425 casos en
+verde. No se rompió nada — es que ese eje no lo medía nadie. El instrumento
+(`npm run a11y:paciente`) los encontró todos el día que se encendió, que es
+exactamente lo que hace esta familia cada vez.
+
+El miembro más reciente es **REG-421** (1-sep-2026), y es la versión más afilada:
+ahí el instrumento **sí existía y corría en verde**. El guardián de índices se
+saltaba con un `continue` las consultas que no sabía leer, y llevaba meses tapando
+dos consultas vivas sin índice. No medir es un hueco; medir mal es un hueco que
+además te dice que no lo hay. Se descubrió por la única vía que lo descubre:
+probar el guardián **al revés** antes de fiarse de él.
 
 **«Decisión del médico dueño» — 2**, contados aparte a propósito. Meterlos en el
 saco de «defectos» inflaría la cuenta con cosas que nadie rompió.

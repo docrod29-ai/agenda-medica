@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, Mail, MessageCircle, LifeBuoy } from 'lucide-react'
+import { Mail, MessageCircle, LifeBuoy } from 'lucide-react'
+import { NavPublica } from '@/components/landing/NavPublica'
 import { CORREO_SOPORTE } from '@/lib/contacto'
 
 export const metadata: Metadata = {
@@ -18,12 +19,23 @@ const CORREO = CORREO_SOPORTE
  */
 export default function ContactoPage() {
   return (
-    <main style={{ background: 'var(--bg)', minHeight: '100vh', color: 'var(--text)' }}>
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '28px 22px 80px' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text3)', fontSize: 14, textDecoration: 'none', marginBottom: 22 }}>
-          <ArrowLeft size={15} /> Volver
-        </Link>
+    /*
+      LA NAVEGACIÓN DEL SITIO, QUE ESTA PÁGINA NO TENÍA — y FUERA de `<main>`.
 
+      Medido: `NavPublica` estaba en 3 de las 11 páginas públicas, y el propio
+      menú lista «Evidencia» y «Seguridad» como destinos: se pulsaba y se
+      aterrizaba en una página sin menú. `/evidencia` tenía UNA sola salida
+      interna medida.
+
+      Puesto sin más dentro de la raíz quedaba DENTRO de `<main>` —medido:
+      `main .nx-nav-publica` daba 1— y un landmark de navegación dentro del
+      landmark de contenido principal le miente a quien recorre la página por
+      landmarks. Se envuelve: menú fuera, contenido dentro.
+    */
+    <div className="nx-pub">
+      <NavPublica />
+      <main style={{ color: 'var(--text)' }}>
+      <div style={{ maxWidth: 620, margin: '0 auto', padding: '28px 22px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <LifeBuoy size={26} style={{ color: 'var(--nexus)' }} />
           <h1 className="nx-display" style={{ fontSize: 'clamp(26px,4.5vw,38px)', fontWeight: 600, margin: 0, letterSpacing: '-0.03em' }}>
@@ -64,6 +76,7 @@ export default function ContactoPage() {
           </Link>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   )
 }

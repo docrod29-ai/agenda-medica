@@ -59,4 +59,5 @@ export const DOCS_NO_ADR: readonly string[] = [
   'dosis-amoxicilina.md',       // decisión clínica del Dr., no ADR de motor
   'PREGUNTAS-ABIERTAS-2026-07-29.md', // mismo tipo: preguntas al Dr. con default seguro, no ADR de motor
   'DECISIONES-ICU-VOICE-INFUSION-OBSERVATION.md', // respuestas del Dr. a las 4 preguntas de ICU-001 (benchmark de voz, infusiones, observacion corregida, umbral de confirmacion), no ADR de motor
+  'tamizaje-preventivo.md',     // PROPUESTA de fuente para el motor medicina-preventiva, esperando el si del Dr. No es el ADR del motor: mientras no se acepte, el codigo no cambia y el motor sigue sin ADR.
 ]

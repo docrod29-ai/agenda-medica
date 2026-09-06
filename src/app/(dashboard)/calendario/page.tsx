@@ -2,7 +2,6 @@
 import { conMayusculaInicial } from '@/lib/texto-es'
 import { useState, useMemo } from 'react'
 import { activable } from '@/lib/ui/activable'
-import { useEsTelefono } from '@/hooks/useEsTelefono'
 import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
 import { useConfig } from '@/hooks/useConfig'
@@ -156,31 +155,29 @@ export default function CalendarioPage() {
     return allAppointments.filter(a => a.medicoId === medicoFiltro)
   }, [allAppointments, medicoFiltro])
   /**
-   * EN UN TELÉFONO LA AGENDA ABRE EN DÍA.
+   * LA VISTA CON LA QUE ABRE EL CALENDARIO NO PUEDE SER LA MISMA EN UN TELÉFONO.
    *
-   * La vista de semana en 390 px no es una agenda: son siete columnas de unos
-   * 41 px donde el nombre del paciente no cabe de ninguna manera. Medido en el
-   * navegador, los bloques llegaban a enseñar una letra y un puntito
-   * suspensivo. Ninguna tipografía arregla eso — el ancho no da.
+   * Abría SIEMPRE en semana. Medido a 390 px con la consulta sembrada: siete
+   * columnas en 366 px son ~44 px por día, y el bloque de cita sólo alcanza a
+   * enseñar «09:45» y un nombre cortado a la mitad («Maria…»). No se puede
+   * saber quién viene ni a qué — que es lo único para lo que se abre la agenda.
    *
-   * La vista de DÍA ya existe, tiene la columna entera y escribe
-   * «HH:MM — nombre completo». Es la que responde a la pregunta con la que un
-   * médico abre la agenda en el teléfono: a quién tengo ahora.
+   * En día, ese mismo bloque tiene el ancho entero y se lee el nombre completo
+   * y el motivo. Es el mismo principio que ya gobierna el resto del shell: por
+   * breakpoint se decide qué persiste, no se apila todo.
    *
-   * La semana no se quita: sigue a un toque para quien quiera el panorama. Y
-   * en cuanto el médico elige una vista, esto se calla — **una preferencia
-   * dicha gana a una preferencia supuesta**, y sigue ganando si gira el
-   * teléfono.
+   * Se elige UNA vez, al montar, y no se vuelve a tocar: si el médico cambia a
+   * semana en su teléfono —porque quiere ver el hueco del jueves— girar la
+   * pantalla no se lo puede deshacer. La preferencia del usuario gana a la
+   * inicial desde el momento en que la expresa.
    *
-   * La vista es DERIVADA, no un estado que haya que sincronizar. Copiarla a un
-   * estado desde un efecto encadenaba renders y, peor, se quedaba con la
-   * respuesta del primer render: una ventana que se estrecha o un teléfono que
-   * gira no cambiaban nada.
+   * Sin ventana (SSR) se elige semana, que es lo que ve el escritorio: el móvil
+   * corrige en el primer render del cliente y nunca se ve el estado intermedio,
+   * porque el calendario no se pinta hasta tener las citas.
    */
-  const [vistaElegidaPorElMedico, setVistaElegidaPorElMedico] = useState<View | null>(null)
-  const esTelefono = useEsTelefono()
-  const view: View = vistaElegidaPorElMedico ?? (esTelefono ? 'dia' : 'semana')
-  const elegirVista = (v: View) => setVistaElegidaPorElMedico(v)
+  const [view, setView] = useState<View>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches ? 'dia' : 'semana',
+  )
   /**
    * UN solo «hoy» por render, para el botón de nueva cita y para la vista de
    * día. Antes cada sitio preguntaba por su cuenta; además de sumar llamadas
@@ -231,7 +228,7 @@ export default function CalendarioPage() {
   }, [view, baseDate, weekDates])
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)' }}>
+    <div className="nx-alto-de-trabajo" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Calendario</h1>
@@ -243,7 +240,7 @@ export default function CalendarioPage() {
           {(['dia', 'semana', 'mes'] as View[]).map(v => (
             <button
               key={v}
-              onClick={() => elegirVista(v)}
+              onClick={() => setView(v)}
               className="nx-segmento"
               aria-pressed={view === v}
               style={{
@@ -350,7 +347,7 @@ export default function CalendarioPage() {
           <MonthView
             date={baseDate}
             appointments={appointments}
-            onDayClick={(d) => { setBaseDate(d); elegirVista('dia') }}
+            onDayClick={(d) => { setBaseDate(d); setView('dia') }}
             onApptClick={openEdit}
             loading={loading}
           />
@@ -403,6 +400,10 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   onApptClick: (a: Appointment) => void
   loading: boolean
 }) {
+  // Cuántos médicos activos hay. Con uno solo, el color por médico no
+  // distingue a nadie y se usa el acento de marca — ver colorMedico.
+  const { activeDoctors } = useDoctors()
+  const cuantosMedicos = activeDoctors.length
   const today = hoyISO()
   const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
   const ahoraMin = useAhoraMinutos()
@@ -541,8 +542,12 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
-                  // Multi-doctor: colorea según el médico; un solo médico → cobalto de marca
-                  const color = a.medicoId ? colorMedico(a.medicoId) : 'var(--nexus)'
+                  // Multi-doctor: colorea según el médico; un solo médico →
+                  // cobalto de marca. El SEGUNDO argumento es lo que hace que
+                  // esa segunda mitad ocurra de verdad: la condición anterior
+                  // preguntaba si la CITA tiene médico, no si el consultorio
+                  // tiene varios. Ver colorMedico en DoctorFilter.tsx.
+                  const color = a.medicoId ? colorMedico(a.medicoId, cuantosMedicos) : 'var(--nexus)'
                   const est = estiloEstadoCita(a.estado)
                   return (
                     <div
@@ -666,7 +671,7 @@ function DayView({ date, hoy, appointments, horarios, festivos, onCellClick, onA
                   {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
                   onClick={e => { e.stopPropagation(); onApptClick(a) }}
                   style={{
-                    background: 'rgba(61,90,254,0.1)', border: `1px ${est.borderStyle} rgba(61,90,254,0.3)`,
+                    background: 'var(--nexus-soft)', border: `1px ${est.borderStyle} var(--nexus-borde)`,
                     borderLeft: `3px ${est.borderStyle} var(--teal)`, borderRadius: 6, padding: '6px 10px',
                     cursor: 'pointer',
                     /**
@@ -760,7 +765,27 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
         ))}
       </div>
 
-      {/* Grid */}
+      {/*
+        `minmax(0, 1fr)` Y NO `1fr` A SECAS — y aquí el defecto no es estético.
+
+        Un track `1fr` lleva `min-width: auto` implícito: no baja del ancho MÍNIMO
+        de su contenido. Las celdas con citas llevan chips («08:00 Rosalía») cuyo
+        mínimo ronda los 86 px, así que sus columnas se estiran y las vacías se
+        encogen. Medido a 390 px:
+
+          cabecera de días   [49, 49, 49, 49, 49, 49, 49]   suma 343
+          rejilla de semanas [37, 37, 86, 86, 37, 85, 37]   suma 405  en 340
+
+        Es decir: **las fechas dejaban de alinearse con su día de la semana**, que
+        es exactamente para lo que sirve una rejilla de mes — se lee por columna
+        para saber en qué día cae un número. Y los 65 px que sobraban recortaban
+        la última columna, el domingo.
+
+        La cabecera no se movía porque su contenido («Lun», «Mar») cabe de sobra
+        en el reparto equitativo: por eso las dos rejillas, escritas igual,
+        acababan distintas.
+
+        Misma causa raíz que REG-441 en la receta y la orden. Ver REG-443. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', height: 'calc(100% - 37px)', overflow: 'auto' }}>
         {days.map((d, i) => {
           if (!d) return <div key={i} style={{ borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg)', opacity: 0.3 }} />
@@ -792,7 +817,7 @@ function MonthView({ date, appointments, onDayClick, onApptClick, loading }: {
               style={{
                 borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 padding: '6px', minHeight: 80,
-                background: isToday ? 'rgba(61,90,254,0.05)' : 'transparent',
+                background: isToday ? 'var(--nexus-tenue)' : 'transparent',
                 transition: 'background var(--mov-rapido) var(--mov-curva)',
               }}
               onMouseEnter={e => !isToday && (e.currentTarget.style.background = 'var(--s2)')}

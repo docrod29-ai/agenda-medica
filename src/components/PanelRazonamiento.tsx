@@ -14,8 +14,55 @@ type Props = { entrada: EntradaCopiloto; embebido?: boolean }
 const FUENTE_LABEL: Record<FuenteRazon, string> = {
   determinista: 'Regla con código', modelo: 'IA', evidencia: 'PubMed', meta: 'Sistema',
 }
+/**
+ * EL ORIGEN DE CADA PASO, Y POR QUÉ SON CUATRO COLORES DISTINTOS.
+ *
+ * ── LO QUE PASABA ───────────────────────────────────────────────────────────
+ *
+ * `determinista` valía `var(--teal)` y `modelo` valía `var(--nexus)`. Pero
+ * `--teal` es **un alias de `--nexus`** en los tres temas (globals.css):
+ *
+ *     --teal: var(--nexus);
+ *
+ * Así que «Regla con código» e «IA» se pintaban del MISMO color. Medido en el
+ * navegador sobre `/demo/razonamiento`: los dos, `rgb(42, 165, 181)`. Cuatro
+ * clases de origen declaradas, tres colores en pantalla.
+ *
+ * No lo cazó nadie porque nada compara dos tokens buscando que sean
+ * DISTINTOS. El mapa se escribió cuando `--teal` era un color propio, y el día
+ * que se consolidó el acento estas dos categorías se fundieron en silencio.
+ *
+ * ── POR QUÉ IMPORTA MÁS QUE UN COLOR ────────────────────────────────────────
+ *
+ * Esta es la distinción sobre la que se sostiene todo lo que promete el
+ * producto. `clinical-safety.md` §2: «el LLM redacta y extrae; NO calcula».
+ * El panel existe para enseñar cuál de los dos hizo cada paso — y los pintaba
+ * igual. Y no es sólo la demo: este panel vive dentro de la CONSULTA real.
+ *
+ * ── EL SEGUNDO CANAL ────────────────────────────────────────────────────────
+ *
+ * Cada origen lleva además su propio tinte de fondo, en vez del gris único que
+ * llevaban los cuatro. Dos canales, no uno: si el color se pierde —pantalla
+ * mala, luz de mediodía, daltonismo— el fondo sigue separándolos, y la palabra
+ * los separa siempre.
+ *
+ * `evidencia` era `#a855f7` a mano: literal, sin tema, y medido por axe daba
+ * 4,49 : 1 en los tres anchos. `--purple` está calculado por tema (4,62 en
+ * oscuro, ver globals.css).
+ */
 const FUENTE_COLOR: Record<FuenteRazon, string> = {
-  determinista: 'var(--teal)', modelo: 'var(--nexus)', evidencia: '#a855f7', meta: 'var(--text3)',
+  determinista: 'var(--green-texto)',
+  modelo: 'var(--nexus)',
+  evidencia: 'var(--purple)',
+  meta: 'var(--text3)',
+}
+const FUENTE_FONDO: Record<FuenteRazon, string> = {
+  determinista: 'color-mix(in srgb, var(--green) var(--tinte), var(--s1))',
+  modelo: 'color-mix(in srgb, var(--nexus) var(--tinte), var(--s1))',
+  evidencia: 'color-mix(in srgb, var(--purple) var(--tinte), var(--s1))',
+  /* `meta` se queda neutro a propósito: son los pasos del propio sistema, y
+     darles color los subiría al nivel de los tres que sí dicen algo. */
+  meta: 'var(--s2)',
 }
 const CONF_LABEL: Record<ConfianzaRazon, string> = { alta: 'Alta', media: 'Media', baja: 'Baja', na: '—' }
 
@@ -60,7 +107,7 @@ export function PanelRazonamiento({ entrada, embebido }: Props) {
                 <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--text3)', width: 16, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{p.n}</span>
                 {icono(p.estado)}
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: 'var(--text)' }}>{p.titulo}</span>
-                <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 7px', borderRadius: 'var(--r-pill)', background: 'rgba(127,127,127,.1)', color: FUENTE_COLOR[p.fuente], whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.02em', padding: '2px 7px', borderRadius: 'var(--r-pill)', background: FUENTE_FONDO[p.fuente], color: FUENTE_COLOR[p.fuente], whiteSpace: 'nowrap' }}>
                   {FUENTE_LABEL[p.fuente]}
                 </span>
                 {p.confianza !== 'na' && (

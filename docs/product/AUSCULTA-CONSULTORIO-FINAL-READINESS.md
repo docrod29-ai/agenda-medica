@@ -49,16 +49,16 @@ en «collect page data» con `auth/invalid-api-key`. Es del entorno, no del árb
 | WS | Estado | Lo que sostiene ese estado |
 |---|---|---|
 | **01** Master Board | `PROVEN` | El tablero se **deriva**: `el-tablero-del-loop-no-miente` falla si la última REG, el conteo del ledger o el número de archivos de prueba dejan de coincidir con el repositorio |
-| **02** Escala / 100 k | `PARTIAL` | REG-378: **ya hay arnés y ya hay medición**. 100 médicos, 8 000 peticiones, 50 concurrentes contra el emulador con `firestore.rules` cargadas: p95 141 ms, 0 errores, **0 fugas entre consultorios en 200 sondas**. No es producción y no son 100 k: la evidencia lo dice y el validador la **rechaza** por incompleta, a propósito |
-| **03** Consultorio grande | `PARTIAL` | Las lecturas sin cota que sí se encontraron están acotadas y **declaran su recorte** (REG-350/351). Queda el inventario de lecturas de citas |
+| **02** Escala / 100 k | `PARTIAL`, **remedido el 1-sep sobre este árbol** | REG-378 puso el arnés. La corrida de hoy (`97b2a312`, escenario `registrados-2000`: 78 médicos, 77 concurrentes): **3 120 peticiones, 0 errores, throughput 317,1 pet/s, p50 222,5 · p95 476,0 · p99 560,0 ms**, y **0 fugas entre consultorios en 156 sondas** con `firestore.rules` cargadas de verdad. Once campos van en `null` con su razón, y **el validador RECHAZA el informe** — que es lo correcto: no es evidencia todavía. No es producción y no son 100 k. Acta: `docs/audit/ws-02-carga/README-corrida-2026-09-01.md` |
+| **03** Consultorio grande | `PARTIAL`, **una menos** | Las lecturas sin cota que se encontraron están acotadas y **declaran su recorte** (REG-350/351). El 1-sep se bajó el techo del inventario: **29 → 28** en Consultorio, acotando `getWaitlist` —que bajaba la lista de espera ENTERA en dos pantallas— con su `truncada` pintado (REG-429). Y se **midió** que las lecturas no crecen con el tamaño del consultorio: con 200 y con 2 000 pacientes sembrados, la página del directorio lee **21 documentos en ambos casos**, la búsqueda 125 y las notas 11 (`docs/audit/ws-03-consultorio-grande/lecturas-2000.json`, contra el emulador con `firestore.rules` reales). Quedan **28 de Consultorio y 9 de Hospital**, inventariadas y con techo que sólo baja |
 | **04** Resiliencia | `PROVEN` (interruptor) | REG-353: interruptor por proveedor **y por llave** — una llave revocada de un consultorio no apaga a los demás. Colas y contrapresión: `NOT_DONE` |
-| **05** Móvil / rebote iPhone | `BLOCKED_EXTERNAL` | REG-355 cerró los escritores de scroll y `overscroll-behavior`; REG-380 añade lo que sí se puede medir sin el aparato —desbordamiento horizontal en las 8 rutas públicas, objetivo táctil 44×44, consola propia y foco visible, en el CI y a tamaño de teléfono. **Sigue sin `PROVEN`**: el rebote es de WebKit y en Chromium no existe. WebKit no se puede instalar en este entorno (descarga bloqueada) |
+| **05** Móvil / rebote iPhone | `BLOCKED_EXTERNAL`, y **con dos defectos reales cerrados** | REG-355 cerró los escritores de scroll y `overscroll-behavior`; REG-380 midió el **ancho** en las 8 rutas públicas. El 1-sep se midió por primera vez el **ALTO**, en las pantallas del consultorio con sesión (`scripts/design/medir-el-alto-del-telefono.mjs`, Chromium 390×844 contra el build de producción y la clínica sembrada), y encontró dos defectos vivos: **REG-425** — «¿Por qué está aquí?» no recibía el toque en `/pacientes` (se lo quedaba el velo de la fila; 3 filas de 3, las que tienen pendiente) — y **REG-426** — `/calendario` con el único alto fijo en `vh` del árbol, 792px contra 735 visibles. Más **REG-427**: las 28 reservas de área segura colgaban de una línea sin guardián. **Sigue sin `PROVEN`**: el rebote es de WebKit y en Chromium no existe. Comprobado hoy que WebKit **no se puede instalar aquí**: 403 de la política de red sobre `cdn.playwright.dev` y `playwright.download.prss.microsoft.com`, confirmado por el propio proxy como `connect_rejected` por política |
 | **06/07/08** Evidencia | `PARTIAL`, honesto | La consulta **dice dónde NO miró** (REG-356), el texto completo de PMC sólo se reproduce si la licencia lo permite (REG-357), y una cita que no dice eso ya no pasa (REG-359). Las licencias comerciales son `BLOCKED_EXTERNAL` |
 | **09** Aplicabilidad | `NOT_DONE` | No hay motor que diga si una evidencia aplica a ESTE paciente |
 | **10** Patient State | `PARTIAL`, y es donde más se avanzó | Ver la tabla propia, abajo |
-| **11** Ciclo cerrado | `PARTIAL` | REG-360/361: el cierre distingue decisión, acción y aviso al paciente, y `/pendientes` los llena por formulario. Faltan interconsultas, referencias e imagen |
+| **11** Ciclo cerrado | `PARTIAL`, y el **recorrido entero se volvió a correr** | REG-360/361: el cierre distingue decisión, acción y aviso al paciente. El 1-sep se corrió GP-FINAL completo **sobre este árbol** —no se heredó el verde de otra rama—: **74 casos en un Chromium real contra un build de producción**, con firma, receta, liberación, revocación, dos consultorios, doble clic, dos pestañas, botón atrás, 30 minutos de consulta, recarga a mitad y red caída. El único rojo (GP-33) resultó ser del **instrumento**, no del producto: el freno del portal sí frena —`{200:10, 429:25, 503:5}`— y el caso no sabía distinguir «no hay freno» de «no dejó pasar» (REG-428). Faltan interconsultas, referencias e imagen |
 | **12** Evaluación | `PARTIAL` | REG-362 creó la puerta que la regla exigía (`evals/patient-ai/`) y **encontró un defecto vivo al correrla**. Falta evaluar lo que el modelo REDACTA |
-| **13** Seguridad · DR | `PARTIAL` | 99 rutas revisadas: **ni una escribe datos clínicos sin validar sesión y pertenencia**, con analizador estático del argumento literal por método. Índices y reglas: `BLOCKED_EXTERNAL` |
+| **13** Seguridad · DR | `PARTIAL` | 99 rutas revisadas: **ni una escribe datos clínicos sin validar sesión y pertenencia**. **Reglas: desplegadas el 31-ago-2026** (ejecuciones #11 y #12; sello en `firestore.rules.estado.json`). **Índices: DOCE declarados, ocho enviados** — el 1-sep se contó sobre el árbol que de verdad se desplegó (`git show 8f74901d:firestore.indexes.json` → 8), no de memoria, y se encontró que el documento de operación decía «nueve» con diez declarados (REG-422). Falta ver los doce `Enabled` en la consola: la construcción es asíncrona y `deploy` contesta al ENVIAR. **DR: el simulacro se volvió a correr sobre este árbol** — 24/24 en dos tamaños, con `observedRtoMs: null` y `rtoPublicable()` en `false` mientras queden tramos sin medir. **Y las reglas se corrieron contra el emulador el 1-sep: `npm run test:emulador` → 140 casos en verde**, que es donde el aislamiento entre consultorios lo decide la regla desplegable y no una promesa. **Y la matriz de cabeceras corrió por fin entera**: `e2e:seguridad` daba 48 verdes y 9 caídos por un Chromium de otra build —la escotilla `PLAYWRIGHT_CHROMIUM_PATH` estaba sólo en el proyecto del teléfono, y se llevaba justo los casos que necesitan navegador (REG-430)—; con la escotilla puesta, **57 en verde** |
 | **22/23/24** Especialidad | `PARTIAL` | El catálogo público se **deriva** de la misma tabla que gobierna la consulta: no puede prometer una herramienta que la consulta no enseña |
 
 ---
@@ -117,10 +117,10 @@ interno está hecho y hay un artefacto que dice qué se rompe mientras tanto.
 
 | Bloqueo | La acción que falta |
 |---|---|
-| Índices de Firestore | `npx firebase deploy --only firestore:indexes` — declarados en `firestore.indexes.json` desde REG-352, con los cuatro módulos que hoy están peor por no tenerlos |
+| Índices de Firestore | `npx firebase deploy --only firestore:indexes --project nexomed-agenda`, **y después ver los DOCE `Enabled`** en la consola: `deploy` contesta al enviar y un índice puede caer en `Error` horas después del `success`. La lista exacta está en `docs/ops/INDICES-DE-FIRESTORE.md`, derivada del archivo y vigilada contra él (REG-422). **Desde REG-424 fusionar antes ya no rompe la pantalla** —las cuatro consultas se caen al camino de antes y lo dicen—, pero el producto queda peor de lo que promete hasta que estén construidos. **No arrastra un despliegue de reglas**: `tareas_clinicas` no congela su forma, comprobado |
 | Reglas de Firestore | `npx firebase deploy --only firestore:rules --project nexomed-agenda`. `vercel --prod` **no** las publica. Desde REG-354 el repositorio lo **deriva** del sha256 en vez de recordarlo |
 | E0-06 · alergias fuera de `Patient` | Backfill sobre datos clínicos vivos + decisión de política del dueño + despliegue de reglas. **No se reabrió** |
-| iPhone / WebKit real | Un dispositivo. REG-355 no se marca PROVEN sin él |
+| iPhone / WebKit real | **Dos caminos, cualquiera vale.** (1) Añadir `cdn.playwright.dev` y `playwright.download.prss.microsoft.com` a la política de red del entorno: entonces `npx playwright install webkit` funciona y corre el proyecto `iphone-safari` que `playwright.config.ts` ya declara. (2) Un iPhone real, que es lo que §38 pide: 390px, diez repeticiones, `scrollTop` que nunca baje solo. Sin uno de los dos, REG-355 no se marca PROVEN |
 | PITR y simulacro de restauración | Configuración del proyecto vivo. REG-381 llevó el ensayo a un Firestore de verdad: 2 000 documentos escritos y **releídos del otro lado**, 0 faltantes, 3 898 doc/s. **Corrección**: el tope de escrituras por lote NO se gana saliendo de la memoria — el emulador acepta 600 sin error, y el acta lo declara. Lo que queda es `gcloud firestore databases restore` + PITR, que son de la consola |
 | Pentest externo | No se marca PASS sin uno real |
 | Licencias de evidencia | UpToDate, Cochrane, Scopus, DynaMed, OpenEvidence. Sin acuerdo se quedan en `not_configured`; el código ya falla cerrado |
@@ -169,8 +169,11 @@ reales. Las tres cosas están arriba con su estado.
 
 Por orden de lo que más pesa:
 
-1. **Desplegar índices y reglas.** Es una tarde de trabajo del dueño y desbloquea
-   dos filas de la tabla de arriba.
+1. ~~**Desplegar índices y reglas.**~~ **Hecho el 31-ago-2026**, en las
+   ejecuciones #11 y #12 del botón, que corren las dos cosas en un paso. Las
+   reglas quedan **selladas** y su lista de pendientes, vacía. De los índices
+   sólo consta el **envío**: falta abrir la consola y verlos `Enabled`. Esa
+   media fila es lo único que sigue abierto aquí.
 2. ~~**Medir la escala de verdad** (WS-02): el arnés que produzca el JSON que el
    validador ya sabe leer.~~ **Hecho (REG-378)** en lo que un emulador puede
    responder. Lo que falta ya no es código: es un entorno que se parezca a
@@ -223,6 +226,15 @@ a 8. Los cuatro nuevos (REG-379) son de consultas que el producto **ya hace hoy*
 —bandeja ARCO, lista de farmacia, rastro de un controlado y la página **pública**
 del médico— y que Firestore rechaza con `FAILED_PRECONDITION` si el índice no
 existe. Los otros cuatro siguen siendo anticipados.
+
+**Antes de correrlos, algo que cambió el 1-sep-2026 (REG-506).** Hasta ese día
+estos dos comandos publicaban **sólo las reglas**: `firebase.json` no declaraba
+`firestore.indexes`, y sin esa clave el CLI anuncia el paso, recorre una lista
+vacía y contesta `Deploy complete!`. Es decir: el comando de arriba, tal como
+estaba escrito aquí, no habría enviado ningún índice — ni corrido a mano, ni por
+el botón de producción, que llevaba tres ejecuciones dándolo por hecho. Ya está
+corregido, y el paso del workflow ahora **falla** si la salida no trae la línea
+de éxito de los índices.
 
 **Verificar del otro lado, que es la mitad que no puede vivir aquí**: en la
 consola del proyecto, que los ocho aparezcan como `Enabled` y no `Building`. Crear

@@ -6,13 +6,14 @@ import { useParams } from 'next/navigation'
 import {
   Calendar, Clock, MapPin, Stethoscope, CheckCircle2, CalendarClock, XCircle,
   Loader2, Phone, CalendarPlus, AlertTriangle, Download, Pill, ShieldCheck, CreditCard, Video,
-  Home, MessageCircle, HeartPulse, FileText, User,
+  Home, MessageCircle, HeartPulse, FileText, User, Send, Quote,
 } from 'lucide-react'
 import { descargarRecetaWord } from '@/lib/receta-word'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 import { fechaFlexible } from '@/lib/portal/fechas'
 import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
+import ViaDeUrgencia from '@/components/portal/ViaDeUrgencia'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -63,6 +64,26 @@ const RECETA_CONFIG_DEFAULT = {
  * pintar un borrador ni equivocándose. La compuerta vive en el servidor porque
  * esconder una pestaña no cierra una ruta HTTP.
  */
+/**
+ * Una pregunta ya hecha, tal como la devuelve el servidor.
+ *
+ * NO trae `motivo` — el servidor no se lo manda al paciente, y este tipo lo
+ * refleja: saber que su frase encajó en `cambio_de_dosis` no le sirve y le
+ * enseña a esquivar el clasificador. El motivo es para el consultorio.
+ */
+interface PreguntaHecha {
+  id: string
+  /** Lo que preguntó el paciente. */
+  texto: string
+  /** Lo que se le contestó, CONGELADO — no se recalcula al leerlo. */
+  respuesta: string
+  clase: string
+  procedencia: { fechaConsulta?: string; version?: number } | null
+  escalada: boolean
+  atendidaEn: number | null
+  creadaEn: number
+}
+
 interface PaqueteVisible {
   id: string
   fechaConsulta: string
@@ -113,11 +134,11 @@ const API = '/api/portal'
  * cuántos destinos hay ni cómo se llaman.
  */
 const DESTINOS = [
-  { id: 'hoy' as const,        etiqueta: 'Hoy',        icono: Home },
-  { id: 'preguntar' as const,  etiqueta: 'Preguntar',  icono: MessageCircle },
-  { id: 'cuidado' as const,    etiqueta: 'Cuidado',    icono: HeartPulse },
-  { id: 'documentos' as const, etiqueta: 'Documentos', icono: FileText },
-  { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User },
+  { id: 'hoy' as const,        etiqueta: 'Hoy',        icono: Home,          pista: 'Tus citas: confirmar, reagendar o cancelar.' },
+  { id: 'preguntar' as const,  etiqueta: 'Preguntar',  icono: MessageCircle, pista: 'Cómo hablar con el equipo de tu médico.' },
+  { id: 'cuidado' as const,    etiqueta: 'Cuidado',    icono: HeartPulse,    pista: 'Lo que tu médico te dejó de cada consulta.' },
+  { id: 'documentos' as const, etiqueta: 'Documentos', icono: FileText,      pista: 'Tus recetas, para descargar y llevar.' },
+  { id: 'perfil' as const,     etiqueta: 'Perfil',     icono: User,          pista: 'Tu enlace, tu consultorio y tus datos.' },
 ]
 
 const ESTADO_TERMINAL = new Set(['atendida', 'finalizada', 'cancelada', 'no-asistio', 'reagendada'])
@@ -192,10 +213,41 @@ export default function MiPortalPage() {
   const [error, setError] = useState('')
   const [accion, setAccion] = useState<string>('') // id de cita con acción en curso
   const [reagendando, setReagendando] = useState<string>('') // id de cita en modo reagenda
+  /** id de la cita cuya cancelación se está confirmando en la propia pantalla. */
+  const [cancelando, setCancelando] = useState<string>('')
+  /**
+   * LO QUE NO SE PUDO HACER, ESCRITO EN LA PANTALLA — no en un `alert()`.
+   *
+   * Tres fallos se contaban con el diálogo nativo del navegador. El paciente
+   * toca «Aceptar» y la pantalla queda EXACTAMENTE igual que si hubiera
+   * funcionado: no hay forma de saber después si su cita se canceló o no. Un
+   * aviso que se puede cerrar sin dejar rastro no es un aviso de error, es un
+   * error escondido detrás de un botón.
+   */
+  const [avisoAccion, setAvisoAccion] = useState('')
   /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
   const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
+
+  /**
+   * PREGUNTAR — V9 · PATIENT-AI-001.
+   *
+   * `preguntas` es el historial que devuelve el servidor. Existe para que una
+   * respuesta **sobreviva a recargar**: la especificación pone la pérdida de
+   * estado entre las prioridades más altas, y el paciente está en un teléfono
+   * que se bloquea solo. Una respuesta que sólo vive en la memoria de la
+   * pestaña se pierde en el primer bloqueo de pantalla.
+   *
+   * `null` mientras no se sabe; `[]` cuando se leyó y no hay ninguna. Y el
+   * error aparte, por lo mismo que `docsError`.
+   */
+  const [preguntas, setPreguntas] = useState<PreguntaHecha[] | null>(null)
+  const [preguntasBloqueadas, setPreguntasBloqueadas] = useState(false)
+  const [borrador, setBorrador] = useState('')
+  const [enviandoPregunta, setEnviandoPregunta] = useState(false)
+  const [errorPregunta, setErrorPregunta] = useState('')
+  const idPregunta = useId()
 
   const cargar = useCallback(async () => {
     try {
@@ -229,6 +281,19 @@ export default function MiPortalPage() {
           setPaquetes((d.paquetes || []) as PaqueteVisible[])
         })
         .catch(() => setPaquetesError(true))
+      /*
+        LO QUE YA PREGUNTÓ (PATIENT-AI-001). También en paralelo. Un fallo de
+        red deja `preguntas` en `null` —«no se sabe»— y la pantalla lo dice; no
+        se pinta un historial vacío, que se leería como «nunca he preguntado».
+      */
+      fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'preguntas', token }) })
+        .then(async res => {
+          if (res.status === 403) { setPreguntasBloqueadas(true); setPreguntas([]); return }
+          if (!res.ok) return
+          const d = await res.json()
+          setPreguntas((d.preguntas || []) as PreguntaHecha[])
+        })
+        .catch(() => { /* se queda en null: «no se sabe» */ })
     } catch {
       setError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -238,6 +303,55 @@ export default function MiPortalPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  /**
+   * MANDAR LA PREGUNTA.
+   *
+   * La pantalla NO clasifica: manda el texto y pinta lo que el servidor
+   * decidió. Es el §3 de `patient-facing-ai.md` dicho en el cliente — si la
+   * prohibición viviera aquí, bastaría con abrir la consola para saltársela.
+   *
+   * Y no se limpia el borrador hasta que el servidor confirma: si falla la red,
+   * el paciente no pierde lo que escribió.
+   */
+  const enviarPregunta = useCallback(async () => {
+    const texto = borrador.trim()
+    if (!texto || enviandoPregunta) return
+    setEnviandoPregunta(true)
+    setErrorPregunta('')
+    try {
+      const r = await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'preguntar', token, texto }),
+      })
+      if (r.status === 403) { setPreguntasBloqueadas(true); return }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        setErrorPregunta(String(d?.error || 'No pudimos enviar tu pregunta. Intenta de nuevo.'))
+        return
+      }
+      const d = await r.json()
+      setPreguntas(p => [
+        {
+          id: String(d.id ?? ''),
+          texto,
+          respuesta: String(d.texto ?? ''),
+          clase: String(d.clase ?? ''),
+          procedencia: d.procedencia ?? null,
+          escalada: Boolean(d.escalada),
+          atendidaEn: null,
+          creadaEn: Date.now(),
+        },
+        ...(p ?? []),
+      ])
+      setBorrador('')
+    } catch {
+      setErrorPregunta('Sin conexión. Tu pregunta no se envió; vuelve a intentarlo.')
+    } finally {
+      setEnviandoPregunta(false)
+    }
+  }, [borrador, enviandoPregunta, token])
+
   // Título de pestaña con la marca de la clínica (confianza)
   useEffect(() => {
     const nombre = sesion?.clinica?.nombre
@@ -245,16 +359,16 @@ export default function MiPortalPage() {
   }, [sesion?.clinica?.nombre])
 
   const accionCita = async (action: string, citaId: string, extra: Record<string, unknown> = {}) => {
-    setAccion(citaId + action)
+    setAccion(citaId + action); setAvisoAccion('')
     try {
       const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, token, citaId, ...extra }) })
       const data = await r.json().catch(() => ({}))
-      if (!r.ok) { alert(data.error || 'No se pudo completar la acción.'); return false }
+      if (!r.ok) { setAvisoAccion(data.error || 'No se pudo completar la acción. Tu cita sigue como estaba.'); return false }
       await cargar()
       setReagendando('')
       return true
     } catch {
-      alert('Sin conexión. Intenta de nuevo.')
+      setAvisoAccion('Sin conexión. Tu cita sigue como estaba: vuelve a intentarlo.')
       return false
     } finally {
       setAccion('')
@@ -304,7 +418,7 @@ export default function MiPortalPage() {
      * descargaba nada y el paciente no veía ningún error.
      */
     const fechaDoc = fechaFlexible(doc.fecha, tzClinica)
-    if (!fechaDoc) { alert('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
+    if (!fechaDoc) { setAvisoAccion('Esta receta no tiene una fecha válida. Pídesela al consultorio.'); return }
     /**
      * LA RECETA DEL PACIENTE DICE QUIÉN LA PRESCRIBIÓ — H-01.
      *
@@ -315,7 +429,7 @@ export default function MiPortalPage() {
      * configuración viva del consultorio, que cambiaría el autor de una receta
      * vieja al actualizar el perfil.
      */
-    descargarRecetaWord(
+    void descargarRecetaWord(
       {
         tipo: 'receta',
         folio: `RX-${doc.id.slice(-7).toUpperCase()}`,
@@ -369,12 +483,37 @@ export default function MiPortalPage() {
         pantalla no tiene a dónde saltar.
       */}
       <main style={{ maxWidth: 560, margin: '0 auto' }}>
-        {/* Encabezado */}
-        <div style={{ marginBottom: 24 }}>
+        {/*
+          EL ENCABEZADO DICE DÓNDE ESTÁS.
+
+          El subtítulo era fijo —«Aquí puedes gestionar tus citas.»— y se pintaba
+          en los CINCO destinos: medido, las veinte combinaciones de ancho y tema.
+          Encima del plan de cuidado, encima de las recetas y encima del aviso de
+          urgencia, la única línea que orienta nombraba otra pantalla.
+        */}
+        <div style={{ marginBottom: 20 }}>
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
           <h1 className="t-display" style={{ marginTop: 4 }}>Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}</h1>
-          <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>Aquí puedes gestionar tus citas.</p>
+          <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 4 }}>
+            {DESTINOS.find(d => d.id === destino)?.pista}
+          </p>
         </div>
+
+        {/*
+          LA VÍA DE URGENCIA, ANTES QUE NADA Y EN TODOS LOS DESTINOS.
+          §6 de `patient-facing-ai.md`. Estaba en el tercer párrafo de una sola
+          pestaña, en la letra más pequeña del portal, y el número no se podía
+          marcar. Ver `src/components/portal/ViaDeUrgencia.tsx`.
+        */}
+        <ViaDeUrgencia telefonoConsultorio={sesion.clinica?.telefono} />
+
+        {avisoAccion && (
+          <div role="alert" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', border: '1px solid color-mix(in srgb, var(--red) 42%, transparent)', background: 'color-mix(in srgb, var(--red) var(--tinte), var(--s1))', borderRadius: 'var(--r-lg)', padding: 14, marginBottom: 20 }}>
+            <AlertTriangle size={17} aria-hidden="true" style={{ color: 'var(--red-texto)', flexShrink: 0, marginTop: 1 }} />
+            <p style={{ margin: 0, flex: 1, fontSize: 14, color: 'var(--text2)', lineHeight: 1.55 }}>{avisoAccion}</p>
+            <button type="button" onClick={() => setAvisoAccion('')} className="btn btn-ghost btn-sm">Entendido</button>
+          </div>
+        )}
 
         {destino === 'hoy' && (<>
         {/* Próximas citas */}
@@ -446,13 +585,49 @@ export default function MiPortalPage() {
                     <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
                       <CalendarClock size={14} /> Reagendar
                     </button>
-                    <button onClick={() => { if (confirm('¿Cancelar esta cita?')) accionCita('cancelar', c.id) }} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }}>
-                      {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Cancelar
+                    <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
+                      <XCircle size={14} aria-hidden="true" /> Cancelar
                     </button>
                     <a href={gcalLink(c, tzClinica)} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ marginLeft: 'auto' }}>
                       <CalendarPlus size={14} /> Agendar
                     </a>
                   </div>
+                  {/*
+                    CANCELAR UNA CITA MÉDICA NO SE PREGUNTA CON UN `confirm()`.
+
+                    Comprobado disparándolo en el navegador: salía el diálogo
+                    NATIVO «¿Cancelar esta cita?». Ese cuadro no se puede
+                    rotular, ni traducir, ni leer con el resto de la pantalla, y
+                    sus dos botones dicen «Aceptar» y «Cancelar» — donde
+                    «Cancelar» significa *no cancelar*. En la pantalla del
+                    paciente, la palabra del botón contradice la acción.
+
+                    Y no decía **nada de lo que importa**: que hay una ventana de
+                    aviso del consultorio, y que reagendar es una alternativa que
+                    ya está ahí al lado. Se dice antes, no después.
+                  */}
+                  {cancelando === c.id && (
+                    <div role="group" aria-label="Confirmar la cancelación" style={{ marginTop: 14, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--red) 34%, transparent)' }}>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>¿Cancelar esta cita?</p>
+                      <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                        {sesion.minHoras > 0
+                          ? `Tu consultorio pide avisar con al menos ${sesion.minHoras} horas de anticipación. `
+                          : ''}
+                        Si sólo te queda mal la hora, puedes reagendarla sin perderla.
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                        <button onClick={() => accionCita('cancelar', c.id).then(ok => { if (ok) setCancelando('') })} disabled={!!accion} aria-busy={accion === c.id + 'cancelar'} className="btn btn-sm nx-acc-destructiva" style={{ color: 'var(--sobre-aviso)' }}>
+                          {accion === c.id + 'cancelar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <XCircle size={14} aria-hidden="true" />} Sí, cancelar
+                        </button>
+                        <button onClick={() => { setCancelando(''); setReagendando(c.id) }} disabled={!!accion} className="btn btn-secondary btn-sm">
+                          <CalendarClock size={14} aria-hidden="true" /> Mejor reagendar
+                        </button>
+                        <button onClick={() => setCancelando('')} disabled={!!accion} className="btn btn-ghost btn-sm">
+                          Dejarla como está
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {reagendando === c.id && <PanelReagenda cita={c} token={token} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
               )}
@@ -519,36 +694,171 @@ export default function MiPortalPage() {
         </>)}
         {destino === 'preguntar' && (<>
           {/*
-            ASK NEXUS TODAVÍA NO RESPONDE, Y ESO ES LO CORRECTO HOY.
+            ASK NEXUS — V9 · PATIENT-AI-001.
 
-            La especificación es explícita en que esto NO es un chatbot médico
-            genérico, sino «inteligencia acotada al plan de cuidado»: cada
-            respuesta clasificada, y todo dato específico del paciente sostenido
-            en material que su médico aprobó. Eso llega en PATIENT-AI-001.
+            Esto NO es un chatbot médico. Lo que contesta sale, LITERALMENTE, de
+            lo que su médico liberó: la pantalla manda el texto y pinta lo que el
+            servidor decidió. Aquí no se clasifica nada — si la prohibición
+            viviera en el cliente, bastaría con abrir la consola para saltarla
+            (§3 de `patient-facing-ai.md`: «la prohibición vive en el servidor»).
 
-            Mientras tanto **la escalación es el producto, no el fallo** (§3 de
-            la regla de IA de cara al paciente). Poner aquí un cuadro de texto
-            que conteste «lo que sea» sería justo lo que la regla prohíbe, y se
-            lo diría a alguien que no puede detectar el error.
+            Y cuando no hay respuesta sostenida en material aprobado, **se
+            escala**: la escalación es el producto, no el fallo.
           */}
           <h2 className="t-h2" style={{ marginBottom: 12 }}>Preguntar</h2>
+
+          {preguntasBloqueadas ? (
+            <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 12 }}>
+              <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+                Este enlace no tiene permiso para preguntar. Pídele a tu médico
+                que te mande uno nuevo desde su sesión.
+              </p>
+            </div>
+          ) : (
+            <div style={{ padding: 16, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)', marginBottom: 12 }}>
+              {/*
+                ETIQUETA DE VERDAD, no un `placeholder`. Un campo cuyo único
+                rótulo es el texto de ejemplo se queda mudo para un lector de
+                pantalla en cuanto el paciente escribe la primera letra.
+              */}
+              <label htmlFor={idPregunta} style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+                ¿Qué quieres preguntar sobre tu tratamiento?
+              </label>
+              <textarea
+                id={idPregunta}
+                value={borrador}
+                onChange={e => setBorrador(e.target.value.slice(0, 300))}
+                rows={3}
+                maxLength={300}
+                placeholder="Por ejemplo: ¿cada cuándo tomo la pastilla que me recetó?"
+                style={{
+                  width: '100%', padding: 12, fontSize: 16, lineHeight: 1.5,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                  background: 'var(--bg)', color: 'var(--text)', resize: 'vertical',
+                }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
+                <button
+                  type="button"
+                  onClick={enviarPregunta}
+                  disabled={!borrador.trim() || enviandoPregunta}
+                  /* `aria-busy` y no sólo `disabled`: con la ruedecita girando, un
+                     lector de pantalla que sólo ve `disabled` anuncia «no
+                     disponible» — que se entiende como «esto no se puede usar»,
+                     no como «está trabajando». */
+                  aria-busy={enviandoPregunta}
+                  className="btn btn-primary"
+                  /* 44×44 es el mínimo táctil de la compuerta de accesibilidad. */
+                  style={{ minHeight: 44, minWidth: 44, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  {enviandoPregunta
+                    ? <><Loader2 size={16} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> Enviando…</>
+                    : <><Send size={16} aria-hidden="true" /> Enviar</>}
+                </button>
+              </div>
+              {errorPregunta && (
+                /* El fallo se escribe en la pantalla, no en un `alert()` que se
+                   cierra sin dejar rastro. */
+                <p role="alert" style={{ fontSize: 14, color: 'var(--red-texto)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                  {errorPregunta}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/*
+            LO QUE YA PREGUNTÓ, con su respuesta congelada. `null` es «todavía no
+            se sabe»: no se pinta un historial vacío, que se leería como «nunca
+            he preguntado».
+          */}
+          {preguntas && preguntas.length > 0 && (
+            <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
+              {preguntas.map(p => {
+                const urgente = p.clase === 'URGENT_REVIEW_REQUIRED'
+                return (
+                  <div
+                    key={p.id || String(p.creadaEn)}
+                    style={{
+                      padding: 14,
+                      border: `1px solid ${urgente ? 'color-mix(in srgb, var(--red) 42%, transparent)' : 'var(--border)'}`,
+                      borderRadius: 'var(--r-lg)',
+                      background: 'var(--s1)',
+                    }}
+                  >
+                    {/*
+                      EL AVISO URGENTE VA EN LA PRIMERA LÍNEA (§6).
+                      «Un aviso urgente que llega en el tercer párrafo no llegó.»
+                      Y no se representa SÓLO con el color: lleva icono y palabra,
+                      porque el riesgo clínico nunca se pinta sólo con color.
+                    */}
+                    {urgente && (
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: 'var(--red-texto)' }}>
+                        <AlertTriangle size={16} aria-hidden="true" /> Esto puede ser una urgencia
+                      </p>
+                    )}
+                    <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 6px', lineHeight: 1.5 }}>
+                      Preguntaste: «{p.texto}»
+                    </p>
+                    <p style={{ fontSize: 16, color: 'var(--text)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {p.respuesta}
+                    </p>
+                    {/*
+                      PROCEDENCIA — el principio del sistema de diseño, aquí.
+                      Sin esto, una cita textual del plan de su médico y una
+                      frase compuesta por una máquina se leen exactamente igual.
+                    */}
+                    {p.procedencia?.fechaConsulta && (
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                        <Quote size={12} aria-hidden="true" />
+                        Esto lo dejó escrito tu médico en tu consulta del {p.procedencia.fechaConsulta}
+                      </p>
+                    )}
+                    {p.escalada && (
+                      <p style={{ fontSize: 12, color: 'var(--text3)', margin: '10px 0 0' }}>
+                        {p.atendidaEn ? 'Tu consultorio ya la revisó.' : 'Tu consultorio la tiene pendiente de revisar.'}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
             <p style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
-              Si tienes una duda sobre tu tratamiento, escríbele a tu consultorio.
-              Quien te responde es el equipo de tu médico.
+              Hay preguntas que sólo puede contestar tu médico. Cuando sea una de
+              ésas, aquí te lo digo y tu consultorio la recibe — pero si es algo
+              que no puede esperar, llámales.
             </p>
-            {sesion.clinica?.telefono && (
+            {/*
+              ESTE DESTINO NO PUEDE QUEDARSE SIN NINGUNA ACCIÓN.
+
+              Medido en el navegador: con el consultorio sin teléfono en su
+              configuración, «Preguntar» pintaba **cero botones y cero enlaces**.
+              Una pantalla que existe para llevarte con tu médico, diciéndote que
+              hables con él y sin decir cómo — y sin decir tampoco que no lo sabe.
+              El silencio se lee como «ya lo intenté».
+            */}
+            {sesion.clinica?.telefono ? (
               <a href={`tel:${sesion.clinica.telefono}`} className="btn btn-primary btn-sm"
                  style={{ display: 'inline-flex', marginTop: 14 }}>
-                Llamar al consultorio
+                <Phone size={14} aria-hidden="true" /> Llamar al consultorio
               </a>
+            ) : (
+              <p style={{ fontSize: 14, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                Tu consultorio no dejó aquí un teléfono. Usa el número por el que
+                agendaste tu cita, o pídeselo cuando vayas.
+              </p>
             )}
-            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 14, marginBottom: 0 }}>
-              Si es una urgencia —dolor en el pecho, dificultad para respirar,
-              síntomas neurológicos— no esperes respuesta por aquí: acude a
-              urgencias o llama al 911.
-            </p>
           </div>
+          {/*
+            Y desde aquí también se llega a lo que tu médico ya te dejó escrito:
+            era la única pantalla del portal sin salida hacia otra.
+          */}
+          <button type="button" onClick={() => setDestino('cuidado')} className="btn btn-ghost btn-sm" style={{ marginTop: 12 }}>
+            <HeartPulse size={14} aria-hidden="true" /> Ver lo que me dejó mi médico
+          </button>
         </>)}
         {destino === 'cuidado' && (<>
           {/*
@@ -801,12 +1111,13 @@ export default function MiPortalPage() {
         cinco es el techo, no el objetivo. Van fijos abajo porque esta pantalla
         se usa con una mano, de pie, en la sala de espera.
       */}
-      <nav aria-label="Secciones" className="mi-barra-destinos" style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20,
-        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
-        background: 'var(--s1)', borderTop: '1px solid var(--border)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}>
+      {/*
+        La colocación vive en la hoja, no aquí: un estilo en línea gana a
+        cualquier media query, así que con esto puesto en el `style` la barra NO
+        PODÍA tener dos formas. Es la razón mecánica de que fuera la misma
+        pantalla estirada. Ver `.mi-barra-destinos` en globals.css.
+      */}
+      <nav aria-label="Secciones" className="mi-barra-destinos">
         {DESTINOS.map(d => {
           const activo = destino === d.id
           return (
