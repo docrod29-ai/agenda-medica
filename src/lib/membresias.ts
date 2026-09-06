@@ -70,6 +70,15 @@ export interface Membresia {
   ultimoCobroEn?: string
   creadoPor: string
   createdAt?: string
+  /**
+   * ASC-018: el ciclo se avanzó, el cobro falló y la compensación también.
+   * La cuota está «adelantada sin cobro» y alguien del consultorio tiene que
+   * verlo — antes sólo lo decía la consola del navegador.
+   */
+  cicloAdelantadoSinCobro?: boolean
+  /** La fecha de cobro que tenía antes del avance fallido. */
+  cicloAdelantadoDesde?: string
+  cicloAdelantadoEn?: string
 }
 
 const PLANES_COL = (c: string) => collection(db, 'clinics', c, 'membership_plans')
@@ -175,12 +184,50 @@ export async function cobrarMembresia(
       medicoId: opts.medicoId,
       medicoNombre: opts.medicoNombre,
       creadoPor: opts.creadoPor,
+    }, {
+      // La huella anti-duplicado (RT-005) pregunta cuando ve dos cobros iguales
+      // el mismo día; aquí el candado es el ciclo (arriba), que ya demostró que
+      // esta cuota es distinta de cualquier otra. No hay nada que preguntar.
+      esOtroDistinto: true,
     })
   } catch (e) {
+    /**
+     * ASC-018: SI LA COMPENSACIÓN TAMBIÉN FALLA, QUE SE VEA.
+     *
+     * El ciclo se avanzó primero (el candado) y el cobro falló; se intenta
+     * deshacer el avance. Si ESO también falla —dos fallos de red seguidos—,
+     * la cuota queda «adelantada sin cobro» y el único rastro era un
+     * `console.error` que nadie del consultorio lee. Ahora se marca la
+     * membresía (`cicloAdelantadoSinCobro`) para que el worklist la enseñe
+     * y alguien la resuelva; y si ni la marca se puede escribir, queda el
+     * error en consola como antes.
+     */
     await updateDoc(ref, { proximoCobro: m.proximoCobro ?? base, ultimoCobroEn: m.ultimoCobroEn ?? '' })
-      .catch(() => console.error('[membresias] el ciclo quedó adelantado SIN cobro; membresía', m.id))
+      .catch(async () => {
+        console.error('[membresias] el ciclo quedó adelantado SIN cobro; membresía', m.id)
+        await updateDoc(ref, {
+          cicloAdelantadoSinCobro: true,
+          cicloAdelantadoDesde: m.proximoCobro ?? base,
+          cicloAdelantadoEn: new Date().toISOString(),
+        }).catch(() => { /* ya quedó el error en consola */ })
+      })
     throw e
   }
+}
+
+/**
+ * Resolver a mano una cuota que quedó adelantada sin cobro (ASC-018): se
+ * regresa el ciclo a la fecha que tenía y se quita la marca. Quien lo hace
+ * decide si la cuota se cobra después o no; esto sólo deshace el avance.
+ */
+export async function regresarCicloAdelantado(clinicId: string, m: Membresia): Promise<void> {
+  const ref = doc(MEMB_COL(clinicId), m.id!)
+  await updateDoc(ref, {
+    proximoCobro: m.cicloAdelantadoDesde || m.proximoCobro,
+    cicloAdelantadoSinCobro: false,
+    cicloAdelantadoDesde: '',
+    cicloAdelantadoEn: '',
+  })
 }
 
 // ── Puro: ¿a quién le toca cobrar? (para el worklist) ───────────────────────

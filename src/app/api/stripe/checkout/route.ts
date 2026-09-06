@@ -15,6 +15,16 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
 import { planSeVende, loQueFrena, productoDe } from '@/lib/finanzas/estado-producto'
 import { decidirPrueba } from '@/lib/finanzas/prueba-gratis'
+import { STRIPE_PRICES, STRIPE_PRICES_ANUAL } from '@/lib/stripe'
+import { elegirItemDelPlan, decidirCambioDePlan } from '@/lib/finanzas/cambio-de-plan'
+
+/** price id → plan, mensuales y anuales: la única comparación exacta que hay. */
+function preciosConocidos(): Record<string, PlanKey> {
+  const m: Record<string, PlanKey> = {}
+  for (const [plan, id] of Object.entries(STRIPE_PRICES)) if (id) m[id] = plan as PlanKey
+  for (const [plan, id] of Object.entries(STRIPE_PRICES_ANUAL)) if (id) m[id] = plan as PlanKey
+  return m
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -77,6 +87,66 @@ export async function POST(req: NextRequest) {
     }
 
     const clinicData = clinicSnap.data()!
+
+    /**
+     * ═══ CAMBIAR DE PLAN CON SUSCRIPCIÓN VIVA = ACTUALIZAR EN SITIO ═══
+     * N-001 (Panel de Lujo 2026-09, P0). Ver `lib/finanzas/cambio-de-plan`.
+     *
+     * Aquí siempre se abría un Checkout NUEVO, que cobraba el plan entero; el
+     * webhook cancelaba después la suscripción anterior sin abono. Con una
+     * suscripción viva, el cambio correcto es `subscriptions.update` del ítem
+     * del plan con `proration_behavior: 'create_prorations'`: Stripe acredita
+     * lo no consumido y cobra sólo la diferencia. El Checkout queda para el
+     * alta (sin suscripción, o con una que ya no está viva).
+     */
+    const subActual = String(clinicData.stripeSubscriptionId ?? '')
+    if (subActual) {
+      try {
+        const sub = await stripe.subscriptions.retrieve(subActual)
+        const itemPlan = elegirItemDelPlan(
+          sub.items.data.map(i => ({ id: i.id, priceId: i.price?.id, quantity: i.quantity, nickname: i.price?.nickname })),
+          preciosConocidos(),
+        )
+        const decision = decidirCambioDePlan({ status: sub.status, itemPlan, priceNuevo: priceId })
+        safeLog.info(`[Stripe Checkout] cambio de plan para ${clinicId}: ${decision.que} — ${decision.porQue}`)
+        if (decision.que === 'sin-cambio') {
+          return NextResponse.json({
+            url: `${APP_URL}/dashboard?checkout=success&plan=${plan}`,
+            sinCambio: true,
+            mensaje: 'Ya tienes ese plan con ese ciclo: no hay nada que cobrar.',
+          })
+        }
+        if (decision.que === 'actualizar') {
+          await stripe.subscriptions.update(subActual, {
+            items: [{ id: decision.itemId, price: priceId }],
+            proration_behavior: 'create_prorations',
+            metadata: { ...(sub.metadata ?? {}), clinicId, plan, ciclo: cicloEfectivo },
+          })
+          // Constancia en la clínica: qué se pidió y cómo se compensa lo pagado.
+          await clinicRef.update({
+            cambioDePlan: {
+              en: new Date().toISOString(),
+              suscripcionNueva: subActual,
+              suscripcionesCanceladas: [],
+              creditoPorProrrateo: 'Se actualizó la suscripción en sitio con proration_behavior=create_prorations: Stripe acredita el tiempo no consumido del plan anterior y cobra sólo la diferencia.',
+              de: { plan: clinicData.plan ?? '', ciclo: clinicData.ciclo ?? '' },
+              a: { plan, ciclo: cicloEfectivo },
+            },
+          })
+          return NextResponse.json({
+            url: `${APP_URL}/dashboard?checkout=success&plan=${plan}`,
+            cambioEnSitio: true,
+            mensaje: 'Tu plan se cambió sobre la suscripción que ya tienes: lo que pagaste y no usaste se acredita y sólo se cobra la diferencia.',
+          })
+        }
+        // 'alta-nueva': la suscripción guardada ya no está viva; se sigue al Checkout.
+      } catch (e) {
+        // Si Stripe no reconoce la suscripción guardada, no se bloquea el alta:
+        // se abre el Checkout como siempre y el webhook compensa con prorrateo.
+        safeLog.warn('[Stripe Checkout] no se pudo actualizar en sitio; se abre alta nueva', String(e))
+      }
+    }
+
     let stripeCustomerId: string = clinicData.stripeCustomerId ?? ''
 
     if (!stripeCustomerId) {

@@ -20,6 +20,8 @@ import { MODULOS_DE_PLAN } from '@/lib/modulos'
 import type { PlanKey } from '@/lib/stripe'
 import type { EstadoDisputa } from '@/lib/finanzas/movimientos'
 import { fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
+import { TEXTO_CREDITO_POR_PRORRATEO, type ConstanciaDeCambioDePlan } from '@/lib/finanzas/cambio-de-plan'
+import { decidirReembolsoDelAnticipo } from '@/lib/finanzas/reembolso-del-anticipo'
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? ''
 
@@ -205,16 +207,45 @@ async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string
 /**
  * Evita EMPALME de suscripciones: cancela cualquier OTRA suscripción activa del
  * mismo cliente, dejando solo la nueva. Así cambiar de plan no acumula cobros.
+ *
+ * ── N-001 (Panel de Lujo 2026-09, P0): CON PRORRATEO Y CON CONSTANCIA ────────
+ *
+ * Aquí se hacía `stripe.subscriptions.cancel(s.id)` a secas. Un consultorio en
+ * plan ANUAL, pagado entero en enero, que en marzo cambiaba de plan perdía los
+ * diez meses que ya había pagado, y en ninguna parte quedaba escrito. Ahora:
+ *
+ *   · `prorate: true` — Stripe genera el abono por el tiempo no consumido;
+ *   · `invoice_now: true` — lo factura ya, así que el crédito queda en la
+ *     cuenta del cliente y se descuenta de los siguientes cobros;
+ *   · y se escribe `cambioDePlan` en `clinics/{id}` para poder explicarlo.
+ *
+ * El camino PRINCIPAL del cambio de plan ya no pasa por aquí: `/api/stripe/
+ * checkout` actualiza la suscripción viva en sitio con `proration_behavior`.
+ * Esto queda para el empalme que aun así pueda darse (portal de Stripe,
+ * carrera), y por eso también debe compensar bien.
  */
-async function cancelarOtrasSuscripciones(customerId: string, conservarSubId: string) {
+async function cancelarOtrasSuscripciones(customerId: string, conservarSubId: string, clinicId: string) {
   try {
     const subs = await stripe.subscriptions.list({ customer: customerId, status: 'active', limit: 20 })
     const trials = await stripe.subscriptions.list({ customer: customerId, status: 'trialing', limit: 20 })
     const todas = [...subs.data, ...trials.data]
+    const canceladas: ConstanciaDeCambioDePlan['suscripcionesCanceladas'] = []
     for (const s of todas) {
       if (s.id !== conservarSubId) {
-        await stripe.subscriptions.cancel(s.id).catch(() => { /* ya cancelada / carrera */ })
+        const r = await stripe.subscriptions
+          .cancel(s.id, { prorate: true, invoice_now: true })
+          .catch(() => null /* ya cancelada / carrera */)
+        canceladas.push({ id: s.id, prorrateo: r ? 'stripe' : 'no-confirmado' })
       }
+    }
+    if (canceladas.length) {
+      const constancia: ConstanciaDeCambioDePlan = {
+        en: new Date().toISOString(),
+        suscripcionNueva: conservarSubId,
+        suscripcionesCanceladas: canceladas,
+        creditoPorProrrateo: TEXTO_CREDITO_POR_PRORRATEO,
+      }
+      await updateClinic(clinicId, { cambioDePlan: constancia })
     }
   } catch { /* no-bloqueante: si falla, no rompe la activación */ }
 }
@@ -241,6 +272,108 @@ async function marcarPruebaEstrenada(clinicId: string, subId: string) {
     const inicio = sub.trial_start ? new Date(sub.trial_start * 1000) : new Date()
     await ref.update({ pruebaEstrenadaEn: inicio.toISOString() })
   } catch { /* no-bloqueante: la comprobación en Stripe sigue siendo la principal */ }
+}
+
+/** Zona horaria publicada del consultorio, con la constante como último recurso. */
+async function zonaDeLaClinica(clinicId: string): Promise<string> {
+  try {
+    const c = await adminDb.collection('clinics').doc(clinicId).get()
+    const z = (c.data() as Record<string, unknown> | undefined)?.zonaHoraria
+    return typeof z === 'string' && z ? z : TZ_DEFAULT
+  } catch { return TZ_DEFAULT }
+}
+
+/**
+ * Asienta en `clinics/{id}/cobros` la devolución de un anticipo de paciente.
+ *
+ * Primero se busca el cobro original por el PaymentIntent que el cargo trae
+ * consigo (nuestros asientos, gratis); si no está, se le pregunta a Stripe por
+ * la sesión de Checkout de ese PaymentIntent, cuyo id nombra al cobro
+ * (`stripe_<session>`). Si tampoco, el REFUND queda en el libro del consultorio
+ * marcado como huérfano: visible, no perdido.
+ */
+async function asentarReembolsoDelAnticipo(
+  charge: import('stripe').Stripe.Charge,
+  d: Extract<ReturnType<typeof decidirReembolsoDelAnticipo>, { esAnticipo: true }>,
+  event: import('stripe').Stripe.Event,
+) {
+  const cobrosRef = adminDb.collection('clinics').doc(d.clinicId).collection('cobros')
+  const paymentIntentId = typeof charge.payment_intent === 'string'
+    ? charge.payment_intent
+    : (charge.payment_intent?.id ?? '')
+
+  // 1. Nuestros asientos.
+  let original: { id: string; data: Record<string, unknown> } | null = null
+  if (paymentIntentId) {
+    try {
+      const q = await cobrosRef.where('stripePaymentIntentId', '==', paymentIntentId).limit(1).get()
+      if (!q.empty) original = { id: q.docs[0].id, data: q.docs[0].data() as Record<string, unknown> }
+    } catch { /* se intenta con Stripe */ }
+  }
+  // 2. Stripe: la sesión de Checkout de ese PaymentIntent nombra al cobro.
+  if (!original && paymentIntentId) {
+    try {
+      const sesiones = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 })
+      const sesion = sesiones.data?.[0]
+      if (sesion?.id) {
+        const snap = await cobrosRef.doc(`stripe_${sesion.id}`).get()
+        if (snap.exists) original = { id: snap.id, data: snap.data() as Record<string, unknown> }
+      }
+    } catch (e) {
+      safeLog.warn('[stripe] no se pudo resolver el cobro original del reembolso:', String(e))
+    }
+  }
+
+  const ahora = new Date()
+  const iso = ahora.toISOString()
+  const tz = await zonaDeLaClinica(d.clinicId)
+  const fechaDevolucion = new Date(
+    (charge.refunds?.data?.reduce((max, r) => Math.max(max, r.created ?? 0), 0) || event.created || Math.floor(Date.now() / 1000)) * 1000,
+  )
+  const dia = fechaISOLocal(fechaDevolucion, tz)
+  const o = original?.data ?? {}
+  const refundRef = cobrosRef.doc(`refund_${charge.id}`)
+  // Un documento por cargo con el ACUMULADO: idempotente ante reintentos y
+  // ante devoluciones parciales sucesivas (misma razón que en platform_payments).
+  await refundRef.set({
+    tipo: 'REFUND',
+    cobroOriginalId: original?.id ?? '',
+    huerfano: !original,
+    monto: d.monto,
+    metodo: 'stripe',
+    concepto: 'reembolso',
+    descripcion: d.total ? 'Reembolso total en Stripe del anticipo en línea' : 'Reembolso parcial en Stripe del anticipo en línea',
+    citaId: d.citaId || (o.citaId as string) || '',
+    ...(o.patientId ? { patientId: o.patientId } : {}),
+    ...(o.patientNombre ? { patientNombre: o.patientNombre } : {}),
+    ...(o.medicoId ? { medicoId: o.medicoId } : {}),
+    ...(o.medicoNombre ? { medicoNombre: o.medicoNombre } : {}),
+    fecha: fechaDevolucion.toISOString(), dia, mes: dia.slice(0, 7),
+    folio: `RB-${charge.id.slice(-7).toUpperCase()}`,
+    referenciaExterna: charge.id,
+    stripePaymentIntentId: paymentIntentId,
+    reembolsoTotal: d.total,
+    livemode: event.livemode === true,
+    createdAt: iso, creadoPor: 'stripe:reembolso', cancelado: false,
+  }, { merge: true })
+
+  /**
+   * DEVOLUCIÓN TOTAL → LA CITA SE LIBERA, si este cobro era el que la tenía
+   * tomada. Con `cobroId` puesto, el botón «Cobrar» sigue oculto y la cita
+   * fuera de «por cobrar» aunque el dinero ya se devolvió.
+   */
+  const citaId = d.citaId || (o.citaId as string) || ''
+  if (d.total && original && citaId) {
+    try {
+      const citaRef = adminDb.collection('clinics').doc(d.clinicId).collection('appointments').doc(citaId)
+      const cita = (await citaRef.get()).data() as Record<string, unknown> | undefined
+      if (cita && cita.cobroId === original.id) {
+        await citaRef.update({ cobroId: '', cobradoEn: '', reembolsadoEn: iso, reembolsoCobroId: refundRef.id, updatedAt: iso })
+      }
+    } catch (e) {
+      safeLog.warn('[stripe] reembolso asentado, pero la cita no se pudo liberar:', String(e))
+    }
+  }
 }
 
 /* ── Route handler ─────────────────────────────────────────── */
@@ -366,13 +499,7 @@ export async function POST(req: NextRequest) {
            * de caja y quedó vivo en el lado que ESCRIBE — la misma forma de
            * REG-267.
            */
-          const tzClinica = await (async () => {
-            try {
-              const c = await adminDb.collection('clinics').doc(clinicId).get()
-              const z = (c.data() as Record<string, unknown> | undefined)?.zonaHoraria
-              return typeof z === 'string' && z ? z : TZ_DEFAULT
-            } catch { return TZ_DEFAULT }
-          })()
+          const tzClinica = await zonaDeLaClinica(clinicId)
           const dia = fechaISOLocal(ahora, tzClinica)
           const monto = (session.amount_total ?? 0) / 100
           const citaRef = citaId ? adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId) : null
@@ -440,6 +567,10 @@ export async function POST(req: NextRequest) {
             medicoNombre: (cita?.medicoNombre as string) || undefined,
             folio: `CB-${session.id.slice(-7).toUpperCase()}`,
             referenciaExterna: session.id,
+            // El PaymentIntent es el hilo que un `charge.refunded` trae consigo:
+            // con él se encuentra ESTE cobro sin adivinar (ASC-005).
+            stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : (session.payment_intent?.id ?? ''),
+            tipo: 'PAYMENT',
             createdAt: iso, creadoPor: 'stripe:anticipo', cancelado: false,
           }
           try {
@@ -511,7 +642,7 @@ export async function POST(req: NextRequest) {
         if (nuevaSubId) await marcarPruebaEstrenada(clinicId, nuevaSubId)
         // Evita empalme: cancela cualquier otra suscripción activa del cliente.
         if (session.customer && nuevaSubId) {
-          await cancelarOtrasSuscripciones(String(session.customer), nuevaSubId)
+          await cancelarOtrasSuscripciones(String(session.customer), nuevaSubId, clinicId)
         }
         break
       }
@@ -676,6 +807,21 @@ export async function POST(req: NextRequest) {
        */
       case 'charge.refunded': {
         const charge = event.data.object as import('stripe').Stripe.Charge
+        /**
+         * ASC-005: si el cargo es un ANTICIPO DE PACIENTE, su devolución va al
+         * libro del CONSULTORIO (`clinics/{id}/cobros`, tipo REFUND con traza),
+         * no al de la plataforma. Ver `lib/finanzas/reembolso-del-anticipo`.
+         */
+        const anticipo = decidirReembolsoDelAnticipo({
+          metadata: charge.metadata as Record<string, string | undefined>,
+          amountRefunded: charge.amount_refunded,
+          amount: charge.amount,
+          refunded: charge.refunded,
+        })
+        if (anticipo.esAnticipo) {
+          await asentarReembolsoDelAnticipo(charge, anticipo, event)
+          break
+        }
         const clinicId = await getClinicIdByCustomer(String(charge.customer ?? ''))
         /**
          * UN DOCUMENTO POR CARGO, con el total ACUMULADO — no uno por evento.
