@@ -47,6 +47,7 @@ import {
   avisosDeCaptura, leerCifraTecleada, pareceLibras, pareceKilos,
   SIN_RANGO_DECLARADO, POR_QUE_LA_FC_NO_SE_VIGILA, type UnidadDePeso,
 } from './signos-que-se-capturan'
+import { comprobarCitasDelAnalisis } from './citas-del-analisis'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useAvisoAlSalirGrabando } from '@/hooks/useAvisoAlSalirGrabando'
 import { usePorcupineComando, type PicovoiceConfig } from '@/hooks/usePorcupineComando'
@@ -2446,6 +2447,25 @@ export default function ConsultaActivaPage() {
       if (!d.texto.trim()) { toast(d.error || 'No se pudo generar el análisis', 'error'); return }
       let texto = limpiarMarkdown(d.texto)
       const articulos = (d.meta?.articulos ?? []) as { titulo: string; revista: string; anio: string; pmid: string }[]
+      /**
+       * ── LA CITA SE COMPRUEBA ANTES DE ENTRAR A LA NOTA (RT-004) ───────────
+       *
+       * Este bloque pegaba el texto del modelo con un bloque «Referencias:» de
+       * PMIDs reales debajo, y en el camino NADIE comprobaba los `[n]`: un
+       * «[4]» con dos fuentes entraba literal a una nota que se firma y que es
+       * inmutable. `limpiarMarkdown` no lo toca (sólo colapsa enlaces), y la
+       * comprobación determinista existía... como función local de OTRA
+       * pantalla (`/consultor`), así que el segundo consumidor de la misma ruta
+       * —el que escribe en el expediente— nació sin ella.
+       *
+       * Se MARCA, no se borra: una afirmación sin respaldo puede seguir siendo
+       * buen razonamiento clínico, pero no puede seguir pareciendo respaldada
+       * (`verificar-la-cita.ts`). Y si PubMed no contestó, la sección lo dice en
+       * su primera línea, que es lo que queda en el papel.
+       */
+      const comprobacion = comprobarCitasDelAnalisis(texto, articulos.length)
+      texto = comprobacion.texto
+      const citasSinFuente = comprobacion.fueraDeRango.length > 0 || comprobacion.sinFuentes
       if (articulos.length > 0) {
         texto += '\n\nReferencias:\n' + articulos.map((a, i) =>
           `[${i + 1}] ${a.titulo}. ${a.revista} ${a.anio}. PMID ${a.pmid}`).join('\n')
@@ -2454,7 +2474,12 @@ export default function ConsultaActivaPage() {
         const sin = prev.filter(s => s.key !== 'analisis_evidencia')
         return [...sin, { key: 'analisis_evidencia', label: 'Análisis basado en evidencia', value: texto }]
       })
-      toast('Análisis de evidencia agregado a la nota ✓', 'success')
+      toast(
+        citasSinFuente
+          ? 'Análisis agregado — hay citas sin fuente, marcadas en la nota. Revísalas antes de firmar.'
+          : 'Análisis de evidencia agregado a la nota ✓',
+        citasSinFuente ? 'info' : 'success',
+      )
     } catch { toast('Sin conexión', 'error') }
     finally { setGenerandoAnalisis(false) }
   }, [diagnosticos, medicamentos, patient?.nombre, patient?.edad, patient?.sexo, patient?.alergias, toast])
