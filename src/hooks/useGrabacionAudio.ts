@@ -5,6 +5,7 @@ import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
 import type { PalabraOida } from '@/lib/expediente/confianza-audio'
 import { quitarEcoDeCabecera, quitarSolapeConAnterior } from '@/lib/asr/eco-de-cabecera'
 import { type AlertaDictado } from '@/lib/asr/corrector-vigilado'
+import { type MotivoConfirmacion } from '@/lib/asr/politica-critica'
 import { cambiosVisibles, type CambioVisible } from '@/lib/asr/cambios-visibles'
 /**
  * EL PIPELINE COMPLETO, no sólo el guardián.
@@ -525,6 +526,17 @@ async function intentarDiarizar(
      * hecho y no llegaba al único sitio donde cambia lo que se OYE.
      */
     anexarSesgoDelPaciente(fd, ctx)
+    /**
+     * B-009 — EL MÓDULO DESDE EL QUE SE DICTA, TAMBIÉN AL MOTOR QUE CORRE.
+     *
+     * `contexto` sólo lo leían las rutas de Whisper, que aquí son el REPUESTO:
+     * o sea que el vocabulario del módulo (UCI, hospitalización) sesgaba
+     * únicamente al motor que entra cuando el bueno se cae. Es la celda que
+     * REG-520 dejó declarada como abierta. La otra mitad —que la ruta lo lea y
+     * lo expanda con `nombresDelModulo()`— es de otra rebanada y va en el
+     * handoff; mandarlo mientras tanto no rompe nada.
+     */
+    if (ctx.contexto) fd.append('contexto', ctx.contexto)
     const res = await fetchAutenticado('/api/expediente/transcribir-diarizado', { method: 'POST', body: fd })
     if (!res.ok) {
       // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
@@ -740,9 +752,18 @@ export interface CtxDictado {
  * faltaba; ésta se cierra dejando UNA lista. Añadir una clave aquí la lleva a
  * los cuatro puntos, y el guardián comprueba que las tres rutas la lean.
  *
- * `contexto` (el módulo: uci, hospitalización…) NO está aquí a propósito: hoy
- * sólo lo leen las rutas de Whisper. Que llegue también a la diarización es
- * trabajo con nombre, declarado en el ledger de REG-520.
+ * ── LA CELDA QUE REG-520 DEJÓ ABIERTA, CERRADA POR ESTE LADO (B-009) ───────
+ *
+ * `contexto` (el módulo: uci, hospitalización…) NO viajaba a la diarización:
+ * sólo lo leían las rutas de Whisper, que aquí son el REPUESTO. O sea que el
+ * módulo desde el que se dicta sesgaba únicamente al motor que corre cuando el
+ * bueno se cae. No es una clave de lista —es una cadena— así que va aparte,
+ * pero por los DOS caminos, corto y largo, como manda `voice-asr.md`.
+ *
+ * La otra mitad es de la ruta (`api/expediente/transcribir-diarizado`), que
+ * todavía no lee este campo ni lo expande con `nombresDelModulo()`: es de otra
+ * rebanada y está en el handoff. Mandarlo no rompe nada mientras tanto — un
+ * campo que el servidor ignora es un campo ignorado, no un error.
  */
 export const CLAVES_DE_SESGO_DEL_PACIENTE = ['aprendidas', 'especialidades', 'medicamentos', 'problemas', 'alergias'] as const
 
@@ -755,12 +776,15 @@ export function anexarSesgoDelPaciente(fd: FormData, c: CtxDictado): void {
 }
 
 /** Las mismas listas como cuerpo JSON (camino largo de la diarización). Ausente = `undefined`, como siempre. */
-export function sesgoDelPacienteComoJson(c: CtxDictado): Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined> {
-  const out = {} as Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined>
+export function sesgoDelPacienteComoJson(
+  c: CtxDictado,
+): Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined> & { contexto?: string } {
+  const out = {} as Record<(typeof CLAVES_DE_SESGO_DEL_PACIENTE)[number], string[] | undefined> & { contexto?: string }
   for (const k of CLAVES_DE_SESGO_DEL_PACIENTE) {
     const v = c[k]
     out[k] = v ? [...v] : undefined
   }
+  if (c.contexto) out.contexto = c.contexto
   return out
 }
 
@@ -964,7 +988,7 @@ async function transcribirEnPartes(chunks: Blob[], mime: string, ext: string, co
  * ocurría justo en el camino que el médico considera el bueno. En el modo simple sí
  * se corregía.
  */
-async function corregirUtterances(us: Utterance[]): Promise<Utterance[]> {
+async function corregirUtterances(us: Utterance[]): Promise<CorreccionDeTurnos> {
   const { procesarTranscript } = await cargarPipeline()
   /**
    * `palabras` se conserva SIN corregir, a propósito.
@@ -975,7 +999,35 @@ async function corregirUtterances(us: Utterance[]): Promise<Utterance[]> {
    * el corrector escribió después. Si se sobrescribieran, la lista de «palabras
    * a verificar» señalaría términos que el médico ya no ve en pantalla.
    */
-  return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))
+  /**
+   * ── LO QUE EL TURNO DESCUBRIÓ NO SE TIRA (B-017, Panel de Lujo 2026-09) ──
+   *
+   * Este `map` se quedaba SÓLO con el texto: las `alertas` y los `motivos` que
+   * el pipeline emitía sobre cada turno se perdían en el suelo. Y los turnos son
+   * lo que se le manda al modelo para redactar la nota, así que lo que sólo se
+   * ve en el límite de un turno —una dosis partida entre dos frases, una unidad
+   * ambigua dicha por el paciente— no llegaba a la compuerta de ambigüedad.
+   *
+   * El pase sobre el texto corrido corre después y recupera casi todo; lo que
+   * diverge es exactamente lo que depende del corte del turno. Se acumula y el
+   * llamador lo funde con lo del texto corrido, sin duplicar.
+   */
+  const alertas: AlertaDictado[] = []
+  const motivos: MotivoConfirmacion[] = []
+  const corregidos = us.map(u => {
+    const r = procesarTranscript(u.text)
+    for (const a of r.alertas) alertas.push(a)
+    for (const m of r.motivos) if (!motivos.includes(m)) motivos.push(m)
+    return { ...u, text: r.texto }
+  })
+  return { utterances: corregidos, alertas, motivos }
+}
+
+/** Lo que sale de corregir los turnos: el texto corregido y lo que se vio al hacerlo. */
+interface CorreccionDeTurnos {
+  utterances: Utterance[]
+  alertas: AlertaDictado[]
+  motivos: MotivoConfirmacion[]
 }
 
 /**
@@ -1093,6 +1145,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
    * apagada.
    */
   const [motivosConfirmacion, setMotivosConfirmacion] = useState<string[]>([])
+  /**
+   * B-017 — lo que emitió el pipeline al corregir TURNO A TURNO, a la espera de
+   * fundirse con lo del texto corrido. Es un ref y no un estado porque `aplicar`
+   * lo lee dentro de la misma pasada en la que se escribe.
+   */
+  const extrasDeTurnosRef = useRef<{ alertas: AlertaDictado[]; motivos: MotivoConfirmacion[] }>({ alertas: [], motivos: [] })
   /**
    * LO QUE EL MOTOR DIJO, ANTES DE QUE NADIE LO TOCARA.
    *
@@ -1749,7 +1807,13 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setCambiosCifras(cambiosVisibles(r.cambiosNormalizacion, r.cambiosSiglas))
       // El pipeline ya trae las alertas de las nueve etapas, no sólo las del
       // guardián: incluye lo que pide confirmación por ambigüedad.
-      setAlertasDictado(r.alertas)
+      /**
+       * B-017: se funden las alertas de los TURNOS con las del texto corrido.
+       * Sin duplicar por el par (tipo, texto): el mismo aviso visto por los dos
+       * caminos es un aviso, no dos.
+       */
+      const vistas = new Set(r.alertas.map(a => JSON.stringify(a)))
+      setAlertasDictado([...r.alertas, ...extrasDeTurnosRef.current.alertas.filter(a => !vistas.has(JSON.stringify(a)))])
       // El gate de ambigüedad ya no muere aquí.
       /**
        * Y EL SEXTO MOTIVO, que el pipeline no puede emitir.
@@ -1759,7 +1823,9 @@ export function useGrabacionAudio(): UseGrabacionAudio {
        * por palabra, que viven en `Utterance.palabras`. Aquí sí están.
        */
       const dudaCritica = dudaEnZonaCritica(utterancesRef.current, UNIDADES_CANONICAS)
-      setMotivosConfirmacion(dudaCritica ? [...r.motivos, 'confianza_baja_con_termino_critico'] : r.motivos)
+      const motivosDeTurnos = extrasDeTurnosRef.current.motivos.filter(m => !r.motivos.includes(m))
+      const motivos = [...r.motivos, ...motivosDeTurnos]
+      setMotivosConfirmacion(dudaCritica ? [...motivos, 'confianza_baja_con_termino_critico'] : motivos)
       setTranscripcionMotor(r.crudo)
       setEstado('listo')
     }
@@ -1815,7 +1881,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       : await intentarDiarizar(blob, ext, duracionRef.current, contextoRef.current, recoveryKeyRef.current)
     if (diar.audioPath) setAudioPath(diar.audioPath)
     if (diar.ok && diar.text.trim()) {
-      { const us = await corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
+      {
+        const c = await corregirUtterances(diar.utterances)
+        setUtterances(c.utterances); utterancesRef.current = c.utterances
+        extrasDeTurnosRef.current = { alertas: c.alertas, motivos: c.motivos }   // B-017
+      }
       await aplicar(diar.text)
       setSinDiarizacion(null)
       if (recoveryKeyRef.current) await borrarChunks(recoveryKeyRef.current, recoveryBaseRef.current)
@@ -1950,7 +2020,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (diar?.audioPath) setAudioPath(diar.audioPath)
     let texto = ''
     if (diar && diar.text.trim()) {
-      { const us = await corregirUtterances(diar.utterances); setUtterances(us); utterancesRef.current = us }
+      {
+        const c = await corregirUtterances(diar.utterances)
+        setUtterances(c.utterances); utterancesRef.current = c.utterances
+        extrasDeTurnosRef.current = { alertas: c.alertas, motivos: c.motivos }   // B-017
+      }
       texto = diar.text
     } else {
       // 2) Fallback: transcribir EN PARTES (OpenAI o AssemblyAI por trozo). Nunca lanza.

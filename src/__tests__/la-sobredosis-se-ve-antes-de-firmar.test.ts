@@ -128,7 +128,16 @@ describe('está conectado a la consulta, no sólo escrito', () => {
   it('con la edad y el peso del paciente, que es lo que activa lo pediátrico', () => {
     // REG-524: la edad pasa por `edadParaDosificar` (fecha de nacimiento > edad congelada > desconocida).
     expect(page).toContain('edadAnios: edadParaDosificar(patient).edad ?? undefined')
-    expect(page).toContain('pesoKg: signosNum.peso')
+    /**
+     * MP-006 (Panel de Lujo 2026-09): el peso ya no entra crudo. `pesoParaDosis`
+     * ES `signosNum.peso` cuando `revisarPesoPediatrico` lo da por bueno, y
+     * `undefined` mientras el médico no confirme una unidad dudosa — o sea que
+     * el motor sigue recibiendo el peso de signos, pero sólo cuando se puede
+     * defender. Se comprueba la cadena entera para que no baste con renombrar.
+     */
+    expect(page).toContain('pesoKg: pesoParaDosis')
+    expect(page).toMatch(/const pesoParaDosis = pesoBloqueado \? undefined : \(signosNum\.peso \?\? undefined\)/)
+    expect(page).toContain('revisarPesoPediatrico')
   })
 
   it('y la receta sigue teniendo su propia revisión', () => {

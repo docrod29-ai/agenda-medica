@@ -5,6 +5,7 @@
  */
 import { useMemo, useState } from 'react'
 import { CalendarCheck, LineChart, Plus, ShieldCheck } from 'lucide-react'
+import { SelloMotor } from '@/components/SelloMotor'
 import {
   tamizajesPara, tamizajesProximos, ADVERTENCIA_PREVENTIVO,
   analizarTendencia, alertaDeTendencia, type PuntoLab,
@@ -79,13 +80,24 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
                 </div>
               )}
 
+              {/*
+                ── LO QUE SE PEGA EN LA NOTA VIAJA CON SU PROCEDENCIA (ZC-015) ─
+                El texto insertado era `prueba (frecuencia)` y se perdía justo el
+                campo que hacía verificable la recomendación —el organismo— y la
+                advertencia de que el catálogo se escribió «sin haber leído el
+                documento fuente vigente», que se quedaba en la pantalla a 10.5 px.
+                Lo que entra al expediente tiene que poder defenderse solo.
+              */}
               {onAgregarANota && vigentes.length > 0 && (
                 <button type="button" style={{ ...btn, marginTop: 10 }} onClick={() => onAgregarANota(
-                  `Tamizajes que corresponden por edad y sexo: ${vigentes.map(t => `${t.prueba} (${t.frecuencia})`).join('; ')}.`
+                  `Tamizajes que corresponden por edad y sexo: ${vigentes.map(t => `${t.prueba} (${t.frecuencia}${t.organismo ? `, ${t.organismo}` : ''})`).join('; ')}. `
+                  + 'Catálogo orientativo: verificar la vigencia del documento fuente antes de indicarlos.'
                 )}><Plus size={12} /> Agregar a la nota</button>
               )}
 
-              <p style={{ ...txt, color: 'var(--amber)', marginTop: 10, fontSize: 10.5 }}>{ADVERTENCIA_PREVENTIVO}</p>
+              <p style={{ ...txt, color: 'var(--amber)', marginTop: 10, fontSize: 12 }}>
+                {ADVERTENCIA_PREVENTIVO} <SelloMotor id="medicina-preventiva" />
+              </p>
             </>
           )}
         </div>
@@ -127,9 +139,25 @@ export function PanelPreventivo({ edad, sexo, onAgregarANota, embebido }: Props)
                 {analito}: {tend.resumen}
               </div>
               {alerta && <p style={{ ...txt, fontWeight: 700, color: 'var(--red)' }}>{alerta}</p>}
+              {/*
+                ── EL UMBRAL QUE NO CITA FUENTE LO DICE (ZC-014) ──────────────
+                Tres de las cuatro reglas de tendencia («−2 g/dL de hemoglobina»,
+                «plaquetas <150 o −50 %», «HbA1c 0.5 %») no nombran organismo; sólo
+                la creatinina cita KDIGO. Y nada comprueba la UNIDAD: el analito y
+                la unidad son texto libre, así que el corte se compara contra lo
+                que sea que se haya tecleado. No se inventa ninguna cifra ni se
+                retira el aviso: se dice lo que es, aquí y en la nota.
+              */}
+              {alerta && (
+                <p style={{ ...txt, color: 'var(--amber)', marginTop: 4 }}>
+                  Umbral orientativo, sin fuente citada, y comparado contra la unidad que capturaste
+                  ({unidad || 'sin unidad'}): confírmalo antes de actuar.
+                </p>
+              )}
               {onAgregarANota && (
                 <button type="button" style={{ ...btn, marginTop: 8 }} onClick={() => onAgregarANota(
-                  `${analito}: ${tend.resumen}${alerta ? ` ${alerta}` : ''}`
+                  `${analito} (${unidad || 'unidad no capturada'}): ${tend.resumen}`
+                  + (alerta ? ` ${alerta} — umbral orientativo, sin fuente citada; verificar la unidad.` : '')
                 )}><Plus size={12} /> Agregar a la nota</button>
               )}
             </div>

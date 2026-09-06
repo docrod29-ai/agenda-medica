@@ -6,8 +6,9 @@
  *  · Lista de verificación de la cirugía segura (OMS).
  * Apoyo a la decisión: la indicación la da el médico.
  */
-import { useMemo, useState } from 'react'
-import { Activity, ClipboardCheck, Plus, Scissors, Syringe } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Activity, AlertTriangle, ClipboardCheck, Plus, Scissors, Syringe } from 'lucide-react'
+import { SelloMotor } from '@/components/SelloMotor'
 import {
   ASA, asaTexto, rcri, RCRI_FACTORES,
   caprini, sumarCaprini, CAPRINI_FACTORES,
@@ -18,21 +19,78 @@ import {
 
 interface Props {
   onAgregarANota?: (texto: string) => void
+  /**
+   * ALERGIAS DEL PACIENTE — MC-014 (Panel de Lujo 2026-09).
+   *
+   * El panel proponía cefazolina por omisión y la pegaba a la nota aunque el
+   * expediente dijera «alergia a penicilina»: la columna «Alergia a
+   * betalactámicos» de la tabla es TEXTO, no una comprobación, y lo que este
+   * panel escribe es prosa, así que el guardián de alergias —que trabaja sobre
+   * `nota.medicamentos[]` estructurados— no lo veía pasar.
+   *
+   * Aquí no se decide nada clínico: se avisa y se deja de proponer por omisión
+   * un betalactámico a quien tiene esa alergia declarada. La reacción cruzada
+   * cefalosporina/penicilina es criterio del médico (NEEDS_CLINICAL_REVIEW,
+   * abierto en MI-004).
+   */
+  alergias?: readonly string[]
+  /**
+   * Lo que ya se guardó de este panel en la nota (ASA y factores marcados), para
+   * que cerrar la herramienta no lo borre — MC-017.
+   */
+  estadoInicial?: EstadoDelPanelDeCirugia
+  onCambioDeEstado?: (e: EstadoDelPanelDeCirugia) => void
+  /**
+   * La lista de verificación de la cirugía segura se llena en el QUIRÓFANO, no
+   * en el consultorio (MC-018). Se enseña sólo cuando hay quirófano de por
+   * medio: nota postoperatoria o internamiento activo. No se retira.
+   */
+  mostrarChecklist?: boolean
   /** Dentro de la barra de herramientas: sin marco ni título propios. */
   embebido?: boolean
 }
 
+/** Lo que el panel de cirugía tiene capturado, para que sobreviva a cerrarlo. */
+export interface EstadoDelPanelDeCirugia {
+  clase: string
+  urgencia: boolean
+  rcri: string[]
+  caprini: string[]
+  apfel: string[]
+}
+
 type Tab = 'riesgo' | 'profilaxis' | 'checklist'
 
-export function PanelCirugia({ onAgregarANota, embebido }: Props) {
+export function PanelCirugia({ onAgregarANota, alergias, estadoInicial, onCambioDeEstado, mostrarChecklist, embebido }: Props) {
   const [tab, setTab] = useState<Tab>('riesgo')
 
   // Riesgo
-  const [clase, setClase] = useState('II')
-  const [urgencia, setUrgencia] = useState(false)
-  const [rc, setRc] = useState<Set<string>>(new Set())
-  const [cap, setCap] = useState<Set<string>>(new Set())
-  const [apf, setApf] = useState<Set<string>>(new Set())
+  /**
+   * MC-007 — ASA ARRANCA SIN CLASE. Empezaba en «II» sin que nadie lo eligiera y
+   * la píldora ya decía «ASA II» de fábrica: un dato clínico pintado que nadie
+   * evaluó. El propio registro de motores lo promete al revés («sin clase
+   * seleccionada no devuelve texto; no asume ASA I»).
+   */
+  const [clase, setClase] = useState(estadoInicial?.clase ?? '')
+  const [urgencia, setUrgencia] = useState(estadoInicial?.urgencia ?? false)
+  const [rc, setRc] = useState<Set<string>>(new Set(estadoInicial?.rcri ?? []))
+  const [cap, setCap] = useState<Set<string>>(new Set(estadoInicial?.caprini ?? []))
+  const [apf, setApf] = useState<Set<string>>(new Set(estadoInicial?.apfel ?? []))
+
+  /* MC-017: lo capturado sube a la consulta; cerrar la herramienta no lo borra. */
+  useEffect(() => {
+    onCambioDeEstado?.({ clase, urgencia, rcri: [...rc], caprini: [...cap], apfel: [...apf] })
+  }, [clase, urgencia, rc, cap, apf, onCambioDeEstado])
+
+  /**
+   * ¿El expediente declara alergia a betalactámicos? Vocabulario, no criterio:
+   * lo que falte aquí NO se vigila (clinical-safety §5), y por eso el aviso dice
+   * que la lista es la del expediente y que el juicio es del médico.
+   */
+  const alergiaBetalactamicos = useMemo(
+    () => (alergias ?? []).some(a => /penicilin|amoxicilin|ampicilin|cefalospor|cefazolin|betalact|carbapenem|meropenem|piperacilin/i.test(a)),
+    [alergias],
+  )
 
   const rRcri = useMemo(() => rcri(rc.size), [rc])
   const rCap = useMemo(() => caprini(sumarCaprini([...cap])), [cap])
@@ -62,7 +120,9 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
           <Scissors size={15} color="var(--blue)" />
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>Valoración perioperatoria</span>
         </>}
-        <span style={pill('var(--blue)', 'color-mix(in srgb, var(--blue) 15%, transparent)')}>{asaTexto(clase, urgencia)}</span>
+        {clase !== '' && (
+          <span style={pill('var(--blue)', 'color-mix(in srgb, var(--blue) 15%, transparent)')}>{asaTexto(clase, urgencia)}</span>
+        )}
         {rc.size > 0 && <span style={pill(col(rRcri.nivel), bg(rRcri.nivel))}>RCRI {rRcri.puntaje}</span>}
         {capPuntos > 0 && <span style={pill(col(rCap.nivel), bg(rCap.nivel))}>Caprini {capPuntos}</span>}
       </div>
@@ -70,42 +130,59 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
       <div style={{ display: 'flex', gap: 6, marginBottom: 11, flexWrap: 'wrap' }}>
         <Tb a={tab === 'riesgo'} on={() => setTab('riesgo')} i={<Activity size={13} />} t="Riesgo" />
         <Tb a={tab === 'profilaxis'} on={() => setTab('profilaxis')} i={<Syringe size={13} />} t="Profilaxis antibiótica" />
-        <Tb a={tab === 'checklist'} on={() => setTab('checklist')} i={<ClipboardCheck size={13} />} t="Cirugía segura (OMS)" />
+        {/* MC-018: la lista de la OMS se llena en el quirófano; en el consultorio
+            sólo aparece cuando hay quirófano de por medio. No se retira. */}
+        {mostrarChecklist && (
+          <Tb a={tab === 'checklist'} on={() => setTab('checklist')} i={<ClipboardCheck size={13} />} t="Cirugía segura (OMS)" />
+        )}
       </div>
 
       {/* ── RIESGO ── */}
       {tab === 'riesgo' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Bloque titulo="ASA · estado físico">
-            <select value={clase} onChange={e => setClase(e.target.value)} style={{ ...campo, width: '100%' }}>
+            <select value={clase} onChange={e => setClase(e.target.value)} style={{ ...campo, width: '100%' }} aria-label="Clase ASA">
+              <option value="">Sin evaluar</option>
               {ASA.map(a => <option key={a.clase} value={a.clase}>ASA {a.clase} — {a.titulo}</option>)}
             </select>
             <p style={{ fontSize: 11, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.5 }}>
-              {ASA.find(a => a.clase === clase)?.ejemplos}
+              {clase === '' ? 'Elige la clase: no se asume ninguna.' : ASA.find(a => a.clase === clase)?.ejemplos}
             </p>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 7, cursor: 'pointer' }}>
               <input type="checkbox" checked={urgencia} onChange={e => setUrgencia(e.target.checked)} />
               <span style={{ fontSize: 12, color: 'var(--text2)' }}>Cirugía de urgencia (agrega el modificador E)</span>
             </label>
+            {/* MC-007: la clase elegida no tenía forma de llegar a la nota. */}
+            {onAgregarANota && clase !== '' && (
+              <div>
+                <button type="button" style={{ ...btnMini, marginTop: 8 }} onClick={() => onAgregarANota(
+                  `Estado físico ${asaTexto(clase, urgencia)} — ${ASA.find(a => a.clase === clase)?.titulo ?? ''}.`
+                )}><Plus size={12} /> Agregar a la nota</button>
+              </div>
+            )}
           </Bloque>
 
           <Bloque titulo={`RCRI · riesgo cardiaco — ${rRcri.puntaje}/6`}>
             <Opciones items={RCRI_FACTORES} sel={rc} on={v => alternar(rc, setRc, v)} color="var(--blue)" />
             <Resultado nivel={rRcri.nivel} titulo={`RCRI ${rRcri.puntaje} — ${rRcri.categoria}`} texto={rRcri.interpretacion} cita="Lee, Circulation 1999 · ACC/AHA"
-              onNota={onAgregarANota && (() => onAgregarANota(`RCRI ${rRcri.puntaje}/6 — ${rRcri.categoria}. ${rRcri.interpretacion}`))} />
+              /* MC-017: el total sin los factores no es reproducible ni auditable. */
+              onNota={onAgregarANota && (() => onAgregarANota(
+                `RCRI ${rRcri.puntaje}/6 — ${rRcri.categoria}. ${rRcri.interpretacion}${factores('Factores', rc)}`))} />
           </Bloque>
 
           <Bloque titulo={`Caprini · riesgo de trombosis — ${capPuntos} puntos`}>
             <Pesos sel={cap} on={v => alternar(cap, setCap, v)} />
             <Resultado nivel={rCap.nivel} titulo={`Caprini ${capPuntos} — ${rCap.categoria}`} texto={rCap.profilaxis} cita="Caprini · ACCP"
-              onNota={onAgregarANota && (() => onAgregarANota(`Caprini ${capPuntos} puntos — ${rCap.categoria}. ${rCap.profilaxis}`))} />
+              onNota={onAgregarANota && (() => onAgregarANota(
+                `Caprini ${capPuntos} puntos — ${rCap.categoria}. ${rCap.profilaxis}${factores('Factores', cap)}`))} />
           </Bloque>
 
           <Bloque titulo={`Apfel · náusea y vómito postoperatorios — ${rApf.puntaje}/4`}>
             <Opciones items={APFEL_FACTORES} sel={apf} on={v => alternar(apf, setApf, v)} color="var(--blue)" />
             <Resultado nivel={rApf.puntaje <= 1 ? 'bajo' : rApf.puntaje === 2 ? 'medio' : 'alto'}
               titulo={`Apfel ${rApf.puntaje}/4 — riesgo aproximado ${rApf.riesgo}%`} texto={rApf.conducta} cita="Apfel, Anesthesiology 1999"
-              onNota={onAgregarANota && (() => onAgregarANota(`Apfel ${rApf.puntaje}/4 (riesgo aproximado de NVPO ${rApf.riesgo}%). ${rApf.conducta}`))} />
+              onNota={onAgregarANota && (() => onAgregarANota(
+                `Apfel ${rApf.puntaje}/4 (riesgo aproximado de NVPO ${rApf.riesgo}%). ${rApf.conducta}${factores('Factores', apf)}`))} />
           </Bloque>
         </div>
       )}
@@ -139,8 +216,26 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
               </label>
             </div>
 
+            {alergiaBetalactamicos && (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 9,
+                border: '1px solid color-mix(in srgb, var(--red) 40%, transparent)',
+                background: 'color-mix(in srgb, var(--red) 7%, transparent)',
+                borderRadius: 10, padding: '10px 12px',
+              }}>
+                <AlertTriangle size={15} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+                <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                  <b style={{ color: 'var(--red)' }}>El expediente declara alergia a betalactámicos.</b>{' '}
+                  Revisa el esquema antes de elegirlo: la columna «Alergia a betalactámicos» de la tabla de
+                  arriba es la alternativa de cada cirugía. La reacción cruzada la juzgas tú.
+                </div>
+              </div>
+            )}
             <div style={{ border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', background: 'color-mix(in srgb, var(--blue) 8%, transparent)', borderRadius: 9, padding: '10px 12px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--blue)' }}>{plan.antibiotico} — {plan.dosis}</span>
+                <SelloMotor id="profilaxis-quirurgica" />
+              </div>
               <ul style={{ margin: '7px 0 0', paddingLeft: 17, fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
                 <li>{plan.inicio}</li>
                 <li><b style={{ color: plan.momentosRedosis.length ? 'var(--amber)' : 'inherit' }}>{plan.redosis}</b></li>
@@ -158,7 +253,7 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
       )}
 
       {/* ── CHECKLIST ── */}
-      {tab === 'checklist' && (
+      {tab === 'checklist' && mostrarChecklist && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {CHECKLIST_OMS.map(f => {
             const total = f.puntos.length
@@ -186,7 +281,12 @@ export function PanelCirugia({ onAgregarANota, embebido }: Props) {
                 const l = f.puntos.filter(p => hechos.has(p)).length
                 return `${f.fase}: ${l}/${f.puntos.length}`
               }).join(' · ')
-              onAgregarANota(`Lista de verificación de la cirugía segura (OMS) — ${resumen}.`)
+              /* MC-018: «5/7» no dice QUÉ falta, que es justo lo que hay que leer. */
+              const pendientes = CHECKLIST_OMS.flatMap(f => f.puntos.filter(p => !hechos.has(p)).map(p => `${f.fase}: ${p}`))
+              onAgregarANota(
+                `Lista de verificación de la cirugía segura (OMS) — ${resumen}.`
+                + (pendientes.length ? ` Sin marcar: ${pendientes.join('; ')}.` : ' Todos los puntos marcados.'),
+              )
             }}><Plus size={12} /> Agregar el avance a la nota</button>
           )}
         </div>
@@ -284,4 +384,9 @@ const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--blue) 15%, transparent)',
   color: 'var(--blue)', border: '1px solid color-mix(in srgb, var(--blue) 35%, transparent)', borderRadius: 6,
   padding: '4px 10px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start',
+}
+
+/** Los factores marcados, para que el puntaje que va a la nota sea reproducible. */
+function factores(rotulo: string, sel: Set<string>): string {
+  return sel.size ? ` ${rotulo}: ${[...sel].join('; ')}.` : ''
 }

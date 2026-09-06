@@ -6,7 +6,10 @@
  * Apoyo a la decisión: la dosis final la ajusta el médico.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Baby, Syringe, Pill, Plus, AlertTriangle, TrendingUp, ClipboardPlus } from 'lucide-react'
+import { SelloMotor } from '@/components/SelloMotor'
+import { hoyISO as hoyDelConsultorio, zonaActiva } from '@/lib/timezone'
+import type { Medicamento } from '@/types/expediente'
 import {
   FARMACOS_PED, calcularDosisPediatrica, vacunasSegunEdad, imc, evaluarTodo, edadEnMeses, edadEnDias,
   libraAKg, revisarPesoPediatrico, type UnidadPeso,
@@ -21,6 +24,25 @@ interface Props {
   /** Peso ya capturado en signos: siembra el campo para no re-teclearlo (y evitar
       dos pesos discrepantes en la misma consulta). */
   pesoInicial?: number
+  /**
+   * EL PESO DE LA CONSULTA ANTERIOR — MP-006 (Panel de Lujo 2026-09).
+   *
+   * `revisarPesoPediatrico` detecta el error lb↔kg comparando con la medición
+   * PREVIA. Aquí se recibía `pesoInicial`, que es el peso de HOY: la razón valía
+   * 1 y la detección ×2.2 no podía saltar jamás. Ausente = no hay nota anterior
+   * con peso, y entonces esa comparación simplemente no se hace.
+   */
+  pesoPrevio?: number
+  /** Fecha (ISO) de esa medición previa, para poder decirla. */
+  fechaDelPesoPrevio?: string
+  /** Hoy, en la zona del consultorio. Ausente = se calcula aquí (C-014). */
+  hoy?: string
+  /**
+   * Manda el fármaco a la LISTA DE MEDICAMENTOS de la consulta — MP-008.
+   * Sin esto, «Nota» pegaba un rango en texto libre que ni la receta ni el
+   * verificador de dosis podían leer, y el médico tecleaba la dosis dos veces.
+   */
+  onRecetar?: (m: Medicamento) => void
   /** Sexo del paciente: la referencia de la OMS es distinta por sexo. */
   sexo?: string
   onAgregarANota?: (texto: string) => void
@@ -28,7 +50,7 @@ interface Props {
   embebido?: boolean
 }
 
-export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, onAgregarANota, embebido }: Props) {
+export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, pesoPrevio, fechaDelPesoPrevio, hoy, sexo, onAgregarANota, onRecetar, embebido }: Props) {
   const [tab, setTab] = useState<'dosis' | 'vacunas' | 'crecimiento'>('dosis')
   const [perimetro, setPerimetro] = useState('')
   const [peso, setPeso] = useState(pesoInicial && pesoInicial > 0 ? String(pesoInicial) : '')
@@ -38,27 +60,38 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
   const [pesoConfirmado, setPesoConfirmado] = useState(false)
   const [talla, setTalla] = useState('')
   /**
-   * MP-010 — UNA FECHA ILEGIBLE DEJA EL CAMPO VACÍO, NO EN CERO.
+   * DOS ARREGLOS EN EL MISMO SITIO — MP-010 y C-014.
    *
-   * `edadEnMeses` devolvía `0` ante una fecha que no se puede leer, y ese cero
-   * se sembraba aquí como la edad del paciente: vacunas todas pendientes,
-   * percentil del mes 0, y dos fármacos bloqueados por edad mínima. Ahora
-   * devuelve `null` —igual que `edadEnAnios`, que ya lo hacía— y el campo se
-   * queda vacío para que lo llene quien sí lo sabe.
+   * MP-010: `edadEnMeses` devolvía `0` ante una fecha que no se puede leer, y
+   * ese cero se sembraba aquí como la edad del paciente: vacunas todas
+   * pendientes, percentil del mes 0 y dos fármacos bloqueados por edad mínima.
+   * Ahora devuelve `null` —igual que `edadEnAnios`, que ya lo hacía— y el campo
+   * se queda vacío para que lo llene quien sí lo sabe.
+   *
+   * C-014: el «hoy» contra el que se resta es el del CONSULTORIO, no el del
+   * navegador en UTC. Después de las 18:00 en México «hoy» en UTC ya es mañana
+   * y la edad en meses baila de un día para otro.
    */
   const mesesDeLaFecha = fechaNacimiento
-    ? edadEnMeses(fechaNacimiento, new Date().toISOString().slice(0, 10))
+    ? edadEnMeses(fechaNacimiento, hoy ?? hoyDelConsultorio(zonaActiva()))
     : null
   const mesesIniciales = mesesDeLaFecha != null
     ? String(mesesDeLaFecha)
     : (edadAnios != null ? String(Math.round(edadAnios * 12)) : '')
   const [meses, setMeses] = useState(mesesIniciales)
   const [busca, setBusca] = useState('')
+  /**
+   * LA DOSIS QUE ELIGE EL MÉDICO DENTRO DEL RANGO — MP-008.
+   * No se prescribe la máxima por omisión: el rango es el motor, la dosis es
+   * suya. Sin un número dentro del rango, «Recetar» no se puede pulsar.
+   */
+  const [dosisElegida, setDosisElegida] = useState<Record<string, string>>({})
 
   // Peso SIEMPRE a kg (convierte si se capturó en lb). Revisión de seguridad de
   // unidad: si no es ok y no se confirmó, se BLOQUEA el cálculo y "Agregar a nota".
   const pesoKg = unidadPeso === 'lb' ? libraAKg(Number(peso)) : Number(peso)
-  const revPeso = useMemo(() => pesoKg > 0 ? revisarPesoPediatrico(pesoKg, pesoInicial) : { ok: true }, [pesoKg, pesoInicial])
+  /* MP-006: contra el peso PREVIO (otra consulta), no contra el de hoy. */
+  const revPeso = useMemo(() => pesoKg > 0 ? revisarPesoPediatrico(pesoKg, pesoPrevio) : { ok: true }, [pesoKg, pesoPrevio])
   const pesoBloqueado = pesoKg > 0 && !revPeso.ok && !pesoConfirmado
   // Cambiar el peso o la unidad exige volver a confirmar (no arrastrar un "confirmado" viejo).
   useEffect(() => { setPesoConfirmado(false) }, [peso, unidadPeso])
@@ -175,7 +208,10 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                 <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
                 <div>
                   <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--red)', marginBottom: 3 }}>Verifica el peso antes de calcular</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--text2)', lineHeight: 1.5 }}>{revPeso.motivo}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                    {revPeso.motivo}
+                    {fechaDelPesoPrevio && ` (la medición anterior es del ${fechaDelPesoPrevio}).`}
+                  </div>
                   <button type="button" onClick={() => setPesoConfirmado(true)}
                     style={{ ...btnMini, marginTop: 9 }}>
                     Confirmar peso: {pesoKg.toFixed(1)} kg
@@ -223,6 +259,47 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
                         <button type="button" onClick={() => onAgregarANota(
                           `${d.farmaco} ${d.porToma.min === d.porToma.max ? d.porToma.max : `${d.porToma.min}-${d.porToma.max}`} ${d.unidad} ${d.intervalo} (peso ${pesoKg} kg).`
                         )} style={btnMini}><Plus size={12} /> Nota</button>
+                      )}
+                      {/*
+                        ── DEL CÁLCULO A LA RECETA (MP-008) ──────────────────
+                        «Nota» pega un RANGO en texto libre: no es una
+                        prescripción, no llega a la receta ni al verificador de
+                        dosis, y obliga a teclear lo mismo dos veces. Aquí se
+                        elige UNA dosis dentro del rango —el médico, no el
+                        panel— y se crea el renglón del medicamento.
+                      */}
+                      {onRecetar && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <input
+                            aria-label={`Dosis por toma de ${d.farmaco} en ${d.unidad}`}
+                            inputMode="decimal"
+                            value={dosisElegida[d.farmaco] ?? ''}
+                            onChange={e => setDosisElegida(p => ({ ...p, [d.farmaco]: e.target.value }))}
+                            placeholder={d.porToma.min === d.porToma.max ? String(d.porToma.max) : `${d.porToma.min}–${d.porToma.max}`}
+                            style={{ ...campoBase, width: 74 }}
+                          />
+                          <button
+                            type="button"
+                            disabled={!dentroDelRango(dosisElegida[d.farmaco], d.porToma)}
+                            title={dentroDelRango(dosisElegida[d.farmaco], d.porToma)
+                              ? `Agrega ${d.farmaco} a los medicamentos de esta consulta`
+                              : `Escribe la dosis por toma entre ${d.porToma.min} y ${d.porToma.max} ${d.unidad}`}
+                            onClick={() => {
+                              const cantidad = Number(String(dosisElegida[d.farmaco]).replace(',', '.'))
+                              onRecetar({
+                                nombre: d.farmaco,
+                                dosis: `${cantidad} ${d.unidad}`,
+                                via: 'oral',
+                                frecuencia: d.intervalo,
+                                duracion: '',
+                                procedenciaClinica: 'se_prescribe_hoy',
+                                instruccionesEspeciales: `Dosis calculada por peso (${pesoKg} kg); rango del motor ${d.porToma.min}–${d.porToma.max} ${d.unidad} por toma.`,
+                              })
+                              setDosisElegida(p => ({ ...p, [d.farmaco]: '' }))
+                            }}
+                            style={{ ...btnMini, opacity: dentroDelRango(dosisElegida[d.farmaco], d.porToma) ? 1 : 0.45, cursor: dentroDelRango(dosisElegida[d.farmaco], d.porToma) ? 'pointer' : 'default' }}
+                          ><ClipboardPlus size={12} /> Recetar</button>
+                        </span>
                       )}
                     </div>
                     )}
@@ -287,9 +364,12 @@ export function PanelPediatria({ edadAnios, fechaNacimiento, pesoInicial, sexo, 
             <p style={{ fontSize: 12, color: 'var(--text3)', margin: 0 }}>Captura la edad en meses para revisar el esquema.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 340, overflowY: 'auto' }}>
-              <p style={{ fontSize: 11, color: 'var(--text3)', margin: '0 0 3px', lineHeight: 1.45 }}>
+              <p style={{ fontSize: 12, color: 'var(--text3)', margin: '0 0 3px', lineHeight: 1.45 }}>
                 Esto es el <b>esquema que corresponde a la edad</b>, no el estado real del paciente:
-                el expediente no guarda qué vacunas se aplicaron. Verifica la cartilla.
+                el expediente no guarda qué vacunas se aplicaron. Verifica la cartilla.{' '}
+                {/* MI-003: el registro clasifica este motor como no revisado y hasta hoy
+                    eso no salía en ninguna pantalla, aunque /cumplimiento/motores lo promete. */}
+                <SelloMotor id="esquema-vacunacion-mx" />
               </p>
               {vacunas.map((v, i) => (
                 <div key={i} style={{
@@ -358,4 +438,14 @@ const btnMini: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb, var(--purple) 15%, transparent)',
   color: 'var(--purple)', border: '1px solid color-mix(in srgb, var(--purple) 35%, transparent)', borderRadius: 6,
   padding: '3px 9px', fontSize: 10.5, fontWeight: 700, cursor: 'pointer',
+}
+
+/**
+ * ¿La dosis que tecleó el médico cae dentro del rango que calculó el motor?
+ * Fuera de rango no se receta desde aquí: el rango es lo único que este panel
+ * puede sostener (MP-008).
+ */
+function dentroDelRango(texto: string | undefined, rango: { min: number; max: number }): boolean {
+  const n = Number(String(texto ?? '').replace(',', '.'))
+  return Number.isFinite(n) && n > 0 && n >= rango.min && n <= rango.max
 }

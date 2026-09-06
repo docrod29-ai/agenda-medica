@@ -340,6 +340,7 @@ describe('LA CORRECCIÓN DEL EXTRACTOR ESTÁ CONECTADA', () => {
   it('y el panel se lo enseña al médico', () => {
     const panel = leer('src', 'components', 'NerPanel.tsx')
     expect(panel).toContain('negacionesCorregidas')
-    expect(panel).toMatch(/el paciente las negó/)
+    // Plural real desde ZC-016: «lo negó» / «los negó» según cuántos sean.
+    expect(panel).toMatch(/el paciente l(o|os) negó/)
   })
 })
