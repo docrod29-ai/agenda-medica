@@ -271,7 +271,15 @@ export default function MiPortalPage() {
   /** Pago del anticipo: se abre el Checkout de Stripe atado a la cita. */
   const [pagando, setPagando] = useState(false)
   const [errorPago, setErrorPago] = useState('')
-  const [destino, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
+  /**
+   * EL DESTINO QUE EL PACIENTE ELIGIÓ. El que se PINTA se deriva de él más
+   * abajo, cuando ya se sabe qué abre este enlace (PP-005): con un enlace de un
+   * solo documento no hay cinco destinos que elegir, y el elegido por omisión
+   * («Hoy») estaría vacío por construcción. Derivarlo evita un `useEffect` que
+   * corrija el estado después de pintarlo, que es una cascada de renders y un
+   * parpadeo delante del paciente.
+   */
+  const [destinoElegido, setDestino] = useState<(typeof DESTINOS)[number]['id']>('hoy')
 
   /**
    * PREGUNTAR — V9 · PATIENT-AI-001.
@@ -356,18 +364,6 @@ export default function MiPortalPage() {
   }, [token])
 
   useEffect(() => { cargar() }, [cargar])
-
-  /**
-   * CON UN ENLACE DE UN SOLO DOCUMENTO, SE ABRE EN ESE DOCUMENTO — PP-005.
-   *
-   * El destino por omisión es «Hoy», y con este enlace «Hoy» está vacío por
-   * construcción: el servidor no devuelve citas. Quien recibe la receta la
-   * abriría en una pantalla en blanco y tendría que buscar la pestaña correcta
-   * para ver lo único que le mandaron.
-   */
-  useEffect(() => {
-    if (sesion?.alcance === 'documento') setDestino('documentos')
-  }, [sesion?.alcance])
 
   /**
    * MANDAR LA PREGUNTA.
@@ -629,6 +625,9 @@ export default function MiPortalPage() {
   const destinosVisibles = sesion.alcance === 'documento'
     ? DESTINOS.filter(d => d.id === 'documentos')
     : DESTINOS
+  const destino = destinosVisibles.some(d => d.id === destinoElegido)
+    ? destinoElegido
+    : destinosVisibles[0].id
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg)', padding: '24px 16px 96px' }}>
