@@ -5,7 +5,7 @@
  *
  * **31-ago-2026, el médico dueño**: un embarazo listado como DIFERENCIAL sí
  * cuenta para avisar. Antes no contaba, y no por decisión sino por
- * conservación: al mudar la lectura del embarazo a su propio módulo (REG-427)
+ * conservación: al mudar la lectura del embarazo a su propio módulo (REG-530)
  * apareció que **el comentario del copiloto y su código llevaban años
  * contradiciéndose** —el comentario decía que un presuntivo o un diferencial
  * «sí cuentan para AVISAR», y el código excluía el diferencial— y se conservó

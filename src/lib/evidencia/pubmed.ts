@@ -94,7 +94,7 @@ function ncbiFetch(url: string, signal?: AbortSignal): Promise<Response> {
     try {
       const r = await fetchConTimeout(url, { signal }, TIMEOUT.evidencia)
       /**
-       * REG-435 · aquí NO se anota el éxito.
+       * REG-538 · aquí NO se anota el éxito.
        *
        * `'contesto'` cierra el circuito y borra los fallos anteriores, y esta
        * función no ha visto el cuerpo: sólo sabe que el socket funcionó. Con
@@ -246,7 +246,7 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
     const r = await ncbiFetch(url, signal)
     if (!r.ok) { if (testigo) testigo.fallo = true; return [] }
     /**
-     * REG-435 · el parseo va en su PROPIO try.
+     * REG-538 · el parseo va en su PROPIO try.
      *
      * Un 200 con HTML hace lanzar a `r.json()`, y el `catch` de abajo se lo
      * comía sin anotar nada —`ncbiFetch` ya había devuelto, así que su catch no
@@ -263,7 +263,7 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
       return []
     }
     /**
-     * REG-434 · un 200 con el cuerpo ilegible no es «no hay artículos».
+     * REG-537 · un 200 con el cuerpo ilegible no es «no hay artículos».
      *
      * NCBI contesta `{"esearchresult":{"ERROR":"…"}}` con estado 200. Es JSON
      * válido, `r.json()` no lanza, y `?? []` lo convertía en una búsqueda sin
@@ -273,13 +273,13 @@ async function esearch(term: string, max: number, signal?: AbortSignal, testigo?
     const lectura = leerEsearch(d)
     if (!lectura.legible) {
       if (testigo) testigo.fallo = true
-      /* REG-435 · un cuerpo que no es de este protocolo cuenta como caída; un
+      /* REG-538 · un cuerpo que no es de este protocolo cuenta como caída; un
          error NUESTRO dentro de una respuesta válida, no. */
       anotarVeredicto(claveCircuitoEvidencia('ncbi'), lectura.deQuien === 'del_proveedor'
         ? 'el_proveedor_no_esta' : 'no_dice_nada_del_proveedor')
       return []
     }
-    /* REG-435 · aquí sí consta que la respuesta sirvió: se leyó y era una. */
+    /* REG-538 · aquí sí consta que la respuesta sirvió: se leyó y era una. */
     anotarQueLaRespuestaSirvio('ncbi')
     return (d as { esearchresult: { idlist: string[] } }).esearchresult.idlist
   } catch { if (testigo) testigo.fallo = true; return [] }
@@ -296,7 +296,7 @@ async function efetchArts(ids: string[], signal?: AbortSignal, testigo?: Testigo
     xml = await r.text()
   } catch { if (testigo) testigo.fallo = true; return [] }
   /**
-   * REG-434 · lo mismo por el otro lado, y aquí `r.text()` NUNCA lanza: una
+   * REG-537 · lo mismo por el otro lado, y aquí `r.text()` NUNCA lanza: una
    * página de error HTML o un XML cortado a la mitad daban cero bloques y cero
    * artículos, con el testigo intacto. A `efetch` sólo se le piden ids que
    * `esearch` acaba de devolver, así que «cero de N» no tiene lectura inocente.
@@ -441,7 +441,7 @@ export async function textoCompletoPMCConIdentidad(
       if (!el.ok) return
       const ej = await el.json()
       /**
-       * REG-435 · el elink SÍ trajo una respuesta de E-utilities. Que este
+       * REG-538 · el elink SÍ trajo una respuesta de E-utilities. Que este
        * artículo no esté en PMC es un dato, no un fallo del proveedor — pero si
        * esto no se anotara, el camino de PMC dejaría de dar señal de vida y
        * tres fallos sueltos en un día abrirían un circuito que nadie merece.

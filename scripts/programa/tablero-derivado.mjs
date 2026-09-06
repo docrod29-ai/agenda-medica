@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * EL ESTADO DEL TABLERO SE DERIVA — WS-01, REG-416.
+ * EL ESTADO DEL TABLERO SE DERIVA — WS-01, REG-519.
  *
  * ── EL DEFECTO QUE CIERRA ───────────────────────────────────────────────────
  *
@@ -106,13 +106,13 @@ export const INICIO_COMPUERTAS = '<!-- COMPUERTAS-DERIVADAS:INICIO -->'
 export const FIN_COMPUERTAS = '<!-- COMPUERTAS-DERIVADAS:FIN -->'
 
 /**
- * LAS COMPUERTAS, DERIVADAS — REG-441.
+ * LAS COMPUERTAS, DERIVADAS — REG-544.
  *
  * La sección se titulaba «Compuertas medidas en este SHA — **no citadas de
  * memoria**» y citaba de memoria: decía un trinquete de 96 cuando el techo
  * llevaba días en 95, y 10 844 casos cuando el árbol tenía 12 019.
  *
- * Es la cuarta vez este mes —con REG-424, REG-428 y REG-438— que **la garantía
+ * Es la cuarta vez este mes —con REG-527, REG-531 y REG-541— que **la garantía
  * mejor explicada es la que nadie fue a comprobar**. Un título que promete no
  * citar de memoria no impide citar de memoria; un guardián sí.
  *
@@ -149,7 +149,7 @@ export function generarCompuertas(c = compuertas()) {
   l.push(INICIO_COMPUERTAS)
   l.push('')
   l.push('> **Los TECHOS de este bloque se DERIVAN.** `node scripts/programa/tablero-derivado.mjs`')
-  l.push('> los reescribe y su guardián falla si están viejos. Antes de REG-441 esta sección se')
+  l.push('> los reescribe y su guardián falla si están viejos. Antes de REG-544 esta sección se')
   l.push('> titulaba «no citadas de memoria» y citaba un trinquete de 96 cuando llevaba días en 95.')
   l.push('>')
   l.push('> **El RESULTADO de correr la suite no se deriva**: exige correrla, y una corrida de tres')

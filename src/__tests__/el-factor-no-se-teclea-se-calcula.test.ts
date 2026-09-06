@@ -1,10 +1,10 @@
 /**
- * GOLDEN — REG-455. Los factores de conversión se calculan. No se teclean.
+ * GOLDEN — REG-558. Los factores de conversión se calculan. No se teclean.
  *
  * ── EL PROBLEMA, Y POR QUÉ LLEVABA CUATRO UNIDADES SIN RESOLVERSE ───────────
  *
  * La regla 1 de seguridad clínica nombra las **equivalencias** entre las cifras
- * que no se inventan: «o salen de una fuente citada, o no existen». REG-451 puso
+ * que no se inventan: «o salen de una fuente citada, o no existen». REG-554 puso
  * sólo las dos conversiones que el documento del médico dueño sostenía, y dejó
  * fuera la de la glucosa —el caso que había abierto todo— aunque 18,0182 se sepa
  * de memoria.
@@ -199,7 +199,7 @@ describe('EL FALLO QUE LA MEDICIÓN CAZÓ ANTES DE CONECTARLO', () => {
      *
      * La causa fue hacerme una tabla propia en vez de usar la aritmética que ya
      * estaba —masa partida por volumen—. Es el mismo error del medidor casero de
-     * REG-450, en otra capa.
+     * REG-553, en otra capa.
      */
     const c = conversionPara(analitoPorClave('ferritina')!, 'µg/L')!
     expect(c.factor).toBe(1)

@@ -1161,7 +1161,7 @@ export default function ConsultaActivaPage() {
   // IA económica (Sonnet 5, sin separación de voces ni 2ª opinión). No bloquea.
   const [modoEco, setModoEco] = useState(false)
   /**
-   * REG-436 · el router puede servir un modelo que NO es el del nivel pedido.
+   * REG-539 · el router puede servir un modelo que NO es el del nivel pedido.
    *
    * La decisión del dueño lo dice con todas las letras —«no bajar de modelo por
    * velocidad sin avisar»— y hasta ahora el modelo viajaba como procedencia y
@@ -1171,7 +1171,7 @@ export default function ConsultaActivaPage() {
   const [avisoModelo, setAvisoModelo] = useState('')
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   /**
-   * REG-433 · el DOI y la abreviatura ISO YA venían en la respuesta —
+   * REG-536 · el DOI y la abreviatura ISO YA venían en la respuesta —
    * `/api/expediente/evidencia` devuelve los artículos enteros— y este tipo
    * declaraba cinco campos, así que TypeScript los borraba y el render pintaba
    * «título · revista año». La cola de «el dato tiene que LLEGAR»: no faltaba
@@ -2200,7 +2200,7 @@ export default function ConsultaActivaPage() {
           motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
           /**
-           * ── LO QUE EL MOTOR SABE LEER, ENTERO (REG-427) ──────────────────
+           * ── LO QUE EL MOTOR SABE LEER, ENTERO (REG-530) ──────────────────
            *
            * Aquí iban tres campos y el motor de aplicabilidad sabía leer seis.
            * `embarazo` y la función renal existían en el motor —el segundo con
@@ -4961,7 +4961,7 @@ export default function ConsultaActivaPage() {
                 ? `Última consulta ${haceCuanto(ultimaVisita, new Date().toISOString())}.`
                 : 'Primera consulta registrada.'}
               {problemas.length > 0 && ' De lo último que se dijo de cada problema en sus notas firmadas.'}
-              {/* REG-431 — la frase de arriba afirma sobre el expediente ENTERO.
+              {/* REG-534 — la frase de arriba afirma sobre el expediente ENTERO.
                   El sobre de la proyección traía `historialRecortado` y esta
                   pantalla lo tiraba en la puerta: se quedaba sólo con
                   `.problemas` y `.vigentes`. */}
@@ -5835,7 +5835,7 @@ export default function ConsultaActivaPage() {
       )}
 
       {/**
-        * REG-436 · el nivel pedido no estaba y se usó otro modelo.
+        * REG-539 · el nivel pedido no estaba y se usó otro modelo.
         *
         * Va ARRIBA del aviso de modo económico y con su misma forma, porque es
         * la misma clase de hecho: la nota no se generó como el médico creía. Se
@@ -6068,7 +6068,7 @@ export default function ConsultaActivaPage() {
                         </span>
                       )}
                       {/**
-                        * El DOI (REG-433). Es lo que hace CITABLE una referencia: la URL de
+                        * El DOI (REG-536). Es lo que hace CITABLE una referencia: la URL de
                         * PubMed sirve para mirar, el DOI sobrevive a que la revista cambie de
                         * sitio y es lo que necesita un gestor bibliográfico.
                         *

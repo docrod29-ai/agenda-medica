@@ -115,7 +115,7 @@ export function EntregasWhatsAppTab({ clinicId }: { clinicId: string | null }) {
 }
 
 /**
- * ── LOS QUE SE RINDIERON — REG-432 ──────────────────────────────────────────
+ * ── LOS QUE SE RINDIERON — REG-535 ──────────────────────────────────────────
  *
  * El vigilante avisaba de cuántos mensajes se habían rendido, y con un número no
  * se puede hacer nada: no se ve de qué paciente era, ni qué decía, ni por qué
@@ -139,7 +139,7 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
     intentos: number; pausas: number; ultimoError: string; desde: string
   }[] | null>(null)
   /**
-   * REG-438 · los fallos del BOT, que hasta hoy nadie podía ver.
+   * REG-541 · los fallos del BOT, que hasta hoy nadie podía ver.
    *
    * Son lista aparte y **sin botón**: nunca estuvieron en una cola y no se
    * pueden reintentar —eso exige una plantilla aprobada en Meta, trámite del
@@ -201,7 +201,7 @@ function NoEntregados({ clinicId }: { clinicId: string | null }) {
   }
   if (muertas === null) return null
   /**
-   * REG-438 · «ninguno» sólo si las DOS están vacías.
+   * REG-541 · «ninguno» sólo si las DOS están vacías.
    *
    * Antes esta rama miraba sólo la cola: con el bot fallando y la cola limpia,
    * la pantalla decía «ningún mensaje se ha rendido» — una afirmación falsa

@@ -232,7 +232,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
       res = await fetchConTimeout(URL[o.proveedor], {
         method: 'POST',
         /**
-         * ── LA TRAZA TAMBIÉN VIAJA AL PROVEEDOR — REG-418 ──────────────────
+         * ── LA TRAZA TAMBIÉN VIAJA AL PROVEEDOR — REG-521 ──────────────────
          *
          * El hilo llegaba del navegador al asiento del libro de costos y se
          * paraba ahí. Cuando el proveedor dice «esa petición nos llegó rara», no

@@ -135,7 +135,7 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
     nota: 'NEEDS_CLINICAL_REVIEW (E1-02/Q2): «PCR» puede ser proteína C reactiva o reacción en cadena de la polimerasa. Sin decisión del médico dueño no se elige: confirmar con el usuario.',
   },
   /**
-   * REG-450 · §25.2 del catálogo de plausibilidad del dueño (D-032).
+   * REG-553 · §25.2 del catálogo de plausibilidad del dueño (D-032).
    *
    * Éstos no esperan una decisión: son ambiguos POR NATURALEZA, y lo seguirán
    * siendo. La hoja imprime «Neutrófilos» y sólo la unidad dice si es el
@@ -166,7 +166,7 @@ export const TERMINOS_RESERVADOS: Readonly<Record<string, { readonly candidatos:
  *
  * Trinquete: número de conceptos de dominio `laboratorio` SIN ningún código
  * estándar. Hoy son TODOS (218: los 32 escritos a mano más los 186 del catálogo
- * del dueño. Eran 25, luego 33 con los ocho de REG-450, y 218 desde que REG-453
+ * del dueño. Eran 25, luego 33 con los ocho de REG-553, y 218 desde que REG-556
  * cargó el catálogo entero), porque
  * elegir un LOINC no es mecánico —cambia según magnitud (masa vs. sustancia) y
  * espécimen— y un código equivocado viaja al exterior dentro de un `Observation`
@@ -388,14 +388,14 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
   tsh: ['tsh', 'tirotropina'],
   pcr: ['pcr', 'proteina c reactiva'],
   /**
-   * REG-453: `creatinina_orina` ya viene de ANALITOS (D-032 §20), pero sus tres
+   * REG-556: `creatinina_orina` ya viene de ANALITOS (D-032 §20), pero sus tres
    * términos los decidió una persona en E1-02, no el nombre del documento. Se
    * quedan declarados a mano, que es lo que este mapa significa.
    */
   creatinina_orina: ['creatinina en orina', 'creatinina urinaria', 'creatinina orina'],
 
   /**
-   * ── LOS OCHO DE D-032 (REG-450) ──────────────────────────────────────────
+   * ── LOS OCHO DE D-032 (REG-553) ──────────────────────────────────────────
    *
    * Derivados de los literales que están EN los `patron` de `analitos.ts`, como
    * todos los de arriba. Ni uno inventado; el invariante T-10 lo comprueba
@@ -432,7 +432,7 @@ const SINONIMOS_LAB: Readonly<Record<string, readonly string[]>> = {
  * correcto — su `patron` en analitos.ts no admite ninguna otra forma.
  */
 /**
- * ── LOS 187 DEL CATÁLOGO DECLARAN SU SINÓNIMO SOLOS — REG-453 ───────────────
+ * ── LOS 187 DEL CATÁLOGO DECLARAN SU SINÓNIMO SOLOS — REG-556 ───────────────
  *
  * Un analito que viene del documento del médico dueño tiene UN término y es su
  * propio nombre en ese documento: «Procalcitonina», «Anti-Xa», «NT-proBNP». No
@@ -518,7 +518,7 @@ const CONCEPTOS_LAB: readonly ConceptoCanonico[] = [
     etiqueta: a.etiqueta,
     dominio: 'laboratorio',
     /**
-     * REG-453: el espécimen lo trae YA el analito. `ESPECIMEN_LAB` sigue mandando
+     * REG-556: el espécimen lo trae YA el analito. `ESPECIMEN_LAB` sigue mandando
      * donde lo declaró una persona —es más específico que la regla general— y el
      * analito cubre el resto. Antes sólo existía el mapa, así que los 187 del
      * catálogo habrían entrado sin muestra declarada.
@@ -531,7 +531,7 @@ const CONCEPTOS_LAB: readonly ConceptoCanonico[] = [
     unidadConvencional: a.unidad,
   })),
   /**
-   * `creatinina_orina` YA NO SE DECLARA AQUÍ — REG-453.
+   * `creatinina_orina` YA NO SE DECLARA AQUÍ — REG-556.
    *
    * Nació en E1-02 como concepto sin analito detrás: existía sólo para que
    * aquella aceptación no se pudiera «cumplir» colapsando orina y suero. Hoy el

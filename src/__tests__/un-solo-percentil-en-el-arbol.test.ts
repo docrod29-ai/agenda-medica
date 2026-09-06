@@ -134,7 +134,7 @@ describe('las dos cifras salen del MISMO cálculo', () => {
     expect(LIBRO).toMatch(/observabilidad\/latencias\.ts/)
     expect(OBS).toMatch(/cost-ledger\.ts/)
     for (const src of [LIBRO, OBS]) {
-      expect(src).toMatch(/DECISIÓN PENDIENTE — REG-417/)
+      expect(src).toMatch(/DECISIÓN PENDIENTE — REG-520/)
       /* Con las cifras dentro: una nota que dice «difieren» sin decir cuánto no
          deja juzgar si importa. */
       expect(src).toMatch(/288[,.]1/)

@@ -28,9 +28,9 @@
  *
  * Sin `citaId` no hay cruce posible. Casar por paciente y fecha sería adivinar
  * cuál de sus citas es, y un paciente con dos controles el mismo mes tendría dos
- * candidatas indistinguibles. Es el patrón de REG-422: el identificador lo acuña
+ * candidatas indistinguibles. Es el patrón de REG-525: el identificador lo acuña
  * quien hace la acción y viaja con ella, **en su propio campo** — meterlo en
- * `origenId` sería un campo haciendo dos trabajos, que es REG-418.
+ * `origenId` sería un campo haciendo dos trabajos, que es REG-521.
  *
  * ── LA REGLA QUE ESTO PROTEGE ───────────────────────────────────────────────
  *
@@ -179,8 +179,8 @@ describe('la lectura del calendario está acotada', () => {
 describe('el campo y su puerta', () => {
   it('`citaId` vive en su propio campo, no dentro de `origenId`', () => {
     expect(MODELO).toMatch(/citaId\?: string/)
-    /* Un campo haciendo dos trabajos es REG-418, y está dicho ahí. */
-    expect(MODELO).toMatch(/REG-418/)
+    /* Un campo haciendo dos trabajos es REG-521, y está dicho ahí. */
+    expect(MODELO).toMatch(/REG-521/)
   })
 
   it('no se puede declarar «agendada» sin decir a qué cita', () => {
@@ -190,7 +190,7 @@ describe('el campo y su puerta', () => {
 
   it('y cuando se declara, el identificador se GUARDA', () => {
     /* Sin esta línea la puerta pediría el dato y lo tiraría, que es el defecto
-       de REG-431 montado sobre la puerta que lo impide. */
+       de REG-534 montado sobre la puerta que lo impide. */
     expect(FIRESTORE).toMatch(/if \(nuevo === 'agendada'\) patch\.citaId = String\(extra\.citaId\)\.trim\(\)/)
   })
 })

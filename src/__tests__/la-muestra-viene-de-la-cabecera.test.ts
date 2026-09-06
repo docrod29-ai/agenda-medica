@@ -1,9 +1,9 @@
 /**
- * GOLDEN — REG-456. La muestra sale de la hoja, no sólo del nombre del renglón.
+ * GOLDEN — REG-559. La muestra sale de la hoja, no sólo del nombre del renglón.
  *
  * ── QUÉ FALTABA ──────────────────────────────────────────────────────────────
  *
- * REG-453 cerró el defecto de que «Glucosa urinaria» cayera en la serie de la
+ * REG-556 cerró el defecto de que «Glucosa urinaria» cayera en la serie de la
  * glucosa sérica: la muestra se decide sobre el nombre del renglón. Y dejó
  * declarado, con todas las letras, lo que esa regla NO podía resolver:
  *
@@ -28,7 +28,7 @@
  * quitarla ni darle la vuelta. Un campo capaz de contradecir al nombre
  * convertiría un error de lectura del modelo en una glucosa urinaria archivada
  * como glucemia — o sea, reabriría por la puerta de atrás justo el defecto que
- * REG-453 vino a cerrar.
+ * REG-556 vino a cerrar.
  *
  * ── Y NO ROMPE EL FOSO DE «SÓLO TRANSCRIBE» ─────────────────────────────────
  *
@@ -91,7 +91,7 @@ describe('EL CAMPO NUNCA CONTRADICE AL RENGLÓN', () => {
   it('si el nombre dice orina y el campo dice suero, gana el nombre', () => {
     /**
      * La regla que impide que un error de lectura del modelo reabra el defecto de
-     * REG-453. El nombre impreso en el renglón es la señal más específica que
+     * REG-556. El nombre impreso en el renglón es la señal más específica que
      * hay; el campo puede venir de una cabecera mal leída.
      */
     expect(especimenDe('Creatinina urinaria', 'suero')).toBe('orina')
@@ -176,7 +176,7 @@ describe('SOBRE EL CORPUS — dos hojas nuevas que el nombre no podía resolver'
 
   it('el pH urinario entra, y eso destapó una cautela mal puesta', () => {
     /**
-     * REG-453 descartaba el nombre pelado de menos de tres caracteres, para que
+     * REG-556 descartaba el nombre pelado de menos de tres caracteres, para que
      * un patrón de dos letras no casara con demasiado. Y dejaba fuera el pH
      * urinario, que es un renglón de verdad de cualquier examen general de orina.
      *

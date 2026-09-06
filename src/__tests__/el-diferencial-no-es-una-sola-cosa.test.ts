@@ -1,9 +1,9 @@
 /**
- * GOLDEN — REG-450. Los analitos que faltaban, con los números del médico.
+ * GOLDEN — REG-553. Los analitos que faltaban, con los números del médico.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
- * REG-449 midió y salió rojo: 7 de 46 filas de hoja de laboratorio no llegaban
+ * REG-552 midió y salió rojo: 7 de 46 filas de hoja de laboratorio no llegaban
  * al panel — 15,2 % contra un techo del 5 %. **Seis de las siete eran cobertura
  * del catálogo**: ácido úrico, ferritina, vitamina D, VCM, neutrófilos y
  * linfocitos no existían en `analitos.ts`, que cubría 24 analitos, y una hoja de
@@ -226,7 +226,7 @@ describe('LO QUE NO SE TOCÓ, Y POR QUÉ', () => {
     expect(valorPlausible('glucosa', 7.2), 'una glucosa de 7,2 mg/dL no es posible').toBe(false)
   })
 
-  it('el catálogo entero YA está cargado (REG-453)', () => {
+  it('el catálogo entero YA está cargado (REG-556)', () => {
     /**
      * ── LA PREMISA CAMBIÓ, Y EN VEINTICUATRO HORAS ───────────────────────────
      *
@@ -234,7 +234,7 @@ describe('LO QUE NO SE TOCÓ, Y POR QUÉ', () => {
      * ocho: se comprobaba que el hueco estuviera DECLARADO, porque un vocabulario
      * es vocabulario y lo que falta no se vigila.
      *
-     * REG-453 lo cargó entero, leído por máquina del propio documento. Se
+     * REG-556 lo cargó entero, leído por máquina del propio documento. Se
      * comprueba lo contrario: que no falte ninguna fila. Si el dueño añade
      * analitos a su catálogo y nadie regenera, esto se pone rojo.
      */

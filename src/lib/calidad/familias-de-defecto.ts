@@ -322,10 +322,10 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que nadie tuvo, con una cifra perfectamente plausible en suero.
      *
      * Ningún rango la caza, porque el rango compara magnitudes y lo que dice
-     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-451.
+     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-554.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 420, 422, 423, 426, 427, 429, 431, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 447, 448, 449, 450, 451, 452, 453, 456],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 501, 523, 525, 526, 529, 530, 532, 534, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 550, 551, 552, 553, 554, 555, 556, 559],
   },
   {
     clave: 'se_contradice',
@@ -429,7 +429,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que distinguía «lo vi» de «localicé a alguien».
      */
 
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 421, 424, 428],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 524, 527, 531],
   },
   {
     clave: 'habla_real',
@@ -548,7 +548,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * habría sido peor: un peso es una penalización, y una penalización se
      * compensa con volumen.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 414, 417, 418, 425, 430, 432],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 517, 520, 521, 528, 533, 535],
   },
   {
     clave: 'hueco_como_dato',
@@ -609,7 +609,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arreglo no fue ablandar el validador sino escribir `null` y dejar que lo
      * rechace: un informe rechazado es información; un cero, no.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 454],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 557],
   },
   {
     clave: 'aislamiento',
@@ -725,7 +725,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * había aviso era un toast, y un toast muere al cambiar de pantalla, que es
      * exactamente lo que se hace después de firmar.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 413, 419],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 516, 522],
   },
   {
     clave: 'tarde',
@@ -770,7 +770,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * pareciendo elegido, y entonces ya nadie lo revisa. Contarlas aquí es lo
      * que impide que una omisión se disfrace de criterio.
      */
-    regs: [174, 175, 292, 357, 443, 444, 445, 446, 455],
+    regs: [174, 175, 292, 357, 546, 547, 548, 549, 558],
   },
   {
     /**
@@ -879,7 +879,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * recuento marcó como deuda una lectura que sí acota, porque resolvía los
      * nombres en todo el archivo y otra función tenía una variable homónima.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502, 412, 416],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 502, 515, 519],
   },
   {
     /**
@@ -993,7 +993,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * aprendido ninguna palabra» — un fallo de red afirmando que el vocabulario
      * del médico está vacío.
      */
-    regs: [341, 350, 351, 352, 393, 415],
+    regs: [341, 350, 351, 352, 393, 518],
   },
 ] as const
 

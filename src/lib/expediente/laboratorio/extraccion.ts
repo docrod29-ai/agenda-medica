@@ -27,7 +27,7 @@ export interface FilaCruda {
   unidad?: string
   referencia?: string
   /**
-   * DE QUÉ MUESTRA ES, tal como está IMPRESO en la hoja — REG-456, §27.3.
+   * DE QUÉ MUESTRA ES, tal como está IMPRESO en la hoja — REG-559, §27.3.
    *
    * Sale de la cabecera («Examen general de orina») o del rótulo del renglón. La
    * lectura de la hoja NO lo deduce del analito ni del valor: si no está impreso,
@@ -63,7 +63,7 @@ export interface ResultadoValidado {
   /** Se puso en una serie temporal (analito reconocido y valor plausible). */
   graficable: boolean
   /**
-   * ── LO QUE D-032 §27.1 EXIGE CONSERVAR (REG-451) ──────────────────────────
+   * ── LO QUE D-032 §27.1 EXIGE CONSERVAR (REG-554) ──────────────────────────
    *
    * «Nunca eliminar la unidad original después de normalizar.» Si sólo se
    * guardara el valor canónico, nadie podría discutir una conversión ni auditar
@@ -74,7 +74,7 @@ export interface ResultadoValidado {
   valorOriginal?: number
   /**
    * La unidad tal como la imprimió el laboratorio. AUSENTE cuando la hoja no la
-   * dijo (REG-454): antes se rellenaba con la canónica, y entonces el campo que
+   * dijo (REG-557): antes se rellenaba con la canónica, y entonces el campo que
    * conserva lo que dijo el laboratorio decía lo que asumimos nosotros.
    */
   unidadOriginal?: string
@@ -148,7 +148,7 @@ export function validarPanel(crudo: { fecha?: string; filas?: FilaCruda[]; pacie
 
     const a: Analito | null = analitoDe(estudio, fila.unidad?.trim(), fila.muestra)
     /**
-     * ── EL ORDEN DEL §28, Y POR QUÉ IMPORTA (REG-451) ────────────────────────
+     * ── EL ORDEN DEL §28, Y POR QUÉ IMPORTA (REG-554) ────────────────────────
      *
      * Antes esta condición metía TRES cosas en el mismo saco: analito no
      * reconocido, número ilegible y valor no plausible. Las dos primeras siguen

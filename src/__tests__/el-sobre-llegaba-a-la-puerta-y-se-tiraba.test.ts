@@ -25,7 +25,7 @@
  *
  * «El dato tiene que LLEGAR» en su último tramo: el productor lo calculó bien, el
  * transporte lo trajo entero, y el consumidor lo descartó al abrirlo. Es el mismo
- * tramo que falló en REG-427 —donde el motor leía cuatro dimensiones y la ruta le
+ * tramo que falló en REG-530 —donde el motor leía cuatro dimensiones y la ruta le
  * pasaba dos— y aquí ni siquiera hubo que cambiar el productor.
  *
  * ── UNA FRASE, NO CINCO ─────────────────────────────────────────────────────

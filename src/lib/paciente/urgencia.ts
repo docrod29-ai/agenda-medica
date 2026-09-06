@@ -102,7 +102,7 @@ const REGLAS: ReadonlyArray<{ motivo: MotivoUrgencia; prueba: (t: string) => boo
       /dolor torac/.test(t) ||
       (/\bpecho\b/.test(t) &&
         /**
-         * REG-439 · `doler`, `doliendo` y `apret` faltaban, y son tres formas
+         * REG-542 · `doler`, `doliendo` y `apret` faltaban, y son tres formas
          * completamente normales de decirlo en español:
          *
          *   «me empezó a DOLER el pecho»   ·   «me está DOLIENDO el pecho»

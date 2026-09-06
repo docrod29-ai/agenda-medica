@@ -76,7 +76,7 @@ export function abrirPendientes(
 }
 
 /**
- * ── LO PERDIDO SE INTENTA UNA ÚLTIMA VEZ ANTES DE CERRAR SESIÓN — REG-428 ───
+ * ── LO PERDIDO SE INTENTA UNA ÚLTIMA VEZ ANTES DE CERRAR SESIÓN — REG-531 ───
  *
  * `no-se-abrieron.ts` decía en su cabecera que lo guardado «se borra al cerrar
  * sesión como el resto de PHI local». **No era verdad.** La purga del logout

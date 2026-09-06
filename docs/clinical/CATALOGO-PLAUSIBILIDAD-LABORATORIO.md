@@ -3,7 +3,7 @@
 **Fuente citable de los límites de plausibilidad de `src/lib/expediente/laboratorio/analitos.ts`.**
 
 - **Autor:** Dr. David Alonso Rodríguez Luna (dueño del producto, internista e infectólogo).
-- **Entregado:** 2-sep-2026, en respuesta a la petición de REG-449.
+- **Entregado:** 2-sep-2026, en respuesta a la petición de REG-552.
 - **Registrado como:** D-032.
 
 Este documento existe porque la regla 1 de seguridad clínica prohíbe inventar una

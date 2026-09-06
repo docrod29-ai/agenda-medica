@@ -567,7 +567,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
   }
 
   /**
-   * ── LO QUE NECESITA A UN MÉDICO, AUNQUE NO SEA UNA URGENCIA (§3) — REG-439 ──
+   * ── LO QUE NECESITA A UN MÉDICO, AUNQUE NO SEA UNA URGENCIA (§3) — REG-542 ──
    *
    * Va DESPUÉS de la urgencia y por la misma razón por la que la urgencia va
    * primero: el §6 dice que gana a todo lo demás.

@@ -431,7 +431,7 @@ export const LO_QUE_NO_SE_VIGILA: readonly string[] = Object.freeze([
 ])
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DEL MOTOR, NO DE UNA CONSULTA — REG-448.
+   DEL MOTOR, NO DE UNA CONSULTA — REG-551.
 
    La lectura de arriba juzga UNA consulta. El umbral que fijó el médico (D-030) es del
    MOTOR: se decide mirando muchas consultas juntas, y las tres cuentas se

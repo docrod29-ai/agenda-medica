@@ -179,7 +179,7 @@ export default function ExpedientePage() {
     problemas" en el riel y "4" en el resumen según el momento del render.
     Se calcula sobre las FIRMADAS: un borrador no es historia clínica.
   */
-  /* REG-431 — `proyeccionRecortada` se calculaba, se devolvía, y la
+  /* REG-534 — `proyeccionRecortada` se calculaba, se devolvía, y la
      desestructuración la tiraba. El defecto entero cabía en esta línea. */
   const { problemas, vigentes, proyeccionRecortada } = useMemo(() => {
     const firmadas = notas.filter(n => n.estado === 'firmada').map(n => ({
@@ -488,7 +488,7 @@ export default function ExpedientePage() {
             <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
-              {/* REG-431 — `proyeccionRecortada` se calculaba y no se pintaba en
+              {/* REG-534 — `proyeccionRecortada` se calculaba y no se pintaba en
                   ningún sitio. La línea de arriba afirma sobre el expediente
                   ENTERO; sobre una ventana es falsa y el médico no puede saberlo
                   mirando la pantalla. */}

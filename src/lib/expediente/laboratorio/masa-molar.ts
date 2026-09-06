@@ -5,7 +5,7 @@
  *
  * La regla 1 de seguridad clínica nombra las **equivalencias** entre las cifras
  * que no se inventan: «o salen de una fuente citada, o no existen». Por eso
- * REG-451 sólo puso las dos conversiones que el documento del dueño sostenía, y
+ * REG-554 sólo puso las dos conversiones que el documento del dueño sostenía, y
  * dejó fuera la de la glucosa aunque 18,0182 se sepa de memoria.
  *
  * Saberse un número de memoria no es tener una fuente. Pero hay un camino mejor
@@ -142,7 +142,7 @@ export const LO_QUE_NO_SE_DERIVA: readonly { readonly analito: string; readonly 
 ])
 
 /**
- * VALENCIA DE LOS IONES QUE SE REPORTAN EN EQUIVALENTES — REG-455.
+ * VALENCIA DE LOS IONES QUE SE REPORTAN EN EQUIVALENTES — REG-558.
  *
  * Un equivalente es, por definición, un mol multiplicado por el valor absoluto
  * de la carga: `mEq/L = mmol/L × |z|`. No es una cifra clínica ni una convención

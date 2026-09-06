@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-454. `MISSING_UNIT`: la hoja que no dijo la unidad deja de decirla.
+ * GOLDEN — REG-557. `MISSING_UNIT`: la hoja que no dijo la unidad deja de decirla.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -116,7 +116,7 @@ describe('LO QUE NO CAMBIÓ — y no cambió a propósito', () => {
     /**
      * `MISSING_UNIT` es cautela declarada, no un defecto que revisar. Si pintara
      * ámbar, media hoja saldría en ámbar y el aviso dejaría de significar nada —
-     * justo lo que REG-451 vino a conseguir que significara algo.
+     * justo lo que REG-554 vino a conseguir que significara algo.
      */
     expect(PANEL()).toMatch(/r\.estado !== 'ACCEPTED' && r\.estado !== 'MISSING_UNIT'/)
   })
@@ -146,7 +146,7 @@ describe('CON LAS DOS COSAS EN DUDA, SE DICEN LAS DOS', () => {
     /**
      * Un sodio de 1400 sin unidad podría ser un decimal corrido (140) o una
      * unidad distinta. Ofrecer sólo el decimal sería dar por resuelto lo que no
-     * se sabe — el mismo error que REG-452 evitó con la glucosa en mmol/L, aquí
+     * se sabe — el mismo error que REG-555 evitó con la glucosa en mmol/L, aquí
      * en su forma más ambigua.
      */
     const d = dictaminar(analitoPorClave('sodio')!, 1400)

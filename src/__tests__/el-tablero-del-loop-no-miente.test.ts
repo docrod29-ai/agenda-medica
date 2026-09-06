@@ -149,7 +149,7 @@ describe('la memoria del programa sigue completa', () => {
 })
 
 /**
- * ── EL TABLERO QUE LEE UNA PERSONA, TAMBIÉN — REG-416 ───────────────────────
+ * ── EL TABLERO QUE LEE UNA PERSONA, TAMBIÉN — REG-519 ───────────────────────
  *
  * Todo lo de arriba vigila `agent-state/MASTER_STATE.json`, que es la memoria de
  * la máquina. `docs/product/AUSCULTA-MASTER-BOARD.md` es el tablero que lee una

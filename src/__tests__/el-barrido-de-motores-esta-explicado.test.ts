@@ -60,7 +60,7 @@ const EXPLICADOS: Record<string, RegExp> = {
    * misma categoría que `correrBenchmark`.
    */
   /**
-   * REG-448. `leerConsulta` salió de aquí porque ya la llama `leerElMotor`, en
+   * REG-551. `leerConsulta` salió de aquí porque ya la llama `leerElMotor`, en
    * su propio archivo. El huérfano es ahora el de arriba, por la misma razón de
    * siempre: evaluación, no camino del médico.
    */

@@ -3,7 +3,7 @@
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *
- * Las dos escrituras clínicas de Practice que el inventario de REG-412 dejó
+ * Las dos escrituras clínicas de Practice que el inventario de REG-515 dejó
  * nombradas y sin cerrar. Las dos con `addDoc`, o sea con nombre aleatorio.
  *
  * · **ARCO.** El formulario del portal es público y lo llena una persona desde su

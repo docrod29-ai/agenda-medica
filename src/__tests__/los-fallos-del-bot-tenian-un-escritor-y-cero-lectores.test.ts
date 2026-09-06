@@ -32,13 +32,13 @@
  *
  * El caso que el módulo nombra: el paciente agenda por WhatsApp, la confirmación
  * falla, la cita queda creada y él no se entera. Se registraba. Nadie podía
- * leerlo. Y peor: REG-432 había construido una pantalla llamada **«No
+ * leerlo. Y peor: REG-535 había construido una pantalla llamada **«No
  * entregados»**, así que un médico que la abriera y la viera vacía concluía que
  * no se había perdido ningún mensaje — mirando la mitad de la realidad.
  *
  * ── LA CAUSA RAÍZ ───────────────────────────────────────────────────────────
  *
- * La misma de REG-424 y REG-428, y ya van tres: **cuanto mejor explicada está
+ * La misma de REG-527 y REG-531, y ya van tres: **cuanto mejor explicada está
  * una garantía, menos probable es que alguien vaya a comprobar si el código la
  * cumple.** Aquí la garantía estaba escrita en la cabecera del módulo que la
  * incumplía.
@@ -122,7 +122,7 @@ describe('la ruta: una sola puerta para la misma pregunta', () => {
 
   it('con la MISMA capacidad, no con una puerta nueva', () => {
     /* Dos puertas para la misma pregunta es el criterio paralelo que ya se
-       corrigió una vez en esta misma ruta (REG-432). */
+       corrigió una vez en esta misma ruta (REG-535). */
     expect(RUTA.match(/verificarCapacidad\(req, clinicId, 'mensajeria\.enviar'\)/g) ?? []).toHaveLength(2)
     expect(RUTA).not.toMatch(/'clinico\.escribir'/)
   })
@@ -139,7 +139,7 @@ describe('la ruta: una sola puerta para la misma pregunta', () => {
 describe('la pantalla, y el caso que más importa', () => {
   it('«ningún mensaje se ha rendido» exige que las DOS estén vacías', () => {
     /**
-     * ÉSTE es el defecto que quedaba después de REG-432: con el bot fallando y
+     * ÉSTE es el defecto que quedaba después de REG-535: con el bot fallando y
      * la cola limpia, la pantalla afirmaba que no se había perdido nada. Una
      * afirmación falsa sobre exactamente lo que el médico venía a comprobar.
      */

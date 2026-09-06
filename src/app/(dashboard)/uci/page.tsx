@@ -647,7 +647,7 @@ export default function UciPanelPage() {
       fuente: 'panel-uci',
       medidas: lecturaActual as unknown as Record<string, unknown>,
       /**
-       * REG-419 — la clave es el INSTANTE MEDIDO, no un intento.
+       * REG-522 — la clave es el INSTANTE MEDIDO, no un intento.
        *
        * Aquí no hay reintento automático ni un modal que abrir: el fallo guarda
        * en local y avisa. Así que la identidad no puede salir de «cuándo empecé a
@@ -822,7 +822,7 @@ export default function UciPanelPage() {
    */
   const labsDictados = useMemo(() => {
     const out: LabMedido[] = []
-    /** REG-453: el subconjunto de PROSA. El catálogo entero casaría solo aquí. */
+    /** REG-556: el subconjunto de PROSA. El catálogo entero casaría solo aquí. */
     for (const a of ANALITOS_EN_TEXTO) {
       const m = discusionTxt.match(new RegExp(`${a.patron.source}\\s*[:=]?\\s*(\\d+(?:[.,]\\d+)?)`, 'i'))
       if (!m) continue

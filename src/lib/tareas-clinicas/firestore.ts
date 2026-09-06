@@ -43,7 +43,7 @@ export function idDeTareaDeOrigen(origen: string, origenId: string): string | nu
  * SOBREESCRIBE la primera en vez de sumarse.
  */
 /**
- * ── Y LO QUE NO NACE DE UNA NOTA (REG-422) ──────────────────────────────────
+ * ── Y LO QUE NO NACE DE UNA NOTA (REG-525) ──────────────────────────────────
  *
  * `origenId` es el hecho de origen cuando no es una consulta — hoy, el id de una
  * interconsulta dentro de un episodio. Sin él, la única forma de darle identidad
@@ -79,7 +79,7 @@ export function idDerivado(t: Omit<TareaClinica, 'id'>): string | null {
 /**
  * Crea las tareas de golpe. Devuelve cuántas entraron.
  *
- * Las que traen `notaId` —o, desde REG-422, `origenId`— van con id DERIVADO y
+ * Las que traen `notaId` —o, desde REG-525, `origenId`— van con id DERIVADO y
  * `merge`: repetir la acción que las origina —volver a imprimir la orden,
  * reprocesar la nota, reintentar la interconsulta— no las duplica.
  * `merge` y no `set` a secas para no pisar el estado de una tarea que el médico
@@ -222,7 +222,7 @@ export async function tareasDePaciente(clinicId: string, patientId: string): Pro
  *
  * Hace falta porque `cambiarEstado` necesita la tarea ENTERA —su estado actual y
  * su registro de transiciones—, y quien conoce el id derivado de un hecho (una
- * interconsulta, REG-422) no tiene la tarea en la mano. Leerla antes de moverla
+ * interconsulta, REG-525) no tiene la tarea en la mano. Leerla antes de moverla
  * es además lo que evita pisar el trabajo de otra pestaña.
  */
 export async function tareaPorId(clinicId: string, tareaId: string): Promise<TareaClinica | null> {
@@ -253,7 +253,7 @@ export async function cambiarEstado(
   const v = puedeTransicionar(tarea.estado, nuevo)
   if (!v.permitido) return { ok: false, motivo: v.motivo }
   /**
-   * REG-437 · no se declara «agendada» sin decir CUÁL cita.
+   * REG-540 · no se declara «agendada» sin decir CUÁL cita.
    *
    * Sin el identificador, `agendada` era una declaración que nadie podía
    * contrastar: si la cita se cancelaba o el paciente no venía, el pendiente

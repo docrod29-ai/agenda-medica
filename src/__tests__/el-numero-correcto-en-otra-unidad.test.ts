@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-451. Primero se normaliza la unidad; después se juzga el número.
+ * GOLDEN — REG-554. Primero se normaliza la unidad; después se juzga el número.
  *
  * ── QUÉ FALLABA, Y ERAN DOS COSAS ────────────────────────────────────────────
  *
@@ -84,7 +84,7 @@ describe('EL DEFECTO QUE NINGÚN RANGO PODÍA CAZAR — PCR en mg/dL', () => {
 
   it('y ahora se convierte a 840 y AUN ASÍ se marca', () => {
     /**
-     * REG-455 le puso conversión (mg/dL → mg/L es escala del SI, ×10). Así que
+     * REG-558 le puso conversión (mg/dL → mg/L es escala del SI, ×10). Así que
      * el 84 pasa a ser 840 mg/L, que es lo correcto — y el rango estrecho de
      * este producto (0–600) dice que hay que mirarlo. Las dos cosas son ciertas
      * a la vez: la conversión acertó y el valor sigue mereciendo revisión.
@@ -148,7 +148,7 @@ describe('EL ORDEN DEL §28 — normalizar, y DESPUÉS juzgar', () => {
     const d = dictaminar(vd, 75, 'nmol/L')
     expect(d.estado).toBe('ACCEPTED')
     expect(d.valor).toBeCloseTo(30.05, 2)   // 75 / 2.496
-    // REG-455: el 2,496 ya no se cita, se REPRODUCE desde C27H44O2.
+    // REG-558: el 2,496 ya no se cita, se REPRODUCE desde C27H44O2.
     expect(1 / d.conversion!.factor).toBeCloseTo(2.496, 3)
     expect(d.conversion?.fuente).toMatch(/C27H44O2/)
   })
@@ -157,8 +157,8 @@ describe('EL ORDEN DEL §28 — normalizar, y DESPUÉS juzgar', () => {
     const d = dictaminar(analitoPorClave('creatinina')!, 80, 'umol/L')
     expect(d.valorOriginal).toBe(80)
     expect(d.unidadOriginal).toBe('umol/L')
-    // REG-455: la fuente ya no es su documento, es el cálculo. Su 1,58 pasó a
-    // ser el testigo que lo comprueba, y vive en el golden de REG-455.
+    // REG-558: la fuente ya no es su documento, es el cálculo. Su 1,58 pasó a
+    // ser el testigo que lo comprueba, y vive en el golden de REG-558.
     expect(d.conversion?.fuente).toMatch(/C4H7N3O/)
   })
 
@@ -170,14 +170,14 @@ describe('EL ORDEN DEL §28 — normalizar, y DESPUÉS juzgar', () => {
 })
 
 describe('LO QUE NO SE INVENTA', () => {
-  it('la glucosa en mmol/L YA se convierte — pero calculada, no tecleada (REG-455)', () => {
+  it('la glucosa en mmol/L YA se convierte — pero calculada, no tecleada (REG-558)', () => {
     /**
      * ── LA PREMISA CAMBIÓ, Y POR EL CAMINO BUENO ────────────────────────────
      *
      * Cuando se escribió esto, 7,2 mmol/L se quedaba en `VERIFY_UNIT` porque
      * 18,0182 se sabe de memoria y saberse un número no es tener una fuente.
      *
-     * REG-455 no fue a buscar el número: quitó la necesidad de tenerlo. El
+     * REG-558 no fue a buscar el número: quitó la necesidad de tenerlo. El
      * factor sale de la masa molar de la glucosa, y la masa molar sale de su
      * fórmula (C₆H₁₂O₆) y de los pesos atómicos de la IUPAC. No hay ni un factor
      * tecleado en el módulo.
@@ -202,7 +202,7 @@ describe('LO QUE NO SE INVENTA', () => {
     /**
      * El invariante que hace falsable «aquí no se inventó ningún factor». Antes
      * exigía que la fuente citara el documento del dueño, porque las dos únicas
-     * conversiones venían de ahí. REG-455 las calcula, así que ahora la fuente
+     * conversiones venían de ahí. REG-558 las calcula, así que ahora la fuente
      * tiene que decir de QUÉ cálculo salen — y no vale una fuente vacía.
      */
     const casos: [string, string][] = [
@@ -245,7 +245,7 @@ describe('AL REVÉS POR EL OTRO LADO — no se pasa de frenada', () => {
 
   it('la unidad ausente se sigue JUZGANDO como la canónica — pero ya se dice', () => {
     /**
-     * REG-454 movió esto a medias, y las dos mitades importan:
+     * REG-557 movió esto a medias, y las dos mitades importan:
      *
      *  · Sigue igual lo que se hace: se asume la unidad convencional y la fila
      *    entra a la gráfica. Cambiar eso vaciaría las series de medio consultorio.
@@ -294,14 +294,14 @@ describe('EL DATO TIENE QUE LLEGAR — la pantalla enseña el estado', () => {
      * Marcado sin avisar es lo mismo que no marcado.
      */
     /**
-     * REG-454 le añadió una excepción: `MISSING_UNIT` NO pinta ámbar, porque es
+     * REG-557 le añadió una excepción: `MISSING_UNIT` NO pinta ámbar, porque es
      * cautela declarada y no un defecto que revisar. Si pintara, media hoja
      * saldría en ámbar y el aviso dejaría de significar algo.
      */
     expect(PANEL()).toMatch(/r\.noEvaluable \|\| \(r\.estado && r\.estado !== 'ACCEPTED' && r\.estado !== 'MISSING_UNIT'\)/)
   })
 
-  it('y el motivo es TEXTO VISIBLE, no un `title` (REG-433)', () => {
+  it('y el motivo es TEXTO VISIBLE, no un `title` (REG-536)', () => {
     /**
      * Un aviso que sólo existe al pasar el ratón no existe en el teléfono. Se
      * comprueba que la explicación va dentro de un `<span style={{ display:

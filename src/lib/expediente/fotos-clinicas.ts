@@ -56,7 +56,7 @@ function fotosCol(clinicId: string, patientId: string) {
 }
 
 /**
- * LA IDENTIDAD DE UNA FOTO ES LA FOTO, NO EL MOMENTO DE SUBIRLA — REG-413.
+ * LA IDENTIDAD DE UNA FOTO ES LA FOTO, NO EL MOMENTO DE SUBIRLA — REG-516.
  *
  * Aquí la clave NO puede acuñarse al abrir nada, y ésa es la diferencia con la
  * dispensación de farmacia o con el formulario de ARCO. El flujo entero —leer el

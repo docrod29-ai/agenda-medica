@@ -44,7 +44,7 @@ const page = leer('src/app/(dashboard)/hospitalizacion/[internamientoId]/page.ts
 describe('el motor ya existía y ahora CORRE', () => {
   /**
    * Por SÍMBOLO y no por la línea de import entera: estas dos aserciones se
-   * rompieron el día que el mismo módulo importó un segundo símbolo (REG-422),
+   * rompieron el día que el mismo módulo importó un segundo símbolo (REG-525),
    * sin que nada de lo que vigilan hubiera cambiado. Un guardián que se rompe al
    * añadir un import no vigila lo que dice vigilar.
    */

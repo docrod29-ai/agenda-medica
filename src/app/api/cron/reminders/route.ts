@@ -84,7 +84,7 @@ async function sendWhatsApp(phone: string, message: string, _config: ClinicConfi
 }
 
 export async function GET(req: NextRequest) {
-  /* REG-418 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+  /* REG-521 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
      fondo no nace de un navegador, así que no acepta la que le manden. */
   const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')

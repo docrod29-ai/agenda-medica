@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
    * vista un artículo porque un patrón no casó sería peor que no tener esto.
    */
   /**
-   * ── EL MOTOR LEÍA CUATRO DIMENSIONES Y AQUÍ LLEGABAN DOS (REG-427) ────────
+   * ── EL MOTOR LEÍA CUATRO DIMENSIONES Y AQUÍ LLEGABAN DOS (REG-530) ────────
    *
    * `embarazo` y `tfg` existían en el motor —el segundo con la vigencia de
    * REG-375, «un número viejo no es un número»— y **nadie los rellenaba nunca**.
@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
     }
 
     /**
-     * ── EL PASAJE ESTÁ Y DICE OTRA COSA (REG-429) ────────────────────────────
+     * ── EL PASAJE ESTÁ Y DICE OTRA COSA (REG-532) ────────────────────────────
      *
      * Tercer aviso, y distinto de los otros dos a propósito: aquí el anclaje
      * funcionó —el texto existe y es literal— pero el pasaje NIEGA el resultado

@@ -19,7 +19,7 @@
  * ── LO QUE SE LE ADVIRTIÓ, Y AUN ASÍ DECIDIÓ ────────────────────────────────
  *
  * Que un mensaje puede morir sin acuse. No es una suposición: este repositorio
- * lo mide desde REG-432 y REG-438 —hay una pantalla entera de mensajes que se
+ * lo mide desde REG-535 y REG-541 —hay una pantalla entera de mensajes que se
  * rindieron y otra de respuestas del bot que no salieron—. Se le dijo en la
  * propia opción y eligió que cuente igual.
  *
@@ -31,7 +31,7 @@
  *
  * Tres de las cuatro opciones son *a quién* y la cuarta es *por qué vía*.
  * Guardarlas en un campo llamado `destinatario` habría sido un campo haciendo
- * dos trabajos — REG-418, el defecto que este repositorio lleva cazando desde
+ * dos trabajos — REG-521, el defecto que este repositorio lleva cazando desde
  * entonces. Por eso el campo pregunta una sola cosa: **de qué manera consta**.
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ describe('pero se guarda CUÁL fue, que es la otra mitad', () => {
     /* Tres de las cuatro son «a quién» y la cuarta «por qué vía». El campo
        pregunta UNA cosa: de qué manera consta. */
     expect(MODELO).toMatch(/DE QUÉ MANERA CONSTA EL AVISO/)
-    expect(MODELO).toMatch(/REG-418/)
+    expect(MODELO).toMatch(/REG-521/)
     expect(MODELO).not.toMatch(/readonly destinatario/)
   })
 })

@@ -3,7 +3,7 @@
  *
  * ── QUÉ FALLABA (WS-03.documentos-que-crecen) ───────────────────────────────
  *
- * REG-424 topó `administraciones` y dejó tres arrays SIN tope —`movimientos`,
+ * REG-527 topó `administraciones` y dejó tres arrays SIN tope —`movimientos`,
  * `indicaciones`, `interconsultas`— con la razón bien argumentada: el documento
  * del episodio es su **única copia**, y recortarlas borraría traslados u órdenes
  * vivas.
@@ -26,7 +26,7 @@
  *
  * ── CAUSA RAÍZ, POR QUINTA VEZ ESTE MES ─────────────────────────────────────
  *
- * Con REG-424, REG-428, REG-438 y REG-441 son cinco: **cuanto mejor explicada
+ * Con REG-527, REG-531, REG-541 y REG-544 son cinco: **cuanto mejor explicada
  * está una garantía, menos probable es que alguien vaya a comprobar si el código
  * la cumple.** Aquí la promesa estaba escrita en el módulo que la incumplía, dos
  * párrafos por encima del código.
@@ -51,7 +51,7 @@
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
- * · **No topa nada nuevo**: los tres siguen sin techo, por la razón de REG-424.
+ * · **No topa nada nuevo**: los tres siguen sin techo, por la razón de REG-527.
  * · **No mide lo que Firestore cobra de verdad** (nombres de campo, índices,
  *   sobrecarga por documento). La cifra queda POR DEBAJO de la real, así que el
  *   aviso llega antes — nunca después, que es el error que importaría.
@@ -73,7 +73,7 @@ const RUTA = readFileSync('src/app/api/hospital/mutar/route.ts', 'utf8')
 /**
  * La ruta SIN comentarios.
  *
- * Tercera vez en esta serie —con REG-437 y REG-440— que un guardián de fuente
+ * Tercera vez en esta serie —con REG-540 y REG-543— que un guardián de fuente
  * casa con **su propia explicación**: el comentario de la alerta dice «sin PHI:
  * ni paciente, ni cama, ni servicio» y contiene las tres palabras que el
  * guardián busca. Un guardián que se dispara con la prosa que justifica el

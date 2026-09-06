@@ -274,7 +274,7 @@ export default function GeneradorRecetaPage() {
          */
         setMedicamentos(medicamentosDeLaReceta(n.medicamentos ?? [])
           .map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })))
-        /* REG-421 — una sola puerta. El respaldo sin filtro que había aquí
+        /* REG-524 — una sola puerta. El respaldo sin filtro que había aquí
            `tipo`, así que un «embarazo descartado» salía impreso como el
            motivo. Si nada califica no se rellena: el campo es editable. */
         const principal = diagnosticoQueSeImprime(n.diagnosticos)

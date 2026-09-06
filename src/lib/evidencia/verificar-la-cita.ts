@@ -99,7 +99,7 @@ export interface Verificacion {
    */
   readonly fueraDeLosHallazgos: readonly CitaFueraDeLosHallazgos[]
   /**
-   * Citas ANCLADAS cuyo pasaje dice otra cosa que la afirmación (REG-429).
+   * Citas ANCLADAS cuyo pasaje dice otra cosa que la afirmación (REG-532).
    *
    * Tampoco están «sin respaldo»: el pasaje existe y es literal. Lo que pasa es
    * que **lo niega** o **lo dice con reservas** que la frase quitó. Es un tercer
@@ -245,7 +245,7 @@ export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
   'arreglan distinto; mezclarlos escondería el segundo dentro del primero.'
 
 /**
- * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-429.
+ * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-532.
  *
  * No mira los artículos: compara la afirmación con **el pasaje que el propio
  * modelo devolvió como respaldo**. Si ese pasaje niega el resultado, o lo dice

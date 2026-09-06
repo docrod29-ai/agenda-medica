@@ -177,7 +177,7 @@ export const LA_DECISION_DEL_DUENO =
   'DECIDIDO por el médico dueño el 31-ago-2026, opción A: cuando el modelo '
   + 'previsto para el nivel pedido no está disponible, la nota SE GENERA con lo '
   + 'que haya y se MARCA. No se niega. Razón: negarse deja al médico sin nota en '
-  + 'una consulta real, y desde REG-436 el aviso sí llega a la pantalla como '
+  + 'una consulta real, y desde REG-539 el aviso sí llega a la pantalla como '
   + 'texto visible — que era el defecto de verdad, no la degradación en sí. Se '
   + 'descartaron la opción B (negarse sólo en premium) y la C (negarse siempre).'
 

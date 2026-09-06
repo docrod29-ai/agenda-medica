@@ -157,7 +157,7 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
   } catch { /* nunca trabar el cierre de sesión por la bitácora */ }
 
   /**
-   * EL CAJÓN DE PENDIENTES QUE NO SE ABRIERON — REG-428.
+   * EL CAJÓN DE PENDIENTES QUE NO SE ABRIERON — REG-531.
    *
    * Va aquí por lo mismo que la bitácora: es lo último que se puede mandar con
    * el token todavía vivo. Y hacía falta por algo peor que el orden — la clave

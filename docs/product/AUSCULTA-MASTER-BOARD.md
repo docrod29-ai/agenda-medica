@@ -10,7 +10,7 @@
 | | |
 |---|---|
 | **Rama** | `claude/ausculta-master-completion-4clx9v` |
-| **SHA, versión, última REG y conteo de pruebas** | En `agent-state/MASTER_STATE.json`, que **se deriva** (`node scripts/agent-state/actualizar.mjs`) y tiene guardián. Aquí llevaban un SHA y una fecha escritos a mano que se quedaron quince REG atrás — REG-416 |
+| **SHA, versión, última REG y conteo de pruebas** | En `agent-state/MASTER_STATE.json`, que **se deriva** (`node scripts/agent-state/actualizar.mjs`) y tiene guardián. Aquí llevaban un SHA y una fecha escritos a mano que se quedaron quince REG atrás — REG-519 |
 | **Estado por requisito** | En el bloque derivado de abajo, y en `src/lib/programa/requisitos.ts` |
 | **Tableros visibles** | #296 (padre) · #310 (escala) · #314 (evidencia) · #389 (este programa) |
 
@@ -128,7 +128,7 @@ trabajo interno se acabó.
 <!-- COMPUERTAS-DERIVADAS:INICIO -->
 
 > **Los TECHOS de este bloque se DERIVAN.** `node scripts/programa/tablero-derivado.mjs`
-> los reescribe y su guardián falla si están viejos. Antes de REG-441 esta sección se
+> los reescribe y su guardián falla si están viejos. Antes de REG-544 esta sección se
 > titulaba «no citadas de memoria» y citaba un trinquete de 96 cuando llevaba días en 95.
 >
 > **El RESULTADO de correr la suite no se deriva**: exige correrla, y una corrida de tres
@@ -141,7 +141,7 @@ trabajo interno se acabó.
 | Casos declarados en el árbol | **11055** en 876 archivos | `node scripts/agent-state/actualizar.mjs` |
 | Sellado clínico | **463 archivos · 6730 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
-| Última reparación en el ledger | **REG-503** | `docs/audit/regression-ledger.md` |
+| Última reparación en el ledger | **REG-559** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |
 | Navegador real | **no ejecutado** | ver WS-05 |
 
@@ -154,7 +154,7 @@ vieja.
 | | |
 |---|---|
 | `npx vitest run` | **12 019 pasan · 1 falla** (860 archivos) |
-| Fecha de la foto | 31-ago-2026, tras REG-433…REG-441 |
+| Fecha de la foto | 31-ago-2026, tras REG-536…REG-544 |
 
 **Sobre la única falla.** No se hereda la etiqueta «preexistente»: se
 reprodujo la causa. El caso exige que `10.255.255.1` **trague** los paquetes

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * DERIVA EL CATÁLOGO DE PLAUSIBILIDAD DEL DOCUMENTO DEL DUEÑO — REG-453.
+ * DERIVA EL CATÁLOGO DE PLAUSIBILIDAD DEL DOCUMENTO DEL DUEÑO — REG-556.
  *
  * ── POR QUÉ ESTO NO SE TECLEA A MANO ────────────────────────────────────────
  *

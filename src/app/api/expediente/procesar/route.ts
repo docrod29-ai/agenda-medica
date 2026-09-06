@@ -87,7 +87,7 @@ const headersAnthropic = (key: string) => ({
 /**
  * Cachea el modelo resuelto entre invocaciones del runtime (uno por perfil).
  *
- * REG-436 · **una degradación NO se cachea.** Antes se guardaba cualquier
+ * REG-539 · **una degradación NO se cachea.** Antes se guardaba cualquier
  * elección y sólo se limpiaba con un 404, así que un modelo de último recurso
  * escogido durante una caída parcial quedaba clavado toda la vida de la
  * instancia caliente — todas las notas de todos los médicos de esa instancia.
@@ -97,7 +97,7 @@ const modeloResuelto: Record<Perfil, string> = { live: '', pro: '', premium: '' 
 /**
  * Descubre un modelo válido para esta cuenta vía /v1/models, y **dice cómo llegó
  * a él**: la decisión vive en `que-modelo-se-eligio.ts`, que es donde se puede
- * probar. Ver REG-436.
+ * probar. Ver REG-539.
  */
 async function resolverModelo(key: string, perfil: Perfil): Promise<Eleccion> {
   const candidatos = CANDIDATOS[perfil]
@@ -123,7 +123,7 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<Eleccion> {
       const data = await res.json()
       const ids: string[] = (data.data ?? []).map((m: { id: string }) => m.id)
       /**
-       * REG-436 · el ramal que degradaba en silencio vivía aquí:
+       * REG-539 · el ramal que degradaba en silencio vivía aquí:
        * `?? ids[0]` se quedaba con el primer modelo que la cuenta tuviera, que
        * para el perfil `premium` —la nota que el dueño decidió que no escatima—
        * puede ser Haiku. El modelo viajaba como procedencia y nadie lo comparaba

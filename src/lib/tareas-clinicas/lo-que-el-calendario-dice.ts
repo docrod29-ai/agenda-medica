@@ -21,9 +21,9 @@
  *
  * Sin `citaId` no hay cruce posible: casar por paciente y fecha sería adivinar
  * cuál de sus citas es, y un paciente con dos controles el mismo mes tendría
- * dos candidatas indistinguibles. Es el patrón de REG-422: el identificador lo
+ * dos candidatas indistinguibles. Es el patrón de REG-525: el identificador lo
  * acuña quien hace la acción y viaja con ella, en su propio campo — meterlo en
- * `notaId` sería un campo haciendo dos trabajos, que es REG-418.
+ * `notaId` sería un campo haciendo dos trabajos, que es REG-521.
  *
  * ── LO QUE ESTE MÓDULO NO DECIDE ────────────────────────────────────────────
  *
@@ -151,7 +151,7 @@ export const POR_QUE_HACE_FALTA_EL_ID =
   'Porque sin `citaId` no hay cruce posible. Casar por paciente y fecha sería '
   + 'adivinar cuál de sus citas es, y un paciente con dos controles el mismo mes '
   + 'tendría dos candidatas indistinguibles. El identificador lo acuña quien '
-  + 'agenda y viaja con la tarea, en su propio campo — como en REG-422.'
+  + 'agenda y viaja con la tarea, en su propio campo — como en REG-525.'
 
 export const POR_QUE_NO_SE_MUEVE_LA_TAREA =
   'Porque qué hacer cuando el paciente no vino —cuánto se espera, si escala, a '

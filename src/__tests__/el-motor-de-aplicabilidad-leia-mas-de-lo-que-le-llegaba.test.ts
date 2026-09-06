@@ -158,7 +158,7 @@ describe('la conducta del copiloto no cambió al mudar la lectura', () => {
 
   it('avisar cuenta el presuntivo Y el diferencial — decisión del dueño, 31-ago-2026', () => {
     /**
-     * ACTUALIZADO EN REG-443, y no es un retoque: cambia un aviso de seguridad.
+     * ACTUALIZADO EN REG-546, y no es un retoque: cambia un aviso de seguridad.
      *
      * Este caso fijaba la conducta que se CONSERVÓ al mudar la lectura aquí
      * —el `diferencial` fuera— mientras el comentario del copiloto decía lo

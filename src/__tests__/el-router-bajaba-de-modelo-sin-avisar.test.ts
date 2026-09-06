@@ -80,7 +80,7 @@ const CONSULTA = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 const PREMIUM = ['claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5']
 const PRO = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5']
 
-/** La elección tal como la hacía la ruta antes de REG-436. */
+/** La elección tal como la hacía la ruta antes de REG-539. */
 const comoEraAntes = (c: readonly string[], ids: string[]) =>
   c.find(x => ids.includes(x)) ?? ids.find(id => id.includes('sonnet')) ?? ids[0]
 
@@ -156,7 +156,7 @@ describe('lo que sí cambia: se sabe que fue una degradación', () => {
 
   it('una cuenta SIN modelos no es lo mismo que un descubrimiento caído', () => {
     /* `null` = no contestó · `[]` = contestó y no tiene nada. Consecuencias
-       opuestas, y pintarlas igual es el defecto que ya cazó REG-434. */
+       opuestas, y pintarlas igual es el defecto que ya cazó REG-537. */
     expect(elegirModelo(PREMIUM, []).modelo).toBeNull()
     expect(elegirModelo(PREMIUM, null).modelo).toBe('claude-opus-4-8')
   })
@@ -198,7 +198,7 @@ describe('y el aviso LLEGA — que es donde se rompe siempre', () => {
 describe('lo que este módulo declara que no decide', () => {
   it('no bloquea, y ahora es por DECISIÓN y no por conservación', () => {
     /**
-     * ACTUALIZADO EN REG-443. La conducta es la misma; lo que cambió es su
+     * ACTUALIZADO EN REG-546. La conducta es la misma; lo que cambió es su
      * estatus. Aquí vivía `LA_PREGUNTA_PARA_EL_DUENO`, con sus tres opciones y
      * su `NEEDS_CLINICAL_REVIEW`, porque nadie la había elegido: regía por
      * conservación. El dueño eligió la A el 31-ago-2026.

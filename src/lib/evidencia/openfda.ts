@@ -46,7 +46,7 @@ async function pedir(url: string): Promise<Record<string, unknown> | null> {
     const r = await fetchConTimeout(url, {}, TIMEOUT.evidencia)
     if (!r.ok) { anotarVeredicto(clave, veredictoDeRespuestaEvidencia(r.status)); return null }
     /**
-     * REG-435 · el éxito se anota DESPUÉS de leer el cuerpo, no al ver el 200.
+     * REG-538 · el éxito se anota DESPUÉS de leer el cuerpo, no al ver el 200.
      *
      * `'contesto'` cierra el circuito y borra los fallos anteriores. Anotándolo
      * aquí arriba, api.fda.gov devolviendo 200 con una página de error —lo que

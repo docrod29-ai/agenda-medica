@@ -52,7 +52,7 @@ export type EstadoDeValidacion =
   /** Unidad conocida y valor fuera de los límites de captura. */
   | 'VERIFY_VALUE_OR_UNIT'
   /**
-   * LA HOJA NO DIJO LA UNIDAD — §33 de D-032, REG-454.
+   * LA HOJA NO DIJO LA UNIDAD — §33 de D-032, REG-557.
    *
    * Se asume la canónica, que es lo que este código hacía desde siempre y lo que
    * casi siempre acierta. Lo que cambia es que **deja de ser silencioso**: el
@@ -90,7 +90,7 @@ export function claveDeUnidad(u: string | undefined | null): string {
 }
 
 /**
- * ── LAS CONVERSIONES YA NO SE TECLEAN: SE CALCULAN — REG-455 ────────────────
+ * ── LAS CONVERSIONES YA NO SE TECLEAN: SE CALCULAN — REG-558 ────────────────
  *
  * Hasta ayer aquí vivían DOS factores, los únicos que el documento del dueño
  * sostenía, y la glucosa se quedaba fuera aunque 18,0182 se sepa de memoria.
@@ -101,7 +101,7 @@ export function claveDeUnidad(u: string | undefined | null): string {
  *
  *  1. **Escala** — `mg/dL` ↔ `mg/L` es dividir entre diez. Prefijos del SI, sin
  *     química de por medio. Aquí entra la PCR reportada en mg/dL, que era el
- *     caso silencioso de REG-451.
+ *     caso silencioso de REG-554.
  *  2. **Masa molar** — `mmol/L` → `mg/dL` es multiplicar por la masa molar
  *     partida por diez, y la masa molar sale de la fórmula molecular y de los
  *     pesos atómicos de la IUPAC (`masa-molar.ts`).
@@ -144,7 +144,7 @@ function partir(u: string): { numerador: string; denominador: string } | null {
  *
  * La causa fue hacerme una tabla propia en vez de usar la aritmética que ya
  * estaba: masa partida por volumen. Es el mismo error que el medidor casero de
- * REG-450, en otra capa. Ahora la escala se calcula igual que la molar y con las
+ * REG-553, en otra capa. Ahora la escala se calcula igual que la molar y con las
  * mismas tablas de masa y volumen — no hay dos maneras de contar lo mismo.
  */
 function factorDeEscala(desde: string, hacia: string): number | null {
@@ -332,7 +332,7 @@ export interface Dictamen {
   readonly valorOriginal: number
   /**
    * La unidad tal como la imprimió el laboratorio. `undefined` cuando la hoja no
-   * la dijo — y ESO es el arreglo de REG-454: antes se rellenaba con la unidad
+   * la dijo — y ESO es el arreglo de REG-557: antes se rellenaba con la unidad
    * canónica, así que el campo que existe para conservar lo que dijo el
    * laboratorio decía lo que habíamos asumido nosotros. Indistinguible de una
    * hoja que sí lo dijo.
@@ -368,7 +368,7 @@ export function dictaminar(a: Analito, valor: number, unidadReportada?: string):
   const uCanonica = claveDeUnidad(a.unidad)
   const laHojaNoLaDijo = uOriginal === ''
   /**
-   * REG-454: `unidadOriginal` sólo lleva lo que la hoja dijo. Si no dijo nada, se
+   * REG-557: `unidadOriginal` sólo lleva lo que la hoja dijo. Si no dijo nada, se
    * queda vacía y la asumida viaja aparte. Rellenarla con la canónica era
    * fabricar el dato que este campo existe para conservar (§27.1), y dejaba una
    * hoja muda indistinguible de una que sí declaró la unidad.

@@ -186,7 +186,7 @@ export function esLineaDeLabCapturado(linea: string, capturados: readonly LabMed
   // Nombre + separador + número + unidad opcional, y NADA más.
   const m = l.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 ()\/]+?)\s*[:=]\s*([\d.,]+)\s*(?:[A-Za-zµ%\/³×0-9.]+)?\s*\.?$/)
   if (!m) return false
-  /** REG-453: el subconjunto de PROSA, no el catálogo entero. Ver `ANALITOS_EN_TEXTO`. */
+  /** REG-556: el subconjunto de PROSA, no el catálogo entero. Ver `ANALITOS_EN_TEXTO`. */
   const a = ANALITOS_EN_TEXTO.find(x => x.patron.test(m[1]))
   if (!a) return false
   const num = Number(m[2].replace(/,(?=\d{3}\b)/g, '').replace(',', '.'))

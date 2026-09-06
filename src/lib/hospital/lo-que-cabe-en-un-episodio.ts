@@ -175,14 +175,14 @@ export const POR_QUE_1MB_NO_ERA_UN_TOPE =
 
 
 /**
- * ── CUÁNTO LE QUEDA AL EPISODIO ANTES DE PARARSE — REG-442 ──────────────────
+ * ── CUÁNTO LE QUEDA AL EPISODIO ANTES DE PARARSE — REG-545 ──────────────────
  *
  * Este módulo terminaba diciendo que los tres arrays sin tope quedan «como
  * riesgo NOMBRADO en vez de uno que nadie ha mirado. Un riesgo declarado **se
  * puede vigilar**; uno que vive en la forma de un documento, no».
  *
  * Nadie lo vigilaba. Era la garantía escrita y sin cumplir — la misma forma que
- * REG-424, REG-428, REG-438 y REG-441.
+ * REG-527, REG-531, REG-541 y REG-544.
  *
  * Y aquí importa más que en ninguna: cuando el documento pasa de 1 MB no falla
  * lo último que se añadió, **falla egresar al paciente**. Un aviso que llega

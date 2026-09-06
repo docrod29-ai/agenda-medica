@@ -67,7 +67,7 @@ interface Caso {
   motivo?: string
   porQue: string
   prohibido?: string
-  /** La clase del §2. Obligatoria desde REG-439: «una respuesta sin clase es un defecto». */
+  /** La clase del §2. Obligatoria desde REG-542: «una respuesta sin clase es un defecto». */
   clase: string
   /** Qué motor la decidió. `suelo` = ninguno la reclamó y se escala. */
   comoSeDecide: 'urgencia' | 'escalacion' | 'suelo'
@@ -90,7 +90,7 @@ describe('LA PUERTA EXISTE (§7) — y una que no existe no falla nunca', () => 
 
   it('EL FIXTURE SÓLO CRECE — su propio trinquete', () => {
     /**
-     * Añadido en REG-439, y hacía falta.
+     * Añadido en REG-542, y hacía falta.
      *
      * El sello de `invariantes-clinicos.json` cuenta los `it(` declarados a
      * principio de línea: los casos que salen de recorrer el fixture con un
@@ -164,7 +164,7 @@ function urgentesMenos(f: { casos: Caso[] }): number {
 }
 
 /**
- * ── LA SEGUNDA CLASE, AÑADIDA EN REG-439 ────────────────────────────────────
+ * ── LA SEGUNDA CLASE, AÑADIDA EN REG-542 ────────────────────────────────────
  *
  * Hasta aquí la puerta sólo comprobaba urgente / no urgente, y «no urgente» dice
  * lo que un mensaje NO es, no lo que es: «¿puedo tomarme el doble?» y «no veo
@@ -232,7 +232,7 @@ describe('CADA CASO TIENE SU CLASE (§2), Y SE COMPRUEBA', () => {
     /**
      * La mitad que faltaba. Sin esto, el clasificador sería un módulo escrito y
      * probado que no corre en el camino del paciente — la familia que este
-     * repositorio persigue, y que ya me cazó una vez en REG-437.
+     * repositorio persigue, y que ya me cazó una vez en REG-540.
      *
      * Y va DESPUÉS de la urgencia en el fuente, que es el orden del §6.
      */
@@ -279,7 +279,7 @@ describe('LO QUE ESTA PUERTA NO CUBRE, COMPROBADO EN VEZ DE SUPUESTO', () => {
 
   it('…y sólo DOS tienen clasificador determinista hoy', () => {
     /**
-     * ACTUALIZADO EN REG-439, que añadió la segunda: `ESCALATE_TO_CLINICIAN`.
+     * ACTUALIZADO EN REG-542, que añadió la segunda: `ESCALATE_TO_CLINICIAN`.
      *
      * Se sigue comprobando a propósito. Fingir cobertura de las otras TRES sería
      * el verde falso que esta puerta existe para impedir — y el día que alguien

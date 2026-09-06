@@ -185,7 +185,7 @@ export function tareaDeResultado(p: {
 }
 
 /**
- * UNA INTERCONSULTA PEDIDA ES UN CABO SUELTO — REG-422.
+ * UNA INTERCONSULTA PEDIDA ES UN CABO SUELTO — REG-525.
  *
  * ── LA FUGA ─────────────────────────────────────────────────────────────────
  *

@@ -39,7 +39,7 @@ export default function FarmaciaPage() {
   const [editando, setEditando] = useState<FarmaciaItem | null>(null)
   const [creando, setCreando] = useState(false)
   /**
-   * LA CLAVE NACE AL ABRIR EL MODAL, NO AL CONFIRMAR (REG-412).
+   * LA CLAVE NACE AL ABRIR EL MODAL, NO AL CONFIRMAR (REG-515).
    *
    * Si se acuñara dentro de `onConfirmar`, cada reintento traería una clave
    * nueva y el movimiento volvería a escribirse — que es exactamente el defecto.

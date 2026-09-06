@@ -28,7 +28,7 @@
  * ocurre es peor que no tenerlo, porque da por revisado lo que no lo está.
  *
  * Es la segunda vez en esta tanda que una garantía vive en la prosa y no en el
- * código (REG-424 fue la otra, con el tope del documento del episodio).
+ * código (REG-527 fue la otra, con el tope del documento del episodio).
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *

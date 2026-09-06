@@ -206,7 +206,7 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-447, generalizado en REG-448.
+   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-550, generalizado en REG-551.
 
    La compuerta que compara contra el umbral decidido vive en
    `contratos-de-evaluacion.ts`, con el tipo `Umbral` al que aplica. Aquí sólo

@@ -19,7 +19,7 @@
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *
- * El censo lo tenía diagnosticado desde la sesión de REG-412, con el plan
+ * El censo lo tenía diagnosticado desde la sesión de REG-515, con el plan
  * escrito y el trabajo REVERTIDO a propósito: se había construido el modelo
  * (`origenId`, el tipo nuevo) sin poder conectarlo, y dejar algo escrito y sin
  * conectar es lo que REG-406 enseñó a no hacer.

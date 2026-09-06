@@ -82,7 +82,7 @@ export interface NoEntregadoLeido extends NoEntregado {
 }
 
 /**
- * LOS FALLOS DEL BOT, PARA PODER MIRARLOS — REG-438.
+ * LOS FALLOS DEL BOT, PARA PODER MIRARLOS — REG-541.
  *
  * La cabecera de este módulo prometía que «un fallo registrado se puede VER,
  * contar y arreglar a mano». No se podía: la colección tenía **un escritor y
@@ -91,7 +91,7 @@ export interface NoEntregadoLeido extends NoEntregado {
  * invisible.
  *
  * Cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
- * comprobar si el código la cumple. Es el mismo patrón de REG-424 y REG-428.
+ * comprobar si el código la cumple. Es el mismo patrón de REG-527 y REG-531.
  *
  * **Lanza** si no puede leer, en vez de devolver `[]`: «no se pudo leer» y «no
  * hay ninguno» llevan al médico a cosas opuestas, y ésa es la razón por la que

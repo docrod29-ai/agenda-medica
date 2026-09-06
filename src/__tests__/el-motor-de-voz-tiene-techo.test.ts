@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-448. El umbral de la transcripción (D-030) se aplica al motor.
+ * GOLDEN — REG-551. El umbral de la transcripción (D-030) se aplica al motor.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -26,7 +26,7 @@
  *
  * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
  *
- * La misma familia que REG-447: «escrito y sin conectar», aplicada a un número.
+ * La misma familia que REG-550: «escrito y sin conectar», aplicada a un número.
  * Un instrumento que mide y un umbral que nadie compara contra lo medido son dos
  * mitades que no se tocan.
  *

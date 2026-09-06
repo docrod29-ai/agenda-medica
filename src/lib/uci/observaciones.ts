@@ -98,7 +98,7 @@ export async function guardarToma(
   internamientoId: string,
   toma: Omit<TomaUci, 'id'>,
   /**
-   * REG-419 — una toma de UCI duplicada alimenta escalas y tendencias dos veces.
+   * REG-522 — una toma de UCI duplicada alimenta escalas y tendencias dos veces.
    * La clave la acuña quien abre el formulario. Sin ella, como antes.
    */
   claveDeIntento?: string,

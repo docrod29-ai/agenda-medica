@@ -52,7 +52,7 @@ export interface UmbralDecidido {
   /** De dónde sale. Un número sin esto es una preferencia disfrazada. */
   readonly fuente: string
   /**
-   * CUANDO UNA CAPACIDAD TIENE DOS EJES DE ERROR CON COSTES DISTINTOS — REG-446.
+   * CUANDO UNA CAPACIDAD TIENE DOS EJES DE ERROR CON COSTES DISTINTOS — REG-549.
    *
    * `nota-consulta` es el caso que lo obligó. Sus dos errores no cuestan lo
    * mismo, y el médico dueño los fijó distintos a propósito:
@@ -156,7 +156,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     capacidad: 'transcribir', ruta: 'src/app/api/expediente/transcribir/route.ts',
     queDecide: 'Convierte el audio de la consulta en texto. Es la fuente de todo lo demás.',
     consecuenciaDelError: 'Una palabra mal oída en una cifra o una unidad viaja a la nota, a la receta y al expediente. El error se lee bien.',
-    conjunto: 'CORRECCIÓN DEL CENSO (REG-448): esto decía «no existe gold de voz… todavía no está», y sí existe — `synthetic-data/dialogos-consulta/`: 12 diálogos actuados con guion (el oro) y la salida real del motor. Sigue sin poder nacer de audio real: la voz es biométrica (regla de datos). 532 palabras de oro: pequeño, y por eso lo que NO cubre se declara en `LO_QUE_ESTE_CONJUNTO_NO_MIDE`.',
+    conjunto: 'CORRECCIÓN DEL CENSO (REG-551): esto decía «no existe gold de voz… todavía no está», y sí existe — `synthetic-data/dialogos-consulta/`: 12 diálogos actuados con guion (el oro) y la salida real del motor. Sigue sin poder nacer de audio real: la voz es biométrica (regla de datos). 532 palabras de oro: pequeño, y por eso lo que NO cubre se declara en `LO_QUE_ESTE_CONJUNTO_NO_MIDE`.',
     metrica: 'WER ponderado por consecuencia clínica, no WER a secas (TR-VOZ.error-clinicamente-pesado)',
     umbral: {
       /**
@@ -293,7 +293,7 @@ export const CONTRATOS: readonly ContratoDeEvaluacion[] = Object.freeze([
     capacidad: 'laboratorio-vision', ruta: 'src/app/api/expediente/laboratorio-vision/route.ts',
     queDecide: 'Lee una hoja de laboratorio fotografiada y saca los valores.',
     consecuenciaDelError: 'Un valor mal leído es una cifra clínica falsa en el expediente, con su unidad y su rango.',
-    conjunto: '`synthetic-data/laboratorio-hojas/HOJAS.jsonl` (REG-449): 8 hojas sintéticas, 46 filas, escritas como se imprimen en México — abreviaturas («Glu», «TGO», «Hto»), coma decimal, valores censurados («>400»), unidades del SI y analitos fuera del catálogo. Ninguna hoja real puede entrar sin ser sintética (regla de datos). MIDE EL FOSO DETERMINISTA, NO LA VISIÓN: las filas entran como si el modelo las hubiera leído perfectas, así que dos de los tres ejes sólo se ejercen al revés. Medir la visión de verdad pide imágenes y llamadas de API, y es la mitad que falta.',
+    conjunto: '`synthetic-data/laboratorio-hojas/HOJAS.jsonl` (REG-552): 8 hojas sintéticas, 46 filas, escritas como se imprimen en México — abreviaturas («Glu», «TGO», «Hto»), coma decimal, valores censurados («>400»), unidades del SI y analitos fuera del catálogo. Ninguna hoja real puede entrar sin ser sintética (regla de datos). MIDE EL FOSO DETERMINISTA, NO LA VISIÓN: las filas entran como si el modelo las hubiera leído perfectas, así que dos de los tres ejes sólo se ejercen al revés. Medir la visión de verdad pide imágenes y llamadas de API, y es la mitad que falta.',
     metrica: 'exactitud por analito, con la unidad',
     umbral: {
       /** El más LAXO de los tres ejes, igual que en D-029 y D-030. */
@@ -375,7 +375,7 @@ export function nombresCanonicos(): readonly string[] {
 /**
  * ¿Este umbral lo tiene que fijar todavía alguien con cédula?
  *
- * Es un predicado de tipo a propósito (REG-447): la compuerta que aplica el
+ * Es un predicado de tipo a propósito (REG-550): la compuerta que aplica el
  * umbral necesita ESTRECHAR el tipo para leer `valor` y `ejes`, y si esto
  * devolviera un `boolean` a secas haría falta un `as` en el sitio exacto donde
  * un `as` mal puesto convertiría un umbral pendiente en un número.
@@ -404,9 +404,9 @@ export const POR_QUE_EL_NOMBRE_IMPORTA =
 /* ═══════════════════════════════════════════════════════════════════════════
    LA COMPUERTA DEL UMBRAL — el número decidido se APLICA, no sólo se declara.
 
-   ── POR QUÉ EXISTE (REG-447) ────────────────────────────────────────────────
+   ── POR QUÉ EXISTE (REG-550) ────────────────────────────────────────────────
 
-   El 31-ago-2026 el médico dueño fijó el primer umbral (D-029, REG-446). Quedó
+   El 31-ago-2026 el médico dueño fijó el primer umbral (D-029, REG-549). Quedó
    escrito arriba, con su fuente y sus ejes… y **nadie corría nada contra él**:
    el arnés medía por un lado, el número vivía por otro, y entre los dos no había
    una sola función. Un umbral que no reprueba nada es exactamente lo que este
@@ -416,7 +416,7 @@ export const POR_QUE_EL_NOMBRE_IMPORTA =
    Es la familia «escrito y sin conectar» de la regla *el dato tiene que LLEGAR*,
    aplicada a un número en vez de a un campo.
 
-   ── POR QUÉ VIVE AQUÍ Y NO EN EL ARNÉS (REG-448) ────────────────────────────
+   ── POR QUÉ VIVE AQUÍ Y NO EN EL ARNÉS (REG-551) ────────────────────────────
 
    Nació dentro de `ia/evaluacion.ts`, pegada al único arnés que existía. Al día
    siguiente el médico fijó el umbral de `transcribir` (D-030) y ese se mide con
@@ -582,7 +582,7 @@ export const LO_QUE_LA_COMPUERTA_NO_HACE: readonly string[] = Object.freeze([
 ])
 
 /**
- * LA PREGUNTA QUE NO SE LE HIZO AL MÉDICO SOBRE EL LABORATORIO — REG-449.
+ * LA PREGUNTA QUE NO SE LE HIZO AL MÉDICO SOBRE EL LABORATORIO — REG-552.
  *
  * Un analito INVENTADO —una fila en el panel que no está en la hoja— es la
  * cuarta cosa que puede salir mal, y no tiene umbral porque no se la pregunté.

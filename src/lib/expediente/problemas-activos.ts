@@ -137,7 +137,7 @@ export function nombreConCerteza(
 }
 
 /**
- * EL DIAGNÓSTICO QUE SE IMPRIME — REG-421.
+ * EL DIAGNÓSTICO QUE SE IMPRIME — REG-524.
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *
@@ -199,7 +199,7 @@ export const POR_QUE_NO_HAY_RESPALDO_AL_IMPRIMIR =
   + 'línea, rellenarlo mal le costaba no darse cuenta.'
 
 /**
- * LO QUE HAY QUE DECIR CUANDO EL HISTORIAL VINO RECORTADO — REG-431.
+ * LO QUE HAY QUE DECIR CUANDO EL HISTORIAL VINO RECORTADO — REG-534.
  *
  * ── QUÉ FALLABA ─────────────────────────────────────────────────────────────
  *

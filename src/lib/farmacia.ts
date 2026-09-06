@@ -128,7 +128,7 @@ export async function registrarMovimiento(
   itemActual: FarmaciaItem,
   mov: Omit<MovimientoFarmacia, 'id' | 'fecha'>,
   /**
-   * ── LA TRANSACCIÓN NO PROTEGE DE REPETIRLA (REG-412) ────────────────────
+   * ── LA TRANSACCIÓN NO PROTEGE DE REPETIRLA (REG-515) ────────────────────
    *
    * `runTransaction` garantiza que la aritmética de existencias sea atómica: dos
    * salidas concurrentes ya no parten del mismo valor viejo. Y no dice **nada**

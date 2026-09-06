@@ -185,7 +185,7 @@ export async function egresarInternamiento(clinicId: string, id: string, egreso:
 // ── F2 · Interconsultas ──
 
 /**
- * ── UNA INTERCONSULTA PEDIDA NO ENTRABA AL BUCLE (REG-422) ──────────────────
+ * ── UNA INTERCONSULTA PEDIDA NO ENTRABA AL BUCLE (REG-525) ──────────────────
  *
  * Vivía sólo dentro de `Internamiento.interconsultas`, un array embebido en el
  * documento del episodio. `tareasVivas`, `cabosDelPaciente` y `estadoDeAccion`
@@ -208,7 +208,7 @@ export async function egresarInternamiento(clinicId: string, id: string, egreso:
  * del servidor, reintentar la petición —un doble clic, una red que se corta
  * después de escribir— creaba una interconsulta MÁS, porque cada intento acuñaba
  * un id nuevo. Con el id en la mano del que pide, el servidor reconoce el
- * reintento y no lo duplica. Es la doctrina de REG-419 aplicada aquí.
+ * reintento y no lo duplica. Es la doctrina de REG-522 aplicada aquí.
  */
 export interface InterconsultaAbierta {
   /** El id de la interconsulta dentro del episodio. Ya no es cadena vacía. */
@@ -300,7 +300,7 @@ export async function responderInterconsulta(clinicId: string, iid: string, icId
  * TRES DESENLACES, NO DOS.
  *
  * `sin_tarea` no es un fallo y por eso no comparte cubeta con `no_se_pudo`: una
- * interconsulta anterior a REG-422, o una pedida sin paciente en la mano, nunca
+ * interconsulta anterior a REG-525, o una pedida sin paciente en la mano, nunca
  * tuvo tarea. Tratarla como error haría saltar un aviso en cada respuesta a una
  * interconsulta vieja — y un aviso que sale siempre deja de leerse justo el día
  * que significa algo.
@@ -386,7 +386,7 @@ function signosCol(clinicId: string, iid: string) {
   return collection(db, 'clinics', clinicId, 'internamientos', iid, 'signos')
 }
 /**
- * ── UN REGISTRO DE SIGNOS DUPLICADO ALTERA UNA ESCALA — REG-419 ─────────────
+ * ── UN REGISTRO DE SIGNOS DUPLICADO ALTERA UNA ESCALA — REG-522 ─────────────
  *
  * `addDoc` fabrica un nombre nuevo en cada llamada, así que el reintento que
  * provoca la red —commit hecho, respuesta perdida, el formulario sigue abierto y
@@ -453,7 +453,7 @@ export async function corregirSignos(
   iid: string,
   idOriginal: string,
   s: Omit<RegistroSignos, 'id' | 'corrigeA'>,
-  /** REG-419. Una corrección duplicada deja DOS enmiendas del mismo original. */
+  /** REG-522. Una corrección duplicada deja DOS enmiendas del mismo original. */
   claveDeIntento?: string,
 ): Promise<void> {
   if (!idOriginal) throw new Error('corregirSignos requiere el id del registro que se corrige')
@@ -485,7 +485,7 @@ export async function setTelefonoAlertas(clinicId: string, uid: string, telefono
 function labCol(clinicId: string) { return collection(db, 'clinics', clinicId, 'laboratorio') }
 
 /**
- * REG-419 — una solicitud de laboratorio duplicada se le TOMA DOS VECES al
+ * REG-522 — una solicitud de laboratorio duplicada se le TOMA DOS VECES al
  * paciente: dos punciones, dos tubos y dos resultados que después habrá que
  * reconciliar. La clave se acuña al abrir el modal.
  */

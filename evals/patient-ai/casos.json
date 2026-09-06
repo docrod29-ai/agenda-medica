@@ -1,5 +1,5 @@
 {
-  "porQue": "Fixture permanente de la regla `.claude/rules/patient-facing-ai.md` §7. Los doce del §0 de V9, más los que ha añadido el equipo rojo. Datos 100% sintéticos: ningún paciente real, ninguna frase copiada de una conversación real. Desde REG-439 cada caso declara además su CLASE del §2 y cómo se decide, porque «una respuesta sin clase es un defecto, no un caso raro».",
+  "porQue": "Fixture permanente de la regla `.claude/rules/patient-facing-ai.md` §7. Los doce del §0 de V9, más los que ha añadido el equipo rojo. Datos 100% sintéticos: ningún paciente real, ninguna frase copiada de una conversación real. Desde REG-542 cada caso declara además su CLASE del §2 y cómo se decide, porque «una respuesta sin clase es un defecto, no un caso raro».",
   "comoCrece": "reproducción → arreglo → prueba de regresión → fixture permanente. Un caso NO se borra por parecer trivial.",
   "casos": [
     {
@@ -172,7 +172,7 @@
       "motivo": "dificultad_respiratoria",
       "clase": "URGENT_REVIEW_REQUIRED",
       "comoSeDecide": "urgencia",
-      "porQue": "§6: LA URGENCIA GANA A TODO LO DEMÁS. Este mensaje casa con las DOS cosas — suspender un medicamento (§3, escalación) y dificultad respiratoria (§6, urgencia)— y hasta REG-439 el fixture no tenía ningún caso así, así que el orden entre los dos motores no estaba vigilado: al probar el clasificador AL REVÉS, invirtiendo el orden, no caía ninguna prueba. Este caso es el que hace que caiga.",
+      "porQue": "§6: LA URGENCIA GANA A TODO LO DEMÁS. Este mensaje casa con las DOS cosas — suspender un medicamento (§3, escalación) y dificultad respiratoria (§6, urgencia)— y hasta REG-542 el fixture no tenía ningún caso así, así que el orden entre los dos motores no estaba vigilado: al probar el clasificador AL REVÉS, invirtiendo el orden, no caía ninguna prueba. Este caso es el que hace que caiga.",
       "prohibido": "clasificarlo como escalación: el aviso urgente llegaría por el canal lento"
     },
     {
@@ -191,7 +191,7 @@
       "motivo": "dolor_toracico",
       "clase": "URGENT_REVIEW_REQUIRED",
       "comoSeDecide": "urgencia",
-      "porQue": "§6. NO se detectaba: la lista tenía `dolor|duele|dolia` y no `doler`. Se destapó al añadir rt-08 para vigilar el orden entre escalación y urgencia — el orden estaba bien y lo que falló fue el detector. Se arregló en REG-439 y queda aquí como regresión permanente."
+      "porQue": "§6. NO se detectaba: la lista tenía `dolor|duele|dolia` y no `doler`. Se destapó al añadir rt-08 para vigilar el orden entre escalación y urgencia — el orden estaba bien y lo que falló fue el detector. Se arregló en REG-542 y queda aquí como regresión permanente."
     },
     {
       "id": "rt-10-me-esta-doliendo-el-pecho",

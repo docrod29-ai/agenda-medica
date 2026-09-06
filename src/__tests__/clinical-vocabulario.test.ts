@@ -130,7 +130,7 @@ describe('T-3 · casado por término COMPLETO: los falsos positivos medidos no o
 
   it('ninguno resuelve al concepto EQUIVOCADO, que es lo que importa', () => {
     /**
-     * ── LA PREMISA CAMBIÓ, Y A MEJOR (REG-453) ──────────────────────────────
+     * ── LA PREMISA CAMBIÓ, Y A MEJOR (REG-556) ──────────────────────────────
      *
      * Antes esto exigía `desconocido` para los cinco, porque ninguno tenía
      * concepto propio: la única salida honesta era no resolver.
@@ -276,7 +276,7 @@ describe('T-6 · el vocabulario no se bifurca de ANALITOS', () => {
      * la creatinina urinaria: se le dio identidad aquí para que la aceptación de
      * E1-02 no se pudiera «cumplir» colapsando orina y suero.
      *
-     * REG-453 cargó el catálogo del médico dueño, que SÍ la trae (§20), y reusó
+     * REG-556 cargó el catálogo del médico dueño, que SÍ la trae (§20), y reusó
      * esta misma clave en vez de crear una segunda. Así que el vocabulario ya no
      * inventa conceptos: todos salen de ANALITOS. Una fuente, no dos.
      */
@@ -485,7 +485,7 @@ function procedenciaDe(c: ConceptoCanonico, s: string): string | null {
   /**
    * 3 · oráculo de laboratorio: producción YA hace ese mapeo.
    *
-   * Se le pasa la UNIDAD del propio concepto (REG-450). Desde que el diferencial
+   * Se le pasa la UNIDAD del propio concepto (REG-553). Desde que el diferencial
    * leucocitario se desambigua por unidad (§25.2 de D-032), `analitoDe('neutrofilos')`
    * a secas devuelve `null` a propósito — y sin la unidad este oráculo declararía
    * huérfano un sinónimo que producción sí resuelve. Sigue exigiendo la clave
@@ -556,7 +556,7 @@ describe('T-10 · todo sinónimo tiene procedencia comprobable (cierra V-1)', ()
     expect(DISPLAY_POR_CODIGO_LOINC['8480-6']).toBe('Sistólica')
   })
 
-  it('E1-02-H2: una cara REPARADA por REG-453, la otra sigue registrada', () => {
+  it('E1-02-H2: una cara REPARADA por REG-556, la otra sigue registrada', () => {
     /**
      * El hallazgo tenía dos caras y hoy están en sitios distintos. Decirlo
      * entero importa: un hallazgo «medio cerrado» que se anota como cerrado es
@@ -567,7 +567,7 @@ describe('T-10 · todo sinónimo tiene procedencia comprobable (cierra V-1)', ()
      * del patrón sólo miraba la palabra «orina» y no cubría «urinaria»: una
      * defensa escrita analito por analito, con un hueco.
      *
-     * REG-453 la cerró de raíz. La muestra se decide UNA vez, sobre el nombre
+     * REG-556 la cerró de raíz. La muestra se decide UNA vez, sobre el nombre
      * del renglón, y un renglón de orina sólo puede casar con analitos de orina.
      * Y no hizo falta una clave nueva: el catálogo del dueño trae la creatinina
      * urinaria y reusa la que el vocabulario ya tenía.
@@ -579,7 +579,7 @@ describe('T-10 · todo sinónimo tiene procedencia comprobable (cierra V-1)', ()
      * cambiar el orden de los patrones a mano es justo la clase de arreglo que
      * rompe otra cosa sin avisar. Sigue registrada, con su pregunta al médico.
      */
-    expect(analitoDe('creatinina urinaria')?.clave, 'REPARADA por REG-453').toBe('creatinina_orina')
+    expect(analitoDe('creatinina urinaria')?.clave, 'REPARADA por REG-556').toBe('creatinina_orina')
     expect(claveDe('creatinina urinaria')).toBe('creatinina_orina')
 
     expect(analitoDe('depuracion de creatinina')?.clave, 'sigue abierta').toBe('creatinina')

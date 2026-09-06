@@ -646,5 +646,5 @@
     "nota": "Los elementos con `prioridadV9` salen de PATIENT-UX-TRUTH-001. El campo `unidad` dice a qué iteración de V9 pertenecen. La `score` sigue la misma fórmula de la cabecera; `prioridadV9` es la clasificación P0/P1/P2/P3 que pide la directiva y NO se deriva de la score.",
     "detalle": "docs/design/CURRENT_PRODUCT_DESIGN_AUDIT.md"
   },
-  "reconciliadoConMaster": "30-ago-2026 (REG-426). Los 10 items abiertos se comprobaron UNO POR UNO contra el arbol, no contra este archivo. Resultado: 5 ya estaban hechos y nadie los habia marcado, 1 sigue abierto de verdad (SAFE-003), 2 necesitan navegador, 1 esta bloqueado fuera por gold de audio, y UX-002 ya estaba marcado como medido y falso. Un backlog que exagera el trabajo pendiente se abandona igual que uno que lo esconde."
+  "reconciliadoConMaster": "30-ago-2026 (REG-529). Los 10 items abiertos se comprobaron UNO POR UNO contra el arbol, no contra este archivo. Resultado: 5 ya estaban hechos y nadie los habia marcado, 1 sigue abierto de verdad (SAFE-003), 2 necesitan navegador, 1 esta bloqueado fuera por gold de audio, y UX-002 ya estaba marcado como medido y falso. Un backlog que exagera el trabajo pendiente se abandona igual que uno que lo esconde."
 }

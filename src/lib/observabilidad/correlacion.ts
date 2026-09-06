@@ -94,7 +94,7 @@ export function correlacionDe(req: ConCabeceras): string {
 }
 
 /**
- * LA TRAZA DE UN TRABAJO DE FONDO — REG-418.
+ * LA TRAZA DE UN TRABAJO DE FONDO — REG-521.
  *
  * ── POR QUÉ NO VALE `correlacionDe(req)` AQUÍ ───────────────────────────────
  *

@@ -60,7 +60,7 @@ export function claveCircuitoEvidencia(fuente: 'ncbi' | 'openfda'): string {
 /**
  * «Contestó» significa que la respuesta SIRVIÓ, no que el socket funcionó.
  *
- * ── POR QUÉ EXISTE (REG-435) ────────────────────────────────────────────────
+ * ── POR QUÉ EXISTE (REG-538) ────────────────────────────────────────────────
  *
  * Los dos clientes anotaban el éxito así:
  *

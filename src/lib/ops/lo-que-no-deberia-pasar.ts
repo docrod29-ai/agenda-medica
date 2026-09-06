@@ -9,7 +9,7 @@
  * `verificar.ts` deniega correctamente y lo apunta con `safeLog.warn`. Un log de
  * servidor no es una señal: hay que ir a buscarlo, en el sitio correcto, el día
  * correcto y sospechando ya lo que se busca. Es exactamente el defecto que
- * REG-396 y REG-420 cerraron para los incidentes de IA y los errores del
+ * REG-396 y REG-523 cerraron para los incidentes de IA y los errores del
  * navegador, aquí sin cerrar.
  *
  * ── LA FRONTERA, Y NO ES UNA CIFRA INVENTADA ────────────────────────────────
@@ -29,7 +29,7 @@
  *     denegación y el usuario se rinde o pide permiso. Volver a intentarlo muchas
  *     veces contra lo mismo es otra cosa.
  *
- * El primero es cualitativo, como en REG-420. El segundo necesita un número, y se
+ * El primero es cualitativo, como en REG-523. El segundo necesita un número, y se
  * declara como lo que es: `INSISTENCIAS_PARA_MIRAR` es una cota operativa —cuánto
  * cabe en una ventana sin ser un accidente— y no una cifra clínica.
  *

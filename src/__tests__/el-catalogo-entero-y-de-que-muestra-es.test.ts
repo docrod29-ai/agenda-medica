@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-453. El catálogo entero, y el defecto vivo que apareció al cargarlo.
+ * GOLDEN — REG-556. El catálogo entero, y el defecto vivo que apareció al cargarlo.
  *
  * ── EL DEFECTO, QUE YA ESTABA PASANDO ────────────────────────────────────────
  *
@@ -116,7 +116,7 @@ describe('LA MUESTRA — el defecto que estaba vivo', () => {
       expect(a.patron.test('glucosa'), a.clave).toBe(false)
     }
     /**
-     * ── LA EXCEPCIÓN DESAPARECIÓ EN REG-456, Y ESTABA MAL PUESTA ────────────
+     * ── LA EXCEPCIÓN DESAPARECIÓ EN REG-559, Y ESTABA MAL PUESTA ────────────
      *
      * Aquí decía que `pH urinario` se quedaba sin nombre pelado porque «pH» son
      * dos caracteres y un patrón de dos letras casa con demasiado.
@@ -216,7 +216,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
      * 3000 donde aquí hay 20 a 1500. No se adoptaron, y no por descuido: sin
      * `MISSING_UNIT` (§33), una glucosa de 7,2 SIN unidad pasaría como 7,2 mg/dL.
      * Mientras el hueco de la unidad ausente siga abierto, el rango estrecho es
-     * la única defensa. Hay guardián en REG-450 y éste lo repite desde el otro
+     * la única defensa. Hay guardián en REG-553 y éste lo repite desde el otro
      * lado: el catálogo entero cargado NO tocó estos números.
      */
     expect(analitoPorClave('glucosa')!.min).toBe(20)

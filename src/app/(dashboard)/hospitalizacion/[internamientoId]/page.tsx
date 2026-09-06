@@ -118,7 +118,7 @@ export default function EpisodioPage() {
   const [modalInd, setModalInd] = useState(false)
   const [modalSignos, setModalSignos] = useState(false)
   /**
-   * REG-419 — la clave de intención de la toma que se está capturando. Se acuña
+   * REG-522 — la clave de intención de la toma que se está capturando. Se acuña
    * al ABRIR el modal, no al pulsar Guardar: acuñarla al guardar haría que cada
    * reintento trajera una nueva, y dos tomas del mismo momento inclinan NEWS2.
    */
@@ -220,7 +220,7 @@ export default function EpisodioPage() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [labs, setLabs] = useState<SolicitudLab[]>([])
   const [modalLab, setModalLab] = useState(false)
-  /** REG-419 — íd., para la solicitud de laboratorio: un duplicado son dos punciones. */
+  /** REG-522 — íd., para la solicitud de laboratorio: un duplicado son dos punciones. */
   const [claveLab, setClaveLab] = useState('')
   const [labSel, setLabSel] = useState<string[]>([])
   const [labPrioridad, setLabPrioridad] = useState<'rutina' | 'urgente'>('rutina')
@@ -1095,7 +1095,7 @@ export default function EpisodioPage() {
               })
               toast('Interconsulta actualizada', 'success')
             } else {
-              /* REG-422 — el paciente va explícito: sin él la interconsulta se
+              /* REG-525 — el paciente va explícito: sin él la interconsulta se
                  crea igual pero NO entra al worklist, y eso hay que poder verlo
                  desde aquí, no descubrirlo dentro de la librería. */
               const abierta = await agregarInterconsulta(clinicId, internamientoId, {

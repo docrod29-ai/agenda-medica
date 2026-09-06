@@ -1,9 +1,9 @@
 /**
- * GOLDEN — REG-452. El decimal corrido se SUGIERE. Nunca se corrige.
+ * GOLDEN — REG-555. El decimal corrido se SUGIERE. Nunca se corrige.
  *
  * ── QUÉ FALTABA ──────────────────────────────────────────────────────────────
  *
- * REG-451 dejó el valor imposible dentro del panel, marcado y sin gráfica. Eso
+ * REG-554 dejó el valor imposible dentro del panel, marcado y sin gráfica. Eso
  * evita el daño, pero no ayuda: el médico ve «1400 mEq/L de sodio · verificar» y
  * tiene que ir a la hoja a averiguar qué pasó.
  *
@@ -92,7 +92,7 @@ describe('LA TRAMPA — no se sugiere en otra unidad', () => {
     /**
      * ── EL EJEMPLO CAMBIÓ, LA TRAMPA NO ────────────────────────────────────
      *
-     * Este caso era la glucosa en mmol/L. REG-455 la convierte (desde la masa
+     * Este caso era la glucosa en mmol/L. REG-558 la convierte (desde la masa
      * molar de C₆H₁₂O₆), así que ya no llega aquí — y eso es una mejora, no una
      * pérdida: el peligro era que el sistema NO supiera convertir.
      *

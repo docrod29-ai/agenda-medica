@@ -89,7 +89,7 @@ export type TipoTarea =
    */
   | 'reconciliacion_medicamento'
   /**
-   * SE PIDIÓ UNA INTERCONSULTA Y EL COLEGA NO HA CONTESTADO — REG-422.
+   * SE PIDIÓ UNA INTERCONSULTA Y EL COLEGA NO HA CONTESTADO — REG-525.
    *
    * Hasta hoy una interconsulta vivía SÓLO dentro de `Internamiento.interconsultas`,
    * así que `tareasVivas`, `cabosDelPaciente` y `estadoDeAccion` no la veían nunca:
@@ -132,7 +132,7 @@ export interface TareaClinica {
   /** De qué consulta salió. Es la traza hacia atrás. */
   notaId?: string
   /**
-   * EL HECHO DEL QUE NACIÓ, CUANDO NO ES UNA NOTA — REG-422.
+   * EL HECHO DEL QUE NACIÓ, CUANDO NO ES UNA NOTA — REG-525.
    *
    * `notaId` daba identidad estable a lo que nace de una consulta, y sobre él se
    * construye `idDerivado` para que repetir la acción de origen no duplique la
@@ -142,21 +142,21 @@ export interface TareaClinica {
    * Meter ese id en `notaId` habría sido lo barato y lo peor: TODO el que lee
    * `notaId` espera una nota —la traza de la pantalla, el enlace de vuelta, los
    * motores que la abren— y de pronto encontraría un id que no resuelve a
-   * ninguna. Un campo haciendo dos trabajos es la forma exacta de REG-418, y
+   * ninguna. Un campo haciendo dos trabajos es la forma exacta de REG-521, y
    * arreglar uno rompería al otro.
    *
    * Va acompañado de `origen`, que dice de QUÉ clase es este id.
    */
   origenId?: string
   /**
-   * LA CITA QUE SOSTIENE UN `agendada` — REG-437.
+   * LA CITA QUE SOSTIENE UN `agendada` — REG-540.
    *
    * Sin esto, `agendada` era una DECLARACIÓN y no un hecho del calendario: si la
    * cita se cancelaba, se movía o el paciente no venía, el pendiente se quedaba
    * esperando a nadie para siempre.
    *
    * Va en su propio campo y no dentro de `origenId`, que ya significa otra cosa
-   * (de qué hecho NACIÓ la tarea). Un campo haciendo dos trabajos es REG-418.
+   * (de qué hecho NACIÓ la tarea). Un campo haciendo dos trabajos es REG-521.
    *
    * Ausente en las tareas anteriores a este campo: eso se lee como «no se puede
    * saber», nunca como «no hay cita». Ver `lo-que-el-calendario-dice.ts`.
@@ -228,7 +228,7 @@ export type AvisoAlPaciente = 'avisado' | 'no_avisado' | 'no_aplica'
  *
  * Tres de las cuatro son *a quién* y la cuarta es *por qué vía*. Guardarlas en
  * un campo llamado `destinatario` habría sido un campo haciendo dos trabajos,
- * que es REG-418 — el defecto que este repositorio lleva cazando desde entonces.
+ * que es REG-521 — el defecto que este repositorio lleva cazando desde entonces.
  *
  * Por eso el campo pregunta una sola cosa: **de qué manera consta**. Las cuatro
  * respuestas son respuestas a esa pregunta.
@@ -245,7 +245,7 @@ export type ComoSeAviso =
    *
    * Cuenta como avisado por decisión del dueño, y se guarda distinto de los
    * otros tres a propósito: este repositorio ya sabe que un mensaje puede morir
-   * sin acuse (REG-432, REG-438), y quien lea el expediente dentro de un año
+   * sin acuse (REG-535, REG-541), y quien lea el expediente dentro de un año
    * tiene derecho a distinguir «hablé con él» de «le mandé un mensaje».
    */
   | 'mensaje_enviado'
@@ -401,7 +401,7 @@ export const LA_DECISION_DE_QUIEN_CUENTA =
   + 'hablar con el paciente, hablar con un cuidador autorizado, entregárselo a '
   + 'otro médico tratante Y un mensaje enviado — «al que sea», con sus palabras. '
   + 'Se le advirtió expresamente de que un mensaje puede morir sin acuse '
-  + '(REG-432, REG-438) y aun así cuenta. Lo que SÍ se guarda es CUÁL de las '
+  + '(REG-535, REG-541) y aun así cuenta. Lo que SÍ se guarda es CUÁL de las '
   + 'cuatro fue, para que quien lea el expediente dentro de un año distinga '
   + '«hablé con él» de «le mandé un mensaje».'
 

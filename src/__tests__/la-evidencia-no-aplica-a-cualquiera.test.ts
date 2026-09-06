@@ -178,7 +178,7 @@ describe('lo que no sabe leer, lo declara — no lo interpreta', () => {
 
   it('`dimensionDe` devuelve null en vez de adivinar', () => {
     /**
-     * REG-427 — este caso pedía `null` para «Pacientes con neumonía adquirida en
+     * REG-530 — este caso pedía `null` para «Pacientes con neumonía adquirida en
      * la comunidad», y era cierto mientras el motor no sabía leer comorbilidades.
      * Ahora las lee, y ésa ES la lectura correcta: el criterio nombra una
      * condición del paciente. Se cambia la aserción, no el patrón.

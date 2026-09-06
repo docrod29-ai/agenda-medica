@@ -80,7 +80,7 @@ describe('CORREN en el expediente', () => {
      * los use— no cambió; cambió por qué puerta entran.
      */
     /* Por SÍMBOLO y no por la línea entera: esta aserción se rompió el día que
-       la pantalla importó un tercer símbolo del mismo módulo (REG-421), sin que
+       la pantalla importó un tercer símbolo del mismo módulo (REG-524), sin que
        nada de lo que aquí importa hubiera cambiado. Un guardián que se rompe al
        añadir un import no está vigilando lo que dice vigilar. */
     const importaDe = (mod: string, simbolo: string) =>

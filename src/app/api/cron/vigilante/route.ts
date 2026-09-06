@@ -48,7 +48,7 @@ const CRON_SECRET = process.env.CRON_SECRET
 export const maxDuration = 30
 
 export async function GET(req: NextRequest) {
-  /* REG-418 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+  /* REG-521 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
      fondo no nace de un navegador, así que no acepta la que le manden. */
   const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')
@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
     }
 
     /**
-     * ── LO QUE REVIENTA EN EL NAVEGADOR, QUE TAMPOCO GRITABA (REG-420) ───────
+     * ── LO QUE REVIENTA EN EL NAVEGADOR, QUE TAMPOCO GRITABA (REG-523) ───────
      *
      * `/api/errores` recoge lo que falla en el cliente y lo escribe en la
      * colección `errores`. Está bien hecho —acepta sin sesión, porque si no la
@@ -223,7 +223,7 @@ export async function GET(req: NextRequest) {
     }
 
     /**
-     * ── ANOMALÍAS DE AUTORIZACIÓN — WS-13 / REG-430 ─────────────────────────
+     * ── ANOMALÍAS DE AUTORIZACIÓN — WS-13 / REG-533 ─────────────────────────
      *
      * Las denegaciones se anotaban sólo en el log del servidor, que hay que ir a
      * buscar sabiendo ya lo que se busca. Aquí se lee el PATRÓN, que es lo único

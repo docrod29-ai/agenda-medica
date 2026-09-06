@@ -1,7 +1,7 @@
 /**
- * GOLDEN — REG-449. El umbral de `laboratorio-vision` (D-031) se aplica.
+ * GOLDEN — REG-552. El umbral de `laboratorio-vision` (D-031) se aplica.
  *
- * Al escribirse salía ROJO (7 de 46, 15,2 %). REG-450 cerró la causa con los
+ * Al escribirse salía ROJO (7 de 46, 15,2 %). REG-553 cerró la causa con los
  * números del médico (D-032) y hoy mide 1 de 46. La historia se conserva abajo
  * porque explica POR QUÉ existen estos analitos y estos casos.
  *
@@ -69,8 +69,8 @@ const UMBRAL: Umbral = CONTRATOS.find(c => c.capacidad === 'laboratorio-vision')
 /**
  * EL TRINQUETE. Sólo puede BAJAR.
  *
- *  · 1-sep-2026 (REG-449): **7** de 46. Seis eran cobertura del catálogo.
- *  · 2-sep-2026 (REG-450): **1** de 46. El médico entregó el catálogo maestro de
+ *  · 1-sep-2026 (REG-552): **7** de 46. Seis eran cobertura del catálogo.
+ *  · 2-sep-2026 (REG-553): **1** de 46. El médico entregó el catálogo maestro de
  *    plausibilidad (D-032) y los seis analitos entraron con SUS números.
  *
  * La que queda es la glucosa en mmol/L, y no se arregla con más analitos: el
@@ -80,7 +80,7 @@ const UMBRAL: Umbral = CONTRATOS.find(c => c.capacidad === 'laboratorio-vision')
 const FILAS_QUE_NO_LLEGAN = 0
 
 /**
- * EL SEGUNDO NÚMERO, QUE NO SE PUEDE CALLAR — REG-451.
+ * EL SEGUNDO NÚMERO, QUE NO SE PUEDE CALLAR — REG-554.
  *
  * Desde que la fila fuera de rango ya no se tira (§1 de D-032), «llega al panel»
  * y «entra a la serie temporal» dejaron de ser lo mismo. El eje del médico
@@ -88,14 +88,14 @@ const FILAS_QUE_NO_LLEGAN = 0
  * gráfica, y si sólo se midiera el eje, esas dos desaparecerían del informe justo
  * cuando dejaron de desaparecer del panel.
  *
- * Eran DOS —glucosa en mmol/L y PCR en mg/dL, las dos sin factor—. REG-455 dejó
+ * Eran DOS —glucosa en mmol/L y PCR en mg/dL, las dos sin factor—. REG-558 dejó
  * de teclear factores y pasó a calcularlos, y la glucosa se cerró.
  *
  * La que queda es la PCR: se convierte BIEN (84 mg/dL son 840 mg/L) y aun así
  * queda fuera del rango de este producto (0–600). Ése rango es NUESTRO y no
  * tiene fuente citada; el del catálogo del dueño llega a 1000. Bajarlo a cero
  * pide adoptar sus rangos, y eso sigue esperando a que la hoja muda deje de
- * graficarse — ver REG-454.
+ * graficarse — ver REG-557.
  */
 const FILAS_SIN_GRAFICA = 1
 
@@ -128,9 +128,9 @@ function medirElFoso(hojas: readonly Hoja[]): LoMedido & { filas: number; llegan
      *  1. La primera versión comparaba cadenas a mano y marcaba dos inventados
      *     que no lo eran («Filtrado glomerular» → `tfg`, «c-HDL» → `hdl`).
      *  2. La segunda ya usaba `analitoDe`, pero SIN la unidad — y en cuanto
-     *     REG-450 hizo que la unidad desambiguara el diferencial leucocitario,
+     *     REG-553 hizo que la unidad desambiguara el diferencial leucocitario,
      *     «Neutrófilos %» volvió a contarse como inventado.
-     *  3. La tercera, sin la MUESTRA — y en cuanto REG-456 la añadió, las ocho
+     *  3. La tercera, sin la MUESTRA — y en cuanto REG-559 la añadió, las ocho
      *     filas de las hojas de orina y LCR se contaron como inventadas.
      *
      * La lección es la misma las dos veces: el medidor tiene que llamar al mapeo
@@ -167,10 +167,10 @@ function medirElFoso(hojas: readonly Hoja[]): LoMedido & { filas: number; llegan
 describe('EL CONJUNTO EXISTE — antes decía «no existe»', () => {
   it('10 hojas, 54 filas, y ninguna es de un paciente real', () => {
     /**
-     * Eran 8 y 46. REG-456 añadió dos: un examen general de orina y un LCR, los
+     * Eran 8 y 46. REG-559 añadió dos: un examen general de orina y un LCR, los
      * dos con la muestra en la CABECERA y los renglones llamándose igual que los
      * de una química sanguínea. Ése era el caso que el nombre del renglón no
-     * podía resolver, declarado como hueco desde REG-453.
+     * podía resolver, declarado como hueco desde REG-556.
      */
     const hojas = corpus()
     expect(hojas).toHaveLength(10)
@@ -212,18 +212,18 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     /**
      * LA HISTORIA DE ESTE NÚMERO, QUE ES LO QUE HACE HONESTO EL CERO:
      *
-     *  · 1-sep (REG-449): 7 de 46 fuera. 15,2 %. ROJO.
-     *  · 2-sep (REG-450): 1 de 46. El médico entregó los rangos (D-032).
-     *  · 2-sep (REG-451): 0 de 46 — pero NO porque se recuperara nada más, sino
+     *  · 1-sep (REG-552): 7 de 46 fuera. 15,2 %. ROJO.
+     *  · 2-sep (REG-553): 1 de 46. El médico entregó los rangos (D-032).
+     *  · 2-sep (REG-554): 0 de 46 — pero NO porque se recuperara nada más, sino
      *    porque su §1 dice que la fila fuera de rango se acepta provisionalmente
      *    en vez de tirarse. Cambió la política, no sólo el número.
-     *  · 2-sep (REG-456): 0 de 54. El corpus creció con un examen general de
+     *  · 2-sep (REG-559): 0 de 54. El corpus creció con un examen general de
      *    orina y un LCR, y los dos entran enteros.
      *
      * Por eso justo debajo se mide lo OTRO: cuántas llegan sin gráfica.
      */
     const m = medirElFoso(corpus())
-    expect(m.filas, 'REG-456 añadió dos hojas: orina y LCR').toBe(54)
+    expect(m.filas, 'REG-559 añadió dos hojas: orina y LCR').toBe(54)
     expect(m.perdidas).toBe(FILAS_QUE_NO_LLEGAN)
 
     const lectura = aplicarUmbral(UMBRAL, m)
@@ -255,19 +255,19 @@ describe('EL UMBRAL DE D-031 SE APLICA — y hoy REPRUEBA', () => {
     expect(fuera).toEqual([])
   })
 
-  it('la glucosa en mmol/L ya NO se cae — y desde REG-455 se CONVIERTE', () => {
+  it('la glucosa en mmol/L ya NO se cae — y desde REG-558 se CONVIERTE', () => {
     /**
-     * Hasta REG-451 esta fila desaparecía del panel: el analito estaba en el
+     * Hasta REG-554 esta fila desaparecía del panel: el analito estaba en el
      * catálogo y lo tiraba el rango plausible, porque 7,2 no es una glucosa en
      * mg/dL. La defensa hacía lo correcto —mejor fuera que un punto falso en la
      * gráfica— pero el paciente cuyo laboratorio reporta en unidades del SI se
      * quedaba sin serie y sin aviso, y eso se ve como una gráfica corta, que es
      * como no verse.
      *
-     * REG-451 la aceptó provisionalmente y la marcó, sin convertirla: el factor
+     * REG-554 la aceptó provisionalmente y la marcó, sin convertirla: el factor
      * no estaba en el catálogo del dueño y una equivalencia no se inventa.
      *
-     * REG-455 no fue a buscar el factor: quitó la necesidad de tenerlo. Se
+     * REG-558 no fue a buscar el factor: quitó la necesidad de tenerlo. Se
      * calcula desde la masa molar de C₆H₁₂O₆, así que ahora 7,2 mmol/L entran a
      * la serie como ~130 mg/dL, que es lo que son.
      */

@@ -87,7 +87,7 @@ export default function CartaReferenciaPage() {
         notas[0]
       if (nota) {
         setResumen(nota.resumenEjecutivo || nota.secciones.find(s => s.value)?.value || '')
-        /* REG-421 — esta lista viaja a OTRO médico. Aquí no se filtra: un
+        /* REG-524 — esta lista viaja a OTRO médico. Aquí no se filtra: un
            descarte documentado le sirve al que recibe. Pero tiene que ir DICIENDO
            que lo es, y eso lo decide `nombreConCerteza`, no esta pantalla. */
         setDiagnosticos(nota.diagnosticos.map(d => `${nombreConCerteza(d)}${d.codigoCIE10 ? ` (CIE-10: ${d.codigoCIE10})` : ''}`).filter(Boolean).join('\n'))

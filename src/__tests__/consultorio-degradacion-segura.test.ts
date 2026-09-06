@@ -1,5 +1,5 @@
 /**
- * ── POR QUÉ ESTE ARCHIVO CAMBIÓ DE FORMA — REG-414 ──────────────────────────
+ * ── POR QUÉ ESTE ARCHIVO CAMBIÓ DE FORMA — REG-517 ──────────────────────────
  *
  * Comprobaba la degradación **leyendo el código fuente**: recortaba la rama de
  * error del archivo de la pantalla y miraba que ese trozo no contuviera
