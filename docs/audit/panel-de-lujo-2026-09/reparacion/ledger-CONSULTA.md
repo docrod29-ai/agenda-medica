@@ -1,9 +1,14 @@
 # Ledger de reparación — CONSULTA (Panel de Lujo 2026-09)
 
-Rama `reparacion/CONSULTA`. 45 hallazgos en la lista: **41 CLOSED**, 4 sin
-reparar o reparados a medias (ver `no-reparado-CONSULTA.md` y
-`handoff-CONSULTA.md`). Se cierra además **ASN-007**, que llegó por
-`handoff-EXPEDIENTES.md` y caía en un archivo de esta rebanada.
+Rama `reparacion/CONSULTA`. 45 hallazgos en la lista: **42 CLOSED** y **3 sin
+reparar** (N-021, PG-004 y PP-018 — el porqué de cada uno, en
+`no-reparado-CONSULTA.md`). Siete de los cerrados tienen la MITAD AJENA en otra
+rebanada y está detallada en `handoff-CONSULTA.md`: MP-006 (receta), PG-002 y
+PO-004 (portal), PC-012, PI-008 y PP-009 (campo del consentimiento), MG-022
+(persistencia de la gestación) y B-009 (la ruta de diarización).
+
+Se cierra además **ASN-007**, que llegó por `handoff-EXPEDIENTES.md` y caía en un
+archivo de esta rebanada.
 
 El ID es el del hallazgo del Panel de Lujo; el orquestador asigna los REG-nnn al
 integrar.
