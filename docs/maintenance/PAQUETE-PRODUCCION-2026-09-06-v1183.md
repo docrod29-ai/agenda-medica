@@ -1,5 +1,14 @@
 # Paquete de producción — `nexusmed-v1183`
 
+> **SUPERADO — 6-sep-2026. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `182d8c78`: ejecución [#23](https://github.com/docrod29-ai/agenda-medica/actions/runs/34004090694), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1183` contra el sitio vivo. Lo escrito debajo no se
+> reescribe: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó). Esta acta nació sin la línea «Estado: PREPARADO, NO PUBLICADO» que
+> llevan las demás —la escribió otra sesión, antes de correr el botón—; se deja dicho
+> aquí, no se le inventa arriba.
+
 **Fecha:** 6-sep-2026 · **Autoriza:** el dueño («sigue y desplegando y subiendo a
 producción, no quiero atascadero»).
 

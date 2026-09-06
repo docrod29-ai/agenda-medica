@@ -4,6 +4,13 @@
 > 6-sep-2026 («desplegando y subiendo a producción, no quiero atascadero»). Se
 > escribe ANTES de fusionar.
 
+> **SUPERADO — 6-sep-2026 02:04 UTC. PUBLICADO Y VERIFICADO.** El botón corrió sobre
+> `c49c3a25`: ejecución [#24](https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180), en verde, con la
+> Compuerta 3 midiendo `nexusmed-v1184` contra el sitio vivo. Lo escrito debajo no se
+> reescribe: era verdad cuando se escribió. Cierre asentado el 6-sep-2026 en el ciclo de
+> v1184 (REG-435: un acta de una versión ya publicada no puede seguir diciendo que no
+> se publicó).
+
 | | |
 |---|---|
 | **Versión del service worker** | `nexusmed-v1183` → **`nexusmed-v1184`** |

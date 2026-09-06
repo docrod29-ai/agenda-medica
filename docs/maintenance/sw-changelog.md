@@ -5,7 +5,8 @@ del `const CACHE`.
 
 ## v1184 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 6-sep 02:04 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #24).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
 
 **Diecisiete cortes desde v1182, fusionados sobre v1183** (17 cortes + fusión + contabilidad) · 40 rutas de
@@ -35,7 +36,8 @@ que se ve bien no es una pantalla que funciona.
 
 ## v1182 — la guía dejó de describir un menú que ya no existe
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #22).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
 
 **1 commit desde v1181** · texto y una prueba · cero código de producto, cero
@@ -60,7 +62,8 @@ dice que el módulo está en pausa y cómo se llega igualmente.
 
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 5-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecuciones #19 y #20).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-05-v1181.md`](PAQUETE-PRODUCCION-2026-09-05-v1181.md).
 
 **3 commits desde v1180** (2 de trabajo + 1 de fusión) · 13 archivos ·
@@ -90,7 +93,8 @@ CANTIDAD visible de golpe.
 
 ## v1180 — el paciente ya puede preguntar, y seis defectos que sólo se veían al ir a ejecutarlos
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 4-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #18).
+El paquete y el acta de la ejecución viven en
 [`PAQUETE-PRODUCCION-2026-09-04-v1180.md`](PAQUETE-PRODUCCION-2026-09-04-v1180.md).
 
 **97 commits desde v1179** · 374 archivos · +20 229 / −1 598 · **73 de código de
@@ -3521,6 +3525,10 @@ Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
 
 ## v1183 — 6-sep-2026
+
+**Publicado el 6-sep** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #23).
+El paquete y el acta de la ejecución viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1183.md`](PAQUETE-PRODUCCION-2026-09-06-v1183.md).
 
 Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
 auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime
