@@ -6,7 +6,11 @@ import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincron
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
 import { limpiarRespuestas, tieneContenido } from '@/lib/portal/formulario-previo'
-import { verificarTokenPaciente, type AlcanceToken } from '@/lib/patient-token'
+import { verificarTokenPaciente, linkPortalPaciente, type AlcanceToken } from '@/lib/patient-token'
+import {
+  autorizarCuidador, revocarCuidador, vigentes, cuidadorVigente, marcarAcceso,
+  MOTIVO_RECHAZO_LABEL, type CuidadorAutorizado,
+} from '@/lib/paciente/cuidador-autorizado'
 import { limitarOResponder, limitarEstricto } from '@/lib/rate-limit'
 import {
   decidirVigencia,
@@ -55,10 +59,19 @@ const MIN_HORAS_DEFECTO = 24
  * consultorio en cada envío. Contarlo como lectura dejaba un camino de
  * escritura y de mensajería con el cupo ancho de mirar la agenda.
  */
-const ACCIONES_QUE_MUEVEN = new Set(['confirmar', 'cancelar', 'reagendar', 'formulario'])
+const ACCIONES_QUE_MUEVEN = new Set([
+  'confirmar', 'cancelar', 'reagendar', 'formulario',
+  /*
+   * Autorizar, revocar y cerrar el enlace mueven QUIÉN PUEDE VER el expediente.
+   * No mueven la agenda, pero son escrituras con consecuencias, y el freno
+   * estrecho es el que corresponde a una escritura: diez en diez minutos es más
+   * de lo que nadie hace de verdad y menos de lo que hace un token filtrado.
+   */
+  'autorizar-cuidador', 'revocar-cuidador', 'cerrar-enlace',
+])
 
 /** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
-const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas'])
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas', 'inicio', 'compartir-documento'])
 
 /**
  * PREGUNTAR TIENE SU PROPIO FRENO, Y NO ES EL DE LA AGENDA.
@@ -211,6 +224,27 @@ async function bloquesDelDia(
   return [...locales, ...g.bloqueos]
 }
 
+/**
+ * UN ASIENTO DE BITÁCORA NO PUEDE TUMBAR LO QUE EL PACIENTE PIDIÓ.
+ *
+ * Los asientos se escribían con `void …add(…).catch(() => {})`, que cubre el
+ * fallo ASÍNCRONO y no el síncrono: si `collection('audit_log')` lanza —porque
+ * el proyecto no lo tiene, o porque el doble de una prueba no lo conoce—, la
+ * excepción sube al `catch` de la ruta y el paciente recibe un 500 en vez de
+ * sus recetas. Una medida de trazabilidad que puede dejar sin expediente a
+ * quien lo pide está mal construida.
+ *
+ * Aquí se envuelve entero. Lo que se pierde cuando falla es el asiento, y eso
+ * es lo correcto: la bitácora acompaña al derecho, no lo condiciona.
+ */
+function asentar(clinicId: string, evento: string, datos: Record<string, unknown>): void {
+  try {
+    void adminDb.collection('clinics').doc(clinicId).collection('audit_log')
+      .add({ evento, clinicId, timestamp: new Date().toISOString(), ...datos })
+      .catch(() => { /* ya está dicho arriba */ })
+  } catch { /* ídem: el asiento es lo único que se pierde */ }
+}
+
 async function leerCita(clinicId: string, citaId: string): Promise<Appointment | null> {
   const snap = await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(citaId).get()
   return snap.exists ? ({ id: snap.id, ...(snap.data() as Omit<Appointment, 'id'>) }) : null
@@ -223,6 +257,11 @@ export async function POST(req: NextRequest) {
     respuestas?: unknown
     /** La pregunta del paciente (V9 PATIENT-AI-001). Se recorta y se clasifica en el servidor. */
     texto?: string
+    /** Compartir UN documento (PP-005): la nota firmada que el paciente eligió. */
+    documentoId?: string
+    /** Cuidador autorizado (§8): a quién autoriza el paciente, y a quién revoca. */
+    cuidador?: { nombre?: unknown; parentesco?: unknown; alcance?: unknown }
+    cuidadorId?: string
   }
   try {
     body = await req.json()
@@ -256,7 +295,7 @@ export async function POST(req: NextRequest) {
   if (!sesion) {
     return NextResponse.json({ error: 'Enlace inválido o vencido' }, { status: 401 })
   }
-  const { clinicId, patientId, alcance } = sesion
+  const { clinicId, patientId, documentoId: documentoDelEnlace, cuidadorId } = sesion
 
   /**
    * ¿SIGUE VIGENTE ESTE ENLACE? Y SI NO SE PUEDE SABER, NO SE PASA.
@@ -318,6 +357,54 @@ export async function POST(req: NextRequest) {
   }
   const noVigente = respuestaDeVigencia(decidirVigencia(sesion.version, lectura))
   if (noVigente) return noVigente
+
+  /**
+   * ── §8 · REVOCAR AL CUIDADOR TIENE QUE APAGAR SU ENLACE ──────────────────
+   *
+   * «Un cuidador autorizado es una autorización explícita y REVOCABLE, con
+   * bitácora». Sin esta comprobación, revocar sería un botón que quita a
+   * alguien de una lista mientras su enlace sigue abriendo el expediente: la
+   * peor clase de control de acceso, el que se ve y no está.
+   *
+   * Se comprueba aquí, con la misma lectura del expediente que ya sirve para la
+   * vigencia y las alergias — ni una lectura más. Y falla-CERRADO: si el
+   * expediente no se pudo leer, `paciente` es `null`, no hay lista, y el enlace
+   * del cuidador no pasa. No poder comprobar no es permiso; es el mismo
+   * criterio que la revocación de arriba.
+   *
+   * La mitad «bitácora» va con ello: se marca cuándo entró, y eso es lo que el
+   * paciente ve en su Perfil («Ana · mi hija · entró el 6 de septiembre»).
+   * Nadie sabía quién había abierto su expediente (PI-013).
+   */
+  if (cuidadorId) {
+    const lista = (paciente as unknown as { cuidadoresAutorizados?: CuidadorAutorizado[] })?.cuidadoresAutorizados ?? []
+    const cuidador = cuidadorVigente(lista, cuidadorId)
+    if (!cuidador) {
+      return NextResponse.json(
+        { error: 'Este enlace ya no está autorizado. Pídeselo de nuevo a la persona que te lo dio.' },
+        { status: 401 },
+      )
+    }
+    /**
+     * El alcance del cuidador MANDA sobre el del token.
+     *
+     * El token se firmó con el alcance que tenía el día que se emitió. Si el
+     * paciente se lo baja después, un enlace ya repartido seguiría abriendo lo
+     * de antes. La lista del expediente es la fuente de verdad viva; el token,
+     * sólo la credencial.
+     */
+    if (cuidador.alcance !== sesion.alcance) {
+      // Nunca hacia arriba: lo que la lista dice es el techo, no un ascenso.
+      sesion.alcance = cuidador.alcance === 'clinico' && sesion.alcance === 'agenda'
+        ? 'agenda'
+        : cuidador.alcance
+    }
+    void adminDb
+      .collection('clinics').doc(clinicId)
+      .collection('patients').doc(patientId)
+      .update({ cuidadoresAutorizados: marcarAcceso(lista, cuidadorId, new Date().toISOString()) })
+      .catch(() => { /* la bitácora no puede cerrarle la puerta a quien sí está autorizado */ })
+  }
 
   /**
    * LÍMITE DE TASA POR PACIENTE.
@@ -394,6 +481,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  /**
+   * El alcance EFECTIVO, después del recorte del cuidador. Se lee de la sesión
+   * y no de la desestructuración de arriba a propósito: una copia tomada antes
+   * del recorte sería el alcance del token, que es justo lo que puede estar
+   * caducado respecto de lo que el paciente decidió después.
+   */
+  const alcance: AlcanceToken = sesion.alcance
+
   // Helper: asegura que la cita pertenezca a este paciente
   const citaDelPaciente = async (citaId?: string): Promise<Appointment | NextResponse> => {
     if (!citaId) return NextResponse.json({ error: 'Falta la cita' }, { status: 400 })
@@ -408,9 +503,21 @@ export async function POST(req: NextRequest) {
     switch (body.action) {
       case 'session': {
         const [citas, config] = await Promise.all([leerCitasPaciente(clinicId, patientId, alcance), leerConfig(clinicId)])
-        const paciente = citas[0]?.pacienteNombre ?? ''
+        /*
+         * PI-015: el nombre salía de la PRIMERA CITA, así que un paciente sin
+         * citas veía «Hola» a secas — y con un enlace en la mano no tenía forma
+         * de saber si era el suyo. El expediente ya está leído aquí arriba (la
+         * misma lectura que la vigencia y las alergias): el nombre sale de ahí,
+         * y las citas quedan de respaldo para los expedientes sin nombre.
+         */
+        const nombrePaciente = String(paciente?.nombre ?? '').trim() || citas[0]?.pacienteNombre || ''
         return NextResponse.json({
-          paciente,
+          paciente: nombrePaciente,
+          /* Con qué enlace se entró: la pantalla enseña cosas distintas y tiene
+             que poder decir la verdad sobre lo que este enlace abre (PP-005). */
+          alcance,
+          /* Quién está entrando, si es un cuidador autorizado (§8). */
+          cuidadorId: cuidadorId ?? null,
           // La sala de teleconsulta se abre con `/teleconsulta/{citaId}?c={clinicId}`,
           // y el portal no tenía el clinicId: por eso el paciente no tenía puerta
           // de entrada a su videoconsulta. No es un dato sensible — ya viaja en la
@@ -739,18 +846,82 @@ export async function POST(req: NextRequest) {
        * receta y el cruce de la nota. Ver `lib/portal/formulario-previo.ts`.
        */
       case 'formulario': {
+        /**
+         * ── PI-009 · CON EL ENLACE DE AGENDA, EL VECINO ESCRIBÍA POR MÍ ──────
+         *
+         * El enlace de agenda —el que reenvío para que alguien me confirme la
+         * cita— abría este formulario: qué medicamentos tomo, a qué soy
+         * alérgico, qué me han operado. Y el médico lo lee antes de la consulta
+         * como lo que el paciente declaró.
+         *
+         * No pisa el expediente (por eso vive aparte), pero sí entra a la
+         * pantalla desde la que se decide qué pasa al expediente, y llega
+         * atribuido a alguien que no lo escribió. La lista de acciones que
+         * exigen alcance clínico se pensó para lo que SALE del consultorio; a
+         * esto, que ENTRA, nadie le puso puerta.
+         */
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Este enlace sirve para tus citas. Pide a tu médico el enlace con el que puedes contarle tus cosas.' },
+            { status: 403 },
+          )
+        }
         const respuestas = limpiarRespuestas(body.respuestas)
         if (!tieneContenido(respuestas)) {
           return NextResponse.json({ error: 'No hay nada que guardar.' }, { status: 400 })
         }
         const ahora = new Date().toISOString()
-        // Uno por PACIENTE, reescribible: el paciente puede corregir lo que puso
-        // hasta que entre a consulta. Si se guardara uno por envío, el médico
-        // tendría que adivinar cuál es el bueno.
+        /**
+         * ── PP-008 · `merge: false` BORRABA AL OTRO, EN SILENCIO ────────────
+         *
+         * Un documento por paciente, reescrito entero en cada envío. Con dos
+         * cuidadores —el padre y la madre separados, la hija y la enfermera— el
+         * segundo en llenarlo BORRABA lo del primero: el médico leía «no toma
+         * nada» donde antes decía «warfarina», y nadie podía saber que había
+         * habido otra versión. Es dato de ausencia fabricado por un `set`.
+         *
+         * Ahora:
+         *  · `merge: true` — lo que el segundo no contestó NO borra lo que el
+         *    primero sí contestó;
+         *  · y lo anterior se CONSERVA en `versiones`, con su fecha y con quién
+         *    lo mandó. El médico ve lo último y puede ver que hubo otra
+         *    versión, que es lo contrario de enterarse por accidente.
+         *
+         * Se queda en UN documento por paciente a propósito: uno por envío
+         * obligaría al médico a adivinar cuál es el bueno, que era la razón
+         * original y sigue siendo buena.
+         */
+        const previo = await adminDb.collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('formularios_previos').doc('actual').get()
+          .catch(() => null)
+        const anterior = previo?.exists ? (previo.data() as {
+          respuestas?: unknown; enviadoEn?: string; versiones?: unknown[]
+        }) : null
+        const versiones = [
+          ...(Array.isArray(anterior?.versiones) ? anterior.versiones.slice(-4) : []),
+          ...(anterior?.respuestas
+            ? [{
+                respuestas: anterior.respuestas,
+                enviadoEn: anterior.enviadoEn ?? '',
+                cuidadorId: (anterior as { cuidadorId?: string }).cuidadorId ?? '',
+              }]
+            : []),
+        ]
         await adminDb.collection('clinics').doc(clinicId)
           .collection('patients').doc(patientId)
           .collection('formularios_previos').doc('actual')
-          .set({ respuestas, enviadoEn: ahora, origen: 'paciente' }, { merge: false })
+          .set(
+            {
+              respuestas,
+              enviadoEn: ahora,
+              origen: 'paciente',
+              /* Quién lo mandó, cuando lo mandó un cuidador autorizado (§8). */
+              cuidadorId: cuidadorId ?? '',
+              versiones,
+            },
+            { merge: true },
+          )
 
         void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
           evento: 'formulario_previo_enviado',
@@ -1094,7 +1265,15 @@ export async function POST(req: NextRequest) {
          * alcance, se degradan a `agenda` y pierden esta pestaña. Se resuelve
          * reenviando el enlace desde la sesión del médico.
          */
-        if (alcance !== 'clinico') {
+        /**
+         * PP-005 · PO-009 — Y AHORA TAMBIÉN EL ALCANCE `documento`.
+         *
+         * Un enlace de documento abre ESTA acción y sólo para SU nota. No lista
+         * citas, no abre el plan, no deja preguntar ni mover nada: el filtro de
+         * abajo se queda con la nota que el token nombra, y si no está, la
+         * respuesta es una lista vacía — no el recetario entero.
+         */
+        if (alcance !== 'clinico' && alcance !== 'documento') {
           return NextResponse.json(
             { error: 'Pide a tu médico el acceso a tus recetas.' },
             { status: 403 },
@@ -1188,7 +1367,209 @@ export async function POST(req: NextRequest) {
             medicamentos: recetados,
           }))
           .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
-        return NextResponse.json({ documentos: docs, alergias, alergiasLeidas: pacienteLeido })
+
+        /**
+         * PP-005 — CON UN ENLACE DE DOCUMENTO, SÓLO ESE DOCUMENTO.
+         *
+         * Se filtra DESPUÉS de componer y no antes con un `where`, por la misma
+         * razón que `visibleParaElPaciente` se aplica en memoria: una consulta
+         * que se equivoque de campo devuelve de más en silencio, y aquí «de
+         * más» es el expediente de alguien.
+         */
+        const visibles = alcance === 'documento'
+          ? docs.filter(d => d.id === documentoDelEnlace)
+          : docs
+
+        /**
+         * PI-010 · EL AVISO PROMETÍA «REGISTRO DE ACCESOS A SU EXPEDIENTE».
+         *
+         * El aviso de privacidad que este producto publica lo lista entre sus
+         * medidas de seguridad (`aviso-privacidad.ts` §8), y las lecturas del
+         * portal no se asentaban en ningún sitio: nadie podía saber quién había
+         * abierto las recetas de un paciente, ni cuántas veces, ni con qué
+         * enlace. Una medida declarada y no construida es peor que no
+         * declararla.
+         *
+         * Se asienta el HECHO, nunca el contenido: cuántos documentos, con qué
+         * alcance y qué cuidador — `data-privacy.md` prohíbe PHI en logs, y una
+         * bitácora que copiara el diagnóstico sería justo eso.
+         *
+         * No puede tumbar la lectura: el paciente tiene derecho a sus recetas
+         * aunque la bitácora falle.
+         */
+        asentar(clinicId, 'portal_documentos_leidos', {
+          patientId,
+          meta: {
+            origen: 'portal-paciente',
+            alcance,
+            cuantos: visibles.length,
+            cuidadorId: cuidadorId ?? '',
+            documentoId: alcance === 'documento' ? String(documentoDelEnlace ?? '') : '',
+          },
+        })
+
+        return NextResponse.json({ documentos: visibles, alergias, alergiasLeidas: pacienteLeido })
+      }
+
+      /**
+       * COMPARTIR **UNA** COSA — PP-005 · PO-009 · PC-018.
+       *
+       * ── QUÉ HABÍA ───────────────────────────────────────────────────────
+       *
+       * Nada. Para justificar una incapacidad ante su jefe, o enseñarle la
+       * receta del niño a la guardería, el paciente sólo podía reenviar SU
+       * enlace: siete días de citas con motivo, recetas con diagnóstico, plan
+       * con alergias, sus preguntas — y con permiso para cancelar, reagendar y
+       * preguntar en su nombre. El reenvío no es un mal uso: es EL uso.
+       *
+       * ── QUÉ HACE ────────────────────────────────────────────────────────
+       *
+       * Devuelve un enlace de alcance `documento` para la nota que el paciente
+       * eligió. Abre esa nota y nada más. Lo emite el paciente desde su portal,
+       * así que no depende de que el consultorio esté abierto, y muere cuando él
+       * cierra su enlace (comparte la misma versión).
+       */
+      case 'compartir-documento': {
+        if (alcance !== 'clinico') {
+          return NextResponse.json(
+            { error: 'Este enlace no puede compartir documentos. Pídele uno a tu médico.' },
+            { status: 403 },
+          )
+        }
+        const notaId = String(body.documentoId ?? '').trim()
+        if (!notaId) return NextResponse.json({ error: 'Falta el documento.' }, { status: 400 })
+
+        /**
+         * QUE LA NOTA SEA SUYA Y ESTÉ FIRMADA SE COMPRUEBA AQUÍ.
+         *
+         * El `patientId` sale del token, así que la ruta ya cuelga del
+         * expediente correcto; lo que esto impide es emitir un enlace para un
+         * borrador —que nunca debió salir del consultorio— o para un id
+         * inventado, que produciría un enlace que no abre nada y un paciente
+         * convencido de haber compartido su receta.
+         */
+        const notaSnap = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('notas').doc(notaId).get()
+        const nota = notaSnap.exists ? (notaSnap.data() as { estado?: string }) : null
+        if (!nota || nota.estado !== 'firmada') {
+          return NextResponse.json({ error: 'Ese documento no está disponible.' }, { status: 404 })
+        }
+
+        const origen = req.headers.get('origin') || req.nextUrl.origin
+        const url = linkPortalPaciente(origen, clinicId, patientId, undefined, 'documento', sesion.version, {
+          documentoId: notaId,
+        })
+
+        asentar(clinicId, 'portal_documento_compartido', { patientId, meta: { origen: 'portal-paciente', documentoId: notaId, cuidadorId: cuidadorId ?? '' } })
+
+        return NextResponse.json({ url })
+      }
+
+      /**
+       * CERRAR EL ENLACE — PC-018, y la parte de PL-P1 que «no requiere decisión».
+       *
+       * Revocar existía desde REG-331… **sólo para el médico**, desde el
+       * expediente. El paciente que se da cuenta de que reenvió su enlace al
+       * grupo equivocado no tenía nada que hacer salvo esperar siete días.
+       *
+       * Sube `portalTokenVersion`, que es el mecanismo que ya existe: caen de
+       * golpe TODOS los enlaces de ese paciente, incluidos los de documento y
+       * los de sus cuidadores. Es lo correcto — quien cierra su puerta la cierra
+       * entera— y por eso la pantalla lo dice antes de hacerlo.
+       *
+       * Quien tiene un enlace reenviado también puede cerrarlo. Es deliberado:
+       * la acción sólo QUITA acceso, nunca lo da, y el paciente recupera el suyo
+       * pidiéndole otro al consultorio. Un botón que sólo cierra puertas es un
+       * riesgo aceptable; uno que las abre, no.
+       */
+      case 'cerrar-enlace': {
+        await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .update({ portalTokenVersion: admin.firestore.FieldValue.increment(1) })
+
+        asentar(clinicId, 'portal_enlace_cerrado_por_el_paciente', { patientId, meta: { origen: 'portal-paciente', cuidadorId: cuidadorId ?? '' } })
+
+        return NextResponse.json({ ok: true })
+      }
+
+      /**
+       * QUIÉN MÁS PUEDE VER LO MÍO — §8, y PP-008 · PI-013 · PG-011 · PO-014.
+       *
+       * Tres acciones sobre la misma lista, que vive en el expediente del
+       * paciente (`cuidadoresAutorizados`) y no en una colección nueva: es un
+       * dato DEL paciente, se respalda con él y no abre una tercera puerta que
+       * declarar en tres sitios.
+       */
+      case 'cuidadores': {
+        const lista = ((paciente as unknown as { cuidadoresAutorizados?: CuidadorAutorizado[] })?.cuidadoresAutorizados) ?? []
+        return NextResponse.json({ cuidadores: vigentes(lista), puedeDarClinico: alcance === 'clinico' })
+      }
+
+      case 'autorizar-cuidador': {
+        if (alcance === 'documento') {
+          return NextResponse.json(
+            { error: 'Este enlace abre un solo documento y no puede dar acceso a nadie.' },
+            { status: 403 },
+          )
+        }
+        const lista = ((paciente as unknown as { cuidadoresAutorizados?: CuidadorAutorizado[] })?.cuidadoresAutorizados) ?? []
+        const ahora = new Date().toISOString()
+        const r = autorizarCuidador(
+          lista,
+          {
+            nombre: body.cuidador?.nombre,
+            parentesco: body.cuidador?.parentesco,
+            alcance: body.cuidador?.alcance,
+          },
+          alcance,
+          ahora,
+          `cui_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
+        )
+        if (!r.ok) {
+          return NextResponse.json({ error: MOTIVO_RECHAZO_LABEL[r.motivo] }, { status: 422 })
+        }
+        await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .update({ cuidadoresAutorizados: [...lista, r.cuidador] })
+
+        /* Ni el nombre ni el parentesco: son datos de una persona, y esto acaba
+           en los registros del consultorio. Basta con qué y cuándo. */
+        asentar(clinicId, 'portal_cuidador_autorizado', {
+          patientId,
+          meta: { origen: 'portal-paciente', cuidadorId: r.cuidador.id, alcance: r.cuidador.alcance },
+        })
+
+        const origen2 = req.headers.get('origin') || req.nextUrl.origin
+        return NextResponse.json({
+          cuidador: r.cuidador,
+          /* El enlace que el paciente le pasa a esa persona. Va atado a su id,
+             así que la bitácora puede decir quién abrió qué. */
+          url: linkPortalPaciente(origen2, clinicId, patientId, undefined, r.cuidador.alcance, sesion.version, {
+            cuidadorId: r.cuidador.id,
+          }),
+        })
+      }
+
+      case 'revocar-cuidador': {
+        const lista = ((paciente as unknown as { cuidadoresAutorizados?: CuidadorAutorizado[] })?.cuidadoresAutorizados) ?? []
+        const ahora = new Date().toISOString()
+        const nueva = revocarCuidador(lista, String(body.cuidadorId ?? ''), ahora)
+        if (!nueva) return NextResponse.json({ error: 'Esa persona ya no tiene acceso.' }, { status: 404 })
+        await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .update({ cuidadoresAutorizados: nueva })
+
+        asentar(clinicId, 'portal_cuidador_revocado', {
+          patientId,
+          meta: { origen: 'portal-paciente', cuidadorId: String(body.cuidadorId ?? '') },
+        })
+
+        return NextResponse.json({ ok: true, cuidadores: vigentes(nueva) })
       }
 
       default:

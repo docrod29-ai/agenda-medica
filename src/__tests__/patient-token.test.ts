@@ -6,7 +6,7 @@ describe('patient-token', () => {
     const t = crearTokenPaciente('clinicA', 'pac123')
     const v = verificarTokenPaciente(t)
     // E0-06: el token declara ALCANCE; sin pedir nada, nace en 'agenda'.
-    expect(v).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda', version: 0 })
+    expect(v).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda', version: 0, documentoId: null, cuidadorId: null })
   })
 
   it('rechaza token manipulado (firma inválida)', () => {
@@ -38,7 +38,7 @@ describe('patient-token', () => {
     const url = linkPortalPaciente('https://app.example.com/', 'clinicA', 'pac123')
     expect(url.startsWith('https://app.example.com/mi/')).toBe(true)
     const token = url.split('/mi/')[1]
-    expect(verificarTokenPaciente(token)).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda', version: 0 })
+    expect(verificarTokenPaciente(token)).toEqual({ clinicId: 'clinicA', patientId: 'pac123', alcance: 'agenda', version: 0, documentoId: null, cuidadorId: null })
   })
 })
 

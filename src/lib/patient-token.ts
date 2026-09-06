@@ -43,15 +43,53 @@ const DIAS_DEFECTO = 7
  *
  * FALLA-CERRADO: un token viejo SIN campo de alcance se interpreta como `agenda`.
  */
-export type AlcanceToken = 'agenda' | 'clinico'
+/**
+ * ── PP-005 · PO-009 · PC-018 — UN TERCER ALCANCE: `documento` ───────────────
+ *
+ * Hasta hoy compartir algo del portal era compartir el portal ENTERO. El
+ * paciente que necesita justificar una incapacidad ante su jefe, o la madre que
+ * tiene que enseñarle la receta a la guardería, sólo podían reenviar su enlace:
+ * siete días de citas con motivo, recetas con diagnóstico, plan con alergias y
+ * sus propias preguntas — y con la capacidad de cancelar, reagendar y preguntar
+ * en su nombre.
+ *
+ * `documento` abre UNA cosa y nada más: el documento que el paciente eligió. No
+ * lista citas, no abre el plan, no deja preguntar, no deja mover nada. Y el
+ * paciente lo emite desde su propio portal, así que no depende de que el
+ * consultorio esté abierto.
+ *
+ * Sigue siendo un enlace sin contraseña, con lo que eso implica (ver
+ * `POR_QUE_NO_HAY_SEGUNDO_FACTOR`): lo que cambia es CUÁNTO abre, que es la
+ * mitad del riesgo que nadie estaba acotando.
+ */
+export type AlcanceToken = 'agenda' | 'clinico' | 'documento'
 
 const ALCANCE_DEFECTO: AlcanceToken = 'agenda'
+
+/** Los tres alcances conocidos. Cualquier otra cosa se degrada a `agenda`. */
+const ALCANCES: readonly AlcanceToken[] = ['agenda', 'clinico', 'documento']
 
 interface PayloadPaciente {
   c: string // clinicId
   p: string // patientId
   e: number // exp epoch (segundos)
   a?: AlcanceToken // alcance (ausente = 'agenda', fail-closed)
+  /**
+   * QUÉ documento abre, cuando el alcance es `documento`.
+   *
+   * Sin esto, un alcance `documento` sería un alcance clínico con otro nombre.
+   * La ruta exige que esté y que coincida con la nota que se pide.
+   */
+  d?: string
+  /**
+   * QUIÉN es el cuidador autorizado que usa este enlace, si lo hay.
+   *
+   * `patient-facing-ai.md` §8: «un cuidador autorizado es una autorización
+   * explícita y revocable, con bitácora — no un segundo dueño del expediente».
+   * Sin este campo, dos cuidadores son indistinguibles (PP-008) y la bitácora
+   * no puede decir quién abrió qué (PG-011, PO-014, PI-013).
+   */
+  u?: string
   /**
    * VERSIÓN del enlace, para poder REVOCARLO.
    *
@@ -85,16 +123,27 @@ function firmar(payloadB64: string): string {
   return createHmac('sha256', getSecret()).update(payloadB64).digest('base64url')
 }
 
-/** Crea un token firmado para un paciente. ttlDias por defecto 30, alcance `agenda`. */
+/** Lo que un enlace puede llevar además del paciente y su alcance. */
+export interface ExtrasDelToken {
+  /** Sólo con alcance `documento`: qué nota abre. */
+  documentoId?: string
+  /** Quién es el cuidador autorizado que lo usa. Va a la bitácora. */
+  cuidadorId?: string
+}
+
+/** Crea un token firmado para un paciente. ttlDias por defecto 7, alcance `agenda`. */
 export function crearTokenPaciente(
   clinicId: string,
   patientId: string,
   ttlDias = DIAS_DEFECTO,
   alcance: AlcanceToken = ALCANCE_DEFECTO,
   version = 0,
+  extras: ExtrasDelToken = {},
 ): string {
   const exp = Math.floor(Date.now() / 1000) + ttlDias * 86400
   const payload: PayloadPaciente = { c: clinicId, p: patientId, e: exp, a: alcance, v: version }
+  if (extras.documentoId) payload.d = String(extras.documentoId)
+  if (extras.cuidadorId) payload.u = String(extras.cuidadorId)
   const payloadB64 = b64url(JSON.stringify(payload))
   return `${payloadB64}.${firmar(payloadB64)}`
 }
@@ -106,6 +155,10 @@ export interface TokenVerificado {
   alcance: AlcanceToken
   /** Versión con la que se emitió. El llamador la compara con la del expediente. */
   version: number
+  /** Con alcance `documento`, la ÚNICA nota que este enlace abre. */
+  documentoId: string | null
+  /** El cuidador autorizado que usa este enlace, para la bitácora. */
+  cuidadorId: string | null
 }
 
 /** Verifica firma + caducidad. Devuelve null si es inválido o expiró. */
@@ -132,9 +185,26 @@ export function verificarTokenPaciente(token: string | undefined | null): TokenV
 
   // Solo se acepta un alcance CONOCIDO; cualquier otra cosa (o su ausencia) cae a
   // 'agenda'. Un payload manipulado no puede inventarse un alcance nuevo.
-  const alcance: AlcanceToken = payload.a === 'clinico' ? 'clinico' : ALCANCE_DEFECTO
+  const declarado = ALCANCES.includes(payload.a as AlcanceToken) ? (payload.a as AlcanceToken) : ALCANCE_DEFECTO
+  const documentoId = payload.d ? String(payload.d) : null
+  /**
+   * FALLA-CERRADO EN LOS DOS SENTIDOS.
+   *
+   * Un alcance `documento` SIN documento sería un enlace que dice abrir una
+   * cosa y no dice cuál: se degrada a `agenda`, que es el alcance que menos
+   * abre. Y un `documentoId` colgado de un alcance que no es `documento` se
+   * ignora, para que nadie pueda usarlo como si acotara algo.
+   */
+  const alcance: AlcanceToken = declarado === 'documento' && !documentoId ? ALCANCE_DEFECTO : declarado
 
-  return { clinicId: payload.c, patientId: payload.p, alcance, version: Number(payload.v ?? 0) }
+  return {
+    clinicId: payload.c,
+    patientId: payload.p,
+    alcance,
+    version: Number(payload.v ?? 0),
+    documentoId: alcance === 'documento' ? documentoId : null,
+    cuidadorId: payload.u ? String(payload.u) : null,
+  }
 }
 
 /**
@@ -148,10 +218,29 @@ export function linkPortalPaciente(
   ttlDias = DIAS_DEFECTO,
   alcance: AlcanceToken = ALCANCE_DEFECTO,
   version = 0,
+  extras: ExtrasDelToken = {},
 ): string {
-  const token = crearTokenPaciente(clinicId, patientId, ttlDias, alcance, version)
+  const token = crearTokenPaciente(clinicId, patientId, ttlDias, alcance, version, extras)
   return `${baseUrl.replace(/\/$/, '')}/mi/${token}`
 }
+
+/**
+ * POR QUÉ ESTE ENLACE NO PIDE UN SEGUNDO DATO — decisión PL-P1 del dueño.
+ *
+ * Se planteó pedir la fecha de nacimiento o los últimos dígitos del teléfono al
+ * abrirlo. Se descartó: el paciente de 70 años que recibe el enlace por WhatsApp
+ * en la sala de espera es exactamente quien no pasa esa puerta, y un portal que
+ * no se abre no protege nada — devuelve al paciente al teléfono del consultorio.
+ *
+ * Lo que sí se hizo, que es la otra mitad del mismo riesgo: acotar CUÁNTO abre
+ * cada enlace (`documento`), dejar que el paciente lo CIERRE desde su portal, y
+ * asentar cada apertura en la bitácora.
+ */
+export const POR_QUE_NO_HAY_SEGUNDO_FACTOR =
+  'Porque el paciente que más necesita el portal es el que no pasaría un segundo ' +
+  'factor, y un portal que no se abre no protege: devuelve al paciente al teléfono. ' +
+  'El riesgo se acota por otro lado: enlaces que abren menos, que el paciente puede ' +
+  'cerrar, y una bitácora de quién abrió qué.'
 
 /**
  * ¿Sigue vigente este enlace, según la versión que declara el expediente?

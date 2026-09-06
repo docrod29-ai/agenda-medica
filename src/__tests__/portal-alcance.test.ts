@@ -160,7 +160,12 @@ describe('E0-06 · el alcance viaja en el token y falla-cerrado', () => {
 
   it('un token emitido con alcance `clinico` lo conserva', () => {
     const t = crearTokenPaciente(CLINICA, PACIENTE, 1, 'clinico')
-    expect(verificarTokenPaciente(t)).toEqual({ clinicId: CLINICA, patientId: PACIENTE, alcance: 'clinico', version: 0 })
+    // `documentoId` y `cuidadorId` son de PP-005 y del cuidador autorizado (§8):
+    // un enlace normal no acota ningún documento ni pertenece a nadie más.
+    expect(verificarTokenPaciente(t)).toEqual({
+      clinicId: CLINICA, patientId: PACIENTE, alcance: 'clinico', version: 0,
+      documentoId: null, cuidadorId: null,
+    })
   })
 
   it('manipular el alcance rompe la firma', () => {
