@@ -537,6 +537,20 @@ export default function GeneradorOrdenPage() {
    * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
    * documento inmutable.
    */
+  /**
+   * SI LA ORDEN CAMBIA, ES OTRA ORDEN.
+   *
+   * `asentada` evita enmendar dos veces la misma nota por el mismo papel (un
+   * segundo clic, una reimpresión). Pero si el médico AÑADE un estudio y vuelve
+   * a emitir, eso ya no es la misma orden: el expediente tiene que registrar la
+   * nueva lista, o volveríamos al defecto que MO-005 denuncia —dos órdenes
+   * distintas con el mismo folio y ningún rastro de la segunda—.
+   */
+  useEffect(() => {
+    setAsentada(false)
+    claveAsiento.current = null
+  }, [estudios])
+
   const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
     if (!clinicId || !estudios.length) return
     if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice
