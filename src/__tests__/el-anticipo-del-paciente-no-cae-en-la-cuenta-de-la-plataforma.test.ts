@@ -190,3 +190,45 @@ describe('REP-003 · N-002 — el anticipo del paciente no se cobra en la cuenta
       .toSatisfy((v: typeof visto) => v.rechazadaPorBandera || v.enCuentaDelConsultorio)
   })
 })
+
+/**
+ * Segunda mitad, tras la reparación (N-003): sin cuenta conectada, la ruta NO
+ * abre sesión y devuelve la vía que sí existe para que el portal la enseñe.
+ */
+describe('sin cuenta conectada, la ruta dice por dónde se cobra en vez de cobrar en la plataforma', () => {
+  it('con liga propia del consultorio: 409, via liga-propia y la liga en la respuesta', async () => {
+    datosFirestore[`clinics/${CLINICA}`] = { nombreClinica: 'Consultorio Sintético' }
+    const token = crearTokenPaciente(CLINICA, PACIENTE, 7, 'agenda')
+    const res = await POST(peticion({ token, citaId: CITA }))
+    expect(res.status).toBe(409)
+    const cuerpo = await res.json() as { via?: string; anticipoLink?: string; monto?: number }
+    expect(cuerpo.via).toBe('liga-propia')
+    expect(cuerpo.anticipoLink).toBe('https://buy.stripe.test/link-del-consultorio')
+    expect(cuerpo.monto).toBe(800)
+    expect(llamadasStripe.filter(l => l.ruta === 'checkout.sessions.create')).toHaveLength(0)
+    // Y la cita no se toca: no hay pago en curso que anotar.
+    expect(escrituras.some(e => e.ruta === `clinics/${CLINICA}/appointments/${CITA}`)).toBe(false)
+  })
+
+  it('sin liga ni cuenta: 409, via en-consultorio, sin liga', async () => {
+    datosFirestore[`clinics/${CLINICA}`] = { nombreClinica: 'Consultorio Sintético' }
+    datosFirestore[`clinics/${CLINICA}/config/main`] = { anticipoMonto: 200 }
+    const token = crearTokenPaciente(CLINICA, PACIENTE, 7, 'agenda')
+    const res = await POST(peticion({ token, citaId: CITA }))
+    expect(res.status).toBe(409)
+    const cuerpo = await res.json() as { via?: string; anticipoLink?: string }
+    expect(cuerpo.via).toBe('en-consultorio')
+    expect(cuerpo.anticipoLink).toBeUndefined()
+  })
+
+  it('con cuenta conectada, el destino del cargo es ESA cuenta y los metadatos viajan en el PaymentIntent', async () => {
+    const token = crearTokenPaciente(CLINICA, PACIENTE, 7, 'agenda')
+    const res = await POST(peticion({ token, citaId: CITA }))
+    expect(res.status).toBe(200)
+    const s = llamadasStripe.find(l => l.ruta === 'checkout.sessions.create')
+    const params = s?.args[0] as { payment_intent_data?: { transfer_data?: { destination?: string }; on_behalf_of?: string; metadata?: Record<string, string> } }
+    expect(params.payment_intent_data?.transfer_data?.destination).toBe('acct_sintetico_consultorio')
+    expect(params.payment_intent_data?.on_behalf_of).toBe('acct_sintetico_consultorio')
+    expect(params.payment_intent_data?.metadata).toMatchObject({ clinicId: CLINICA, citaId: CITA, tipo: 'paciente_anticipo' })
+  })
+})

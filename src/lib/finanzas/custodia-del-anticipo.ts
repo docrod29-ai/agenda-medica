@@ -66,7 +66,7 @@ export interface EntradaCustodia {
 
 /** Una cuenta conectada de Stripe siempre empieza por `acct_`. */
 export function esCuentaConectada(v: unknown): v is string {
-  return typeof v === 'string' && /^acct_[A-Za-z0-9]+$/.test(v.trim())
+  return typeof v === 'string' && /^acct_\w+$/.test(v.trim())
 }
 
 /** Una liga de pago tiene que ser https; lo demás no se le enseña a un paciente. */
