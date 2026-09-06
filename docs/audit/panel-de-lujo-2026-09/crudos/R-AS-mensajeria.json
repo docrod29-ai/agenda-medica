@@ -1,0 +1,183 @@
+{
+  "auditor": "AS-mensajeria",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "ASM-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/pacientes/page.tsx:948-950 (handleSave sólo valida nombre y edad) · src/app/(dashboard)/pacientes/page.tsx:1185 (input type=tel sin pattern) · src/lib/pacientes/campos-que-se-guardan.ts:88 (`const tel = f.telefono.replace(/\\D/g, '')`: normaliza, no valida) · firestore.rules:174 (`allow update: if isMember(clinicId)`, sin lista blanca de forma para patients)",
+      "nota": "Comprobado el camino entero de escritura: la pantalla no valida, el constructor del payload sólo quita no-dígitos y la regla de Firestore deja pasar cualquier valor de `telefono` (la escritura es del SDK cliente, no de una ruta de API). El ÚNICO control de teléfono del producto vive en la reserva pública (src/app/api/public/booking/route.ts:85, `< 7` dígitos → 400) y no alcanza al editor de pacientes, así que «12345» entra. Bajo a P2 porque el daño propio del hallazgo es un envío que no sale; la fuga a un tercero la aporta ASM-002, no éste."
+    },
+    {
+      "id": "ASM-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/whatsapp/telefono.ts:19-23 (`if (!d.startsWith('52')) d = `52${d}`` + `if (d.length === 13 && d[2] === '1') d = `52${d.slice(3)}``) · src/lib/whatsapp-send.ts:50-51 y 177 (`const phone = normalisePhone(to)`: es la única puerta antes de 360dialog/Meta/Twilio; no hay comprobación de país ni de longitud en 56-131)",
+      "nota": "Ejecutado con node desde /tmp sobre la misma lógica. Salida literal: \"+1 619 555 1234\" => 526195551234 (len 12) · \"+1 213 555 0000\" => 522135550000 (len 12) · \"+34 600 000 000\" => 5234600000000 (len 13) · \"12345\" => 5212345 (len 7) · \"55A5010101\" => 52555010101 (len 11) · \"5215551234567\" => 525551234567. Busqué una capa que validara el país antes de enviar: no existe — telefono-candidatos.ts sólo genera variantes para BUSCAR, proactivo.ts no mira el número y sendWhatsApp lo pasa tal cual al proveedor. Matizo un detalle del relato: 619 no es LADA mexicana (Tijuana es 664, Mexicali 686), así que ese caso concreto acaba en rechazo del proveedor; el escenario de «llega a otro abonado» exige que los 10 dígitos resultantes caigan en una numeración asignada. La mutación silenciosa y la ausencia total de validación de país quedan confirmadas, y las pruebas existentes (src/__tests__/whatsapp-telefono.test.ts) sólo cubren números mexicanos."
+    },
+    {
+      "id": "ASM-003",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "docs/whatsapp/policy-risk-register.md:15 — «WA-9 | Envío de PHI por WhatsApp | **Decidido (D-034, 5-sep-2026)** … Los demás mensajes siguen siendo administrativos.»",
+      "nota": "El inventario del auditor es exacto (verificados cron/reminders/route.ts:292 `paciente: appt.pacienteNombre`, :300 `clinicaLinea`, whatsapp.ts:37-95 con nombre completo, templates.ts:68 con {{5}} clínica), pero no describe un defecto nuevo: es exactamente el riesgo WA-9, que el dueño revisó hace un día y cerró declarando administrativos estos mensajes. Ninguna regla del repositorio prohíbe el nombre del paciente en un mensaje dirigido a su propio número (data-privacy.md prohíbe PHI en logs, URL y errores). Pasar a «sólo primer nombre y sin nombre del consultorio» es una política nueva del dueño, no una reparación; y el daño que describe la reproducción es enteramente el de ASM-001/ASM-002."
+    },
+    {
+      "id": "ASM-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/cron/reminders/route.ts:219 (`const phone = appt.pacienteTelefono`) · src/lib/firestore.ts:594-640 (updatePatient escribe sólo `patients/{id}` e invalida caché) · grep de escrituras de `pacienteTelefono` en todo src/ (sin tests): sólo altas — booking/route.ts:374, webhook/route.ts:1039, 1113, 1329, 1366, AppointmentModal.tsx:257. Ningún sincronizador.",
+      "nota": "Busqué el reconciliador que pediste: no existe. El dato desnormalizado sólo se escribe al crear la cita; nadie lo vuelve a tocar cuando cambia el expediente, y el cron nunca cae a `patients/{pacienteId}` (sí lee ese documento en :269-271, pero únicamente para `portalTokenVersion`). REG-323 —que el auditor relaciona— es otra cosa (el payload de /pacientes borraba alergias) y no cubre esto. Mantengo P1: es el caso canónico de «el dato tiene que LLEGAR» (.claude/rules/el-dato-tiene-que-llegar.md), con la pantalla diciendo «Paciente actualizado» mientras el destinatario del recordatorio sigue siendo el número viejo."
+    },
+    {
+      "id": "ASM-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/whatsapp/proactivo.ts:96-100 (omitir + console.warn) y src/lib/whatsapp/templates.ts:98-104 (sin `name` registrado no hay plantilla) — pero la decisión está documentada: docs/whatsapp/iteration-06-templates-window.md:26 («Fuera de 24 h sin plantilla: se omite … No hay regresión: esos mensajes tampoco se entregaban antes») y docs/product/V6-PRACTICE-GA.md:45 («necesita plantillas aprobadas en Meta (**DEL DR.**)»)",
+      "nota": "Comprobé lo que pediste en docs/ y agent-state/: la omisión NO es un descuido, es diseño declarado (Meta rechaza texto libre fuera de ventana) y el trámite de alta de plantillas está registrado como paso externo del dueño. Lo que sí queda en pie —y por eso no lo refuto entero— es la parte de visibilidad: verifiqué que el aviso de configuracion/page.tsx:797-808 sólo aparece cuando `provider` es none/ausente, así que con proveedor conectado y 0/3 plantillas la pestaña Notificaciones no dice nada, y el cron no importa `registrarNoEntregado` (grep de imports en reminders/route.ts:1-16), de modo que la omisión no deja registro por cita. Esa mitad es la misma que ASM-007; P2, no P1."
+    },
+    {
+      "id": "ASM-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/whatsapp/webhook/route.ts:574-583 (caducidad de 2 h → clearSession + buildMenu + return) frente a :618 (`if (estado === 'confirmando_cita' || estado === 'confirmando_cancelacion')`) · src/app/api/cron/reminders/route.ts:334-350 (el cron deja la sesión `confirmando_cita` con `lastMessageAt: now.toISOString()`, 23-26 h antes de la cita)",
+      "nota": "Leído el archivo alrededor de la 574: el bloque de caducidad está literalmente 44 líneas ANTES del que atiende SÍ/NO, y hace `return`, así que no hay camino que lo salve. Sólo la baja (:521) y la urgencia (:550-567) van por encima. Comprobado además que `confirmando_cita` no se maneja en ningún otro sitio (grep: sólo webhook:618 y las listas de exclusión de :736/:813/:823) y que src/__tests__/bot-si-no-cancela.test.ts sólo comprueba cadenas del código, no la caducidad. La ventana útil real de «Responde SÍ» son 2 h, y el mensaje no lo dice."
+    },
+    {
+      "id": "ASM-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/cron/reminders/route.ts:353 y :371 (`else if (resultado === 'fallo') { totals.failed++ }`, sin marcar la cita) · imports de reminders/route.ts:1-16 (no importa `registrarNoEntregado`, a diferencia de booking:442, webhook:479, ofrecer-hueco.ts:322 y avisar-consultorio.ts:53) · grep de `whatsapp_no_entregados` en src/app, src/components, src/hooks: 0 lectores (sólo el comentario de api/portal/route.ts:925); la pestaña Entregas lee otra colección (api/whatsapp/entregas/route.ts:29-30 → `whatsapp_status`)",
+      "nota": "Verificado del otro lado, como pide la regla del dato: la colección existe, se respalda (lib/clinica/respaldo.ts:141) y está en la matriz (authz/matriz-acceso.ts:249), pero ninguna pantalla la lee. El fallo del recordatorio ni siquiera llega a esa colección porque el cron no la escribe."
+    },
+    {
+      "id": "ASM-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/cron/reminders/route.ts:399-404 — `const ok = await sendWhatsApp(a.pacienteTelefono, msg, config, clinicId)` (envoltorio de :81-84 → `sendWA(..., { proactivo: true })`, texto libre) seguido de `.update({ resenaSolicitada: true … })` antes de mirar `ok`",
+      "nota": "Confirmado literalmente. La reseña es el único envío del cron que NO pasa por `enviarProactivo`, así que se salta ventana de 24 h, plantilla, horas de silencio (horario.ts) y tope diario (frecuencia.ts); sólo conserva el opt-out por `proactivo: true`. Y `resenaSolicitada` se escribe pase lo que pase, de modo que un rechazo del proveedor cierra la puerta para siempre."
+    },
+    {
+      "id": "ASM-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/whatsapp-send.ts:171-177 (`sendWhatsApp` no importa ni consulta window.ts/contacts.ts) · llamadores reales verificados por grep: booking/route.ts:440, hospital/alerta/route.ts:108, cron/reminders/route.ts:400, webhook/route.ts:477 (dentro del `send` reactivo del bot) y avisar-consultorio.ts:51",
+      "nota": "El fondo se sostiene, pero corrijo la evidencia: webhook:1199, :1433 y :375 no llaman a `sendWhatsApp`, llaman al helper `send()` que sí termina en :477. Son cinco archivos, no seis llamadores directos. La consecuencia que describe (los avisos al número del consultorio salen como texto libre y se topan con la ventana) es correcta."
+    },
+    {
+      "id": "ASM-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:1061 (`QUICK_STATUSES` sin 'confirmada') · :901-903 (pendiente + teléfono → acción 'confirmar') · :1013-1017 (`handleWA` → `openWhatsApp`) · :1083 (`case 'confirmar': handleWA()`)",
+      "nota": "Las cuatro líneas coinciden literalmente. El botón primario abre wa.me y no toca el estado, y 'confirmada' no está entre los estados rápidos, así que registrar la confirmación exige el editor. Es fricción de producto con evidencia; se confirma."
+    },
+    {
+      "id": "ASM-011",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp-send.ts:76 y :103 (`return { ok: true, veredicto: 'contesto' }`: nunca se lee el id del mensaje) — PERO src/lib/whatsapp/status.ts:38-44 guarda `telefono: s?.recipient_id` y :73-78 lo persiste en `whatsapp_status/{wamid}` junto al `errorCode`",
+      "nota": "La mitad técnica es cierta: no se captura el wamid, así que no se puede atar el acuse a la CITA. Pero la premisa fuerte del título —«un failed 131026 no puede decir de quién es»— es falsa: el estado guarda el teléfono destinatario, y con `candidatosDeTelefono` (telefono-candidatos.ts:49) ese teléfono identifica al paciente. Lo que falta es la pantalla que lo enseñe (es decir, otra vez ASM-007), no el dato. Bajo a P3."
+    },
+    {
+      "id": "ASM-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/whatsapp/webhook/route.ts:620-621 (esSi/esNo) · src/lib/whatsapp.ts:48-51 (pide *CONFIRMAR* / *CAMBIAR* / *CANCELAR*) y :86 (pide *CITA*) · src/lib/whatsapp/intencion.ts:39 (`cambiar (mi )?cita`) · src/lib/whatsapp/consent.ts:34-49 (esPalabraBaja)",
+      "nota": "Ejecutadas las expresiones en node desde /tmp. Salida literal: confirmar | esSi: false | esNo: false · confirmada | false/false · cambiar | false/false · cita | false/false · \"no me escribas mas\" | baja: false. Se confirma el desajuste entre lo que piden las plantillas y lo que entiende el bot. Corrijo un dato de la lista del auditor: «no voy» SÍ se entiende como NO (`/^no\\b/` casa) — salida literal: no voy | esNo: true; incluirlo entre lo que «NO entiende» es un error suyo."
+    },
+    {
+      "id": "ASM-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/whatsapp/webhook/route.ts:1615 (`if (msg.type !== 'text') continue`) · src/app/api/whatsapp/360dialog-webhook/route.ts:69 (`if (msg.type !== 'text' || !msg.text?.body) continue`)",
+      "nota": "Coinciden literalmente y no hay ninguna rama que conteste «sólo leo texto». El caso audio/imagen (silencio absoluto ante «no voy a poder ir») es real hoy; el de los botones es futuro, porque hoy no hay plantillas registradas (ASM-005), así que la probabilidad efectiva viene del audio."
+    },
+    {
+      "id": "ASM-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/whatsapp/webhook/route.ts:1625-1631 (`handleMessage(from, text, clinicId).catch(...)` sin await, y `return NextResponse.json({ ok: true })`) frente a src/app/api/whatsapp/360dialog-webhook/route.ts:78 (`await handleMessage(...)`) · grep de `waitUntil`/`after(` en src/app: 0 resultados",
+      "nota": "Asimetría verificada entre los dos webhooks, y el dedup se marca ANTES (`marcarProcesado` en :1622) del trabajo asíncrono, así que un corte tras el 200 no lo rescata ningún reintento: Meta ya recibió 200 y un reenvío del paciente chocaría con el dedup. Confirmado."
+    },
+    {
+      "id": "ASM-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:974 («Vista previa de los mensajes de WhatsApp que se envían automáticamente») y :976-978 (`msgConfirmacion` / `msgRecordatorio24h` / `msgRecordatorioDia`) frente a src/app/api/cron/reminders/route.ts:212 y :215 (los textos que sí se envían solos)",
+      "nota": "Literal. Comparados los dos textos: la vista previa pide «responder *CONFIRMAR*» (whatsapp.ts:63) y lo automático pide «Responde *SÍ*» (reminders:212) — y «CONFIRMAR» es justo la palabra que el bot no entiende (ASM-012). La pestaña se llama «Mensajes de WhatsApp» (page.tsx:296)."
+    },
+    {
+      "id": "ASM-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:843 (input de `horaResumenDiario`) · grep de `horaResumenDiario` en src/: sólo types/index.ts:547, :758 y esa línea · `msgResumenDiario` sólo existe en src/lib/whatsapp.ts:101, sin llamadores",
+      "nota": "Comprobado: campo con interfaz y cero lectores, y su generador de mensaje huérfano. Bajo a P3 (severidad 1, sin consecuencia clínica ni de datos); es deuda de «escrito y sin conectar», no un fallo operativo. Nota al margen: este input SÍ tiene `htmlFor`/`id`, al contrario que los de ASM-025."
+    },
+    {
+      "id": "ASM-017",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/cron/reminders/route.ts:304 (`telefono: config.whatsappConsultorio || config.telefonoAdmin`) y :71 (`.replace(/\\{telefono\\}/g, data.telefono)`) — pero src/types/index.ts:507-508 declara ambos campos como `string` obligatorio y :739-740 los siembra a `''`",
+      "nota": "Ejecutado en node: `'Consultorio: {telefono}'.replace(/\\{telefono\\}/g, undefined)` → «Consultorio: undefined», así que la mecánica es la que dice. Pero con la configuración que produce la propia pantalla los campos existen vacíos, y el resultado real es «Consultorio: » (línea colgando), no la palabra «undefined»: para eso hace falta un documento de config que nunca pasó por el formulario. El defecto cosmético existe; la reproducción tal como está escrita no es la del caso normal."
+    },
+    {
+      "id": "ASM-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:806-807 («…hasta que conectes el número del consultorio en la pestaña <em>WhatsApp</em>») frente a la lista real de pestañas en :286-324, donde no existe ninguna «WhatsApp»: hay «Mensajes de WhatsApp» (:296), «Entregas de WhatsApp» (:297) e «Integraciones» (:322)",
+      "nota": "Verificado en el código, sin depender del recorrido: el aviso manda a una pestaña que no existe y la conexión vive en Integraciones. La página ya lee `?tab` (:107), así que el enlace directo que propone es viable."
+    },
+    {
+      "id": "ASM-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/cron/reminders/route.ts:313-319 (el `update({ recordatorio24hEnviado: true })` ocurre DESPUÉS del envío) y :456-458 (`catch (clinicErr) { safeLog.error(...) }` a nivel de consultorio, que se traga el fallo del update)",
+      "nota": "Coincide. El tope de daño que él mismo declara es correcto: frecuencia.ts limita a 3 proactivos por contacto y día. Es una mejora de idempotencia con probabilidad baja; P3 está bien puesto."
+    },
+    {
+      "id": "ASM-020",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp/consent.ts:89-101 (fail-open con la razón escrita: «un fallo transitorio de Firestore no debe bloquear TODOS los recordatorios») frente a src/lib/whatsapp/puede-contactar.ts:10-28 (fail-closed, con el análisis de asimetría del daño)",
+      "nota": "Los dos criterios existen y son opuestos, como dice; pero ninguno es un descuido: los dos están razonados en su cabecera y responden a preguntas distintas (bloquear TODOS los recordatorios del consultorio vs. ofrecer una campaña de reactivación). Cambiar consent.ts a fail-closed es una decisión de política del dueño, no una reparación de defecto. Además el propio auditor registra el atenuante: el status 131050 de Meta también da de baja (status.ts:80-82). Queda parcial."
+    },
+    {
+      "id": "ASM-021",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/modulos-sin-conectar.test.ts:93 («'src/lib/whatsapp/connection.ts': Máquina de estados … Declarado hasta que exista el panel de conexión») y :123 («'src/lib/whatsapp/adapter.ts': Adaptador de proveedor de WhatsApp: hoy se usa 360dialog directo.»)",
+      "nota": "El hecho es cierto (sin llamadores fuera de tests), pero la premisa del impacto —«el próximo que los lea creerá que se usan»— es falsa: los dos archivos están declarados uno a uno en el guardián-trinquete de módulos huérfanos, con su motivo y con CI que se pone rojo si aparece uno nuevo. Es deuda DECLARADA, no escondida, y la recomendación de retirarlos contradice la razón escrita en la propia declaración."
+    },
+    {
+      "id": "ASM-022",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/operaciones/page.tsx:154 (`para: 'Mensajes con pacientes y con el equipo'`) frente a src/app/(dashboard)/chat/page.tsx:164-166 («Chat de la clínica … entre médico y asistente»)",
+      "nota": "La parte comprobable —el índice promete mensajes con pacientes y la pantalla es interna— coincide literalmente en los dos archivos y se confirma. La otra mitad (fusionar Reseñas y Reactivación, crear o no una bandeja) es rediseño de producto que depende del dueño; por eso parcial."
+    },
+    {
+      "id": "ASM-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/citas/page.tsx:901-903 (`if (ESTADOS_PENDIENTES.includes(e) && appt.pacienteTelefono)` … `return null` al final) · :1226 y :1231 (las entradas «Llamar» y «WhatsApp» cuelgan de `appt.pacienteTelefono`)",
+      "nota": "Literal en las tres líneas: sin teléfono, la cita pendiente se queda sin acción primaria y sin las dos entradas del menú, y nada explica por qué. Fricción menor, bien priorizada."
+    },
+    {
+      "id": "ASM-024",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/navegacion/modulos-en-pausa.ts:34 (`MODULOS_EN_PAUSA = ['hospitalizacion', 'uci']`, D-030) · src/app/api/hospital/alerta/route.ts:90-97 y :107-110 (`registrarFallo` escribe en `alertas_no_entregadas` y la respuesta devuelve `enviado: false` con motivo)",
+      "nota": "Doble motivo para refutar. Uno: es el módulo Hospital, ALPHA y en pausa por decisión del dueño (CLAUDE.md, D-030) — no llega a producción vendida, y el propio auditor no propone tocarlo. Dos: el control que dice faltar existe — el rechazo queda escrito con su motivo y se devuelve al llamador, que es justamente lo contrario del fallo silencioso que describe el título."
+    },
+    {
+      "id": "ASM-025",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/configuracion/secciones-comunicacion.tsx:385-392 (`<label className=\"t-caption\">Nombre aprobado en Meta</label>` seguido de `<input …>` sin `id`) · grep en ese archivo: 0 ocurrencias de `htmlFor` y 0 de `aria-label`",
+      "nota": "Contado en el archivo entero: ninguna etiqueta está asociada a su campo. Es uno de los mínimos que la propia regla de diseño hace fallar la compuerta («campo sin etiqueta», .claude/rules/design-system.md), así que la lectura es correcta."
+    }
+  ],
+  "ratio": { "total": 25, "confirmados": 17, "refutados": 3, "parciales": 5 },
+  "observaciones_del_auditor": "Auditor sólido: recorrió la app y además leyó el código, y sus citas de archivo:línea coinciden casi siempre al carácter (comprobadas las 25). Tres patrones de error. (1) Exagera la prioridad cuando el daño depende de otro hallazgo suyo: ASM-003 es el inventario de ASM-001/002 y ya está decidido por el dueño como WA-9/D-034, y ASM-005 nace de una omisión DISEÑADA y documentada (iteration-06:26) cuyo trámite pendiente es del dueño (V6-PRACTICE-GA:45). (2) No comprueba si la deuda ya está declarada: ASM-021 son dos huérfanos inscritos en el trinquete de modulos-sin-conectar.test.ts con su razón, y ASM-024 es un módulo en pausa D-030 que además sí registra el fallo. (3) Redondea hacia el peor caso al describir la reproducción: en ASM-017 el valor real es cadena vacía (types/index.ts:739-740) y no la palabra «undefined»; en ASM-011 el acuse SÍ guarda el teléfono destinatario (status.ts:38-44), así que el paciente es identificable y lo que falta es la pantalla; en ASM-002 el caso concreto de 619 no cae en numeración de Tijuana/Mexicali; y en ASM-012 lista «no voy» como no entendida cuando `esNo` la reconoce. Errores menores de atribución de llamador en ASM-009 (webhook:1199/1433/375 llaman a `send`, no a `sendWhatsApp`). Los seis P1 se sostienen en su núcleo: cuatro confirmados (dos a P1: ASM-002 y ASM-004, ambos verificados ejecutando el motor y siguiendo el dato hasta el proveedor), uno bajado a P2 (ASM-001) y uno parcial (ASM-005); ASM-003 refutado."
+}
