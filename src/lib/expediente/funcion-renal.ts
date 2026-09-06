@@ -156,7 +156,7 @@ export function cockcroftGault(
 
 /** Estadio KDIGO de enfermedad renal por TFG. */
 /**
- * LA TFG EN UN NÚMERO, PARA QUIEN SÓLO NECESITA EL NÚMERO — REG-530.
+ * LA TFG EN UN NÚMERO, PARA QUIEN SÓLO NECESITA EL NÚMERO — REG-575.
  *
  * `ckdEpi2021` devuelve una `ClinicalQuantity` con su unidad nombrada, que es lo
  * correcto y es lo que impide el error de la creatinina en µmol/L. Pero desenvolverla

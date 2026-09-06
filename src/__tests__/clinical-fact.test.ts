@@ -350,7 +350,7 @@ describe('E1-01 · esUsableParaCalculo', () => {
 // ---------------------------------------------------------------------------
 
 /**
- * EL HUECO DE UNIDADES, CONGELADO — pasó de 5 a 29 con REG-556.
+ * EL HUECO DE UNIDADES, CONGELADO — pasó de 5 a 29 con REG-601.
  *
  * Son las unidades que aparecen en `ANALITOS` y que el motor de cantidades
  * todavía no sabe expresar. La lista es EXACTA a propósito: un «≤» dejaría
@@ -414,7 +414,7 @@ describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
     /**
      * EL HUECO CRECIÓ, Y ESO ES LO QUE ESTE GUARDIÁN EXISTE PARA QUE SE VEA.
      *
-     * REG-553 metió ocho analitos del catálogo del dueño (D-041) y con ellos dos
+     * REG-598 metió ocho analitos del catálogo del dueño (D-045) y con ellos dos
      * unidades que el motor de cantidades todavía no sabe expresar: `fL` (VCM) y
      * `ng/mL` (ferritina, vitamina D). No se «arregló» ampliando `FACTORES` de
      * paso: ampliarlo toca un guardián deliberado de otra unidad de trabajo, y
@@ -424,7 +424,7 @@ describe('E1-01 · guardián del hueco de cobertura de unidades', () => {
      */
     const faltantes = [...new Set(ANALITOS.map((a) => a.unidad))].filter((u) => !unidadEsExpresable(u))
     /**
-     * REG-556: el hueco pasó de 5 a 29 de golpe porque entró el catálogo ENTERO
+     * REG-601: el hueco pasó de 5 a 29 de golpe porque entró el catálogo ENTERO
      * del médico dueño (220 analitos, 41 unidades distintas). No se «arregló»
      * ampliando `FACTORES` de paso: ampliarlo toca un guardián deliberado de otra
      * unidad de trabajo, y hacerlo de refilón es cómo un hueco declarado se

@@ -114,7 +114,7 @@ function fechaCorta(iso?: string): string {
  * haya otra nueva se verá en la lista, porque la lista son las citas FUTURAS.
  */
 /**
- * Lee las citas que los pendientes `agendada` nombran. REG-540.
+ * Lee las citas que los pendientes `agendada` nombran. REG-585.
  *
  * Por identificador y no por ventana: los casos que importan —el paciente no
  * vino, la cita se canceló— ya PASARON, así que una ventana futura los perdería
@@ -203,7 +203,7 @@ function Tarjeta({ t, cita, ahora, porQueId, onAbrirPorQue, onMover, onAgendar, 
         )}
 
         {/**
-          * REG-540 · lo que el calendario dice de un «agendada».
+          * REG-585 · lo que el calendario dice de un «agendada».
           *
           * `agendada` era una declaración que nadie contrastaba: con la cita
           * cancelada o el paciente sin acudir, el pendiente seguía leyéndose
@@ -253,7 +253,7 @@ function Tarjeta({ t, cita, ahora, porQueId, onAbrirPorQue, onMover, onAgendar, 
               size="sm"
               onClick={() => {
                 if (paso.estado === 'cerrada') return onCerrar(t)
-                /* REG-540 · «agendada» no se declara: se señala una cita. */
+                /* REG-585 · «agendada» no se declara: se señala una cita. */
                 if (paso.estado === 'agendada') return onAgendar(t)
                 return onMover(t, paso.estado)
               }}
@@ -363,11 +363,11 @@ export default function PendientesPage() {
   const [decision, setDecision] = useState('')
   const [accion, setAccion] = useState('')
   const [aviso, setAviso] = useState<AvisoAlPaciente | ''>('')
-  /** REG-548 · de qué manera consta el aviso. Opcional. */
+  /** REG-593 · de qué manera consta el aviso. Opcional. */
   const [como, setComo] = useState<ComoSeAviso | ''>('')
   const [motivo, setMotivo] = useState('')
   /**
-   * REG-540 · «Ya quedó agendada» exige decir A QUÉ CITA.
+   * REG-585 · «Ya quedó agendada» exige decir A QUÉ CITA.
    *
    * Antes era una declaración que nadie podía contrastar: si esa cita se
    * cancelaba o el paciente no venía, el pendiente se quedaba esperando a nadie
@@ -467,7 +467,7 @@ export default function PendientesPage() {
         setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0)
         setOrdenadaPorUrgencia(w.ordenadaPorUrgencia); setErrorCarga(''); setAhora(Date.now())
         /**
-         * REG-540 · qué dice el calendario de los que se declararon agendados.
+         * REG-585 · qué dice el calendario de los que se declararon agendados.
          *
          * Se leen SÓLO las citas que las tareas nombran, por identificador, y
          * con tope: la ventana futura no serviría —los casos que importan
@@ -567,7 +567,7 @@ export default function PendientesPage() {
   }, [clinicId, cerradas, toast])
 
   /**
-   * REG-540 · abrir el elegidor de cita.
+   * REG-585 · abrir el elegidor de cita.
    *
    * Se leen las citas FUTURAS de ese paciente. Si hay exactamente una no hay
    * ambigüedad y se ofrece marcada; si hay varias, elige el médico; si no hay
@@ -816,7 +816,7 @@ export default function PendientesPage() {
               dirá que no consta, no que no se avisó.
             </span>
             {/**
-              * REG-548 · DE QUÉ MANERA consta el aviso (D-037).
+              * REG-593 · DE QUÉ MANERA consta el aviso (D-041).
               *
               * El censo pedía «qué destinatarios cuentan»: hasta hoy sólo
               * constaba sí / todavía no / no hacía falta, sin a quién ni por qué
@@ -843,7 +843,7 @@ export default function PendientesPage() {
                 {/**
                   * Un mensaje cuenta como avisado por decisión del dueño, y aun
                   * así esto se dice: el sistema YA SABE que un mensaje puede
-                  * morir sin acuse (REG-535, REG-541). Callarlo aquí sería
+                  * morir sin acuse (REG-580, REG-586). Callarlo aquí sería
                   * esconder algo que el propio producto mide.
                   */}
                 {como === 'mensaje_enviado' && (
@@ -908,7 +908,7 @@ export default function PendientesPage() {
         son el mismo gesto, y el segundo es justo lo que hay que poder auditar.
       */}
       {/**
-        * REG-540 · a qué cita quedó agendado.
+        * REG-585 · a qué cita quedó agendado.
         *
         * El botón decía «Ya quedó agendada» y guardaba una declaración sin
         * respaldo. Con el identificador, el worklist puede decir después que esa

@@ -509,7 +509,7 @@ export default function ExpedientePage() {
             <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
             <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
               De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
-              {/* REG-534 — `proyeccionRecortada` se calculaba y no se pintaba en
+              {/* REG-579 — `proyeccionRecortada` se calculaba y no se pintaba en
                   ningún sitio. La línea de arriba afirma sobre el expediente
                   ENTERO; sobre una ventana es falsa y el médico no puede saberlo
                   mirando la pantalla. */}

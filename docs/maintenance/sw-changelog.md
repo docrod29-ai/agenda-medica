@@ -11,7 +11,7 @@ del `const CACHE`.
 **64 commits desde v1181**, porque v1182 tampoco se ha publicado: quien pulse el
 botón con este árbol publica las dos. Código de producto, sí, y mucho.
 
-Trae las 45 unidades de la rama de laboratorio (REG-515…559) —el catálogo
+Trae las 45 unidades de la rama de laboratorio (REG-560…559) —el catálogo
 maestro del dueño, la normalización de unidad antes de la plausibilidad, los
 factores calculados de pesos atómicos IUPAC, el espécimen leído de la cabecera—
 y la reconciliación con `main`, que había avanzado 328 commits.

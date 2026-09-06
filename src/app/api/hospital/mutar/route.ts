@@ -126,7 +126,7 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
         porUid: actor.uid,
         fecha: now,                 // reloj del servidor, no el de la tablet
       }
-      /* WS-03 / REG-527 — el array se TOPA. `registro-durable.ts` decía desde
+      /* WS-03 / REG-572 — el array se TOPA. `registro-durable.ts` decía desde
          E0-09 que estaba topado y no lo estaba: crecía hasta que el documento
          pasaba de 1 MB y entonces fallaba TODA mutación del episodio, incluida
          la siguiente administración y el egreso. Se recorta por el principio, y
@@ -139,7 +139,7 @@ function patch(accion: string, inter: Any, p: Any, now: string, actor: Actor): A
       return { indicaciones: arr('indicaciones').map(x => (x as Any).id === p.indId ? { ...x, verificadaFarmacia: true, verificadaPor: actor.nombre, fechaVerificacion: now } : x) }
     case 'interconsulta_agregar': {
       /**
-       * ── EL ID LO TRAE QUIEN PIDE, Y ESO CIERRA DOS COSAS (REG-525) ────────
+       * ── EL ID LO TRAE QUIEN PIDE, Y ESO CIERRA DOS COSAS (REG-570) ────────
        *
        * Antes lo acuñaba aquí `randomUUID()` y no salía de la transacción, así
        * que `agregarInterconsulta` devolvía cadena vacía: NADIE sabía qué
@@ -335,7 +335,7 @@ export async function POST(req: NextRequest) {
     /** Hilo del expediente para la bitácora; se llena dentro de la transacción. */
     let pacienteIdDelEpisodio = ''
     /**
-     * REG-545 · la transacción DEVUELVE lo que ocupa el episodio.
+     * REG-590 · la transacción DEVUELVE lo que ocupa el episodio.
      *
      * Por retorno y no por efecto lateral sobre un `let` exterior: el callback
      * puede no llegar a ejecutarse, así que el compilador no puede saber que la
@@ -560,7 +560,7 @@ export async function POST(req: NextRequest) {
 
       const cambios = { ...patch(accion, inter, payload, now, actor), updatedAt: now }
       /**
-       * REG-545 · cuánto le queda al episodio antes de PARARSE.
+       * REG-590 · cuánto le queda al episodio antes de PARARSE.
        *
        * `lo-que-cabe-en-un-episodio.ts` dejó tres arrays sin tope —`movimientos`,
        * `indicaciones`, `interconsultas`— porque el documento es su única copia,
@@ -629,7 +629,7 @@ export async function POST(req: NextRequest) {
     }
 
     /**
-     * REG-545 · el aviso va a OPERACIONES, no al médico.
+     * REG-590 · el aviso va a OPERACIONES, no al médico.
      *
      * Se pensó devolverlo también en la respuesta para pintarlo en la pantalla
      * del episodio, y se descartó por dos razones:

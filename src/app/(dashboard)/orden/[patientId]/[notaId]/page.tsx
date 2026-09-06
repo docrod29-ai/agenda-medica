@@ -411,7 +411,7 @@ export default function GeneradorOrdenPage() {
       setNota(n)
       setPatient(ps)
       if (n) {
-        /* REG-524 — una sola puerta. El respaldo sin filtro que había aquí
+        /* REG-569 — una sola puerta. El respaldo sin filtro que había aquí
            `tipo`, así que un «embarazo descartado» salía impreso como el
            motivo. Si nada califica no se rellena: el campo es editable. */
         const principal = diagnosticoQueSeImprime(n.diagnosticos)

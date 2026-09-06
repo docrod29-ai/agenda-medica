@@ -169,13 +169,13 @@ function informar(nombre: string, a: Acumulado) {
   /*
    * LA LECTURA A NIVEL DE MOTOR, por la MISMA función que usa la compuerta.
    *
-   * Este guion producía su propio recuento y la compuerta de D-039 el suyo, con
+   * Este guion producía su propio recuento y la compuerta de D-043 el suyo, con
    * el mismo corpus. Dos medidores del mismo número es exactamente el defecto
-   * que REG-553 y REG-558 cazaron en el laboratorio, dos veces: el informe podía
+   * que REG-598 y REG-603 cazaron en el laboratorio, dos veces: el informe podía
    * decir una cosa y la compuerta otra, y nadie lo sabría hasta que divergieran.
    */
   const motor = leerElMotor(a.medidas)
-  console.log(`  ── a nivel de MOTOR (lo que mide la compuerta de D-039) ──`)
+  console.log(`  ── a nivel de MOTOR (lo que mide la compuerta de D-043) ──`)
   console.log(`  error ordinario ................. ${(motor.tasaOrdinaria * 100).toFixed(2)} %`)
   console.log(`  consultas con CRÍTICO ........... ${motor.conCriticos} de ${motor.consultas}`)
   console.log(`  consultas con SIN CLASIFICAR .... ${motor.conSinClasificar} de ${motor.consultas}`)

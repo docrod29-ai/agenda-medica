@@ -68,7 +68,7 @@ export async function addClinicMember(
 // ── Appointments ──────────────────────────────────────────────
 
 /**
- * LA VENTANA ES OBLIGATORIA, Y POR ESO ES UN PARÁMETRO Y NO UN `limit` — REG-518.
+ * LA VENTANA ES OBLIGATORIA, Y POR ESO ES UN PARÁMETRO Y NO UN `limit` — REG-563.
  *
  * ── QUÉ HABÍA ───────────────────────────────────────────────────────────────
  *
@@ -116,7 +116,7 @@ export async function getAppointments(
 }
 
 /**
- * Una cita por su identificador. REG-540.
+ * Una cita por su identificador. REG-585.
  *
  * Hacía falta porque un pendiente declarado `agendada` nombra UNA cita, y los
  * casos que importan —el paciente no vino, la cita se canceló— ya pasaron: una

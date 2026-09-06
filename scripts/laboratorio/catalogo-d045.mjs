@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * DERIVA EL CATÁLOGO DE PLAUSIBILIDAD DEL DOCUMENTO DEL DUEÑO — REG-556.
+ * DERIVA EL CATÁLOGO DE PLAUSIBILIDAD DEL DOCUMENTO DEL DUEÑO — REG-601.
  *
  * ── POR QUÉ ESTO NO SE TECLEA A MANO ────────────────────────────────────────
  *
@@ -15,8 +15,8 @@
  * algo que `--verificar` refuta.
  *
  * Uso:
- *   node scripts/laboratorio/catalogo-d041.mjs             # regenera el JSON
- *   node scripts/laboratorio/catalogo-d041.mjs --verificar # falla si difiere
+ *   node scripts/laboratorio/catalogo-d045.mjs             # regenera el JSON
+ *   node scripts/laboratorio/catalogo-d045.mjs --verificar # falla si difiere
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -24,7 +24,7 @@ import { dirname, resolve } from 'node:path'
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const DOC = resolve(RAIZ, 'docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md')
-const SALIDA = resolve(RAIZ, 'src/lib/expediente/laboratorio/catalogo-d041.json')
+const SALIDA = resolve(RAIZ, 'src/lib/expediente/laboratorio/catalogo-d045.json')
 
 /** «1 000 000» y «1,000,000» son el mismo número; «-1» y «1.000» también. */
 function aNumero(txt) {
@@ -78,8 +78,8 @@ if (discrepancias.length > 0) {
 
 const salida = {
   _generado: 'DERIVADO. No editar a mano: sale de docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md',
-  _comoSeRegenera: 'node scripts/laboratorio/catalogo-d041.mjs',
-  _porQue: 'Los límites de plausibilidad son cifras clínicas del médico dueño (D-041). Leerlos por máquina hace falsable la afirmación de que son los suyos.',
+  _comoSeRegenera: 'node scripts/laboratorio/catalogo-d045.mjs',
+  _porQue: 'Los límites de plausibilidad son cifras clínicas del médico dueño (D-045). Leerlos por máquina hace falsable la afirmación de que son los suyos.',
   filas,
 }
 const texto = JSON.stringify(salida, null, 2) + '\n'
@@ -88,7 +88,7 @@ if (process.argv.includes('--verificar')) {
   let actual = ''
   try { actual = readFileSync(SALIDA, 'utf8') } catch { /* no existe */ }
   if (actual !== texto) {
-    console.error('El catálogo derivado está viejo. Corre: node scripts/laboratorio/catalogo-d041.mjs')
+    console.error('El catálogo derivado está viejo. Corre: node scripts/laboratorio/catalogo-d045.mjs')
     process.exit(1)
   }
   console.log(`  Catálogo al día: ${filas.length} filas, ${porNombre.size} analitos distintos.`)

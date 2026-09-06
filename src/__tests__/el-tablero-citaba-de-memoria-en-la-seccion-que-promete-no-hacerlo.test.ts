@@ -3,7 +3,7 @@
  *
  * ── QUÉ FALLABA (WS-01.tablero) ─────────────────────────────────────────────
  *
- * REG-519 derivó el estado por requisito. REG-529 añadió el conteo de los tres
+ * REG-564 derivó el estado por requisito. REG-574 añadió el conteo de los tres
  * programas en vuelo. El censo dejó apuntado lo que quedaba: *«la prosa de cada
  * WS sigue a mano y puede envejecer»*.
  *
@@ -16,11 +16,11 @@
  *
  *   · un trinquete de lint de **96** cuando el techo llevaba días en **95**
  *   · **10 844** casos cuando el árbol tenía **12 019**
- *   · «medido el 29-ago … tras REG-348…REG-362», con el ledger en REG-543
+ *   · «medido el 29-ago … tras REG-348…REG-362», con el ledger en REG-588
  *
  * ── LA CAUSA RAÍZ, POR CUARTA VEZ ESTE MES ──────────────────────────────────
  *
- * Con REG-527, REG-531 y REG-541 son cuatro: **cuanto mejor explicada está una
+ * Con REG-572, REG-576 y REG-586 son cuatro: **cuanto mejor explicada está una
  * garantía, menos probable es que alguien vaya a comprobar si el código la
  * cumple.** Un título que promete no citar de memoria no impide citar de
  * memoria. Un guardián sí.

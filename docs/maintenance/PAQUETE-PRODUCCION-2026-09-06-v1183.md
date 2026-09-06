@@ -35,7 +35,7 @@ Entra una consulta compuesta nueva:
 errores  ·  where visto == false  ·  orderBy fecha desc
 ```
 
-del vigilante (`src/app/api/cron/vigilante/route.ts`, REG-533). **Firestore
+del vigilante (`src/app/api/cron/vigilante/route.ts`, REG-578). **Firestore
 RECHAZA una consulta compuesta sin su índice.** Si se publica el código sin
 construir el índice, el vigilante falla en cada ejecución.
 
@@ -53,7 +53,7 @@ ese punto decía que pasaría el día que la tabla creciera.
 match /platform_authz_denegadas/{denId} { allow read, write: if false; }
 ```
 
-Escrita en REG-533 y sin desplegar. **No abre ni cierra nada por sí sola**: el
+Escrita en REG-578 y sin desplegar. **No abre ni cierra nada por sí sola**: el
 `match /{document=**}` del final de `firestore.rules` ya deniega todo lo no
 declarado, así que la colección está cerrada al cliente esté o no esta regla.
 Lo que falta es que sea **explícita**, que es lo que impide que un `match` futuro
@@ -65,14 +65,14 @@ npx firebase deploy --only firestore:rules --project nexomed-agenda
 
 ## Qué entra, en grueso
 
-De la rama de laboratorio (45 unidades, REG-515…REG-559):
+De la rama de laboratorio (45 unidades, REG-560…REG-604):
 
-- **Laboratorio** — el catálogo maestro del dueño (D-041, 220 analitos) cargado
+- **Laboratorio** — el catálogo maestro del dueño (D-045, 220 analitos) cargado
   por máquina; la unidad se normaliza ANTES de juzgar el número; los factores de
   conversión se CALCULAN de pesos atómicos IUPAC en vez de teclearse; el
   espécimen sale de la cabecera de la hoja, así que una glucosuria de 250 deja
   de archivarse como glucemia; el decimal corrido se SUGIERE y no se corrige.
-- **Voz** — umbral de motor decidido (D-039) con trinquete sobre las consultas
+- **Voz** — umbral de motor decidido (D-043) con trinquete sobre las consultas
   con error crítico, y el crítico real que sigue abierto declarado con nombre.
 - **Evidencia, expediente, tareas clínicas, observabilidad** — el resto.
 

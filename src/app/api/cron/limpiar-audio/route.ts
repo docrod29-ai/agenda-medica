@@ -44,7 +44,7 @@ const BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
 const TOPE_POR_PASADA = 500
 
 export async function GET(req: NextRequest) {
-  /* REG-521 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
+  /* REG-566 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de
      fondo no nace de un navegador, así que no acepta la que le manden. */
   const correlacion = correlacionDeTrabajo()
   const auth = req.headers.get('authorization')

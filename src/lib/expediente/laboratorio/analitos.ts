@@ -15,7 +15,7 @@
  * Puro y determinista → testeable.
  */
 
-import CATALOGO from './catalogo-d041.json'
+import CATALOGO from './catalogo-d045.json'
 
 export interface Analito {
   /** Clave canónica estable (la serie temporal se agrupa por esto). */
@@ -27,7 +27,7 @@ export interface Analito {
   /** Unidad convencional esperada. */
   unidad: string
   /**
-   * CUANDO EL NOMBRE NO BASTA — regla §25.2 del catálogo del dueño (D-041).
+   * CUANDO EL NOMBRE NO BASTA — regla §25.2 del catálogo del dueño (D-045).
    *
    * «Neutrófilos 75 %» y «Neutrófilos 7.5 ×10³/µL» son resultados DISTINTOS y
    * el nombre impreso es el mismo. Si el analito declara esto, sólo se reconoce
@@ -35,11 +35,11 @@ export interface Analito {
    * `noReconocidas` y se conserva como texto.
    *
    * Mapear el porcentaje a la serie del absoluto metería un 75 donde va un 7,5:
-   * un valor mal leído, y ése es el eje que el médico puso en CERO (D-040).
+   * un valor mal leído, y ése es el eje que el médico puso en CERO (D-044).
    */
   exigeUnidad?: RegExp
   /**
-   * EL NOMBRE PELADO, Y SÓLO DENTRO DE SU MUESTRA — REG-556.
+   * EL NOMBRE PELADO, Y SÓLO DENTRO DE SU MUESTRA — REG-601.
    *
    * «LCR glucosa» y «Glucosa en líquido» se llaman «glucosa» a secas en su
    * propia hoja. Dentro de la muestra eso no es ambiguo, porque el filtro de
@@ -61,7 +61,7 @@ export interface Analito {
   /** Grupo para ordenar la vista. */
   grupo: GrupoDeAnalito
   /**
-   * DE QUÉ MUESTRA ES — REG-556, §26 y §27.3 del catálogo del dueño.
+   * DE QUÉ MUESTRA ES — REG-601, §26 y §27.3 del catálogo del dueño.
    *
    * Una glucosa en orina y una glucosa en suero NO son el mismo analito, y el
    * nombre impreso se parece demasiado. Sin esto, «Glucosa urinaria» caía en la
@@ -107,7 +107,7 @@ const ANALITOS_A_MANO: Analito[] = [
   { clave: 'cloro', etiqueta: 'Cloro', patron: /\b(cloro|cl)\b/i, unidad: 'mEq/L', min: 50, max: 150, refMin: 98, refMax: 107, grupo: 'electrolitos', especimen: 'suero' },
   { clave: 'tsh', etiqueta: 'TSH', patron: /\b(tsh|tirotropina)\b/i, unidad: 'µUI/mL', min: 0.001, max: 200, refMin: 0.4, refMax: 4, grupo: 'tiroides', especimen: 'suero' },
   /**
-   * ── AÑADIDOS POR D-041 (REG-553) ───────────────────────────────────────────
+   * ── AÑADIDOS POR D-045 (REG-598) ───────────────────────────────────────────
    *
    * Los `min`/`max` NO se inventaron: son los del catálogo maestro de
    * plausibilidad del médico dueño, `docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md`
@@ -136,7 +136,7 @@ const ANALITOS_A_MANO: Analito[] = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   EL CATÁLOGO COMPLETO DE D-041 — REG-556.
+   EL CATÁLOGO COMPLETO DE D-045 — REG-601.
 
    ── POR QUÉ NO ESTÁ TECLEADO AQUÍ ────────────────────────────────────────────
 
@@ -146,7 +146,7 @@ const ANALITOS_A_MANO: Analito[] = [
    captura en otro.
 
    Los números salen del documento del médico dueño leídos por máquina
-   (`scripts/laboratorio/catalogo-d041.mjs` → `catalogo-d041.json`). Lo único
+   (`scripts/laboratorio/catalogo-d045.mjs` → `catalogo-d045.json`). Lo único
    escrito a mano aquí es el VOCABULARIO —qué grupo y qué muestra tiene cada
    sección— y eso son veinte líneas, no cuatrocientas cifras.
 
@@ -200,7 +200,7 @@ const YA_ESTA_A_MANO: Readonly<Record<string, string>> = {
 }
 
 /**
- * CUANDO EL REPOSITORIO YA TENÍA UNA CLAVE PARA ESE ANALITO — REG-556.
+ * CUANDO EL REPOSITORIO YA TENÍA UNA CLAVE PARA ESE ANALITO — REG-601.
  *
  * `creatinina_orina` nació en E1-02 como concepto del vocabulario, SIN analito
  * detrás: existía sólo para que aquella aceptación no se pudiera «cumplir»
@@ -271,7 +271,7 @@ function patronPelado(nombre: string, especimen: Especimen): { patronEnSuMuestra
     .replace(/\b(lcr|urinari[oa]s?|en\s+(el\s+)?liquido|de\s+orina|en\s+orina)\b/g, ' ')
     .replace(/\s+/g, ' ').trim()
   /**
-   * REG-559: el corte estaba en «más de dos caracteres» y dejaba fuera el pH
+   * REG-604: el corte estaba en «más de dos caracteres» y dejaba fuera el pH
    * urinario, que es un renglón de verdad de un examen general de orina.
    *
    * Aquel corte protegía de un patrón de dos letras casando con demasiado — y
@@ -318,7 +318,7 @@ function analitosDelCatalogo(): Analito[] {
     if (previa) {
       if (previa.unidad !== fila.unidad || previa.min !== fila.min || previa.max !== fila.max) {
         throw new Error(
-          `El catálogo de D-041 se contradice en «${clave}»: ${previa.min}–${previa.max} ${previa.unidad} `
+          `El catálogo de D-045 se contradice en «${clave}»: ${previa.min}–${previa.max} ${previa.unidad} `
           + `frente a ${fila.min}–${fila.max} ${fila.unidad}. Se le pregunta al médico dueño; no se elige una.`,
         )
       }
@@ -429,7 +429,7 @@ export const LO_QUE_LA_MUESTRA_NO_RESUELVE =
   + 'suero. Necesita el espécimen como campo desde la lectura de la hoja (§27.3).'
 
 /**
- * LO QUE LA HOJA DECLARA COMO MUESTRA — REG-559.
+ * LO QUE LA HOJA DECLARA COMO MUESTRA — REG-604.
  *
  * La lectura de la hoja puede traer ahora un campo `muestra` por renglón, sacado
  * de lo que está IMPRESO (la cabecera «Examen general de orina», el rótulo
@@ -452,7 +452,7 @@ export function especimenDeclarado(muestra: string | undefined | null): Especime
 /**
  * De qué muestra habla un renglón. Sin ninguna señal, es de suero/sangre.
  *
- * ── EL CAMPO SÓLO RELLENA EL HUECO. NUNCA CONTRADICE — REG-559 ─────────────
+ * ── EL CAMPO SÓLO RELLENA EL HUECO. NUNCA CONTRADICE — REG-604 ─────────────
  *
  * Si el NOMBRE del renglón nombra una muestra («Creatinina urinaria»), ésa
  * manda, y el campo declarado no puede cambiarla. El campo sólo decide cuando el
@@ -462,7 +462,7 @@ export function especimenDeclarado(muestra: string | undefined | null): Especime
  * Es una regla monótona a propósito: el campo puede AÑADIR información donde no
  * había, nunca quitarla ni darle la vuelta. Un campo que pudiera contradecir al
  * nombre convertiría un error de lectura del modelo en una glucosa urinaria
- * archivada como glucemia — el defecto que REG-556 vino a cerrar, reabierto por
+ * archivada como glucemia — el defecto que REG-601 vino a cerrar, reabierto por
  * la puerta de atrás.
  */
 export function especimenDe(nombre: string, muestraDeclarada?: string | null): Especimen {
@@ -481,7 +481,7 @@ function norm(s: string): string {
  * A qué analito canónico corresponde un nombre de estudio. `null` si no se
  * reconoce (mejor no graficar que graficar en la serie equivocada).
  *
- * ── POR QUÉ ADMITE LA UNIDAD (REG-553, regla §25.2 de D-041) ────────────────
+ * ── POR QUÉ ADMITE LA UNIDAD (REG-598, regla §25.2 de D-045) ────────────────
  *
  * Hay nombres que NO identifican un analito por sí solos. «Neutrófilos» puede
  * ser 75 (%) o 7,5 (×10³/µL), y son dos series distintas: meter el porcentaje

@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-556. El catálogo entero, y el defecto vivo que apareció al cargarlo.
+ * GOLDEN — REG-601. El catálogo entero, y el defecto vivo que apareció al cargarlo.
  *
  * ── EL DEFECTO, QUE YA ESTABA PASANDO ────────────────────────────────────────
  *
@@ -59,7 +59,7 @@ import {
   ANALITOS, ANALITOS_EN_TEXTO, CLAVES_DEL_CATALOGO, analitoDe, analitoPorClave, especimenDe,
   LO_QUE_LA_MUESTRA_NO_RESUELVE,
 } from '@/lib/expediente/laboratorio/analitos'
-import CATALOGO from '@/lib/expediente/laboratorio/catalogo-d041.json'
+import CATALOGO from '@/lib/expediente/laboratorio/catalogo-d045.json'
 
 const RAIZ = process.cwd()
 
@@ -116,7 +116,7 @@ describe('LA MUESTRA — el defecto que estaba vivo', () => {
       expect(a.patron.test('glucosa'), a.clave).toBe(false)
     }
     /**
-     * ── LA EXCEPCIÓN DESAPARECIÓ EN REG-559, Y ESTABA MAL PUESTA ────────────
+     * ── LA EXCEPCIÓN DESAPARECIÓ EN REG-604, Y ESTABA MAL PUESTA ────────────
      *
      * Aquí decía que `pH urinario` se quedaba sin nombre pelado porque «pH» son
      * dos caracteres y un patrón de dos letras casa con demasiado.
@@ -156,7 +156,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
      * Si alguien edita el documento del dueño y no regenera, o edita el JSON a
      * mano, esto se pone rojo. Es la misma mecánica que el tablero derivado.
      */
-    const salida = execFileSync('node', ['scripts/laboratorio/catalogo-d041.mjs', '--verificar'], {
+    const salida = execFileSync('node', ['scripts/laboratorio/catalogo-d045.mjs', '--verificar'], {
       cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     })
     expect(salida).toMatch(/Catálogo al día/)
@@ -201,7 +201,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
     const modulo = readFileSync(join(RAIZ, 'src/lib/expediente/laboratorio/analitos.ts'), 'utf8')
     expect(modulo).toMatch(/se contradice en/)
     expect(modulo).toMatch(/no se elige una/)
-    const script = readFileSync(join(RAIZ, 'scripts/laboratorio/catalogo-d041.mjs'), 'utf8')
+    const script = readFileSync(join(RAIZ, 'scripts/laboratorio/catalogo-d045.mjs'), 'utf8')
     expect(script).toMatch(/se contradice a sí mismo/)
   })
 
@@ -216,7 +216,7 @@ describe('LOS NÚMEROS SON LOS DEL DOCUMENTO, y se puede refutar', () => {
      * 3000 donde aquí hay 20 a 1500. No se adoptaron, y no por descuido: sin
      * `MISSING_UNIT` (§33), una glucosa de 7,2 SIN unidad pasaría como 7,2 mg/dL.
      * Mientras el hueco de la unidad ausente siga abierto, el rango estrecho es
-     * la única defensa. Hay guardián en REG-553 y éste lo repite desde el otro
+     * la única defensa. Hay guardián en REG-598 y éste lo repite desde el otro
      * lado: el catálogo entero cargado NO tocó estos números.
      */
     expect(analitoPorClave('glucosa')!.min).toBe(20)

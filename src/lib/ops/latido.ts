@@ -53,7 +53,7 @@ export async function registrarLatido(
     detalle?: Record<string, string | number | boolean>
     error?: string
     /**
-     * La traza de ESTA ejecución (REG-521). Se acuña al arrancar el trabajo con
+     * La traza de ESTA ejecución (REG-566). Se acuña al arrancar el trabajo con
      * `correlacionDeTrabajo()`.
      *
      * Sin ella, «el recordatorio de las 8:00 no llegó» se puede seguir hasta la

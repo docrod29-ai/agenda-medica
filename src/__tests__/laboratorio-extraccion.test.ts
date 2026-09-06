@@ -38,7 +38,7 @@ describe('reconocimiento de analitos', () => {
   })
   it('NO confunde creatinina en orina con la sérica', () => {
     /**
-     * REG-556: antes «Creatinina en orina» devolvía `null` —correcto, pero por
+     * REG-601: antes «Creatinina en orina» devolvía `null` —correcto, pero por
      * defecto: no había analito de orina y la exclusión del patrón la tiraba—.
      * Ahora el catálogo del dueño la trae (§20) y resuelve a su propio concepto.
      * Sigue sin caer en la sérica, que es lo que este caso vigila.
@@ -59,7 +59,7 @@ describe('validación del panel completo', () => {
       filas: [
         { estudio: 'Glucosa', valor: '92', unidad: 'mg/dL' },
         { estudio: 'Potasio', valor: '7.2', unidad: 'mEq/L' }, // crítico
-        // REG-554: ya no «cae fuera de rango». Se CONVIERTE, con el factor citado
+        // REG-599: ya no «cae fuera de rango». Se CONVIERTE, con el factor citado
         // del §27.1 del catálogo del dueño: 80 / 88.4 = 0,905 mg/dL.
         { estudio: 'Creatinina', valor: '80', unidad: 'umol/L' },
         { estudio: 'Anticuerpo raro', valor: 'positivo' }, // no reconocido
@@ -71,7 +71,7 @@ describe('validación del panel completo', () => {
     expect(glu?.critico).toBe(false)
     expect(r.resultados.find(x => x.clave === 'potasio')?.critico).toBe(true)
     /**
-     * REG-554. Antes la creatinina en µmol/L caía en `noReconocidas` junto al
+     * REG-599. Antes la creatinina en µmol/L caía en `noReconocidas` junto al
      * anticuerpo, y eran dos cosas distintas: una es un analito que no
      * conocemos y la otra es un analito que SÍ conocemos, reportado en otra
      * unidad. Ahora se convierte con el factor citado y entra a la serie.

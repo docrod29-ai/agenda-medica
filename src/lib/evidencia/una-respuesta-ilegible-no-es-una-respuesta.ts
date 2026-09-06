@@ -43,7 +43,7 @@
  */
 
 /**
- * De quién es el problema cuando el cuerpo no sirve (REG-538).
+ * De quién es el problema cuando el cuerpo no sirve (REG-583).
  *
  * La distinción decide si el interruptor cuenta un fallo o no, y por eso no es
  * cosmética:

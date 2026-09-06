@@ -60,7 +60,7 @@ describe('Un analito que el catálogo no conoce NO desaparece en silencio', () =
     // Antes `evaluar` devolvia null y el filtro lo tiraba sin que nadie se
     // enterara: un resultado medido que la nota no menciona ni acusa.
     /**
-     * REG-556 cargó el catálogo del dueño y `antiXa` dejó de ser desconocido
+     * REG-601 cargó el catálogo del dueño y `antiXa` dejó de ser desconocido
      * (§8). Se usa otro que sigue sin estar: la aldolasa se pide en consulta y
      * su documento no la trae. El caso que se prueba no cambia — sólo el ejemplo.
      */

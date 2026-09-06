@@ -28,7 +28,7 @@
  *
  * ── CÓMO SE DESCUBRIÓ ───────────────────────────────────────────────────────
  *
- * Yendo a cerrar la salida ilegible de openFDA, que REG-537 dejó declarada como
+ * Yendo a cerrar la salida ilegible de openFDA, que REG-582 dejó declarada como
  * lo que faltaba. Buscando dónde ponerla apareció que openFDA ya devolvía `null`
  * para todo —y su cabecera lo argumenta bien: quien llama trata la ausencia de
  * etiqueta como «no hay dosis oficial» y el prompt manda verificar en el Cuadro

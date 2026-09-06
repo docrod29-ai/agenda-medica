@@ -161,7 +161,7 @@ export async function reprogramarEntrada(
 }
 
 /**
- * ── UN AVISO QUE DICE «CUÁNTAS» NO DEJA HACER NADA — REG-535 ────────────────
+ * ── UN AVISO QUE DICE «CUÁNTAS» NO DEJA HACER NADA — REG-580 ────────────────
  *
  * REG-397 puso el instrumento: el vigilante cuenta las muertas y las distingue
  * de las pausadas —una pausa se arregla sola cuando el proveedor vuelve; una

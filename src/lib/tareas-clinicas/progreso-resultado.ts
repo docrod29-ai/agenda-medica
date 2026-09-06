@@ -110,7 +110,7 @@ export function progresoResultado(
 
 /**
  * Cómo se llama la etapa del aviso. «Aviso al paciente» a secas cuando no
- * consta cómo — que es lo que decía antes de REG-548 y sigue diciendo cuando el
+ * consta cómo — que es lo que decía antes de REG-593 y sigue diciendo cuando el
  * médico no lo detalla, porque el campo es opcional.
  */
 function etiquetaDelAviso(t: Pick<TareaClinica, 'cierre'>): string {
@@ -139,11 +139,11 @@ function etiquetaDelAviso(t: Pick<TareaClinica, 'cierre'>): string {
      * sitios con la posibilidad de divergir.
      */
     /**
-     * REG-548 · la etiqueta dice DE QUÉ MANERA, cuando consta.
+     * REG-593 · la etiqueta dice DE QUÉ MANERA, cuando consta.
      *
-     * El dueño decidió (D-037) que las cuatro vías cuentan como avisado,
+     * El dueño decidió (D-041) que las cuatro vías cuentan como avisado,
      * incluido un mensaje enviado, sabiendo que un mensaje puede morir sin acuse
-     * — este producto lo mide en dos pantallas (REG-535, REG-541).
+     * — este producto lo mide en dos pantallas (REG-580, REG-586).
      *
      * Así que cuenta igual y el estado de la etapa no cambia. Lo que cambia es
      * que aquí, donde el médico LEE el progreso del resultado, se distingue una

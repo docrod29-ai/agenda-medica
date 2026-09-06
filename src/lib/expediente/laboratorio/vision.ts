@@ -22,7 +22,7 @@
  * CURP, folio, número de expediente, dirección, teléfono, aseguradora. Nada de
  * eso sirve para verificar el sujeto y todo eso es superficie de fuga.
  *
- * ── POR QUÉ SE PIDE LA MUESTRA (REG-559, §27.3 de D-041) ────────────────────
+ * ── POR QUÉ SE PIDE LA MUESTRA (REG-604, §27.3 de D-045) ────────────────────
  *
  * Una hoja de orina que pone «Examen general de orina» en la cabecera y luego
  * escribe «Glucosa» a secas caía en la serie de la glucosa SÉRICA. El nombre del

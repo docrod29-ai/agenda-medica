@@ -304,7 +304,7 @@ export const POR_QUE_FUERA_DE_LOS_HALLAZGOS_ES_OTRO_PROBLEMA =
   'arreglan distinto; mezclarlos escondería el segundo dentro del primero.'
 
 /**
- * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-532.
+ * QUÉ CITAS DICEN OTRA COSA QUE SU PASAJE — REG-577.
  *
  * No mira los artículos: compara la afirmación con **el pasaje que el propio
  * modelo devolvió como respaldo**. Si ese pasaje niega el resultado, o lo dice

@@ -46,50 +46,50 @@ Eso cambia dónde conviene mirar mañana.
 **«Escrito, probado y sin conectar» — 109 de 353, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
-El miembro más reciente es **REG-559** (5-sep-2026), y es la subespecie en la que
+El miembro más reciente es **REG-604** (5-sep-2026), y es la subespecie en la que
 el dato **venía impreso en el papel** y la lectura no lo pedía. Un examen general
 de orina llama a sus renglones igual que una química sanguínea —glucosa,
 proteínas, leucocitos— y lo que los distingue está en la cabecera: una
 glucosuria de 250 se archivaba como glucemia, con una cifra perfectamente
 plausible en suero que ningún rango puede cazar. El hueco no era desconocido —
-REG-556 lo había dejado escrito con todas las letras al cerrar la mitad que sí
+REG-601 lo había dejado escrito con todas las letras al cerrar la mitad que sí
 podía cerrar. Escribir un hueco no lo tapa.
 
-Antes que él, **REG-545** (31-ago-2026), y con él son **cinco ese
+Antes que él, **REG-590** (31-ago-2026), y con él son **cinco ese
 mes** de la misma subespecie. `lo-que-cabe-en-un-episodio.ts` terminaba diciendo,
 con estas palabras, que los tres arrays sin tope quedan «como riesgo NOMBRADO…
 un riesgo declarado **se puede vigilar**». Nadie lo vigilaba: no había un solo
 medidor, dos párrafos por debajo de la promesa.
 
-Con REG-527, REG-531, REG-541 y REG-544, la regla ya no admite matices:
+Con REG-572, REG-576, REG-586 y REG-589, la regla ya no admite matices:
 **cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
 comprobar si el código la cumple.** Una prosa convincente es, en este
 repositorio, una señal de dónde mirar.
 
-Antes que él, **REG-544** (31-ago-2026), y cierra la serie del mes
+Antes que él, **REG-589** (31-ago-2026), y cierra la serie del mes
 con la versión más literal del patrón: una sección del tablero titulada
 **«Compuertas medidas en este SHA — no citadas de memoria»** citaba de memoria un
 trinquete de 96 con el techo en 95.
 
-Con REG-527, REG-531 y REG-541 son cuatro este mes. La regla, ya sin rodeos:
+Con REG-572, REG-576 y REG-586 son cuatro este mes. La regla, ya sin rodeos:
 **cuanto mejor explicada está una garantía, menos probable es que alguien vaya a
 comprobar si el código la cumple.** Un título que promete algo no lo impide; un
 guardián sí.
 
-Antes que él, **REG-543** (31-ago-2026), y la familia apareció
+Antes que él, **REG-588** (31-ago-2026), y la familia apareció
 **dentro de su propio golden**: los primeros casos probaban la distribución nueva
 llamándola directamente, y al desconectarla del generador —dejándolo plano otra
 vez— no caía ninguno. Probaban el módulo, no que el módulo corriera. Hicieron
 falta cinco casos más que miran la salida.
 
-Antes que él, **REG-542** (31-ago-2026), y su parte más cara no fue
+Antes que él, **REG-587** (31-ago-2026), y su parte más cara no fue
 lo que estaba sin conectar sino lo que apareció al conectarlo: para vigilar el
 orden entre urgencia y escalación hizo falta un caso que cruzara las dos, y ese
 caso destapó que **«me empezó a doler el pecho» no se detectaba como urgencia**.
 La lista decía `dolor|duele|dolia`. Tres formas normales de decirlo en español
 salían como no urgentes.
 
-Antes que él, **REG-541** (31-ago-2026), y es la forma más pura que
+Antes que él, **REG-586** (31-ago-2026), y es la forma más pura que
 ha tomado esta familia: una colección con **un escritor y cero lectores**.
 `whatsapp_no_entregados` estaba declarada en los tres sitios que exige la regla
 de inquilinos, respaldada, cerrada al cliente por las dos puntas — y no había
@@ -97,10 +97,10 @@ manera de mirarla. Tres guardianes en verde sobre algo invisible.
 
 Con la agravante de que la cabecera del propio módulo prometía, con esas
 palabras, que «un fallo registrado se puede **VER**, contar y arreglar a mano».
-Es la tercera vez este mes —con REG-527 y REG-531— que la garantía mejor
+Es la tercera vez este mes —con REG-572 y REG-576— que la garantía mejor
 explicada es la que nadie fue a comprobar.
 
-Antes que él, **REG-540** (31-ago-2026): `agendada` era un estado
+Antes que él, **REG-585** (31-ago-2026): `agendada` era un estado
 vivo, probado y bien argumentado que **no estaba conectado a la agenda**. Ninguna
 tarea sabía a qué cita se refería, así que cuando esa cita se cancelaba o el
 paciente no venía, el pendiente seguía leyéndose como «esperando al paciente»
@@ -110,12 +110,12 @@ Y trae la lección más incómoda de la semana: **el trinquete de conexión caz�
 función que yo mismo acababa de escribir sin llamador**. La familia no se cierra
 leyendo sobre ella.
 
-Antes que él, **REG-539** (31-ago-2026): el router de la nota podía
+Antes que él, **REG-584** (31-ago-2026): el router de la nota podía
 servir Haiku para una nota que el dueño decidió que **no escatima**, y el modelo
 llegaba al cliente como procedencia sin que nadie lo comparara con lo que se
 había pedido. Un identificador que el médico no puede evaluar no es un aviso.
 
-Antes que él, **REG-538** (31-ago-2026), y es la variante más
+Antes que él, **REG-583** (31-ago-2026), y es la variante más
 incómoda: **una defensa que corre, y que su propio éxito desactiva**. El
 interruptor de circuito de PubMed y openFDA anotaba «contestó» al ver el código
 de estado, y «contestó» borra los fallos anteriores. Un proveedor degradado que
@@ -124,14 +124,14 @@ intento: 40 peticiones de 40, ningún circuito. Con un `503` honesto, tres. La
 defensa estaba escrita, probada, conectada — y derrotada por el orden de dos
 líneas.
 
-Antes que él, **REG-537** (31-ago-2026): tres defensas contra la
+Antes que él, **REG-582** (31-ago-2026): tres defensas contra la
 caída de PubMed, escritas, probadas y **mirando todas al transporte**. NCBI
 contesta `200` con una página de error, el transporte es impecable, y el testigo
 que separa «no se pudo preguntar» de «no hay literatura» se quedaba en `false`.
 Las dos frases que el médico tenía que leer estaban escritas desde hacía meses.
 Sólo salía la equivocada.
 
-Antes que él, **REG-536** (31-ago-2026), que trae la variante que hace
+Antes que él, **REG-581** (31-ago-2026), que trae la variante que hace
 más difícil de ver a esta familia: **el dato sí llegaba, y el destinatario lo
 tiraba**. El DOI, la abreviatura ISO, el PMCID, el acceso abierto y la salvedad
 del diseño se calculaban, se serializaban, cruzaban la red y llegaban al
@@ -246,7 +246,7 @@ de REG-217 no se cazó porque «No referido» no estaba en ella.
 
 **«El sistema se contradice a sí mismo» — 45 de 308.**
 
-Sumó REG-531 (30-ago-2026), que es REG-527 otra vez cuatro unidades después: **una
+Sumó REG-576 (30-ago-2026), que es REG-572 otra vez cuatro unidades después: **una
 garantía escrita en la prosa y no en el código**. La cabecera del cajón de
 pendientes decía que lo guardado «se borra al cerrar sesión como el resto de PHI
 local», y la purga borra por prefijo —`nx.consulta.bkp.`, `nx.uci.`— mientras el
@@ -261,7 +261,7 @@ lee este árbol: **cuanto mejor explicada está una garantía, menos probable es
 alguien vaya a comprobar si el código la cumple.** Las dos veces la encontró
 alguien que fue a verificar una afirmación del censo antes de construir encima.
 
-Antes REG-527 (30-ago-2026), y es esta familia en su forma más barata de crear y
+Antes REG-572 (30-ago-2026), y es esta familia en su forma más barata de crear y
 más cara de encontrar: **un tope declarado en prosa y no en código**.
 `registro-durable.ts` llevaba desde E0-09 diciendo que los arrays del episodio
 —`administraciones` entre ellos— «están topados por el límite de 1 MB por
@@ -277,7 +277,7 @@ Su lección es sobre cómo se lee este árbol: una cabecera bien escrita da por
 revisado lo que no lo está. Cuanto mejor explicada esté una garantía, menos
 probable es que alguien vaya a comprobar si el código la cumple.
 
-Antes REG-524 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
+Antes REG-569 (30-ago-2026), que es REG-364 **dos consumidores más allá** y enseña
 hasta dónde hay que seguir un criterio antes de darlo por aplicado. `estaVigente`
 —«¿sigue siendo un problema del paciente?»— lleva escrito, exportado y probado
 desde REG-364. La receta y la orden de estudios resolvían la misma pregunta con

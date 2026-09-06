@@ -468,7 +468,7 @@ function riesgoGestacional(e: EntradaCopiloto): Sugerencia[] {
    * en condicional más abajo. Sin `tipo` se comporta como antes.
    *
    * Esto fue FALSO durante años: el código excluía el `diferencial`. Lo hizo
-   * cierto la decisión del dueño del 31-ago-2026 (REG-546), y afecta a la rama
+   * cierto la decisión del dueño del 31-ago-2026 (REG-591), y afecta a la rama
    * `evitar` —estatinas, tetraciclinas y doxiciclina, quinolonas, AINE—; los
    * `contraindicado` avisaban ya en cualquier paciente.
    */

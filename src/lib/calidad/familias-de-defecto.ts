@@ -322,7 +322,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * que nadie tuvo, con una cifra perfectamente plausible en suero.
      *
      * Ningún rango la caza, porque el rango compara magnitudes y lo que dice
-     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-554.
+     * qué SIGNIFICA la magnitud está fuera del número. Igual que REG-599.
      */
 
     /**
@@ -443,7 +443,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * borrar la comprobación. Se ve una sola vez: cuando corre en otra parte.
      */
 
-    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 523, 525, 526, 529, 530, 532, 534, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 550, 551, 552, 553, 554, 555, 556, 559],
+    regs: [154, 160, 164, 167, 169, 170, 182, 188, 198, 218, 221, 222, 225, 230, 232, 236, 238, 239, 244, 249, 252, 256, 257, 258, 259, 261, 262, 264, 266, 268, 288, 290, 296, 303, 309, 315, 316, 318, 320, 324, 325, 335, 339, 345, 346, 348, 353, 356, 359, 361, 363, 366, 367, 368, 369, 370, 371, 375, 376, 380, 381, 383, 384, 387, 388, 396, 398, 400, 401, 404, 405, 407, 410, 425, 426, 427, 431, 434, 436, 501, 506, 507, 508, 509, 568, 570, 571, 574, 575, 577, 579, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 595, 596, 597, 598, 599, 600, 601, 604],
   },
   {
     clave: 'se_contradice',
@@ -578,7 +578,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una clase nueva que se le parece. Filtrar un id revela a quién le pasó
      * algo; filtrar un token entrega el acceso.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 524, 527, 531],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 569, 572, 576],
   },
   {
     clave: 'habla_real',
@@ -829,7 +829,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * una medición que aprueba de sobra esconde, mientras que la que grita en
      * falso sólo molesta.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 517, 520, 521, 528, 533, 535],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 562, 565, 566, 573, 578, 580],
   },
   {
     clave: 'hueco_como_dato',
@@ -919,7 +919,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * escribiría los ceros. La familia sobrevive a tener guardián cuando el
      * guardián hereda el defecto.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 557],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 602],
   },
   {
     clave: 'aislamiento',
@@ -1056,7 +1056,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * había aviso era un toast, y un toast muere al cambiar de pantalla, que es
      * exactamente lo que se hace después de firmar.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 516, 522],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 561, 567],
   },
   {
     clave: 'tarde',
@@ -1122,14 +1122,14 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      *
      * 443 son las DOS PRIMERAS de la lista de catorce que se le pasó al dueño el
      * 31-ago-2026, y traen la lección de vuelta con una vuelta de tuerca: una de
-     * las dos (D-033) **no cambió una sola línea de conducta**. Sólo cambió su
+     * las dos (D-037) **no cambió una sola línea de conducta**. Sólo cambió su
      * estatus, de regir por conservación a regir por decisión.
      *
      * Parece cosmético y no lo es: un valor por omisión que nadie eligió acaba
      * pareciendo elegido, y entonces ya nadie lo revisa. Contarlas aquí es lo
      * que impide que una omisión se disfrace de criterio.
      */
-    regs: [174, 175, 292, 357, 546, 547, 548, 549, 558],
+    regs: [174, 175, 292, 357, 591, 592, 593, 594, 603],
   },
   {
     /**
@@ -1322,7 +1322,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * eso la reparación no es derivarlo —sería mentir— sino mover el rojo al único
      * momento en que las dos mitades existen a la vez: la fusión.
      */
-    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 515, 519],
+    regs: [241, 253, 310, 334, 340, 343, 354, 379, 382, 389, 394, 416, 424, 435, 445, 502, 504, 505, 560, 564],
   },
   {
     /**
@@ -1457,7 +1457,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * no puede decir que viene recortado.
      */
 
-    regs: [341, 350, 351, 352, 393, 423, 429, 518],
+    regs: [341, 350, 351, 352, 393, 423, 429, 563],
   },
 ] as const
 

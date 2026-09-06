@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   try {
     /**
-     * REG-541 · las DOS listas por la misma puerta.
+     * REG-586 · las DOS listas por la misma puerta.
      *
      * `whatsapp_no_entregados` —los fallos del bot dentro de la conversación—
      * tenía un escritor y cero lectores: estaba declarada en los tres sitios,

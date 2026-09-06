@@ -327,7 +327,7 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
               {revision.resultados.map((r, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                   {/**
-                    * REG-554 · EL ESTADO TIENE QUE LLEGAR A LA PANTALLA.
+                    * REG-599 · EL ESTADO TIENE QUE LLEGAR A LA PANTALLA.
                     *
                     * `noEvaluable` sólo se enciende cuando la unidad no cuadra con
                     * la del umbral de criticidad. Un valor fuera de los límites de
@@ -338,11 +338,11 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
                     *
                     * Y el motivo va como TEXTO VISIBLE, no en un `title`: un aviso
                     * que sólo existe al pasar el ratón no existe en el teléfono
-                    * (REG-536).
+                    * (REG-581).
                     */}
                   <span style={{ flex: 1, color: 'var(--text)' }}>{r.etiqueta}{r.critico && <span style={{ color: 'var(--red)', fontWeight: 700 }}> ⚠ crítico</span>}{(r.noEvaluable || (r.estado && r.estado !== 'ACCEPTED' && r.estado !== 'MISSING_UNIT')) && <span style={{ color: 'var(--amber)', fontWeight: 700 }}> ⚠ verificar</span>}
                     {/**
-                      * REG-557. La hoja muda tiene su propio texto, y NO dice «no
+                      * REG-602. La hoja muda tiene su propio texto, y NO dice «no
                       * entra a la gráfica»: sí entra. Lo que se le cuenta al
                       * médico es la suposición, para que deje de ser silenciosa.
                       */}

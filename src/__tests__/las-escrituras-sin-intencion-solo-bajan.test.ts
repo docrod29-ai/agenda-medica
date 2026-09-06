@@ -40,8 +40,8 @@ import {
  * TECHO ACTUAL: CERO. Sólo puede subir si alguien escribe una escritura nueva.
  *
  * Las doce escrituras clínicas del árbol tienen clave de intención. Se cerraron
- * en tres tandas: farmacia (REG-515), ARCO y fotos (REG-516), y signos ×2,
- * laboratorio y observación de UCI (REG-522).
+ * en tres tandas: farmacia (REG-560), ARCO y fotos (REG-561), y signos ×2,
+ * laboratorio y observación de UCI (REG-567).
  *
  * Un cero aquí NO significa «esto no puede volver a pasar»: significa que la
  * próxima vez se ve. Una escritura clínica nueva con `addDoc` o con `doc()` sin

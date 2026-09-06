@@ -53,11 +53,11 @@ const ESCRITOR = readFileSync('src/lib/tareas-clinicas/firestore.ts', 'utf8')
 describe('CERRAR YA NO ES «AVANZAR DE ESTADO»', () => {
   it('el botón de cerrar abre el formulario, no mueve el estado directo', () => {
     /**
-     * ACTUALIZADO EN REG-540, sin debilitarlo.
+     * ACTUALIZADO EN REG-585, sin debilitarlo.
      *
      * La aserción casaba con el ternario literal
      * `paso.estado === 'cerrada' ? onCerrar(t) : onMover(t, paso.estado)`.
-     * REG-540 lo partió en una cadena de `if` porque `agendada` también dejó de
+     * REG-585 lo partió en una cadena de `if` porque `agendada` también dejó de
      * ser un movimiento directo: ahora abre el elegidor de cita.
      *
      * Lo que este guardián protege no era la sintaxis sino la REGLA: cerrar

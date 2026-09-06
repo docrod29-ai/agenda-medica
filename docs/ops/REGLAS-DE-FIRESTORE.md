@@ -61,7 +61,7 @@ producción.
 
 | Regla escrita y sin desplegar | De dónde viene | Qué NO protege mientras tanto |
 |---|---|---|
-| `match /platform_authz_denegadas/{denId}` — `allow read, write: if false` | REG-533, el registro de denegaciones de autorización que lee el vigilante | **Nada, y hay que decirlo con precisión.** Esta regla no ABRE ni CIERRA nada por sí sola: el `match /{document=**}` del final ya deniega todo lo no declarado, así que la colección está cerrada al cliente esté o no desplegada esta regla. Lo que falta es que la regla sea EXPLÍCITA, que es lo que impide que un `match` futuro más laxo la deje al descubierto sin que nadie lo note |
+| `match /platform_authz_denegadas/{denId}` — `allow read, write: if false` | REG-578, el registro de denegaciones de autorización que lee el vigilante | **Nada, y hay que decirlo con precisión.** Esta regla no ABRE ni CIERRA nada por sí sola: el `match /{document=**}` del final ya deniega todo lo no declarado, así que la colección está cerrada al cliente esté o no desplegada esta regla. Lo que falta es que la regla sea EXPLÍCITA, que es lo que impide que un `match` futuro más laxo la deje al descubierto sin que nadie lo note |
 
 Se despliega con el resto, y **eso es acto del dueño**:
 `npx firebase deploy --only firestore:rules --project nexomed-agenda`.

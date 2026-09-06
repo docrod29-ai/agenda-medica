@@ -210,7 +210,7 @@ entonces fusionar el código que lo usa.
 | Colección | Campos | Quién la hace |
 |---|---|---|
 | `appointments` | pacienteId ↑ · fechaHora ↓ | `usePatientAppointments` — las citas del paciente en la consulta |
-| `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-533). **Declarado, aún NO construido.** |
+| `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-578). **Declarado, aún NO construido.** |
 | `arco_requests` | estado ↑ · fechaSolicitud ↓ | La bandeja de derechos ARCO |
 | `clinic_invitations` | clinicId ↑ · createdAt ↓ | `listarInvitaciones` — invitar a alguien al consultorio |
 | `farmacia` | activo ↑ · nombre ↑ | La lista de la farmacia |

@@ -40,7 +40,7 @@ export function mulberry32(seed) {
 }
 
 /**
- * UN GENERADOR DERIVADO POR PACIENTE — REG-543.
+ * UN GENERADOR DERIVADO POR PACIENTE — REG-588.
  *
  * La distribución nueva (historia, medicamentos, laboratorios, órdenes) NO puede
  * consumir del `rand()` principal: cada llamada de más desplaza toda la
@@ -174,7 +174,7 @@ async function main() {
         patientOrdinal += 1;
         const patientId = syntheticId('patient', patientOrdinal);
         /**
-         * REG-543 · todo lo del paciente sale de SU generador.
+         * REG-588 · todo lo del paciente sale de SU generador.
          *
          * Con `rand()` principal, cada campo nuevo desplazaba la secuencia de
          * todos los pacientes siguientes. Derivándolo de `(semilla, ordinal)`,
@@ -263,7 +263,7 @@ async function main() {
   if (stream !== process.stdout) await new Promise((resolve, reject) => stream.end(err => err ? reject(err) : resolve()));
 }
 
-/* Sólo como CLI: desde REG-543 este archivo también se IMPORTA para poder
+/* Sólo como CLI: desde REG-588 este archivo también se IMPORTA para poder
    probar la forma de la carga sin generar un fixture entero. */
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {

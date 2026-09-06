@@ -1,5 +1,5 @@
 /**
- * GOLDEN — REG-551. El umbral de la transcripción (D-039) se aplica al motor.
+ * GOLDEN — REG-596. El umbral de la transcripción (D-043) se aplica al motor.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
@@ -26,7 +26,7 @@
  *
  * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
  *
- * La misma familia que REG-550: «escrito y sin conectar», aplicada a un número.
+ * La misma familia que REG-595: «escrito y sin conectar», aplicada a un número.
  * Un instrumento que mide y un umbral que nadie compara contra lo medido son dos
  * mitades que no se tocan.
  *
@@ -136,7 +136,7 @@ describe('EL CONJUNTO EXISTE — el censo decía que no', () => {
   })
 })
 
-describe('EL UMBRAL DE D-039 SE APLICA', () => {
+describe('EL UMBRAL DE D-043 SE APLICA', () => {
   it('el veredicto sale del contrato: tres ejes, y dos de ellos en cero', () => {
     expect(PENDIENTE_DEL_MEDICO in UMBRAL).toBe(false)
     const lectura = compuerta(corpus())
@@ -155,7 +155,7 @@ describe('EL UMBRAL DE D-039 SE APLICA', () => {
     expect(UMBRAL).not.toHaveProperty(PENDIENTE_DEL_MEDICO)
     const fuente = (UMBRAL as { fuente: string }).fuente
     expect(fuente).toMatch(/politica-critica/)
-    expect(fuente).toMatch(/D-039/)
+    expect(fuente).toMatch(/D-043/)
   })
 
   it('la tasa ordinaria de hoy está por debajo del techo, y no por casualidad', () => {

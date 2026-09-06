@@ -431,9 +431,9 @@ export const LO_QUE_NO_SE_VIGILA: readonly string[] = Object.freeze([
 ])
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DEL MOTOR, NO DE UNA CONSULTA — REG-551.
+   DEL MOTOR, NO DE UNA CONSULTA — REG-596.
 
-   La lectura de arriba juzga UNA consulta. El umbral que fijó el médico (D-039) es del
+   La lectura de arriba juzga UNA consulta. El umbral que fijó el médico (D-043) es del
    MOTOR: se decide mirando muchas consultas juntas, y las tres cuentas se
    agregan de forma distinta a propósito.
 
@@ -459,14 +459,14 @@ export const LO_QUE_NO_SE_VIGILA: readonly string[] = Object.freeze([
      hija). El motor se comió la frase ENTERA: se perdió la cifra y se perdió
      quién la dijo.
 
-   El médico dueño eligió TRINQUETE en vez de rojo (D-039): la cuenta queda
+   El médico dueño eligió TRINQUETE en vez de rojo (D-043): la cuenta queda
    sellada en 1 y **sólo puede bajar**. Si mañana son 2, el CI se pone rojo.
 
    Esto NO es tolerar un error crítico: `politica-critica` sigue diciendo que esa
    sustitución está prohibida, y la consulta afectada sigue saliendo `aprobada:
    false`. Lo que el trinquete decide es qué hace el CI **mientras** ese defecto
    concreto se arregla: dejarlo rojo indefinidamente enseñaría a ignorar el rojo,
-   que es el argumento con el que el propio médico descartó el 0 % en D-038.
+   que es el argumento con el que el propio médico descartó el 0 % en D-042.
    El defecto no se tapa: queda con nombre aquí, en el ledger y en el censo.
    ═════════════════════════════════════════════════════════════════════════ */
 
@@ -542,7 +542,7 @@ export function leerElMotor(consultas: readonly ConsultaMedida[]): LecturaDelMot
 export const EL_CRITICO_QUE_SIGUE_ABIERTO =
   'DLG-004 (1-sep-2026): el guion dice «Van dos veces este mes» —las caídas que '
   + 'cuenta la hija— y el motor se comió la frase entera. Se perdió la cifra y se '
-  + 'perdió quién la dijo. El trinquete de D-039 lo sella en 1 para que no suba; '
+  + 'perdió quién la dijo. El trinquete de D-043 lo sella en 1 para que no suba; '
   + 'NO lo da por bueno. Sigue abierto y sigue siendo un fallo del motor.'
 
 /** Lo que el conjunto de 12 diálogos NO mide. Declararlo es la regla 5. */

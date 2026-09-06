@@ -48,7 +48,7 @@
  * tarea y se pone un tope. No es un expediente paralelo: es un cajón de lo que
  * no llegó.
  *
- * ── LO QUE ESTA CABECERA DECÍA Y NO ERA VERDAD (REG-531) ────────────────────
+ * ── LO QUE ESTA CABECERA DECÍA Y NO ERA VERDAD (REG-576) ────────────────────
  *
  * Aquí decía que lo guardado «se borra al cerrar sesión como el resto de PHI
  * local». **No se borraba.** `limpiarBorradoresLocales` purga las claves que

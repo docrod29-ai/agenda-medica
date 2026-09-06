@@ -43,7 +43,7 @@
  *
  * · **Es análisis estático, y sólo reconoce `limit`.** Una cota que llegue por un
  *   parámetro en tiempo de ejecución no la ve. `getAppointments` es justo eso:
- *   desde REG-518 exige una VENTANA DE TIEMPO —`{ desde, hasta? }`, obligatoria
+ *   desde REG-563 exige una VENTANA DE TIEMPO —`{ desde, hasta? }`, obligatoria
  *   por tipo— y sigue figurando aquí, porque el instrumento no sabe leer eso.
  *
  *   Y está bien que siga figurando: una ventana acota por FECHA, no por número.
@@ -136,7 +136,7 @@ describe('el trinquete sólo baja', () => {
 describe('lo que el inventario deja dicho', () => {
   it('`getAppointments` sigue figurando sin cota, y ahora por la razón correcta', () => {
     /**
-     * ── POR QUÉ ESTE CASO CAMBIÓ DE FORMA (REG-518) ────────────────────────
+     * ── POR QUÉ ESTE CASO CAMBIÓ DE FORMA (REG-563) ────────────────────────
      *
      * Localizaba la lectura por NÚMERO DE LÍNEA (`linea < 80`). Documentar la
      * función —cuarenta líneas de cabecera explicando por qué un `limit` la

@@ -212,7 +212,7 @@ describe('donde se enseña la lista entera, cada renglón dice lo que es', () =>
   })
 
   it('y ninguno pinta ya la descripción pelada', () => {
-    /* La forma exacta que tenía cada uno. Reaparecer es reintroducir REG-524. */
+    /* La forma exacta que tenía cada uno. Reaparecer es reintroducir REG-569. */
     expect(EXPEDIENTE).not.toContain('• {d.descripcion}')
     expect(NOTA).not.toContain('<li key={i}>{d.descripcion}')
     expect(REFERENCIA).not.toContain('map(d => `${d.descripcion}')

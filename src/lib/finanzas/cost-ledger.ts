@@ -181,7 +181,7 @@ export interface ResumenCosto {
   latenciaP50: number | null
   latenciaP95: number | null
   /**
-   * ── EL P99, QUE YA EXISTÍA AL LADO — REG-520 ─────────────────────────────
+   * ── EL P99, QUE YA EXISTÍA AL LADO — REG-565 ─────────────────────────────
    *
    * El censo decía «no hay p99 en ningún sitio del repositorio», y era falso:
    * `observabilidad/latencias.ts` lo calcula desde hace tiempo sobre los asientos
@@ -207,7 +207,7 @@ export interface ResumenCosto {
 }
 
 /**
- * ── HAY DOS PERCENTILES EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-520 ──
+ * ── HAY DOS PERCENTILES EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-565 ──
  *
  * Éste calcula por **rango más cercano**: devuelve siempre una muestra que
  * ocurrió de verdad. `src/lib/observabilidad/latencias.ts` calcula por

@@ -16,7 +16,7 @@
  * miraron una pantalla parada minuto y medio delante de su paciente. El p95 los
  * ve; el promedio no.
  *
- * ── HAY OTRO PERCENTIL EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-520 ───
+ * ── HAY OTRO PERCENTIL EN EL ÁRBOL, Y ES UNA DECISIÓN PENDIENTE — REG-565 ───
  *
  * Éste interpola. `src/lib/finanzas/cost-ledger.ts` calcula por rango más
  * cercano —siempre una muestra que ocurrió— sobre los MISMOS asientos. No dan lo

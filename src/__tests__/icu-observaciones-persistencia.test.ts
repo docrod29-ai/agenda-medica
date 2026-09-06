@@ -182,7 +182,7 @@ describe('ICU-003 · el CABLEADO del panel — escritura doble sin pérdida', ()
   it('un fallo de red NO interrumpe: se avisa, no se lanza', () => {
     /**
      * Se busca desde la llamada hasta el final de SU cadena, no dentro de una
-     * ventana de N caracteres: documentar la llamada —REG-522 le añadió la razón
+     * ventana de N caracteres: documentar la llamada —REG-567 le añadió la razón
      * de su clave de intención— empujaba el `.catch(` fuera de los 900 y el caso
      * caía sin que el cableado hubiera cambiado. Una ventana fija vigila cuánto
      * se ha comentado.

@@ -35,7 +35,7 @@ function sinCapacidad(
 ): Acceso {
   safeLog.warn('[authz] capacidad denegada', capacidad, 'rol:', rol ?? '(sin rol)')
   /**
-   * WS-13 / REG-533 — el log no es una señal: hay que ir a buscarlo sabiendo ya
+   * WS-13 / REG-578 — el log no es una señal: hay que ir a buscarlo sabiendo ya
    * lo que se busca. Se ANOTA para que el vigilante pueda ver el patrón, que es
    * lo único que distingue un rol mal puesto de alguien probando dónde entra.
    *

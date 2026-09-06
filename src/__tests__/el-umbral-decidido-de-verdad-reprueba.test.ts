@@ -1,11 +1,11 @@
 /**
- * GOLDEN — REG-550. El umbral que fijó el médico ahora REPRUEBA algo.
+ * GOLDEN — REG-595. El umbral que fijó el médico ahora REPRUEBA algo.
  *
  * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
  *
  * El 31-ago-2026 el médico dueño fijó el primero de los quince umbrales de IA
- * (D-038): para `nota-consulta`, hasta 1 de cada 100 campos dictados puede
- * perderse y CERO pueden inventarse. REG-549 lo dejó escrito en
+ * (D-042): para `nota-consulta`, hasta 1 de cada 100 campos dictados puede
+ * perderse y CERO pueden inventarse. REG-594 lo dejó escrito en
  * `contratos-de-evaluacion.ts` con su fuente y sus dos ejes.
  *
  * Y ahí se quedó. El contrato lo declaraba, el guardián del censo comprobaba que
@@ -17,7 +17,7 @@
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
- * Al cerrar REG-549 quedó anotado en su propia entrada del ledger: «que el
+ * Al cerrar REG-594 quedó anotado en su propia entrada del ledger: «que el
  * umbral se APLIQUE es otra mitad, y necesita el conjunto». El conjunto existía
  * desde REG-197 (`casos-oro.ts`). Lo que faltaba era la función que junta los
  * dos, y la escribí yo — o sea que este defecto lo habría creado yo mismo si se
@@ -75,7 +75,7 @@ const salidaCorrecta = (): SalidaGenerada[] =>
 const correr = (generadas: SalidaGenerada[], umbral: Umbral = UMBRAL_DE_LA_NOTA) =>
   aplicarUmbral(umbral, loMedidoDeLaNota(evaluarConjunto(CASOS_ORO, generadas).resumen))
 
-describe('EL UMBRAL DE D-038 SE APLICA, no sólo se declara', () => {
+describe('EL UMBRAL DE D-042 SE APLICA, no sólo se declara', () => {
   it('el veredicto sale del contrato, no de una copia', () => {
     /**
      * Si el número viviera aquí duplicado, cambiarlo en el contrato no cambiaría
@@ -191,7 +191,7 @@ describe('LOS TRES HUECOS QUE NO SON VERDE', () => {
      */
     /**
      * Se toma del censo, no por nombre: cuando escribí esto el ejemplo era
-     * `transcribir`, y AL DÍA SIGUIENTE el médico lo decidió (D-039). Una prueba
+     * `transcribir`, y AL DÍA SIGUIENTE el médico lo decidió (D-043). Una prueba
      * que nombra una capacidad concreta caduca en cuanto el trabajo avanza.
      */
     const quedanPendientes = sinUmbral()
@@ -255,7 +255,7 @@ describe('LO QUE ESTA COMPUERTA NO PUEDE MEDIR, dicho a tiempo', () => {
      * fuera CERO.
      *
      * Es más estricto, no más laxo, así que se aplica igual. Lo que no se puede
-     * hacer es callarlo: nadie debe leer «pasa» y creer que el 1 % de D-038 está
+     * hacer es callarlo: nadie debe leer «pasa» y creer que el 1 % de D-042 está
      * puesto a prueba.
      */
     const { resumen } = evaluarConjunto(CASOS_ORO, salidaCorrecta())

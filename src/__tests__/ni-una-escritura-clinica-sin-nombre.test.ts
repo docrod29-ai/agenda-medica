@@ -3,7 +3,7 @@
  *
  * ── QUÉ CIERRA ──────────────────────────────────────────────────────────────
  *
- * Las cuatro que REG-515 y REG-516 dejaron nombradas y sin cerrar, todas del
+ * Las cuatro que REG-560 y REG-561 dejaron nombradas y sin cerrar, todas del
  * carril de Hospital y UCI:
  *
  *  · **signos vitales**, alta y corrección — de estos documentos salen NEWS2 y
@@ -26,7 +26,7 @@
  *  2. **Observación de UCI** — no hay modal ni reintento automático: el fallo
  *     guarda en local y avisa. No existe un «momento anterior» del que colgar la
  *     intención, así que la identidad sale de la TOMA: su instante medido.
- *  3. (Y en REG-516, **las fotos** — la identidad sale del archivo, porque el
+ *  3. (Y en REG-561, **las fotos** — la identidad sale del archivo, porque el
  *     usuario vuelve a elegir el mismo y para la interfaz es un intento nuevo.)
  *
  * ── QUÉ PROTEGE DE VERDAD LA DE UCI, Y QUÉ NO ───────────────────────────────
@@ -146,7 +146,7 @@ describe('UCI: sin modal, la identidad sale de la toma', () => {
 
   it('y dice qué protege y qué no, en el sitio donde se lee', () => {
     /* Una protección cuyo alcance no está escrito se lee como total. */
-    const i = UCI_UI.indexOf('REG-522')
+    const i = UCI_UI.indexOf('REG-567')
     const nota = UCI_UI.slice(i, i + 900)
     expect(nota).toMatch(/QUÉ PROTEGE/)
     expect(nota).toMatch(/QUÉ NO/)

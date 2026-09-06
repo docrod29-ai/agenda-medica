@@ -9,7 +9,7 @@
  * `verificar.ts` deniega bien y lo apunta con `safeLog.warn`. **Un log de
  * servidor no es una señal**: hay que ir a buscarlo, en el sitio correcto, el día
  * correcto, y sospechando ya lo que se busca. Es el mismo defecto que REG-396
- * cerró para los incidentes de IA y REG-523 para los errores del navegador.
+ * cerró para los incidentes de IA y REG-568 para los errores del navegador.
  *
  * ── LA FRONTERA, Y NO ES UN NÚMERO INVENTADO ────────────────────────────────
  *
@@ -23,7 +23,7 @@
  *     un consultorio no tiene por qué tocar otro; que le rebote la puerta de dos
  *     inquilinos no es un rol mal configurado, es alguien probando dónde entra.
  *     Bastan dos porque el segundo ya no tiene explicación inocente — es
- *     cualitativo, como en REG-523, no una cifra elegida.
+ *     cualitativo, como en REG-568, no una cifra elegida.
  *  2. **Insistencia sobre la misma capacidad.** Un rol mal puesto da una
  *     denegación y el usuario pide permiso. Aquí sí hace falta un número, y se
  *     declara como lo que es: una cota operativa, no una cifra clínica.

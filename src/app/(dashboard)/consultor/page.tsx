@@ -10,7 +10,7 @@ import { comportamientoScroll } from '@/lib/ui/movimiento'
 import { enlaceDoi, disponibilidadDeTextoCompleto } from '@/lib/evidencia/identidad-de-la-publicacion'
 
 /**
- * REG-536 · cuatro campos que la ruta manda y este tipo borraba.
+ * REG-581 · cuatro campos que la ruta manda y este tipo borraba.
  *
  * `/api/consultor-evidencia` compone `articulosMin` con `revistaAbrev`, `pmcid`,
  * `accesoAbierto` y `tipoSalvedad`. Los cuatro llegaban al navegador dentro del
@@ -329,7 +329,7 @@ export default function ConsultorPage() {
                                 ? <a href={enlaceDoi(a.doi) as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', textDecoration: 'none' }}>DOI: {a.doi}</a>
                                 : <span title="El DOI que dio la fuente no tiene la forma 10.xxxx/yyy, así que no se enlaza.">DOI: {a.doi}</span>)}
                               {/**
-                                * REG-536 · «sólo hay resumen» y «hay texto completo y su licencia
+                                * REG-581 · «sólo hay resumen» y «hay texto completo y su licencia
                                 * no deja copiarlo aquí» llevan al médico a cosas distintas: en el
                                 * segundo puede ir a leerlo. `licencia-pmc.ts` ya distinguía las
                                 * dos y la distinción se perdía antes de llegar a la pantalla.

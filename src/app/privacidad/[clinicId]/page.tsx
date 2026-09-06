@@ -30,7 +30,7 @@ export default function PortalPrivacidadPage() {
   const [enviando, setEnviando] = useState(false)
   const [folioConfirmacion, setFolioConfirmacion] = useState('')
   /**
-   * REG-516 — la clave nace con el formulario, no con el envío.
+   * REG-561 — la clave nace con el formulario, no con el envío.
    *
    * `useState(claveDeIntento)` y no `useState(claveDeIntento())`: la forma
    * perezosa acuña UNA vez en el primer render. Con la llamada directa se

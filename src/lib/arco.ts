@@ -90,7 +90,7 @@ export function calcularFechaLimite(fechaSolicitud: string): string {
 export async function crearSolicitudArco(
   req: Omit<ArcoRequest, 'id' | 'estado' | 'fechaSolicitud' | 'fechaLimiteRespuesta'>,
   /**
-   * ── UN DERECHO EJERCIDO UNA VEZ, UN EXPEDIENTE (REG-516) ────────────────
+   * ── UN DERECHO EJERCIDO UNA VEZ, UN EXPEDIENTE (REG-561) ────────────────
    *
    * El formulario del portal es público y lo llena una persona desde su
    * teléfono, con la conexión que tenga. Si el `addDoc` commitea y la respuesta

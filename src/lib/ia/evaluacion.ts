@@ -206,7 +206,7 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-550, generalizado en REG-551.
+   LO QUE ESTE ARNÉS LE ENTREGA A LA COMPUERTA — REG-595, generalizado en REG-596.
 
    La compuerta que compara contra el umbral decidido vive en
    `contratos-de-evaluacion.ts`, con el tipo `Umbral` al que aplica. Aquí sólo
@@ -214,7 +214,7 @@ export function evaluarConjunto(oro: CasoOro[], generadas: SalidaGenerada[]): { 
 
    ── CÓMO SE TRADUCE CADA EJE, Y POR QUÉ ASÍ ─────────────────────────────────
 
-   El médico decidió (D-038) sobre «medicamentos o diagnósticos dictados que
+   El médico decidió (D-042) sobre «medicamentos o diagnósticos dictados que
    faltan» y «medicamentos añadidos». Este arnés mide CAMPOS. La traducción es de
    quien escribe el código, así que se dice entera y se elige siempre la lectura
    MÁS ESTRICTA — nunca la que hace pasar más fácil:

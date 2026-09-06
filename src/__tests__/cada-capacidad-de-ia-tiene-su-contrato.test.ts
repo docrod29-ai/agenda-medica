@@ -162,7 +162,7 @@ describe('un umbral es un número CON FUENTE, o es una decisión pendiente', () 
 
   it('un umbral decidido sale de una REGLA ESCRITA o de una DECISIÓN FECHADA, nunca de una opinión', () => {
     /**
-     * ACTUALIZADO EN REG-549, y no se debilita: se amplía a la otra fuente que
+     * ACTUALIZADO EN REG-594, y no se debilita: se amplía a la otra fuente que
      * el propio módulo declara legítima.
      *
      * Hasta hoy los únicos umbrales decididos eran dos ceros derivados de reglas
@@ -187,7 +187,7 @@ describe('un umbral es un número CON FUENTE, o es una decisión pendiente', () 
 
   it('un umbral con VARIOS EJES declara cada uno, y el `valor` es el más laxo', () => {
     /**
-     * REG-549 · `nota-consulta` tiene dos errores que no cuestan lo mismo, y el
+     * REG-594 · `nota-consulta` tiene dos errores que no cuestan lo mismo, y el
      * médico los fijó distintos: perder ≤ 1 %, añadir 0 %.
      *
      * `valor` lleva el más LAXO a propósito: quien lea sólo ese campo no puede

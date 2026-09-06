@@ -1,10 +1,10 @@
 /**
- * GOLDEN — REG-558. Los factores de conversión se calculan. No se teclean.
+ * GOLDEN — REG-603. Los factores de conversión se calculan. No se teclean.
  *
  * ── EL PROBLEMA, Y POR QUÉ LLEVABA CUATRO UNIDADES SIN RESOLVERSE ───────────
  *
  * La regla 1 de seguridad clínica nombra las **equivalencias** entre las cifras
- * que no se inventan: «o salen de una fuente citada, o no existen». REG-554 puso
+ * que no se inventan: «o salen de una fuente citada, o no existen». REG-599 puso
  * sólo las dos conversiones que el documento del médico dueño sostenía, y dejó
  * fuera la de la glucosa —el caso que había abierto todo— aunque 18,0182 se sepa
  * de memoria.
@@ -90,7 +90,7 @@ describe('LOS DOS TESTIGOS — el método se demuestra, no se afirma', () => {
 
   it('los dos están declarados como testigos, no como fuente', () => {
     expect(TESTIGOS_DEL_DOCUMENTO).toHaveLength(2)
-    for (const t of TESTIGOS_DEL_DOCUMENTO) expect(t.donde).toMatch(/D-041 §/)
+    for (const t of TESTIGOS_DEL_DOCUMENTO) expect(t.donde).toMatch(/D-045 §/)
     const doc = readFileSync(join(RAIZ, 'docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md'), 'utf8')
     expect(doc).toMatch(/ng\/mL × 2\.496 ≈ nmol\/L/)
     expect(doc).toMatch(/canonical_value: 1\.58/)
@@ -199,7 +199,7 @@ describe('EL FALLO QUE LA MEDICIÓN CAZÓ ANTES DE CONECTARLO', () => {
      *
      * La causa fue hacerme una tabla propia en vez de usar la aritmética que ya
      * estaba —masa partida por volumen—. Es el mismo error del medidor casero de
-     * REG-553, en otra capa.
+     * REG-598, en otra capa.
      */
     const c = conversionPara(analitoPorClave('ferritina')!, 'µg/L')!
     expect(c.factor).toBe(1)
