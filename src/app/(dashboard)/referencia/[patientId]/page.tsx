@@ -66,6 +66,17 @@ export default function CartaReferenciaPage() {
   const [descargando, setDescargando] = useState(false)
 
   /**
+   * SI LA CARTA CAMBIA, ES OTRA CARTA — misma razón que en la orden emitida.
+   * `asentada` impide enmendar dos veces por el mismo papel; en cuanto el médico
+   * corrige un campo, el expediente tiene que poder registrar lo que de verdad
+   * se imprimió la segunda vez.
+   */
+  useEffect(() => {
+    setAsentada(false)
+    claveAsiento.current = null
+  }, [tipo, urgencia, destino, institucion, motivo, resumen, diagnosticos, tratamiento, estudios])
+
+  /**
    * MC-004 — LA CARTA QUEDA EN EL EXPEDIENTE.
    *
    * Se asienta como adenda de la nota firmada de la que se compuso (ver
@@ -80,17 +91,6 @@ export default function CartaReferenciaPage() {
    * destinatario tampoco viaja — basta saber que la hubo y poder cotejar el
    * papel con su huella.
    */
-  /**
-   * SI LA CARTA CAMBIA, ES OTRA CARTA — misma razón que en la orden emitida.
-   * `asentada` impide enmendar dos veces por el mismo papel; en cuanto el médico
-   * corrige un campo, el expediente tiene que poder registrar lo que de verdad
-   * se imprimió la segunda vez.
-   */
-  useEffect(() => {
-    setAsentada(false)
-    claveAsiento.current = null
-  }, [tipo, urgencia, destino, institucion, motivo, resumen, diagnosticos, tratamiento, estudios])
-
   const asentarCarta = async (formato: 'impresa' | 'pdf') => {
     if (!clinicId) return
     const carta = { tipo, urgencia, destino, institucion, motivo, resumen, diagnosticos, tratamiento, estudios }
