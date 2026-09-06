@@ -93,6 +93,7 @@ comodín final ya deniega, pero conviene que sea explícita.
 
 ## v1185 — el carril de excelencia de producto: doce encargos, medidos en un navegador
 
+**Publicado el 6-sep 02:36 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #25).
 El paquete completo, declarado antes de fusionar, en
 [`PAQUETE-PRODUCCION-2026-09-06-v1185.md`](PAQUETE-PRODUCCION-2026-09-06-v1185.md).
 
