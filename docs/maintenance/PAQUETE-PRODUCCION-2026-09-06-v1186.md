@@ -1,7 +1,26 @@
 # Paquete de producción — `nexusmed-v1186`
 
-> **Estado: PREPARADO, NO PUBLICADO.** Se escribe ANTES de fusionar a `main`,
-> como manda el ciclo. Publicar y fusionar son actos del dueño.
+> **Estado: PUBLICADO Y VERIFICADO — 6-sep-2026, 09:22 UTC.** Autorizado por el
+> dueño. El botón corrió sobre el árbol `7c2465ea` (ejecución
+> [#26](https://github.com/docrod29-ai/agenda-medica/actions/runs/34024381002))
+> y devolvió `PRODUCTION_RELEASE=SUCCESS`.
+>
+> ```
+> VERSION=nexusmed-v1186          FIRESTORE_RULES=success
+> FIRESTORE_INDICES=success       SECURITY_E2E=success   (57 casos)
+> SMOKE=success (10 casos)        SMOKE_PORTAL=success   (401 sin enlace)
+> FIRESTORE_RULES_SHA256=b7966ac9461bb2bd49a93aff0406e38d2a788911c4dffebc9e70046d562ddbd7
+> ```
+>
+> **Lo que el acta NO demuestra**, y por eso se dice aquí en vez de dejarlo
+> implícito: que el índice trece esté **construido**. `deploy --only
+> firestore:indexes` contesta al ENVIAR; la construcción es asíncrona. Queda ese
+> renglón abierto en `docs/ops/INDICES-DE-FIRESTORE.md`, y se cierra mirando la
+> consola de `nexomed-agenda`. Si el vigilante empieza a fallar con «The query
+> requires an index», ésa es la causa.
+>
+> Este paquete arrastró **v1184, v1185 y v1186** —los tres estaban preparados y
+> sin publicar—, tal como avisaba la sección de abajo.
 
 ## Lo primero: ésta es la TERCERA renumeración
 
