@@ -34,7 +34,7 @@ if (!sinSesion && !existsSync(estado)) {
   await pag.locator('input[type=email]').first().fill('demo@nexusmed.test')
   await pag.locator('input[type=password]').first().fill('demo1234')
   await pag.locator('button[type=submit]').first().click()
-  await pag.waitForTimeout(7000)
+  await pag.waitForURL(u => !String(u).includes("/login"), { timeout: 30000 }).catch(() => {}); await pag.waitForTimeout(2000)
   await ctx.storageState({ path: estado })
 }
 await pag.goto(BASE + ruta, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(e => console.log('GOTO ERROR', String(e).slice(0, 200)))
