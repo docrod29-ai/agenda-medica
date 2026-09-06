@@ -36,6 +36,7 @@ import {
   type BusquedaDePubMed, type IntentoDeBusqueda, type RecuperacionParaConsultor,
 } from '@/lib/evidencia/recuperacion-consultor'
 import { traducirBasico, farmacosDetectados } from '@/lib/evidencia/traducir-medico'
+import { bloqueDeAjusteRenal } from '@/lib/ia/ajuste-renal-para-el-consultor'
 import { dosisFDA } from '@/lib/evidencia/openfda'
 import { leerMemoriaMedico, textoMemoria, aprenderDeMedico } from '@/lib/memoria-medico'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
@@ -177,7 +178,7 @@ interface MetaRecuperacion {
   /** Sólo si no se pudo consultar: qué pasó. */
   motivo: string | null
 }
-interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string; recuperacion?: MetaRecuperacion }
+interface MetaStream { articulos: unknown[]; cenetecUrl?: string; modelos: string[]; sinCitas?: boolean; dosisFDA?: unknown; fechaBusqueda?: string; recuperacion?: MetaRecuperacion; /** B-001: si el ajuste renal lo calculó el motor (o no había depuración). */ ajusteRenalCalculado?: boolean; farmacosSinVigilanciaRenal?: string[] }
 
 /** El sobre de #314 traducido a lo que viaja por el stream. Sin PHI. */
 function metaDeRecuperacion(r: RecuperacionParaConsultor): MetaRecuperacion {
@@ -277,7 +278,7 @@ export async function POST(req: NextRequest) {
   if (corteCreditos) return corteCreditos
   if (!key) return NextResponse.json({ ok: false, error: iaNoDisponible('evidencia').mensaje }, { status: 503 })
 
-  let body: { pregunta?: string; historial?: { rol: string; texto: string }[]; contextoPaciente?: string }
+  let body: { pregunta?: string; historial?: { rol: string; texto: string }[]; contextoPaciente?: string; depuracionMlMin?: unknown }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
   const pregunta = String(body.pregunta ?? '').trim()
   if (!pregunta) return NextResponse.json({ ok: false, error: 'Escribe tu pregunta clínica' }, { status: 400 })
@@ -471,8 +472,20 @@ export async function POST(req: NextRequest) {
       return `[${i + 1}] ${etiqueta}${a.revista} ${a.anio} · PMID ${a.pmid}\n${a.titulo}\n${a.resumen.slice(0, 1200)}${ft}`
     }).join('\n\n')
     const dosisTxt = dosisList.length ? '\n\nDOSIS OFICIAL (ficha técnica FDA):\n' + dosisList.map(d => `• ${d.farmaco}: ${d.dosis}`).join('\n') : ''
-    const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. Cuando una fuente incluya "TEXTO COMPLETO", razona sobre sus CIFRAS reales (NNT, IC95%, HR, RR, tamaño de muestra) y menciónalas citando su [n] — no te quedes solo en lo cualitativo. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: usa la "DOSIS OFICIAL (FDA)" dada (ajústala a función renal/hepática y peso, y a verificar con el Cuadro Básico); si no se da, indica la dosis estándar de referencia y adviértelo. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). SEGURIDAD DE DOSIS (crítico): NUNCA emitas una CIFRA de dosis (mg, mg/kg, intervalo) sin respaldo. Si tienes la "DOSIS OFICIAL (FDA)" para ese fármaco, úsala y cítala como tal. Si NO la tienes, di "verificar dosis en el Cuadro Básico / ficha técnica" SIN inventar el número; jamás adivines una cifra. Recuerda ajustar por función renal/hepática, peso y edad, y en pediatría/embarazo/lactancia extrema la precaución. REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
-    const user = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}\n\nResponde citando [n].`
+    /**
+     * B-001 (Panel de Lujo) — EL AJUSTE RENAL LO CALCULA EL MOTOR, NO EL MODELO.
+     *
+     * El prompt ordenaba «ajústala a función renal/hepática y peso» y ninguna
+     * defensa determinista miraba la prosa que bajaba a la nota. Ahora el
+     * catálogo renal del sistema se consulta AQUÍ, con la depuración que manda
+     * la pantalla (`depuracionMlMin`, la misma `depuracionParaDosis` que ya usa
+     * la receta), y el resultado —o su ausencia declarada— va en el mensaje.
+     * El modelo cita; no calcula. Ver `ajuste-renal-para-el-consultor.ts`.
+     */
+    const renal = bloqueDeAjusteRenal(farmacos, body.depuracionMlMin)
+    const renalTxt = renal.bloque
+    const system = 'Eres el mejor consultor clínico basado en evidencia para médicos en MÉXICO — al nivel de OpenEvidence: razonas a fondo, resuelves casos COMPLEJOS y das respuestas COMPLETAS y accionables, no superficiales. Responde en español CITANDO con [n] los artículos que respaldan cada afirmación. Estructura útil: síntesis directa arriba, luego el porqué (mecanismo/razonamiento clínico), abordaje escalonado, y advertencias. Cuando una fuente incluya "TEXTO COMPLETO", razona sobre sus CIFRAS reales (NNT, IC95%, HR, RR, tamaño de muestra) y menciónalas citando su [n] — no te quedes solo en lo cualitativo. RAZONA como especialista: sopesa alternativas, menciona cuándo NO aplica, banderas rojas, poblaciones especiales, interacciones. Si hay contexto de PACIENTE, personaliza (edad, comorbilidades, alergias, tratamiento) y advierte contraindicaciones. Si es sobre un fármaco/tratamiento, incluye **Dosis**: cita la "DOSIS OFICIAL (FDA)" dada TAL CUAL y como tal (a verificar con el Cuadro Básico); si no se da, di "verificar dosis en el Cuadro Básico / ficha técnica" sin proponer un número. EL AJUSTE POR FUNCIÓN RENAL, HEPÁTICA, PESO O EDAD NO LO HACES TÚ: lo hace un motor determinista del sistema y, cuando existe, te llega en el mensaje bajo "AJUSTE RENAL CALCULADO POR EL MOTOR" — cítalo tal cual. Si el mensaje dice que NO se calculó, escribe que el ajuste queda pendiente de la depuración y el peso reales del paciente; no lo estimes ni hagas la cuenta. Cuando aplique, agrega **Guía en México**: GPC de CENETEC o NOM pertinente por su nombre (a verificar el documento oficial). SEGURIDAD DE DOSIS (crítico): NUNCA emitas una CIFRA de dosis (mg, mg/kg, intervalo) sin respaldo. Si tienes la "DOSIS OFICIAL (FDA)" para ese fármaco, úsala y cítala como tal. Si NO la tienes, di "verificar dosis en el Cuadro Básico / ficha técnica" SIN inventar el número; jamás adivines una cifra. Recuerda que la función renal/hepática, el peso y la edad cambian la dosis: SEÑÁLALO como pendiente de verificar con el motor, sin hacer tú la cuenta; en pediatría/embarazo/lactancia extrema la precaución. REGLAS DE RIGOR: cita SOLO los artículos dados por su [n]; NUNCA inventes estudios, PMIDs ni cifras; si la evidencia es limitada, dilo con honestidad y complementa con razonamiento clínico y consenso (aclarando qué es evidencia y qué es criterio); apoya la decisión del médico, no des órdenes absolutas. Termina con "Nivel de evidencia: alto/moderado/bajo".'
+    const user = `${memTxt ? 'PERFIL DEL MÉDICO (memoria):\n' + memTxt + '\n\n' : ''}${paciente ? 'PACIENTE (contexto):\n' + paciente + '\n\n' : ''}${contexto ? 'Conversación previa:\n' + contexto + '\n\n' : ''}PREGUNTA: ${pregunta}\n\nEVIDENCIA (PubMed):\n${fuentes}${dosisTxt}${renalTxt}\n\nResponde citando [n].`
 
     // Respuesta en STREAMING (token a token). Las fuentes van en el meta (se pintan
     // de inmediato) y el texto llega en vivo. La verificación de citas es
@@ -497,7 +510,7 @@ export async function POST(req: NextRequest) {
       key, model, system, user, maxTokens: 3200,
       fuente,
       asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
-      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, ajusteRenalCalculado: renal.calculado, farmacosSinVigilanciaRenal: renal.noVigilados, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)
         void registrarConsultor(clinicId, costo)
