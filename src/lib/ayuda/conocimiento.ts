@@ -279,7 +279,20 @@ export const GUIA: SeccionGuia[] = [
       { t: 'Cómo entra', d: 'Con un enlace seguro, sin contraseña. El enlace está atado a ESE paciente de ESE consultorio.' },
       { t: 'Qué ve', d: 'Sus próximas citas, sus recetas, los documentos que le liberaste, y puede reagendar.' },
       { t: 'Qué NO ve', d: 'Nada que esté en borrador. Un paquete de información al paciente nace en borrador y sólo lo ve cuando alguien autorizado lo libera, con la fecha y el nombre de quién lo hizo.' },
-      { t: 'Cuidadores', d: 'Un familiar autorizado es una autorización explícita, revocable y con bitácora — no un segundo dueño del expediente.' },
+      /*
+       * PC-010 — ESTA FRASE DESCRIBÍA UNA FUNCIÓN QUE NO EXISTE.
+       *
+       * Era una cita del §8 de `patient-facing-ai.md` —una REGLA para cuando
+       * el cuidador exista— copiada a la ayuda como si describiera el
+       * producto. No hay `cuidadorId`, ni colección, ni bitácora, ni ruta. El
+       * portal del paciente sí lo dice con honestidad («todavía no podemos
+       * darle acceso desde aquí») y la ayuda del médico decía lo contrario.
+       *
+       * En la práctica la esposa usa el enlace del paciente: sin autorización
+       * separada, sin bitácora propia y sin poder revocarla aparte. Eso es lo
+       * que el médico necesita saber para decidir a quién le pasa el enlace.
+       */
+      { t: 'Cuidadores', d: 'Todavía NO existe un acceso propio para un familiar o cuidador: no hay autorización separada, ni bitácora suya, ni forma de revocársela sin revocar la del paciente. Si un familiar entra hoy, entra con el enlace del paciente. Tenlo en cuenta antes de compartirlo.' },
     ],
     ojo: ['Un enlace de paciente se reenvía por WhatsApp y acaba en sitios que nadie controla. Compártelo sólo con quien debe tenerlo.'],
   },

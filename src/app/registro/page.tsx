@@ -26,12 +26,42 @@ import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { EsperaDeLaPuerta } from '@/components/landing/EsperaDeLaPuerta'
 import { LEMA } from '@/lib/marca'
 
+/**
+ * LA PUERTA DE ENTRADA VENDÍA EL PRODUCTO DE HACE DOS VERSIONES — Panel de Lujo
+ * N-018 (P2).
+ *
+ * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ *
+ * Los seis beneficios eran agenda, bot de WhatsApp, recordatorios, lista de
+ * espera, Google Calendar y portal del asistente. Ni una palabra de la nota por
+ * voz. Y eso es EXACTAMENTE lo que la portada retiró a propósito y dejó escrito
+ * en su propia cabecera (`src/app/page.tsx`):
+ *
+ *   «Ausculta se vendía como un agendador con bot de WhatsApp. Eso fue verdad y
+ *    dejó de serlo… su promesa —salir de la consulta con la nota hecha sin dejar
+ *    de mirar al paciente— no aparecía en la portada.»
+ *
+ * La portada se corrigió y la PUERTA DE REGISTRO se quedó atrás: quien llegaba
+ * directo a `/registro` —por un enlace compartido, por un anuncio— seguía
+ * leyendo la promesa vieja en el último sitio antes de dar de alta su cuenta.
+ *
+ * ── DE DÓNDE SALE ESTE TEXTO ─────────────────────────────────────────────────
+ *
+ * De `RECORRIDO`, la lista de la portada, resumida a una línea por paso. La
+ * agenda y el bot **siguen** —son verdad y son parte del producto— pero al
+ * final, que es el sitio que la portada ya les asignó.
+ *
+ * Lo correcto sería que las dos pantallas leyeran UNA lista de un módulo
+ * compartido, y no dos copias. `RECORRIDO` vive dentro de `src/app/page.tsx`,
+ * sin exportar, y ese archivo es de otra rebanada de esta reparación: mover la
+ * lista a `src/lib/marca.ts` va en `handoff-UI-CONFIG.md`.
+ */
 const BENEFICIOS = [
-  'Agenda y calendario inteligente',
-  'Bot de WhatsApp para auto-agendamiento',
-  'Recordatorios automáticos a pacientes',
-  'Lista de espera con notificación automática',
-  'Google Calendar sincronizado',
+  'Te oye y sabe quién habló: separa lo que dijo el paciente de lo que dijiste tú',
+  'Deja vacío lo que nadie dijo, en vez de rellenar huecos',
+  'Te avisa antes de firmar: dosis, alergias e interacciones',
+  'La receta sale contigo, lista para imprimir o mandar',
+  'Agenda, recordatorios por WhatsApp y lista de espera',
   'Portal simplificado para tu asistente',
 ]
 
@@ -191,14 +221,15 @@ function RegistroInner() {
             fontSize: 40, color: 'var(--text)', lineHeight: 1.05, marginBottom: 14,
             fontWeight: 500, letterSpacing: '-0.03em',
           }}>
-            Tu consultorio,<br />
-            <span style={{ color: 'var(--nexus)', fontStyle: 'italic' }}>conectado.</span>
+            Sal de la consulta<br />
+            <span style={{ color: 'var(--nexus)', fontStyle: 'italic' }}>con la nota hecha.</span>
           </h2>
           <p style={{
             fontSize: 15, color: 'var(--text2)', marginBottom: 36, lineHeight: 1.6,
             letterSpacing: '-0.005em', maxWidth: 380,
           }}>
-            Agenda, expediente, recetas y cobros en una sola herramienta.
+            Sin dejar de mirar al paciente. Y con la agenda, las recetas y los cobros
+            en la misma herramienta.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -239,6 +270,27 @@ function RegistroInner() {
           <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
             Crea tu cuenta
           </h1>
+          {/*
+            N-011 — EN EL TELÉFONO NO QUEDABA NI UNA PALABRA DE LA OFERTA.
+
+            `@media (max-width: 768px)` esconde el panel izquierdo entero, y ahí
+            vivían las únicas apariciones de «tarjeta» y del precio: por debajo de
+            768 px el formulario quedaba solo, con un botón que dice «Comenzar
+            prueba gratis» sin decir de qué prueba ni si va a pedir tarjeta.
+
+            No hace falta traer el panel: basta con que esta tira exista siempre
+            —en el escritorio repite lo de al lado, que no estorba— y con que el
+            precio siga saliendo de `PLANES`, no de un número tecleado.
+          */}
+          <p style={{
+            fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, margin: '0 0 16px',
+            padding: '10px 12px', borderRadius: 10,
+            background: 'var(--nexus-soft)',
+            border: '1px solid color-mix(in srgb, var(--nexus) 22%, transparent)',
+          }}>
+            <b>14 días gratis · sin tarjeta.</b> Después, desde ${PLANES.agenda.precioMXN.toLocaleString('es-MX')} MXN/mes.
+            Cancela cuando quieras.
+          </p>
           <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 32 }}>
             ¿Ya tienes cuenta?{' '}
             {/* Subrayado: enlace DENTRO de una frase — sólo color no lo distingue

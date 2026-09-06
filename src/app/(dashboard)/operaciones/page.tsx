@@ -129,11 +129,29 @@ const GRUPOS: Grupo[] = [
     cadencia: 'Cada semana o cada mes',
     secundario: true,
     items: [
-      { href: '/crm', label: 'CRM', para: 'De dónde llegan los pacientes y qué pasó con cada contacto', icon: TrendingUp, modos: 'medico' },
+      /*
+       * N-013 — «De dónde llegan los pacientes» era falso: la pantalla no
+       * tiene un solo dato de origen. Ninguna de las cuatro rutas por las que
+       * nace una cita —portal público, bot de WhatsApp, mostrador, lista de
+       * espera— sella de dónde vino, así que el CRM no puede saberlo. El
+       * rótulo dice ahora lo que la pantalla SÍ hace; sellar el origen en la
+       * cita es trabajo de la rebanada de agenda y va en el handoff.
+       */
+      { href: '/crm', label: 'CRM', para: 'Cómo va la agenda: confirmaciones, ausencias y retención', icon: TrendingUp, modos: 'medico' },
       { href: '/resenas', label: 'Reseñas', para: 'Lo que escriben los pacientes, y pedirlo cuando toca', icon: Star, modos: 'medico' },
       { href: '/reactivacion', label: 'Reactivación', para: 'Avisar a quien lleva meses sin volver', icon: HeartHandshake, modos: 'medico' },
       { href: '/farmacia', label: 'Farmacia', para: 'Existencias del consultorio y lo que se entrega', icon: Pill, modos: 'medico' },
-      { href: '/finanzas', label: 'Finanzas', para: 'Cobros, corte del día y cómo va el mes', icon: TrendingUp, modos: 'medico' },
+      /*
+       * ASC-006 — LA ASISTENTE ES QUIEN COBRA Y HACE EL CORTE, y no tenía
+       * ningún enlace: la entrada estaba en `modos: 'medico'` y su modo está
+       * forzado a secretaria, así que el filtro nunca la dejaba pasar.
+       *
+       * Valor por omisión aplicado (el hallazgo pedía decisión del dueño):
+       * SE MUESTRA. Esconderle a quien cobra la pantalla donde se cobra es el
+       * lado caro del error; los reportes por médico y las comisiones siguen
+       * dentro de la misma pantalla y son otra decisión.
+       */
+      { href: '/finanzas', label: 'Cobros y corte del día', para: 'Cobros, corte del día y cómo va el mes', icon: TrendingUp, modos: 'ambos' },
       { href: '/membresias', label: 'Membresías', para: 'Planes de pacientes con seguimiento incluido', icon: CreditCard, modos: 'ambos' },
     ],
   },
@@ -143,15 +161,30 @@ const GRUPOS: Grupo[] = [
     secundario: true,
     items: [
       { href: '/cumplimiento', label: 'Cumplimiento', para: 'NOM-004, avisos de privacidad y derechos ARCO', icon: ShieldCheck, modos: 'medico' },
-      { href: '/legal', label: 'Documentos legales', para: 'Consentimientos y formatos que el paciente firma', icon: FileText, modos: 'medico' },
-      { href: '/migracion', label: 'Migración', para: 'Traer expedientes de otro sistema', icon: ArrowLeftRight, modos: 'medico' },
+      /* ASE-018 — la asistente es quien imprime el aviso de privacidad y los
+         consentimientos. Se decide por pantalla, no por bloque. */
+      { href: '/legal', label: 'Documentos legales', para: 'Consentimientos y formatos que el paciente firma', icon: FileText, modos: 'ambos' },
+      /* ASE-018 — quien de verdad migra los 1 200 pacientes es la asistente, y
+         la pantalla no le aparecía aunque la ruta le abriera al teclearla.
+         `Cumplimiento` se queda en modo médico: eso sí es del médico. */
+      { href: '/migracion', label: 'Migración', para: 'Traer expedientes de otro sistema', icon: ArrowLeftRight, modos: 'ambos' },
     ],
   },
   {
     titulo: 'Comunicación',
     cadencia: 'Todos los días',
     items: [
-      { href: '/chat', label: 'Chat', para: 'Mensajes con pacientes y con el equipo', icon: MessageCircle, modos: 'ambos' },
+      /*
+       * N-012 y ASM-022 — «Mensajes con pacientes» abría el chat INTERNO del
+       * equipo. La asistente que buscaba dónde contestarle a un paciente
+       * acababa aquí, y aquí no hay pacientes. El Sidebar decía sólo «Chat»,
+       * que era correcto: el que mentía era este índice.
+       *
+       * Una bandeja de verdad para el paciente es un producto, no un rótulo:
+       * las piezas existen (el bot con su ventana de 24 h y el opt-out) pero
+       * construirla no se decide aquí.
+       */
+      { href: '/chat', label: 'Chat del equipo', para: 'Mensajes entre el médico y su asistente', icon: MessageCircle, modos: 'ambos' },
     ],
   },
   {

@@ -71,7 +71,12 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
       )}
       footer={(
         <>
-          <Button variant="ghost" size="sm" icon={<Download size={12} />} onClick={descargarTexto} style={{ marginRight: 'auto' }}>Descargar PDF/texto</Button>
+          {/*
+            ZC-008 — el botón decía «Descargar PDF/texto» y bajaba un `.txt`.
+            Nombra el formato que entrega: el contenido legal es exactamente el
+            mismo cuyo SHA-256 se sella, así que lo que sobraba era la promesa.
+          */}
+          <Button variant="ghost" size="sm" icon={<Download size={12} />} onClick={descargarTexto} style={{ marginRight: 'auto' }}>Descargar texto</Button>
           <Button variant="secondary" onClick={onCancelar}>Cancelar</Button>
           <Button onClick={aceptar} disabled={!acepta} icon={<Check size={14} />}>Aceptar y continuar</Button>
         </>
@@ -106,7 +111,12 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
             </>
           )}
 
-          <div style={{ marginTop: 16, padding: 12, background: 'rgba(255,200,0,0.06)', border: '1px solid rgba(255,200,0,0.2)', borderRadius: 8 }}>
+          {/* ZC-009 — el ámbar sale de los tokens; el hex a mano no seguía al tema. */}
+          <div style={{
+            marginTop: 16, padding: 12, borderRadius: 8,
+            background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--amber) 25%, transparent)',
+          }}>
             <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 600, marginBottom: 4 }}>
               ¿Cómo se está aceptando este aviso?
             </div>
@@ -122,22 +132,49 @@ export function AvisoPrivacidadModal({ config, onAceptar, onCancelar, medioInici
               Los datos de salud son datos sensibles: el consentimiento debe quedar por escrito
               (Art. 9 LFPDPPP). Un &ldquo;sí&rdquo; de palabra no basta.
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(['presencial', 'whatsapp', 'portal'] as const).map(m => (
+            {/*
+              ZC-009 — DESDE EL ESCRITORIO SÓLO SE PUEDE ASENTAR LO QUE PASÓ AQUÍ.
+              ─────────────────────────────────────────────────────────────────
+              Este modal dejaba asentar «Aceptado en el portal» y «Aceptado por
+              WhatsApp» sin ninguna referencia a ese hecho: la fecha era la del
+              clic del personal y la huella, la del texto que vio el PERSONAL, no
+              el paciente.
+              El agravante, que el equipo rojo verificó, es que esos dos medios
+              tienen un camino REAL que los origina con evidencia —el portal sella
+              `medioAceptacion: 'portal'` en el servidor con su propio hash, y el
+              bot de WhatsApp sella `'whatsapp'`—, así que el mismo valor podía
+              venir de un evento comprobable o de un clic del mostrador, y en el
+              expediente quedaban indistinguibles.
+              Desde aquí sólo queda lo que esta pantalla puede atestiguar: que se
+              firmó en papel, delante de quien lo está registrando. Los otros dos
+              medios siguen existiendo — los escribe quien los presencia, que es
+              el servidor.
+            */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} role="group" aria-label="Cómo se aceptó el aviso">
+              {(['presencial'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setMedio(m)}
+                  /* Sin `aria-pressed` un lector de pantalla no sabía cuál estaba
+                     elegido: el estado sólo se decía con el color. */
+                  aria-pressed={medio === m}
                   style={{
                     padding: '6px 12px', borderRadius: 'var(--r-pill)', fontSize: 11.5, fontWeight: 600,
-                    cursor: 'pointer', textTransform: 'capitalize',
+                    cursor: 'pointer', textTransform: 'capitalize', minHeight: 44,
                     background: medio === m ? 'var(--teal)' : 'var(--s2)',
                     color: medio === m ? '#000' : 'var(--text2)',
                     border: medio === m ? '1px solid var(--teal)' : '1px solid var(--border)',
                   }}
                 >
-                  {m === 'presencial' ? 'Firmado en papel' : m === 'whatsapp' ? 'Aceptado por WhatsApp' : 'Aceptado en el portal'}
+                  Firmado en papel, aquí
                 </button>
               ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.5, marginTop: 8 }}>
+              «Aceptado en el portal» y «Aceptado por WhatsApp» ya no se asientan desde aquí:
+              los escribe el propio portal o el bot cuando el paciente acepta, con la fecha y
+              la huella de lo que él vio. Desde esta pantalla sólo se registra lo que ocurre
+              delante de ti.
             </div>
           </div>
 

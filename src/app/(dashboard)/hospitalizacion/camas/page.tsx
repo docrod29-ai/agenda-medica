@@ -11,6 +11,8 @@ import { useClinic } from '@/context/ClinicContext'
 import { suscribirCenso, getCamas, crearCama, actualizarCamaEstado, borrarCama } from '@/lib/hospital/firestore'
 import { SERVICIOS_HOSPITAL, ESTADO_CAMA_LABEL, type Internamiento, type Cama, type EstadoCama } from '@/types/hospital'
 import { Modal, Button, Spinner } from '@/components/ui'
+import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { mismaCama } from '@/lib/hospital/cama'
 import { contarCamas, siguientes, POLITICA_CAMAS_SEGURA } from '@/lib/hospital/estados-cama'
 import { ArrowLeft, BedDouble, Plus, Trash2, AlertTriangle } from 'lucide-react'
@@ -36,6 +38,7 @@ export default function CamasPage() {
   const router = useRouter()
   const volver = useSmartBack('/hospitalizacion')
   const { clinicId, role } = useClinic()
+  const { toast, confirm } = useToast()
   const esAdmin = role === 'admin' || role === 'medico'
   const [censo, setCenso] = useState<Internamiento[]>([])
   const [camas, setCamas] = useState<Cama[]>([])
@@ -203,7 +206,32 @@ export default function CamasPage() {
                                 {[c.estado, ...siguientes(c.estado, POLITICA)].filter(s => s !== 'ocupada')
                                   .map(s => <option key={s} value={s}>{ESTADO_CAMA_LABEL[s]}</option>)}
                               </select>
-                              <button title="Eliminar cama" onClick={async ev => { ev.stopPropagation(); if (!clinicId) return; await borrarCama(clinicId, c.id); recargarCamas() }} style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}><Trash2 size={12} /></button>
+                              {/*
+                                C-013 — borraba al PRIMER CLIC, sin preguntar y sin
+                                capturar el error: si la escritura fallaba, la cama
+                                seguía en la lista y nadie sabía si se había borrado
+                                o no. El icono está pegado al selector de estado, así
+                                que el clic errado no es raro.
+                              */}
+                              <button
+                                title="Eliminar cama"
+                                aria-label={`Eliminar la cama ${c.etiqueta ?? c.id}`}
+                                onClick={async ev => {
+                                  ev.stopPropagation()
+                                  if (!clinicId) return
+                                  if (!(await confirm(
+                                    `¿Eliminar la cama ${c.etiqueta ?? c.id}? Deja de existir para el censo y para el tablero.`,
+                                    { peligro: true, confirmar: 'Eliminar' },
+                                  ))) return
+                                  try {
+                                    await borrarCama(clinicId, c.id)
+                                    recargarCamas()
+                                  } catch (e) {
+                                    toast(noSePudo('eliminar la cama', e), 'error')
+                                  }
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', padding: 2 }}
+                              ><Trash2 size={12} /></button>
                             </div>
                           )}
                         </div>

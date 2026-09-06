@@ -15,21 +15,36 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
+import { ETIQUETA_POR_RUTA } from '@/lib/navegacion/etiquetas'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { DisparadorAyuda } from '@/components/BotonAyuda'
 
-// Cada item declara en qué modos aparece:
-//   medico       → solo cuando el usuario está en modo Médico
-//   secretaria   → solo cuando está en modo Secretaria
-//   ambos        → siempre visible
+/**
+ * ESTA ES LA BARRA DE LA ASISTENTE — Panel de Lujo D-024, y queda dicho.
+ *
+ * El médico real no la ve: el shell la pinta sólo cuando no hay navegación
+ * primaria, y `ModeContext` fuerza `secretaria` a quien no es médico real. En
+ * consecuencia, el filtro de más abajo **nunca deja pasar** una entrada
+ * `modos: 'medico'`: son código muerto de navegación.
+ *
+ * NO se recortan: la tabla es la declaración de qué destinos existen y para
+ * quién, y borrar once filas para que el archivo mienta menos dejaría al
+ * producto sin dónde leerlo. Lo que se hace es decirlo aquí —esto es una barra
+ * de asistente— y, sobre todo, reparar lo que sí afectaba a alguien: ASC-006 y
+ * ASE-018, las pantallas que la asistente USA y no podía alcanzar.
+ *
+ * Y el NOMBRE de cada ruta sale ahora de `ETIQUETA_POR_RUTA` (D-014): el mismo
+ * destino se llamaba «Consulta» aquí, «Pacientes» abajo y «Paciente» en el
+ * móvil.
+ */
 const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: 'ambos' | 'medico' | 'secretaria' }[] = [
-  { href: '/dashboard',     label: 'Dashboard',      icon: LayoutDashboard, modos: 'ambos' },
+  { href: '/dashboard',     label: ETIQUETA_POR_RUTA['/dashboard'], icon: LayoutDashboard, modos: 'ambos' },
   { href: '/asistente',     label: 'Agendar rápido', icon: UserSquare2,     modos: 'ambos' },
   { href: '/citas',         label: 'Citas',          icon: CalendarDays,    modos: 'ambos' },
   { href: '/calendario',    label: 'Calendario',     icon: Calendar,        modos: 'ambos' },
-  { href: '/pacientes',     label: 'Consulta',       icon: Users,           modos: 'ambos' },
+  { href: '/pacientes',     label: ETIQUETA_POR_RUTA['/pacientes'], icon: Users,           modos: 'ambos' },
   // Los cabos sueltos de las consultas firmadas. Va junto a Consulta porque es
   // de donde salen, y en 'ambos' porque reclamar un estudio pedido es trabajo
   // de la asistente tanto como del médico.
@@ -45,15 +60,19 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; modos: '
   { href: '/crm',           label: 'CRM',            icon: TrendingUp,      modos: 'medico' },
   { href: '/resenas',       label: 'Reseñas',        icon: Star,            modos: 'medico' },
   { href: '/reactivacion',  label: 'Reactivación',   icon: HeartHandshake,  modos: 'medico' },
-  { href: '/chat',          label: 'Chat',           icon: MessageCircle,   modos: 'ambos' },
+  { href: '/chat',          label: ETIQUETA_POR_RUTA['/chat'],      icon: MessageCircle,   modos: 'ambos' },
   { href: '/farmacia',      label: 'Farmacia',       icon: Pill,            modos: 'medico' },
-  { href: '/finanzas',      label: 'Finanzas',       icon: TrendingUp,      modos: 'medico' },
+    // ASC-006 — quien cobra y hace el corte es la asistente, y no tenía enlace.
+  { href: '/finanzas',      label: ETIQUETA_POR_RUTA['/finanzas'],  icon: TrendingUp,      modos: 'ambos' },
   { href: '/membresias',    label: 'Membresías',     icon: CreditCard,      modos: 'ambos' },
   // 'Corte de caja' ahora es una PESTAÑA dentro de Finanzas (era una 2ª entrada
   // que confundía). La ruta /corte-caja sigue viva por si hay marcadores.
   { href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },
-  { href: '/legal',         label: 'Documentos legales', icon: FileText,    modos: 'medico' },
-  { href: '/migracion',     label: 'Migración',      icon: ArrowLeftRight,  modos: 'medico' },
+    // ASE-018 — la asistente imprime el aviso de privacidad y los consentimientos.
+  { href: '/legal',         label: 'Documentos legales', icon: FileText,    modos: 'ambos' },
+    // ASE-018 — quien de verdad trae los 1 200 pacientes de otro sistema es ella.
+  // `Cumplimiento` se queda en modo médico: esa sí es una pantalla del médico.
+  { href: '/migracion',     label: 'Migración',      icon: ArrowLeftRight,  modos: 'ambos' },
 ]
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {

@@ -8,7 +8,7 @@ import { SeguridadTab } from './secciones-seguridad'
 import { cfgInput, cfgLabel } from './estilos'
 import { RecetasTab } from './secciones-recetas'
 import { LlavesIASection, FirmaUploadSection, MembreteNotaSection, MiembrosActivos } from './secciones-cuenta'
-import { PLANES, PLANES_ORDEN, precioTexto } from '@/lib/planes-ia'
+import { PLANES, PLANES_ORDEN, precioTexto, precioAnual } from '@/lib/planes-ia'
 import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIAGNOSTICAS, OTROS_PROFESIONALES } from '@/lib/especialidades'
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -802,9 +802,29 @@ export default function ConfiguracionPage() {
             }}>
               <AlertTriangle size={16} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 2 }} />
               <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                {/*
+                  ASM-018 — mandaba a una pestaña que no existe. Las pestañas
+                  reales son «Mensajes de WhatsApp», «Entregas de WhatsApp» e
+                  «Integraciones», y la conexión vive en la última. Ahora es un
+                  botón que lleva ahí, no un nombre que hay que adivinar.
+                */}
                 <strong style={{ color: 'var(--text)' }}>WhatsApp no está conectado todavía.</strong> Estos
                 avisos están activados, pero <strong>no se está enviando ninguno</strong> hasta que conectes
-                el número del consultorio en la pestaña <em>WhatsApp</em>.
+                el número del consultorio.
+                <div style={{ marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setTab('integraciones')}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44,
+                      padding: '0 14px', borderRadius: 'var(--r-pill)', cursor: 'pointer',
+                      background: 'var(--s3)', color: 'var(--text)', font: 'inherit', fontSize: 13,
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    Conectar WhatsApp en Integraciones →
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -839,10 +859,22 @@ export default function ConfiguracionPage() {
               <input aria-label="Monto $" className="input" type="number" min={0} placeholder="Monto $" value={form.anticipoMonto ?? ''} onChange={(e) => setForm({ ...form, anticipoMonto: e.target.value ? Number(e.target.value) : undefined })} />
             </div>
           </div>
-          <div className="form-group" style={{ maxWidth: 200 }}>
-            <label className="label" htmlFor="cfg-hora-de-resumen-diario">Hora de resumen diario</label>
-            <input id="cfg-hora-de-resumen-diario" className="input" type="time" value={form.horaResumenDiario} onChange={upd('horaResumenDiario')} />
-          </div>
+          {/*
+            «HORA DE RESUMEN DIARIO» — RETIRADO. Panel de Lujo C-002 y ASM-016.
+            ────────────────────────────────────────────────────────────────────
+            El campo se podía configurar y NINGÚN código lo leía: `horaResumenDiario`
+            sólo existía en `types/index.ts` y en este input, ningún cron lo
+            consultaba, y `msgResumenDiario` (`lib/whatsapp.ts`) tampoco tenía
+            llamador. No es que faltara la hora: **no existe el resumen diario**.
+
+            Un ajuste que se guarda y no hace nada es peor que no tenerlo: el
+            médico cree que a las 07:00 le va a llegar algo, y no le llega.
+
+            Se retira el CONTROL, no el dato. El campo sigue en el tipo y en la
+            configuración guardada de cada consultorio: si mañana se construye el
+            resumen, la hora que alguien eligió sigue ahí. Borrarla sería perder
+            en silencio algo que el médico escribió a propósito.
+          */}
         </div>
       )}
 
@@ -972,7 +1004,29 @@ export default function ConfiguracionPage() {
       {/* Plantillas */}
       {tab === 'plantillas' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>Vista previa de los mensajes de WhatsApp que se envían automáticamente.</p>
+          {/*
+            ASM-015 — EL RÓTULO DECÍA «QUE SE ENVÍAN AUTOMÁTICAMENTE» Y NO ES ESO.
+
+            Lo que se pinta aquí sale de `msgConfirmacion`, `msgRecordatorio24h`
+            y `msgRecordatorioDia` (`lib/whatsapp.ts`), y esas tres funciones sólo
+            las usan los botones MANUALES que abren `wa.me` desde la agenda. Los
+            envíos automáticos salen de `template24h`/`templateSameDay` en
+            `api/cron/reminders` o de la plantilla aprobada en Meta, y su texto es
+            OTRO: el equipo rojo comparó los dos y esta vista previa pide
+            «responder *CONFIRMAR*» mientras el envío real pide «Responde *SÍ*»
+            —y «CONFIRMAR» es justo la palabra que el bot no entiende—.
+
+            Un médico que lee esta pestaña para saber qué recibe su paciente se
+            lleva el texto equivocado. La reparación no unifica los textos —eso
+            toca `api/cron/**`, de otra rebanada, y va en el handoff—: lo que
+            hace es que el rótulo diga qué son estos mensajes de verdad.
+          */}
+          <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0, lineHeight: 1.55 }}>
+            Estos son los mensajes que <b>abres tú desde la agenda</b> con el botón de
+            WhatsApp, listos para copiar. <b>No son los recordatorios automáticos</b>: ésos
+            los manda el consultorio solo y su texto lo fija la plantilla aprobada en Meta,
+            que puedes ver en «Mensajes de WhatsApp».
+          </p>
           {[
             { key: 'confirmacion', label: 'Confirmación de cita', msg: msgConfirmacion(demoAppt, form) },
             { key: 'recordatorio24', label: '⏰ Recordatorio 24 horas', msg: msgRecordatorio24h(demoAppt, form) },
@@ -1722,8 +1776,43 @@ const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string
   }])),
 }
 
+/**
+ * El precio del plan actual EN SU CICLO — N-010.
+ *
+ * `PLAN_DISPLAY[...].price` siempre dice «/mes» porque se construye una sola vez
+ * y no conoce el ciclo del consultorio. Esta función sí, y lee las dos cifras del
+ * catálogo (`precioTexto` y `precioAnual`), que es donde viven.
+ */
+function precioDelCiclo(plan: string, ciclo: 'mensual' | 'anual'): string {
+  const p = PLANES[plan as keyof typeof PLANES]
+  if (!p) return PLAN_DISPLAY[plan]?.price ?? PLAN_DISPLAY.trial.price
+  if (ciclo !== 'anual') return `${precioTexto(p)} MXN/mes`
+  const anual = precioAnual(p).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return `$${anual} MXN al año`
+}
+
 const PLAN_FEATURES: Record<string, string[]> = {
-  trial:    ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito'],
+  /**
+   * «TODAS LAS FUNCIONES» NO ERA VERDAD — Panel de Lujo N-008 (P2).
+   *
+   * La prueba lleva la IA topada: `aplicaTopeDeCortesia` devuelve `true` para
+   * `status: 'trial'`, y el propio repositorio hace la cuenta en
+   * `finanzas/tope-de-cortesia.ts` — una consulta dictada gasta cuatro usos, y
+   * el tope de la prueba son treinta. La PORTADA ya lo dice bien («durante la
+   * prueba la inteligencia clínica viene limitada»); la pantalla donde el médico
+   * decide si paga decía lo contrario.
+   *
+   * No se escribe aquí el número de consultas: `LIMITE_PRUEBA` vive en
+   * `ai-keys.ts`, que es un módulo de SERVIDOR y no se puede importar desde esta
+   * pantalla, y teclear «7» a mano sería el defecto de siempre con otra cara —el
+   * mismo que esta pantalla ya arregló con los créditos y con los precios—. Lo
+   * que sí se puede decir sin inventar nada es que está topada y dónde se ve.
+   *
+   * El medidor de la prueba («llevas 4 de 7 consultas con IA»), que es lo que
+   * convierte el tope en cuenta atrás, necesita `estadoClavesIA` desde el
+   * servidor: queda en `no-reparado-UI-CONFIG.md` con su motivo.
+   */
+  trial:    ['14 días gratuitos', 'Todo el producto, con la IA clínica limitada', 'Sin tarjeta de crédito'],
   agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
   // Los créditos también se leen de `PLANES`. Hospital decía «400 créditos/mes»
   // y son 500: el número se quedó de una versión anterior de la oferta y nadie
@@ -1817,7 +1906,20 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
               {status === 'active' ? 'ACTIVO' : status === 'trial' ? 'PRUEBA' : status === 'suspended' ? 'SUSPENDIDO' : 'CANCELADO'}
             </span>
           </div>
-          <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 4 }}>{planInfo.price}</div>
+          {/*
+            N-010 — EL CLIENTE ANUAL VEÍA UN PRECIO MENSUAL.
+
+            `planInfo.price` es siempre `${precioTexto(PLANES[c])} MXN/mes`, y
+            esta pantalla SABE el ciclo: `cicloActual` está tres líneas más
+            arriba y se usaba sólo para el checkout. Un cliente anual leía
+            «$1,590 MXN/mes» en la única pantalla donde comprueba qué paga, y el
+            comentario de esta misma sección ya decía por qué eso importa: «quien
+            lo descubre es él, comparando con su recibo».
+
+            El importe anual sale de `precioAnual`, que ya existe en el catálogo.
+            No se teclea ninguna cifra.
+          */}
+          <div style={{ fontSize: 14, color: 'var(--text3)', marginTop: 4 }}>{precioDelCiclo(plan, cicloActual)}</div>
         </div>
 
         {clinic?.stripeSubscriptionId && (
@@ -2401,12 +2503,36 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         )}
       </div>
 
-      {/* Mensaje opcional para pacientes */}
+      {/*
+        MENSAJE PARA PACIENTES — Panel de Lujo C-001 (P2).
+
+        Se guardaba en `publicBookingNote` y el paciente NUNCA lo veía: la ruta
+        pública `/api/public/clinic/[clinicId]` devuelve `publicBookingEnabled` y
+        nada más, y `/reservar/[clinicId]` no lee ninguna nota. El dato cruzaba
+        la frontera y moría del otro lado — «el dato tiene que LLEGAR», al pie de
+        la letra.
+
+        Conectarlo son dos líneas, y las dos caen en archivos de OTRA rebanada de
+        esta reparación (la ruta pública y la pantalla de reserva), así que van en
+        `handoff-UI-CONFIG.md` y no se tocan desde aquí: un conflicto de fusión
+        sale más caro que el defecto.
+
+        Lo que sí se repara ahora, y es lo que le importa al médico: la pantalla
+        deja de prometer que el paciente lo lee. Se dice lo que hoy pasa de
+        verdad, y el texto guardado se conserva para cuando llegue el otro lado.
+      */}
       <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 12 }}>
-        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }} htmlFor="cfg-mensaje-portal-reserva">
           Mensaje para pacientes (opcional)
         </label>
+        <div role="status" style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 8, lineHeight: 1.5 }}>
+          <b>Todavía no se le muestra al paciente.</b> Lo que escribas aquí se guarda
+          y aparecerá en el portal de reservas en cuanto esa pantalla lo lea; hasta
+          entonces, no cuentes con él para dar una instrucción que la persona
+          necesite ver.
+        </div>
         <textarea
+          id="cfg-mensaje-portal-reserva"
           value={note}
           onChange={(e) => setNote(e.target.value.slice(0, 280))}
           placeholder='Ej: "Solo primeras consultas por este portal. Para seguimientos, contacta directamente."'
