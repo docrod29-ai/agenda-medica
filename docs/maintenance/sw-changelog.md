@@ -14,14 +14,21 @@ Salió numerada REG-556…602 y se renumeró al fusionar: `main` ya había dado 
 números al programa que corría en paralelo. Tercera vez en este repositorio; el
 número lo da `main`, no la rama.
 
-### Antes de publicar
+### Publicado
 
-Las reglas de Firestore **no las publica Vercel**. Van en el paso
-`FIRESTORE_RULES` del botón de producción. Mientras no corra, las 339 líneas
-nuevas están escritas y **no protegen nada**: qué no rige y qué se rompe
-mientras tanto está declarado fila por fila en `docs/ops/REGLAS-DE-FIRESTORE.md`.
-El aislamiento entre consultorios sí rige hoy — el equipo rojo lo probó contra
-el emulador y denegó los 13 ataques.
+Ejecución **#28** del botón de producción, 6-sep-2026, sobre el árbol
+`c4ed3210`. Los seis renglones en verde: versión servida, reglas, índices,
+seguridad, smoke y portal fail-closed (401 sin enlace). `PRODUCTION_RELEASE =
+SUCCESS`.
+
+Las **339 líneas** nuevas de `firestore.rules` **ya rigen**: el sello que emitió
+el workflow (`e91f8aad…`) coincide con el sha256 del árbol, y la sección
+PENDIENTE de `docs/ops/REGLAS-DE-FIRESTORE.md` vuelve a estar vacía. Estuvieron
+unas horas escritas y sin regir, y quedó declarado fila por fila qué no protegían
+mientras tanto.
+
+Lo que esto **no** demuestra: que los índices estén construidos. `deploy --only
+firestore:indexes` contesta al ENVIAR, no al terminar. Aquí no cambió ninguno.
 
 ### De dónde salió
 
