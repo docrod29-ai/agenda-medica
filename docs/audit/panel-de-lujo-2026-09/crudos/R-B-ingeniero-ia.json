@@ -1,0 +1,127 @@
+{
+  "auditor": "B-ingeniero-ia",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "B-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/consultor-evidencia/route.ts:474 · 'usa la \"DOSIS OFICIAL (FDA)\" dada (ajústala a función renal/hepática y peso...)' y '...Recuerda ajustar por función renal/hepática, peso y edad'; llega a la nota por src/app/(dashboard)/consulta/[patientId]/page.tsx:2305-2334",
+      "nota": "Comprobado el verbo: es 'ajústala' e imperativo, no 'considerar'. Busqué defensa río abajo y no hay: agregarAnalisisANota pide literalmente 'dosis y puntos de seguridad' (page.tsx:2312) y pega la prosa como sección analisis_evidencia; la compuerta determinista de firma (nom004.ts) sólo mira nota.medicamentos estructurados, no la prosa de una sección. El único control es otra frase del mismo prompt ('NUNCA emitas una CIFRA de dosis sin respaldo'), que es prompt contra prompt."
+    },
+    {
+      "id": "B-002",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/expediente/procesar/route.ts:112-116 (la cascada) y :580 confirmarCreditos(reserva, motor.creditos); pero :52-58 MODELOS_PREMIUM ya incluye claude-sonnet-5/4-6/4-5 y :119 return candidatos[0]",
+      "nota": "El código citado existe literalmente, pero la reproducción no es alcanzable: para caer a un haiku la cuenta tendría que exponer CERO ids con 'sonnet' (las tres ramas de sonnet ya son candidatos premium), y si /v1/models falla o viene vacío la línea 119 devuelve claude-opus-4-8. Además el modelo real sí queda registrado en dos sitios independientes: anotarLlamada(String(data?.model ?? model)) en :513 y la procedencia inmutable de la nota firmada (page.tsx:3105-3110). Lo que queda en pie —cobrar los créditos del perfil pedido y no del que respondió— es contable, no clínico."
+    },
+    {
+      "id": "B-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/expediente/procesar/route.ts:475-479 (reintento sin thinking) frente a :685, donde la respuesta no lleva ninguna marca de degradación",
+      "nota": "Evidencia exacta. Y el hueco es más ancho de lo que dice el auditor: en :125 'pienso = conThinking && soportaThinking(model)' apaga el razonamiento sin ningún 400 para cualquier modelo fuera del regex de :74. Bajo a P2 porque no cambia el contenido clínico ni el modelo: la nota la escribe el mismo modelo con el mismo prompt, y lo que falta es decirlo."
+    },
+    {
+      "id": "B-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/expediente/procesar/route.ts:685 emite _modelosNota/_citasFusion/_especialidadSinGuia; grep exhaustivo en todo el repo: sólo esa línea, src/__tests__/citas-de-la-fusion.test.ts:178 y src/__tests__/la-nota-la-escribe-un-especialista.test.ts:176",
+      "nota": "Grep exhaustivo hecho sobre el repositorio entero (no sólo src/app|hooks|components): cero consumidores. El cliente lee únicamente _modoEconomico, _motor, _modelo, _promptVersion y _apiVersion (page.tsx:2425-2426) y no hay spread de data hacia la nota que los arrastre. Bajo a P2: ninguno de los tres altera el contenido clínico, y _citasFusion al menos deja rastro en safeLog (:664); es un aviso sin entregar, familia REG-506/520."
+    },
+    {
+      "id": "B-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/prompts.ts:854-856 (delimitar sin escapar) y src/__tests__/anti-inyeccion-y-metatexto.test.ts:70, que fija exactamente esa forma",
+      "nota": "Busqué escape en otro sitio y no existe: la transcripción entra cruda desde body (procesar/route.ts:359) y ni sanitizarProsa ni el pipeline tocan '<<<'. Bajo a P2 porque la reproducción tal como está escrita no es alcanzable —ningún reconocedor emite tres '<' literales desde voz—; el vector real es texto tecleado/editado o un POST de un clínico ya autenticado del mismo consultorio. Nota adicional que el auditor no vio: en verificar-nota/route.ts:117 la NOTA (notaTexto) va entera FUERA de la valla, que es un hueco mayor que el reportado."
+    },
+    {
+      "id": "B-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/expediente/atribuir-roles/route.ts:107 (userMsg con `muestra` sin valla) y :99-104, donde `muestra` se compone como 'Hablante X: texto'; la ruta no importa GUARDA_INYECCION ni delimitar",
+      "nota": "Evidencia literal correcta y no hay valla en ninguna otra línea del archivo. El saneado de :131-141 sí acota el daño (rol fuera del catálogo se descarta, NO_IDENTIFICADO no se archiva), así que el peor caso es intercambiar dos roles válidos. P2 tal como lo puso el auditor."
+    },
+    {
+      "id": "B-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/nom004.ts:76-99 → src/lib/expediente/medical-dictionary.ts:135-175 (validarAlergiasVsMedicamentos, determinista, con la decisión del dueño E0-15d y fuente AAAAI/ACAAI 2022 citada en :152-165) es la compuerta que bloquea la FIRMA; page.tsx:2947-2949 sólo emite un toast",
+      "nota": "La premisa central es falsa. Lo que bloquea la firma es un motor determinista con reactividad cruzada por familias, no el cross_check del modelo; la variable se llama `bloquea` pero su único efecto es `toast(...)` (page.tsx:2949) y pintar el panel (src/components/NerPanel.tsx:83 — el auditor citó la ruta inexistente src/components/expediente/NerPanel.tsx). El residuo válido es menor: severidad decidida por prompt en un panel consultivo (fatiga de alerta) y la ruta sin GUARDA_INYECCION."
+    },
+    {
+      "id": "B-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/asr/lexicon.ts:277-281 (`break`) sobre el orden de candidatos de :219-244",
+      "nota": "Reproducido con jiti sobre el módulo real. Salida literal: 'B-008 terminos: 1 tokens: 16 descartados: 797' / 'terminos: [\"metformina\"]' para construir({modulo:'consulta', medicamentos:['metformina'], problemas:['a'.repeat(1200)]}). Coincide con el número que declara el auditor."
+    },
+    {
+      "id": "B-009",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "docs/audit/regression-ledger.md §REG-520 «Qué NO cubre»: «`contexto` (el módulo) sigue llegando sólo a Whisper… trabajo con nombre, no cerrado aquí»; y src/lib/asr/un-solo-hablante.ts:96-101 TIPOS_DE_DICTADO incluye 'evolucion'",
+      "nota": "El hueco existe pero está literalmente declarado como abierto en el ledger de REG-520: no es un hallazgo nuevo, es una celda ya dibujada. Y la reproducción del auditor es incorrecta: 'evolucion' ES tipo de dictado (un-solo-hablante.ts:100), así que page.tsx:1757 manda modoDeHabla 'dictado' y esa nota va por Whisper, donde `contexto` SÍ llega. El caso alcanzable es el 'ingreso' con internamiento activo (conversacional), no la evolución."
+    },
+    {
+      "id": "B-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/expediente/transcribir-diarizado/route.ts:386-387 (registrarCreditos al encolar) frente a :548-549, donde status 'error' devuelve el aviso sin devolución alguna",
+      "nota": "Comprobado que no hay devolución en ninguna rama del GET ni un finally equivalente al de procesar/route.ts:706. El patrón reservar/confirmar/devolver existe y está probado en la ruta hermana. Sin efecto clínico: es dinero."
+    },
+    {
+      "id": "B-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/expediente/transcribir-diarizado/route.ts:414 y :535 anotan 'best' mientras :55 y :85 piden universal-3-5-pro / universal-2, y :60-64 documenta que el proveedor retiró ese alias",
+      "nota": "Los dos asientos verificados literalmente. Bajo a P3: el propio archivo declara en :389-401 que AssemblyAI va sin tarifa a propósito y el renglón se marca como tal, así que el defecto es el nombre del renglón, no el margen. No toca al paciente ni al médico."
+    },
+    {
+      "id": "B-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/asr/aprendizaje.ts:166-217 (esAprendible, sin comprobación de negación) contra :309-312, que promete «si el par toca una cifra, una unidad, una NEGACIÓN o un par prohibido… no se aprende»",
+      "nota": "Ejecutado contra el módulo real. Salida literal: 'afebril -> febril true', 'febril -> afebril true', 'niega -> refiere true'. Volcado PARES_PROHIBIDOS: trece pares, ninguno de negación. Y CLASES_QUE_NUNCA_SE_APRENDEN (:331) no se consulta desde ninguna línea de src/."
+    },
+    {
+      "id": "B-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/laboratorio/sujeto.ts:208-223 (autorizaGuardar, con la frase exacta en :213) frente a src/app/(dashboard)/consulta/[patientId]/page.tsx:1579, donde identidadDe(patient?.nombre) sólo alimenta el filtro de aprendizaje (:1591)",
+      "nota": "Verificada la asimetría. Miré si existía un guardián equivalente para el dictado: src/__tests__/paciente-equivocado-guardia.test.ts cubre el emparejamiento CITA→expediente (mostrador, booking, bot), no el dictado, y su lista CAMINOS no incluye la consulta. Mantengo P2 y no P1 porque exige que el nombre del otro paciente se diga en voz alta, que es lo que el propio auditor declara en «qué no cubre»."
+    },
+    {
+      "id": "B-014",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/uci/page.tsx:870 (`crudo: audio.transcripcionMotor` en la semilla) → consulta/[patientId]/page.tsx:3457 `audio.sembrarDictado({crudo…})` → useGrabacionAudio.ts:2004 setTranscripcionMotor → page.tsx:3131 guarda transcripcionMotor → page.tsx:2084-2085 dictadosFirmados → :1591 deEstePaciente → :4291 acumular",
+      "nota": "La premisa es falsa y el propio auditor la puso en duda sin seguirla. El pase de UCI no se firma en UCI: uci/page.tsx:872 hace router.push a /consulta?tipo=evolucion_uci, y allí la semilla siembra el crudo, la nota se guarda con transcripcionMotor y esa nota firmada entra al corpus de aprendizaje del mismo paciente. Hospitalización igual: page.tsx:1746 marca contexto 'hospitalizacion' porque la evolución también se dicta y se firma en la pantalla de consulta. Que exista un solo `acumular(` no significa «una pantalla aprende», significa «una pantalla firma»."
+    },
+    {
+      "id": "B-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/asr/sesgo-diarizado.ts:137-141 (utilizable) sin equivalente en src/lib/asr/lexicon.ts:271-281",
+      "nota": "Medido con los dos módulos reales. Salida literal: 'B-015 utilizable: [ false, false, false ]' y 'B-015 construir con problemas: 65 sin: 71'. La diferencia de 6 términos coincide con la que declara el auditor (él midió 72→66 con otro contexto). Es `mejora`, y depende de una decisión del dueño sobre si una frase ayuda en el prompt libre de Whisper."
+    },
+    {
+      "id": "B-016",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/funcion-renal.ts:224 («objetivo AUC 400-600», motor registrado en src/lib/clinical/registry.ts:996-1042) y src/lib/expediente/medical-dictionary.ts:152-165 (carbapenémicos <1%, «parámetro de práctica AAAAI/ACAAI 2022, ~0.87%», decisión E0-15d)",
+      "nota": "Las dos cadenas citadas existen (prompts.ts:327 y medical-ner.ts:187-188), pero la afirmación fuerte —«ninguno lo produce un motor registrado y ninguno lleva fuente citada en el código»— es falsa para las dos cifras: AUC 400-600 vive además en funcion-renal.ts:224 y en antimicrobianos/v4/propuesta-asistente.ts:241, y el ~1% de carbapenémicos vive con fuente y decisión del dueño en medical-dictionary.ts. Lo que queda es duplicación de la fuente de verdad dentro de cadenas de prompt, que es un defecto real pero otro y menor."
+    },
+    {
+      "id": "B-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/hooks/useGrabacionAudio.ts:978 (`return us.map(u => ({ ...u, text: procesarTranscript(u.text).texto }))`) con el paliativo real en :1819 `await aplicar(diar.text)` → :1746-1752, que sí puebla alertas y motivos",
+      "nota": "Evidencia exacta y el control compensatorio que el propio auditor declara está verificado: el pase sobre el texto corrido corre siempre después de corregir los turnos, así que casi todo reaparece. Sólo diverge lo que dependa del límite del turno. P3 como lo puso."
+    }
+  ],
+  "ratio": { "total": 17, "confirmados": 12, "refutados": 1, "parciales": 4 },
+  "observaciones_del_auditor": "Auditor honesto y de línea exacta: las 17 citas archivo:línea coincidían con el código (única excepción, la ruta de NerPanel en B-007, que está en src/components/ y no en src/components/expediente/). Sus mediciones numéricas se reprodujeron literalmente (B-008: 1 término/16 tokens/797 descartados; B-012: esAprendible afebril→febril = true; B-015: delta de 6 términos). Tres patrones de error: (1) EXAGERA LA ALCANZABILIDAD del vector — en B-005 supone que un dictado puede producir '<<<FIN>>>' cuando ningún reconocedor emite tres '<', y en B-002 supone una cuenta de Anthropic sin ningún modelo 'sonnet'; (2) NO SIGUE EL DATO HASTA EL FINAL cuando el camino cruza pantallas — en B-014 vio un solo `acumular(` y concluyó que UCI no aprende, sin seguir el router.push que lleva el pase a la consulta a firmarse, y él mismo dejó la duda escrita en la propuesta; (3) CONFUNDE ADVERTENCIA CON COMPUERTA — en B-007 llamó «bloqueo» a un toast y no buscó el motor determinista (nom004 → medical-dictionary) que sí bloquea la firma, y en B-016 no buscó las cifras fuera de los prompts, donde dos de las dos existen con fuente citada. En sentido contrario se quedó CORTO una vez: en B-003 no vio que soportaThinking (procesar/route.ts:125) ya apaga el razonamiento en silencio sin necesidad de ningún 400. Prioridades algo infladas: cinco P1 de los que sólo B-001 lo sostiene."
+}

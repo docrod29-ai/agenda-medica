@@ -1,0 +1,120 @@
+{
+  "auditor": "A-ingeniero-software",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "A-001",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/cardiometabolico/dislipidemia.ts:340 (corte1 = 125 nmol/L) y src/lib/expediente/cardiometabolico/biomarcadores-lipidos.ts:133 (alto = valor >= 125). El mismo umbral en las dos.",
+      "nota": "Repetida la ejecucion con npx tsx sobre el codigo real. Salida literal: `40 | dislipidemia: normal | biomarcadores: optimo` · `75 | normal | limitrofe` · `100 | normal | limitrofe` · `110 | normal | limitrofe` · `124 | normal | limitrofe` · `125 | elevado | alto` · `250 | muy-elevado | alto`; textos a 100 nmol/L: dislipidemia «por debajo del umbral de potenciador de riesgo (125 nmol/L)» y biomarcadores «riesgo intermedio (entre 75 y 125 nmol/L)»; evaluarPanelLipidico devuelve esa misma lectura en `lecturas`. CONFIRMADO que ambas se pintan a la vez (PanelCardiometabolico.tsx:238 y :275) y que hay duplicacion de fuente. REFUTADO el titulo: no son «veredictos contradictorios» ni «dos juegos de cortes» — las dos usan 125 nmol/L (50 mg/dL) como umbral de potenciador de riesgo; biomarcadores solo anade una subbanda <75 y dislipidemia una banda superior >=250. A 100 nmol/L las dos frases son verdaderas y compatibles. Baja de P1 a P2: duplicacion real, contradiccion clinica no."
+    },
+    {
+      "id": "A-002",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/copiloto.ts:18 `import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'` — el emparejador renal y el hepatico SI son los del modulo registrado.",
+      "nota": "Grep exhaustivo de `revisarFarmaco` en todo src/ incluidas pruebas: 8 ocurrencias en src/__tests__/prescripcion-segura.test.ts, la declaracion en prescripcion-segura.ts:306 y la mencion en registry.ts:1732 (el auditor cita 1733; dentro de ±5). CONFIRMADO: revisarFarmaco y estadioERC son entryPoints declarados sin ningun llamador de produccion. REFUTADA la parte cara del hallazgo («lo que si corre es una copia del emparejador con reglas distintas»): copiloto reutiliza coincideRenal y coincideHepatico del mismo modulo; solo el emparejador gestacional es local. Ejecutados los dos emparejadores sobre EMBARAZO_LACTANCIA con 18 entradas: coinciden en los 16 nombres reales de farmaco y solo difieren en fragmentos truncados — salida literal: `DIFIEREN \"ins\" | revisarFarmaco: Insulina | copiloto: —` y `DIFIEREN \"warf\" | revisarFarmaco: Warfarina | copiloto: —`; `casos: 18 difieren: 2`. Es decir, el que NO corre es el permisivo. La propuesta (a) del auditor —sustituir el emparejador vivo por revisarFarmaco— reintroduciria el falso positivo por subcadena que copiloto.ts:400-406 documenta haber cerrado en la auditoria 2026-07. Baja de P1 a P2: es deuda de trazabilidad del registro, no un riesgo clinico."
+    },
+    {
+      "id": "A-003",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/expediente/transcribir-diarizado/route.ts:483 `const utterances: UtteranceAAI[] = (d.utterances ?? []).map(...)` — la anotacion de tipo ES la comprobacion de frontera; y src/lib/expediente/cuando-se-dijo.ts:71 `for (const p of u?.palabras ?? [])`.",
+      "nota": "Comprobado si el cast esta protegido en runtime: NO hay zod ni validacion de forma en useGrabacionAudio.ts:563 ni :646 — eso es literalmente cierto. Pero la reproduccion que sostiene el hallazgo es FALSA y se probo: reproducido el paso 2 (renombrar `palabras`->`words` en route.ts:487) con tsc --strict sobre el mismo codigo; salida literal: `error TS2322: ... Property 'palabras' is missing in type '{ speaker: string; text: string; words: ... }' but required in type 'UtteranceAAI'`. No compila, asi que el modo de fallo REG-170 descrito no ocurre. Ademas la opcionalidad de `palabras` en el cliente esta DECLARADA a proposito en useGrabacionAudio.ts:143-148 («el camino sin diarizacion no las trae... un turno viejo anterior a la v975 tampoco. Ausente significa no se sabe») — es la regla 4 aplicada, no una divergencia accidental — y el consumidor de la procedencia se defiende de la ausencia con su motivo escrito (cuando-se-dijo.ts:59-72). Queda como deuda de capa (un tipo de lib declarado en un hook), que es A-005."
+    },
+    {
+      "id": "A-004",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/el-camino-del-medico-llega-entero.test.ts:39 `'src/lib/voice-engine/index.ts': 'VOICE ENGINE: contrato provider-neutral probado antes de conectar captura/proveedor/UI; debe salir de esta lista al integrar el slice.'`",
+      "nota": "La exencion de `index` en modulos-sin-conectar.test.ts:222 existe tal cual y voice-engine no se importa desde app/components/hooks (grep: cero). Pero la premisa del hallazgo —«ahi dentro hay un modulo de 385 lineas que nadie declara», «el archivo grande es el invisible»— es falsa: el SEGUNDO guardian, que usa alcanzabilidad transitiva real (`alcanzableDesdeLaApp()`, el-camino-del-medico-llega-entero.test.ts:9 y :96), lo declara por nombre con su razon y con la instruccion de salir de la lista al integrar el slice, bajo un trinquete `FUERA_DEL_CAMINO_HOY = 33` (linea 27) que solo puede bajar. El auditor solo miro un guardian de los dos."
+    },
+    {
+      "id": "A-005",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/arquitectura/grafo-de-dependencias.ts:26-31 declara la exclusion de `import type` con su razon; src/__tests__/la-direccion-de-las-dependencias.test.ts:45-47 acota el proposito de la asercion («la logica clinica tiene que poder correr desde una ruta de API sin montar la interfaz»), que es exactamente lo que el import de tipo SI permite.",
+      "nota": "Verificado: cuando-se-dijo.ts:40 es la unica arista lib->hooks del repo (`grep -rn \"from '@/hooks/\" src/lib` devuelve una linea) y el guardian la descarta en grafo-de-dependencias.ts:207. Pero la asercion no «certifica lo que no comprobo»: su comentario interno dice que mide la propiedad de tiempo de ejecucion, y esa propiedad se cumple. Queda deuda real y pequena —un tipo de lib viviendo en un hook— sin consecuencia hoy. Baja de P2 a P3."
+    },
+    {
+      "id": "A-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/uci/copilot/route.ts:231 `registrarUso(...).catch(() => {})` y 8 sitios mas; la unica esperada es src/app/api/inmuno/redactar/route.ts:88 `await registrarUso(clinicId, fuente)`. La escritura remota es src/lib/ai-keys.ts:449 `await docIA(clinicId).set({...FieldValue.increment(1)...})`.",
+      "nota": "Reproducido el grep: 10 llamadas (9 rutas), 8 con `void` y 1 con `.catch(()=>{})`. `grep -rn '\\bafter(' src/app` y `waitUntil`: cero, y next 16.2.12 exporta `after` (node_modules/next/server.d.ts:21). registrarUso ya traga sus errores (ai-keys.ts:457), asi que esperarla no puede romper la respuesta. Sin refutacion: la escritura cruza una frontera y no se espera."
+    },
+    {
+      "id": "A-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/pwa-manifest.test.ts:32-35 `expect(sw).toMatch(/esRutaClinica/)` · `expect(sw).toMatch(/expediente\\|consulta\\|nota\\|receta/)` · `expect(sw).toMatch(/&&\\s*!esRutaClinica/)`.",
+      "nota": "REFUTADA la reproduccion 1 del auditor («grep -rn 'esRutaClinica' src/__tests__ -> cero: ninguna prueba mira esa regex»): pwa-manifest.test.ts la mira y comprueba tanto la lista como su uso en la condicion de cacheo. CONFIRMADO que `valoracion` es fantasma (`find src/app -type d -name 'valoracion*'` no devuelve nada) y que la regex no cubre pacientes/pendientes/citas. Pero un fantasma en una lista de DENEGACION no tiene el mismo signo que el fantasma de RUTAS_PRIVADAS: alli faltaba una cabecera, aqui sobra una exclusion y falla en seguro. El riesgo residual (pantallas de RUTAS_PRIVADAS que hoy son shells de cliente) es el de manana y el propio sw.js:71-73 lo tiene escrito. Baja de P2 a P3."
+    },
+    {
+      "id": "A-008",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "Ejecutado con Intl sobre 2026: `America/Chihuahua` y `America/Mexico_City` dan la MISMA hora los cuatro trimestres (12 h para el mismo instante UTC en ene/abr/jul/oct); la unica que difiere es `America/Ciudad_Juarez` (11 h en enero), que no aparece en el codigo.",
+      "nota": "CONFIRMADA la divergencia de literales: google-calendar.ts:102 y :106 `config.zonaHoraria ?? 'America/Chihuahua'` frente a api/calendar/ocupado/route.ts:61 `cfg.zonaHoraria || 'America/Mexico_City'`, con DEFAULT_CONFIG.zonaHoraria = 'America/Chihuahua' en src/types/index.ts:741. REFUTADO el impacto que da el titulo («la cita se puede pintar una hora corrida»): desde 2022 America/Chihuahua es UTC-6 fijo, igual que America/Mexico_City, asi que hoy no hay ni una hora de diferencia ningun dia del ano. Queda la asimetria `??`/`||` con cadena vacia y el hecho de tener dos constantes por omision para el mismo campo — deuda estructural, no un paciente a deshora. Baja de P2 a P3."
+    },
+    {
+      "id": "A-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/alergias.test.ts:1 empieza en `import { describe, it, expect } from 'vitest'`; sellado en src/lib/clinical/invariantes-clinicos.json.",
+      "nota": "Reproducido el barrido sobre los 488 archivos sellados: `sellados: 488 · faltantes en disco: 0 · sin bloque /* en 30 lineas: 29`, y la lista de 29 coincide exactamente con la del auditor (alergias, seguridad-dosis, pediatria, prescripcion-segura, antibiograma, dislipidemia...). Confirmado tal cual. Baja de P2 a P3: es deuda documental, sin efecto en ejecucion; la propuesta de trinquete con techo 29 es la correcta."
+    },
+    {
+      "id": "A-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/timezone.test.ts:9 `expect(hoyISO()).toBe(hoyISO())`; src/__tests__/gp9-idempotencia-de-la-intencion.test.ts:48; src/__tests__/whatsapp-dedup.test.ts:19.",
+      "nota": "Reproducido el barrido con un analizador de parentesis balanceados sobre los 981 archivos de src/__tests__: TOTAL 9, y son exactamente los nueve de la lista, linea por linea. Matiz que baja la prioridad: 3 de los 9 no dejan su `it` vacio —receta-certificado.test.ts:80 ancla contra el literal 'RX-3DEF456' una linea antes, gp9:135 comprueba `ids.size === HOSTILES.length`, y dosis-invariantes-property.test.ts:136 anade un `not.toEqual` con otra semilla—, asi que los `it` realmente vacuos son 6, no 9. El patron prohibido esta ahi y merece guardian; P3."
+    },
+    {
+      "id": "A-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/facturama.ts:34 `const r = await fetch(`${BASE}${path}`, {...})` sin `signal` ni fetchConTimeout; src/app/api/whatsapp/360dialog-callback/route.ts:79, :109 y :122 igual.",
+      "nota": "Verificado literalmente. Baja de P2 a P3 por dos motivos que el auditor no midio: src/app/api/facturacion/solicitar/route.ts:147 declara `export const maxDuration = 30`, asi que la cita del helper («inmoviliza el lambda los 300 segundos completos») no aplica a esta ruta — el techo es 30 s; y facturama.ts:25-27 (`facturamaConfigurada`) hace que sin USER/PASS/EMISOR_CP la puerta ni se abra. El defecto de ingenieria sigue en pie: sin timeout no se puede dar el mensaje «se agoto el tiempo esperando a Facturama»."
+    },
+    {
+      "id": "A-012",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/__tests__/el-camino-del-medico-llega-entero.test.ts:30 `'src/lib/compliance/country-profiles.ts': 'lo importa compliance/policy.ts, que ya esta declarado huerfano'`; :31 benchmark-metricas; :39 voice-engine/index.ts; :63 lo-que-pesa-de-un-error.ts; :84-92 los OCHO de durability/ con su razon.",
+      "nota": "La premisa —«el guardian no distingue lo que usa una herramienta a proposito de lo que esta muerto: hoy no los declara»— es falsa. Existe un segundo guardian que hace EXACTAMENTE la reparacion que el hallazgo propone: `alcanzableDesdeLaApp()` (cierre transitivo, grafo-de-dependencias.ts:326) con trinquete `FUERA_DEL_CAMINO_HOY = 33` (linea 27), lista de islas declaradas y una asercion doble que ademas exige que cada excusa siga siendo cierta (linea 111: `expect(alcanzables.has(f)).toBe(false)`). Los 11 archivos que el auditor lista como no declarados estan todos declarados por nombre y con motivo en ese archivo. El barrido del auditor solo consulto HUERFANOS_ACEPTADOS."
+    },
+    {
+      "id": "A-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/migracion/page.tsx:217 `curp: fila.curp?.trim() || undefined,` — sin pasar por validacion; y `grep -rn validarCURP src` devuelve solo src/lib/curp.ts:22 (declaracion), :36 y :48 (uso interno del propio archivo) y su prueba.",
+      "nota": "Confirmado en los dos extremos: el validador no tiene consumidor fuera de su archivo y la importacion escribe el campo sin mirarlo. La razon escrita en modulos-sin-conectar.test.ts:122 («el campo salio del formulario corto y quedo sin consumidor») es hoy inexacta: el campo sigue vivo en la migracion, en api/public/booking y en el webhook de WhatsApp. Se mantiene P2: es identidad del paciente entrando a granel sin comprobacion de forma."
+    },
+    {
+      "id": "A-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/clinical/registry.ts:1885 `entryPoints: ['metaLipidica', 'recomendarEstatina', 'categorizarPrevent', 'planTrigliceridos', 'esMuyAltoRiesgo'],` — sin `interpretarLpa`; frente a registry.ts:1923 que si declara `interpretarLpA`.",
+      "nota": "Verificado. PanelCardiometabolico.tsx:12 importa `interpretarLpa` y :71 la ejecuta, y su texto es el que tiene boton de insertar en la nota (:276). Es un hueco real de la regla 7 de clinical-safety. Baja de P2 a P3: es andamiaje de trazabilidad del registro, sin efecto en lo que ve el medico; se cierra solo si A-001 se resuelve dejando una funcion."
+    },
+    {
+      "id": "A-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/uci/enfermeria.ts:39 `export type TipoTarea = (typeof TIPOS_TAREA)[number]` frente a src/lib/tareas-clinicas/modelo.ts:61 `export type TipoTarea =`, con conjuntos de valores disjuntos.",
+      "nota": "Confirmado el choque de nombre y las dos escaleras de prioridad (enfermeria.ts:74 `PESO` vs modelo.ts:152 `ESCALERA_DE_URGENCIA`). El propio auditor acota bien el alcance: `TareaEnfermeria` se deriva del MAR y no se persiste, y UCI esta en pausa de navegacion (D-030); su unico consumidor es src/app/(dashboard)/uci/enfermeria/page.tsx:25. P3, renombrado y comentario, como propone."
+    },
+    {
+      "id": "A-016",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/dosing/data/dosing-v2.json:2-8 `\"title\": \"NexusMED UCI/Hospital Drug Dosing Engine V2 - REAL DOSING CORE\"`, `\"scope\": \"Adult hospital/ICU core...\"`, `\"important_limitations\": [...]` — todo el conjunto y sus claves en ingles; lo pinta src/app/(dashboard)/uci/dosificacion, que importa @/lib/dosing/dataset y @/lib/dosing/motor.",
+      "nota": "El idioma es el que dice el auditor y la pantalla lo consume de verdad. Parcial por la regla 7 del briefing: la salida depende de una decision del dueno (traducir con medico responsable vs dejarlo en ingles con aviso de idioma y fuente), y ademas vive en un modulo en pausa de navegacion (D-030), asi que no llega al producto que se vende. La recomendacion del auditor —no traducir con un modelo de lenguaje— es la correcta segun la regla 1 de clinical-safety."
+    }
+  ],
+  "ratio": { "total": 16, "confirmados": 7, "refutados": 3, "parciales": 6 },
+  "observaciones_del_auditor": "Auditor serio: las lineas citadas existen casi siempre (±1 como mucho), los barridos programaticos se reproducen exactos (29 goldens sin cabecera, 9 tautologias, 488 sellos sin fantasmas) y declara honestamente lo que no cubrio. Tres patrones de error, todos en la misma direccion — sobrestimar el dano: (1) NO BUSCA EL SEGUNDO GUARDIAN. A-004 y A-012 caen enteros porque solo consulto modulos-sin-conectar.test.ts e ignoro el-camino-del-medico-llega-entero.test.ts, que ya hace alcanzabilidad transitiva con trinquete y declara por nombre los 11 archivos que el presenta como no declarados. Mismo patron en A-007: afirma «cero pruebas miran esa regex» y pwa-manifest.test.ts:32-35 la mira. (2) NO EJECUTA LA REPRODUCCION QUE ESCRIBE. A-003 afirma que renombrar el campo del servidor «compila y vitest pasa»; tsc lo rechaza en la linea 483 de la propia ruta. A-008 afirma una hora de diferencia entre America/Chihuahua y America/Mexico_City; desde 2022 tienen el mismo huso todo el ano. (3) TITULARES MAS FUERTES QUE LA EVIDENCIA. A-001 vende «dos veredictos contradictorios» cuando las dos funciones comparten el corte de 125 nmol/L; A-002 vende «una copia del emparejador con reglas distintas» cuando dos de los tres emparejadores son literalmente el mismo import y el tercero solo difiere en fragmentos truncados — y su reparacion propuesta reintroduciria un falso positivo ya cerrado en 2026-07. Cuando el hallazgo no depende de un titular (A-006, A-009, A-010, A-013, A-014, A-015) es solido y se sostiene entero."
+}
