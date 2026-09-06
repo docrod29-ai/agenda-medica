@@ -146,7 +146,7 @@ const IDENTIFICA_POR_PARECIDO = 4
  * Se prefiere bloquear de más: no aprender una palabra cuesta una corrección
  * más; un apellido en un vocabulario compartido no se puede deshacer.
  */
-function identifica(palabra: string, parte: string): boolean {
+export function identifica(palabra: string, parte: string): boolean {
   const w = limpia(palabra).trim()
   const e = limpia(parte).trim()
   if (!w || !e) return false

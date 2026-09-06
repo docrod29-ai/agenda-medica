@@ -104,6 +104,13 @@ REGLAS ESTRICTAS DE EXTRACCIÓN:
    frases: el sistema se lo preguntará al médico antes de firmar.
 5. Si el dato proviene de un ACOMPAÑANTE, marca speaker="acompanante".
 6. Para medicamentos extrae: nombre genérico, dosis, vía, frecuencia, duración. Si la dosis es ambigua, needs_review=true.
+6-quater. LOS ESTUDIOS QUE EL MÉDICO SOLICITA van en "estudiosSolicitados", uno por
+   estudio, con nombre, tipo (laboratorio|imagen|otro), y para IMAGEN la región
+   anatómica, la lateralidad (derecho|izquierdo|bilateral, o "" si no se dictó) y la
+   proyección (AP, lateral, oblicua…) TAL COMO SE DICTARON, con source_quote. Si se
+   dijo como posibilidad («si no mejora pedimos…», «valorar…»), soloPropuesto=true.
+   Un estudio que ya se HIZO (resultado, «trae su radiografía») NO es una solicitud.
+   Nunca inventes la lateralidad de un estudio: si no se dictó, va "".
 6-bis. La VÍA sólo se llena si se dijo. La plantilla ya no trae "oral" de ejemplo
    precisamente para que no la copies: si el dictado no dice por dónde va el
    fármaco, "via" va vacía. El sistema tiene una regla propia para eso —decisión
@@ -691,6 +698,7 @@ ${listaSecciones.split('\n').map(l => l.replace(/^   - "(\w+)".*/, '     "$1": "
   "medicamentos": [{ "nombre": "", "dosis": "", "via": "", "frecuencia": "", "duracion": "", "indicacion": "", "procedenciaClinica": "ya_lo_toma|se_prescribe_hoy", "speaker": "medico|paciente|acompanante|desconocido", "source_quote": "" }],
   "alergias": [{ "alergeno": "", "tipo": "medicamento", "reaccion": "", "severidad": "leve", "confirmada": false }],
   "signosVitales": { "fc": null, "fr": null, "ta": "", "temperatura": null, "spo2": null, "peso": null, "talla": null },
+  "estudiosSolicitados": [{ "nombre": "", "tipo": "laboratorio|imagen|otro", "region": "", "lateralidad": "derecho|izquierdo|bilateral|", "proyeccion": "", "indicacion": "", "soloPropuesto": false, "confidence": "alta|media|baja", "source_quote": "", "speaker": "medico", "needs_review": true, "reason": "" }],
 ${tipo === 'valoracion_preoperatoria' ? `
   "preopInputs": {
     "needs_review": [],
