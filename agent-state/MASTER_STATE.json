@@ -22,10 +22,7 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34024381002",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M src/__tests__/el-tablero-del-loop-no-miente.test.ts"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
