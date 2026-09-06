@@ -1401,7 +1401,12 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
             */}
             <div className="form-group">
               <label className="label" htmlFor="p-edad">Edad {f.fechaNacimiento ? '' : '*'}</label>
-              <input id="p-edad" className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130}
+              {/* Con fecha, se PINTA la derivada: enseñar la congelada de sólo
+                  lectura sería el mismo defecto en la pantalla —«Edad: 6» de un
+                  niño de 8— aunque al guardar se corrigiera sola. */}
+              <input id="p-edad" className="input" type="number"
+                value={f.fechaNacimiento ? String(edadEnAnios(f.fechaNacimiento) ?? '') : f.edad}
+                onChange={upd('edad')} min={0} max={130}
                 readOnly={!!f.fechaNacimiento} />
               <p style={{ fontSize: 12, color: 'var(--text3)', margin: '4px 0 0' }}>
                 {f.fechaNacimiento
