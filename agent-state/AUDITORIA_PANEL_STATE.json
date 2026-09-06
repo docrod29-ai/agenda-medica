@@ -16,44 +16,22 @@
       "app_levantada": "sí — emuladores auth+firestore sembrados, next dev :3200, demo@nexusmed.test"
     },
     "1_auditoria_paralela": {
-      "estado": "en_curso",
+      "estado": "hecha",
       "oleada_1": {
-        "estado": "hecha",
-        "hechos": [
-          "A-ingeniero-software",
-          "B-ingeniero-ia",
-          "C-programador",
-          "S-ciberseguridad",
-          "D-diseno",
-          "N-negocio",
-          "M-internista",
-          "M-pediatra"
-        ]
+        "estado": "hecha"
       },
       "oleada_2": {
-        "estado": "lanzada",
-        "agentes": [
-          "M-cirujano",
-          "M-ginecologo",
-          "M-ortopedista",
-          "AS-recepcion",
-          "AS-cobros",
-          "AS-mensajeria",
-          "AS-expedientes",
-          "AS-enfermeria"
-        ],
-        "hechos": []
+        "estado": "hecha"
       },
       "oleadas_pacientes": {
-        "estado": "lanzada",
-        "agentes": [
+        "estado": "hecha",
+        "hechos": [
           "P-interna",
           "P-cirugia",
           "P-gineco",
           "P-ortopedia",
           "P-pediatria"
-        ],
-        "hechos": []
+        ]
       }
     },
     "2_refutacion": {
@@ -69,19 +47,22 @@
         "D",
         "MG",
         "MC",
-        "MO"
-      ],
-      "pendientes": [
+        "MO",
         "AS-mensajeria",
         "AS-expedientes",
+        "P-gineco"
+      ],
+      "relanzados_tras_limite": [
         "AS-recepcion",
-        "P-gineco",
         "AS-cobros",
         "AS-enfermeria",
+        "P-pediatria",
         "P-interna",
         "P-cirugia",
-        "P-ortopedia",
-        "P-pediatria"
+        "P-ortopedia"
+      ],
+      "pendiente": [
+        "ataques-propios"
       ]
     },
     "3_reproduccion": {
@@ -104,7 +85,7 @@
       ]
     },
     "4_riesgo": {
-      "estado": "pendiente"
+      "estado": "lote 1 hecho (54 filas); lote 2 (asistentes y pacientes) pendiente"
     },
     "5_completitud": {
       "estado": "pendiente"
@@ -116,5 +97,6 @@
       "estado": "pendiente"
     }
   },
-  "actualizado": "2026-09-06T04:05Z"
+  "actualizado": "2026-09-06T07:50Z",
+  "incidente": "2026-09-06 ~04:30Z: límite de sesión (429) tumbó 10 agentes; el contenedor se reinició; todos los archivos escritos antes del corte estaban completos y válidos; relanzados a las 07:45Z"
 }
