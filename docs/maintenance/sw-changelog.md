@@ -3,6 +3,31 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1182 — la guía dejó de describir un menú que ya no existe
+
+**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-05-v1182.md`](PAQUETE-PRODUCCION-2026-09-05-v1182.md).
+
+**1 commit desde v1181** · texto y una prueba · cero código de producto, cero
+rutas, cero pantallas, `firestore.rules` sin tocar.
+
+La guía de la app le decía al médico que en el menú estaban «Dashboard, Citas,
+Consulta, **Hospitalización, Consultor IA**…» y que el Consultor se abría «en el
+menú». Las dos frases eran falsas: el menú son cinco destinos desde V15-IA-001,
+el Consultor se mudó al expediente del paciente en RTC-09, y Hospitalización
+entró en pausa ayer (D-030).
+
+Una guía falsa es peor que ninguna: la lee justamente quien ya está perdido. Y
+no la cazó ninguna prueba porque **el texto no se rompe** — cada reforma de menú
+la dejaba un poco más mentirosa sin que nada fallara.
+
+Ahora el paso «Reconoce el menú» se compara contra los destinos que `FlowRail`
+declara de verdad, contra lo que está en pausa y contra lo que se mudó al
+paciente. Si el riel cambia, la prueba cae. El tema de Hospitalización, además,
+dice que el módulo está en pausa y cómo se llega igualmente.
+
+---
+
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
 **PREPARADO, no publicado todavía.** El paquete y lo que declara viven en

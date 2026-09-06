@@ -1,6 +1,6 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
-  "generado": "2026-09-05",
+  "generado": "2026-09-06",
   "total": 129,
   "variables": [
     {

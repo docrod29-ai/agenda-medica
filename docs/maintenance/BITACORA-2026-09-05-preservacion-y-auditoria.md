@@ -67,8 +67,8 @@ compuertas medidas en el mensaje del commit.
 | `npx tsc --noEmit` | limpio |
 | `node scripts/lint-trinquete.mjs` | **93**, techo apretado en REG-520 |
 | `npm run build` | 164/164 páginas, con los placeholders del CI |
-| Sello | 476 archivos · 6 604 casos |
-| Ledger | 324 REG · última **REG-531** |
+| Sello | 476 archivos · 6 685 casos (tras fusionar `main`) |
+| Ledger | 325 REG · última **REG-531** (main aportó 512–514; los de esta rama se renumeraron a 515–531) |
 
 ## Lo que se supo y no estaba escrito
 

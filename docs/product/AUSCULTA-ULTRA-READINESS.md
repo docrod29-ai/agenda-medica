@@ -42,8 +42,8 @@
 | La falla | `ops-timeout-y-punto-ciego` exige que `10.255.255.1` trague paquetes; el proxy del contenedor rechaza al instante. **Entorno, no árbol.** La aserción no se toca | igual |
 | `npx tsc --noEmit` | limpio | limpio |
 | `node scripts/lint-trinquete.mjs` | **94** = techo | **93**, techo apretado con REG-520 |
-| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **476 · 6 604** |
-| Ledger | 305 REG · última REG-511 | **324 · REG-531** |
+| Sello `invariantes-clinicos.json` | 457 archivos · 6 453 casos | **476 · 6 685** (tras fusionar `main`) |
+| Ledger | 305 REG · última REG-511 | **325 · REG-531** (tras fusionar `main`, que traía 512–514) |
 | `npm run build` | compila en CI con placeholders `NEXT_PUBLIC_FIREBASE_*` | 163/163 páginas en cada slice |
 
 **Corrección a un bloqueo declarado.** `agent-state/BLOCKERS.md` B-12 decía que
