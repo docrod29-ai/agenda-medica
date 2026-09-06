@@ -158,7 +158,7 @@ export const EscenaClip: React.FC<{ pieza: PiezaClip }> = ({ pieza }) => {
       ) : (
         <Subtitulos texto={pieza.texto} segundos={segNarracion} abajo={pieza.formato === 'telefono' ? 40 : 54} />
       )}
-      {pieza.chat && <TarjetaChat mensajes={pieza.chat.mensajes} titulo={pieza.chat.titulo} desdeFrame={Math.round(pieza.chat.desde * fps)} />}
+      {pieza.chat && <TarjetaChat mensajes={pieza.chat.mensajes} titulo={pieza.chat.titulo} desdeFrame={Math.round(pieza.chat.desde * fps)} abajoIzquierda={pieza.formato === 'telefono'} />}
     </AbsoluteFill>
   )
 }

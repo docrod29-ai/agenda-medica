@@ -396,6 +396,8 @@ async function tomaConsulta(browser) {
     await t.clic(page.locator(id), { despues: 150 })
     await page.locator(id).fill(v)
     await t.pausa(350)
+    // Si el campo reformateó y perdió el valor, se vuelve a fijar.
+    if ((await page.locator(id).inputValue().catch(() => '')) !== v) { await page.locator(id).fill(''); await page.locator(id).fill(v); await t.pausa(300) }
   }
   await t.hastaDesde('06-consulta-escucha', dur('06-consulta-escucha') - 1.2)
   await t.clic(page.getByRole('button', { name: /Grabar la consulta/ }), { despues: 1200 })

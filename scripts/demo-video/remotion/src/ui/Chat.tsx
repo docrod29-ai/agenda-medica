@@ -67,13 +67,13 @@ export const TelefonoChat: React.FC<{ mensajes: Mensaje[]; titulo: string; desde
 }
 
 /** Tarjeta de chat pequeña, para una esquina de una escena de pantalla. */
-export const TarjetaChat: React.FC<{ mensajes: Mensaje[]; titulo: string; desdeFrame: number }> = ({ mensajes, titulo, desdeFrame }) => {
+export const TarjetaChat: React.FC<{ mensajes: Mensaje[]; titulo: string; desdeFrame: number; abajoIzquierda?: boolean }> = ({ mensajes, titulo, desdeFrame, abajoIzquierda = false }) => {
   const frame = useCurrentFrame()
   const { fps } = useVideoConfig()
   if (frame < desdeFrame) return null
   const s = spring({ frame: frame - desdeFrame, fps, config: { damping: 18, stiffness: 140 } })
   return (
-    <div style={{ position: 'absolute', right: 40, top: 90, width: 470, opacity: s, transform: `translateX(${(1 - s) * 40}px)`, borderRadius: 22, overflow: 'hidden', background: TEMA.waFondo, boxShadow: '0 30px 70px rgba(0,0,0,.6)', border: `1px solid ${TEMA.borde}` }}>
+    <div style={{ position: 'absolute', ...(abajoIzquierda ? { left: 150, bottom: 150 } : { right: 40, top: 90 }), width: 470, opacity: s, transform: `translateX(${(1 - s) * 40}px)`, borderRadius: 22, overflow: 'hidden', background: TEMA.waFondo, boxShadow: '0 30px 70px rgba(0,0,0,.6)', border: `1px solid ${TEMA.borde}` }}>
       <div style={{ background: TEMA.wa, padding: '12px 18px', color: '#fff', fontFamily: FUENTE.sans, fontWeight: 600, fontSize: 17, display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ width: 10, height: 10, borderRadius: 5, background: '#25D366', display: 'inline-block' }} />
         {titulo}
