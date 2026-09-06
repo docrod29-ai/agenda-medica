@@ -835,8 +835,8 @@ export default function ConfiguracionPage() {
               Pega tu link de pago propio (Stripe Payment Link, MercadoPago, Clip…). El paciente verá un botón <strong>Pagar anticipo</strong> en su portal. Reduce inasistencias.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10 }}>
-              <input className="input" placeholder="https://mpago.la/… o https://buy.stripe.com/…" value={form.anticipoLink ?? ''} onChange={upd('anticipoLink')} />
-              <input className="input" type="number" min={0} placeholder="Monto $" value={form.anticipoMonto ?? ''} onChange={(e) => setForm({ ...form, anticipoMonto: e.target.value ? Number(e.target.value) : undefined })} />
+              <input aria-label="Enlace de pago del anticipo" className="input" placeholder="https://mpago.la/… o https://buy.stripe.com/…" value={form.anticipoLink ?? ''} onChange={upd('anticipoLink')} />
+              <input aria-label="Monto $" className="input" type="number" min={0} placeholder="Monto $" value={form.anticipoMonto ?? ''} onChange={(e) => setForm({ ...form, anticipoMonto: e.target.value ? Number(e.target.value) : undefined })} />
             </div>
           </div>
           <div className="form-group" style={{ maxWidth: 200 }}>
@@ -1113,13 +1113,13 @@ function AutoAgendaLink({ configNumero, onCopy, copied }: {
       ) : (
         <>
           <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Mensaje pre-escrito</label>
-          <input className="input" value={mensaje} onChange={e => setMensaje(e.target.value)} style={{ marginBottom: 12 }} />
+          <input aria-label="Mensaje pre-escrito" className="input" value={mensaje} onChange={e => setMensaje(e.target.value)} style={{ marginBottom: 12 }} />
 
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 240 }}>
               <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 5 }}>Tu enlace</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <input className="input" readOnly value={link} style={{ flex: 1, minWidth: 180, fontSize: 12 }} onFocus={e => e.currentTarget.select()} />
+                <input aria-label="Tu enlace" className="input" readOnly value={link} style={{ flex: 1, minWidth: 180, fontSize: 12 }} onFocus={e => e.currentTarget.select()} />
                 <button className="btn btn-secondary btn-sm" onClick={() => onCopy(link, 'wa-link')} style={{ color: copied === 'wa-link' ? 'var(--teal)' : undefined }}>
                   <Copy size={13} /> {copied === 'wa-link' ? 'Copiado' : 'Copiar'}
                 </button>
@@ -1394,11 +1394,11 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
               </p>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Phone Number ID</label>
-                <input className="input" value={manual.phoneNumberId} onChange={e => setManual(m => ({ ...m, phoneNumberId: e.target.value }))} placeholder="123456789012345" />
+                <input aria-label="Phone Number ID" className="input" value={manual.phoneNumberId} onChange={e => setManual(m => ({ ...m, phoneNumberId: e.target.value }))} placeholder="123456789012345" />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Access Token</label>
-                <input className="input" type="password" value={manual.token} onChange={e => setManual(m => ({ ...m, token: e.target.value }))} placeholder="EAAxxxxxxxx…" />
+                <input aria-label="Access Token" className="input" type="password" value={manual.token} onChange={e => setManual(m => ({ ...m, token: e.target.value }))} placeholder="EAAxxxxxxxx…" />
               </div>
               <button
                 onClick={handleManualConnect}
@@ -2027,11 +2027,11 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Nombre (opcional)</label>
-            <input className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
+            <input aria-label="Nombre (opcional)" className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
           </div>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol / profesión</label>
-            <select className="input" value={profesion} onChange={e => setProfesion(e.target.value)}>
+            <select aria-label="Rol / profesión" className="input" value={profesion} onChange={e => setProfesion(e.target.value)}>
               {GRUPOS_ROL.map(g => (
                 <optgroup key={g.grupo} label={g.grupo}>
                   {g.opciones.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
@@ -2197,21 +2197,21 @@ function BloqueosTab({ clinicId, zonaHoraria }: { clinicId: string | null; zonaH
         <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Desde</label>
-            <input className="input" type="datetime-local" value={desde} onChange={e => setDesde(e.target.value)} />
+            <input aria-label="Desde" className="input" type="datetime-local" value={desde} onChange={e => setDesde(e.target.value)} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Hasta</label>
-            <input className="input" type="datetime-local" value={hasta} onChange={e => setHasta(e.target.value)} />
+            <input aria-label="Hasta" className="input" type="datetime-local" value={hasta} onChange={e => setHasta(e.target.value)} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Tipo</label>
-            <select className="input" value={tipo} onChange={e => setTipo(e.target.value as TipoBloque)}>
+            <select aria-label="Tipo" className="input" value={tipo} onChange={e => setTipo(e.target.value as TipoBloque)}>
               {Object.entries(TIPO_BLOQUE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
             <label style={{ fontSize: 12, color: "var(--text3)", display: "block", marginBottom: 4 }}>Motivo (opcional)</label>
-            <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
+            <input aria-label="Motivo (opcional)" className="input" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Vacaciones de verano" />
           </div>
         </div>
         <button onClick={crear} disabled={saving} style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 6, background: "var(--teal)", color: "#040b12", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>

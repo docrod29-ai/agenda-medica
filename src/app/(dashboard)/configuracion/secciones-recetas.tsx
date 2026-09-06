@@ -848,7 +848,7 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
                   })()}
                   <div style={{ marginTop: 10 }}>
                     <label style={cfgLabel}>Tamaño de letra del contenido (px)</label>
-                    <input
+                    <input aria-label="Tamaño de letra del contenido (px)"
                       type="range" min={8} max={16} step={0.5}
                       value={rx.disenoFontSize ?? 11}
                       onChange={(e) => actualizar({ disenoFontSize: parseFloat(e.target.value) })}
@@ -1084,19 +1084,19 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
             <div style={{ display: 'grid', gap: 8 }}>
               <div>
                 <label style={cfgLabel}>RFC</label>
-                <input value={rx.rfc ?? ''} onChange={(e) => actualizar({ rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
+                <input aria-label="RFC" value={rx.rfc ?? ''} onChange={(e) => actualizar({ rfc: e.target.value })} style={cfgInput} placeholder="RODR890101ABC" />
               </div>
               <div>
                 <label style={cfgLabel}>Registro DGP/SSA (psicotrópicos)</label>
-                <input value={rx.registroDGP ?? ''} onChange={(e) => actualizar({ registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
+                <input aria-label="Registro DGP/SSA (psicotrópicos)" value={rx.registroDGP ?? ''} onChange={(e) => actualizar({ registroDGP: e.target.value })} style={cfgInput} placeholder="Para Rx de medicamentos controlados" />
               </div>
               <div>
                 <label style={cfgLabel}>Vigencia default (días)</label>
-                <input type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => actualizar({ vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
+                <input aria-label="Vigencia default (días)" type="number" value={rx.vigenciaDias ?? 30} onChange={(e) => actualizar({ vigenciaDias: parseInt(e.target.value) || 30 })} style={cfgInput} min={1} max={365} />
               </div>
               <div>
                 <label style={cfgLabel}>Aviso legal al pie</label>
-                <textarea value={rx.avisoLegal ?? ''} onChange={(e) => actualizar({ avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
+                <textarea aria-label="Aviso legal al pie" value={rx.avisoLegal ?? ''} onChange={(e) => actualizar({ avisoLegal: e.target.value.slice(0, 240) })} rows={2} style={{ ...cfgInput, resize: 'vertical' }} />
               </div>
             </div>
           </Section>

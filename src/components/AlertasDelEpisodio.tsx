@@ -34,6 +34,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Check, Bell } from 'lucide-react'
 import type { AlertaHospital } from '@/lib/hospital/firestore'
 import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
+import { fechaConHora } from '@/lib/formato/fecha'
 
 export interface AlertasDelEpisodioProps {
   clinicId: string
@@ -147,7 +148,7 @@ export function AlertasDelEpisodio(p: AlertasDelEpisodioProps) {
                 {a.detalle}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--text3)' }}>
-                {new Date(a.fecha).toLocaleString('es-MX')}
+                {fechaConHora(a.fecha)}
                 {a.destinatarioNombre ? ` · para ${a.destinatarioNombre}` : ''}
                 {/* Que el WhatsApp NO saliera es información, no un detalle. */}
                 {a.whatsappEnviado === false ? ' · no se envió por WhatsApp' : ''}

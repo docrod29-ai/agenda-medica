@@ -14,7 +14,7 @@
  * Todo es PURO y testeado. El médico decide; esto solo pone lo que ya se sabe.
  */
 
-import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatria'
+import { elegirFarmacoPed, calcularDosisPediatrica, imc as calcImc } from './pediatria'
 import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
 import { creatininaPlausibleMgDl } from './funcion-renal'
@@ -282,13 +282,55 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
     }]
   }
 
+  /**
+   * LA EDAD ENTRA AL MOTOR — Panel de Lujo MP-003 (P1).
+   *
+   * Aquí se elegía el fármaco por la PRIMERA coincidencia de subcadena sobre
+   * `FARMACOS_PED` y se llamaba a `calcularDosisPediatrica(f, peso)` **sin
+   * edad**. Para «gentamicina» eso devolvía siempre «Gentamicina neonatal
+   * (≤7 días)» —la primera del arreglo— y la comparaba con la receta de un
+   * escolar: alarma crítica sobre una dosis correcta. Y sin edad, el bloqueo por
+   * `edadMinimaMeses` que ya existía tampoco podía dispararse nunca desde aquí.
+   *
+   * `e.edad` viene en AÑOS, así que para el recién nacido no basta: por debajo
+   * del año la elección entre pauta neonatal y general depende de los días de
+   * vida, y eso se pregunta en vez de adivinarse.
+   */
+  const edadMeses = Math.floor(edad * 12)
+
   const out: Sugerencia[] = []
   for (const m of meds) {
-    const nm = norm(m.nombre ?? '')
-    const f = FARMACOS_PED.find(x => nm.includes(norm(x.nombre)) || norm(x.nombre).includes(nm))
+    const eleccion = elegirFarmacoPed(m.nombre ?? '', { meses: edadMeses })
+    if (!eleccion) continue
+
+    if (eleccion.pideEdadEnDias) {
+      out.push({
+        id: `ped:pauta-por-dias:${norm(m.nombre ?? '')}`,
+        nivel: 'accion',
+        titulo: `${m.nombre}: hay dos pautas y las separan los días de vida`,
+        detalle: `Para ${m.nombre} existen ${eleccion.candidatos.map(c => `«${c.nombre}»`).join(' y ')}. Con la edad en años no se puede saber cuál toca. Captura la fecha de nacimiento y vuelvo a comprobarlo.`,
+        textoNota: '',
+        pide: 'peso',
+      })
+      continue
+    }
+
+    const f = eleccion.farmaco
     if (!f) continue
-    const d = calcularDosisPediatrica(f, peso)
+    const d = calcularDosisPediatrica(f, peso, edadMeses)
     if (!d) continue
+
+    /* Contraindicada o fuera de su franja: se dice, y NO se ofrece una dosis. */
+    if (d.contraindicadoPorEdad || d.noAplicaPorEdad) {
+      out.push({
+        id: `ped:edad:${f.nombre}`,
+        nivel: d.contraindicadoPorEdad ? 'critico' : 'accion',
+        titulo: `${f.nombre}: no corresponde a esta edad`,
+        detalle: d.motivoEdad ?? 'La pauta no corresponde a la edad de este paciente.',
+        textoNota: '',
+      })
+      continue
+    }
 
     /**
      * UNA DOSIS POR KILO NO SE COMPARA CONTRA UN RANGO ABSOLUTO.

@@ -224,12 +224,12 @@ export default function CamasPage() {
         }}>Agregar</Button></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Servicio</label>
-            <select className={inputCls} value={form.servicio} onChange={e => setForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
+            <select aria-label="Servicio" className={inputCls} value={form.servicio} onChange={e => setForm(f => ({ ...f, servicio: e.target.value }))}>{SERVICIOS_HOSPITAL.map(s => <option key={s}>{s}</option>)}</select></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Etiqueta (ej. 302-A)</label>
-              <input className={inputCls} value={form.etiqueta} onChange={e => setForm(f => ({ ...f, etiqueta: e.target.value }))} /></div>
+              <input aria-label="Etiqueta (ej. 302-A)" className={inputCls} value={form.etiqueta} onChange={e => setForm(f => ({ ...f, etiqueta: e.target.value }))} /></div>
             <div><label style={{ fontSize: 12.5, color: 'var(--text2)' }}>Tipo (opcional)</label>
-              <input className={inputCls} placeholder="General / UCI / Aislamiento" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))} /></div>
+              <input aria-label="Tipo (opcional)" className={inputCls} placeholder="General / UCI / Aislamiento" value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))} /></div>
           </div>
         </div>
       </Modal>

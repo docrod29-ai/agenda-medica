@@ -1709,6 +1709,23 @@ html[data-vt-continuidad] .page-transition { animation: none; }
      inline (22-30px) y no recibían el mínimo. */
   button:not(.mobile-topbar-btn) { min-height: 44px !important; }
 
+  /*
+    EL ANCHO TAMBIÉN — Panel de Lujo D-006.
+
+    La regla de arriba daba 44 de ALTO a todo `<button>` y `min-width` sólo a
+    `.btn-icon`. Un botón sin texto —el ojo de «ver la frase» en el panel de
+    revisión de la consulta, las flechas de mes del asistente— quedaba en
+    44×32 y 44×34: cumple WCAG 2.2 AA (24×24) e incumple la regla propia de
+    este producto, que pide 44×44 y no 24×24 porque quien lo usa lo hace de
+    pie y con guantes.
+
+    Se aplica sólo a los botones SIN texto (`:empty` no vale: llevan un `<svg>`
+    dentro), y por eso se hace con `:has()` sobre un único hijo icono. Un botón
+    con palabras ya es ancho por su contenido, y forzarle un mínimo deformaría
+    filas enteras — que es la razón por la que la regla original no lo hizo.
+  */
+  button:not(.mobile-topbar-btn):has(> svg:only-child) { min-width: 44px !important; }
+
   /* Los ENLACES quedaban fuera de este bloque — por eso los dos táctiles
      chicos que la radiografía de trabajos móviles (Fase 9) anotó eran <a>:
      la identidad de paciente en /pendientes (a.nx-ident, 156×20) y el CTA

@@ -151,7 +151,7 @@ export default function BenchmarkVozPage() {
             <label style={{ fontSize: 12.5, color: 'var(--text2)' }}>
               Dicta lo que quieras y escribe aquí <strong>exactamente</strong> lo que dijiste
             </label>
-            <textarea
+            <textarea aria-label="Lo que dijiste, palabra por palabra"
               value={goldLibre} onChange={e => setGoldLibre(e.target.value)}
               rows={3}
               placeholder="Lo que dijiste, palabra por palabra"

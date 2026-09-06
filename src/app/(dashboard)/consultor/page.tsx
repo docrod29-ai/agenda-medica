@@ -331,7 +331,7 @@ export default function ConsultorPage() {
       */}
       <div className="nx-consultor-barra" style={{ position: 'fixed', bottom: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <textarea
+          <textarea aria-label="Escribe tu pregunta clínica… (Enter para enviar)"
             value={pregunta}
             onChange={e => setPregunta(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); preguntar(pregunta) } }}

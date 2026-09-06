@@ -6,6 +6,7 @@
  * heridas quirúrgicas / úlceras.
  */
 import { useState, useEffect, useCallback } from 'react'
+import { zonaActiva } from '@/lib/timezone'
 import { useToast } from '@/context/ToastContext'
 import { Camera, Loader2, Trash2, GitCompare, X } from 'lucide-react'
 import { subirImagen } from '@/lib/subir-imagen'
@@ -80,7 +81,8 @@ export function FotosClinicas({ clinicId, patientId, notaId, modo = 'completo', 
   }
 
   const grupos = agruparPorRegion(fotos)
-  const fechaCorta = (iso: string) => new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+  /* ZC-019 — la zona es la del consultorio, no la del navegador que mira. */
+  const fechaCorta = (iso: string) => new Date(iso).toLocaleDateString('es-MX', { timeZone: zonaActiva(), day: '2-digit', month: 'short', year: 'numeric' })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

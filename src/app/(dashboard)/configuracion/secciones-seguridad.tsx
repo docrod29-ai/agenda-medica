@@ -143,7 +143,7 @@ export function SeguridadTab() {
             Paso 2: Ingresa el código de 6 dígitos que muestra tu app
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <input
+            <input aria-label="Código de seis dígitos de tu app de autenticación"
               value={codigo}
               onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="123456"

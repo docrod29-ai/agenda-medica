@@ -44,13 +44,46 @@ describe('Dosificación por peso', () => {
     expect(calcularDosisPediatrica(f('Paracetamol'), -3)).toBeNull()
   })
 
-  it('todos los fármacos del catálogo calculan sin romperse', () => {
-    for (const x of FARMACOS_PED) {
+  /**
+   * ── ESTE CASO SE ACOTÓ, Y POR QUÉ (Panel de Lujo MP-003) ──────────────────
+   *
+   * Decía «todos los fármacos del catálogo calculan sin romperse» y llamaba a
+   * `calcularDosisPediatrica(x, 15)` **sin edad** para las 22 pautas, exigiendo
+   * a todas una dosis mayor que cero. Eso fijaba justo el defecto: una pauta que
+   * sólo vale para los primeros días de vida DEBE negarse a dar una dosis
+   * cuando no se sabe la edad, porque elegir entre la pauta neonatal y la
+   * general sin ese dato es adivinar cuál de dos dosis distintas del mismo
+   * antibiótico le toca a un recién nacido.
+   *
+   * Lo que se comprueba ahora: las pautas SIN franja de edad siguen calculando
+   * como siempre (nada de lo que este caso protegía se ha perdido), y las que
+   * tienen franja se niegan a dar una cifra sin la edad, diciendo por qué.
+   */
+  it('todos los fármacos SIN franja de edad calculan sin romperse', () => {
+    for (const x of FARMACOS_PED.filter(f => f.edadMaximaDias == null)) {
       const d = calcularDosisPediatrica(x, 15)
       expect(d, x.nombre).not.toBeNull()
       expect(Number.isFinite(d!.porToma.max), x.nombre).toBe(true)
       expect(d!.porToma.max, x.nombre).toBeGreaterThan(0)
     }
+  })
+
+  it('una pauta por días de vida NO da una cifra si no consta la edad', () => {
+    for (const x of FARMACOS_PED.filter(f => f.edadMaximaDias != null)) {
+      const d = calcularDosisPediatrica(x, 15)
+      expect(d, x.nombre).not.toBeNull()
+      expect(d!.noAplicaPorEdad, x.nombre).toBe(true)
+      expect(d!.porToma.max, x.nombre).toBe(0)
+      expect(d!.motivoEdad, x.nombre).toMatch(/fecha de nacimiento/)
+    }
+  })
+
+  it('y el catálogo sigue teniendo al menos una pauta de cada clase', () => {
+    /* Sin esto, borrar la pauta neonatal dejaría los dos casos de arriba en
+       verde sobre listas vacías — que es la forma en que un guardián deja de
+       guardar sin que nadie se entere. */
+    expect(FARMACOS_PED.filter(f => f.edadMaximaDias == null).length).toBeGreaterThan(0)
+    expect(FARMACOS_PED.filter(f => f.edadMaximaDias != null).length).toBeGreaterThan(0)
   })
 })
 
