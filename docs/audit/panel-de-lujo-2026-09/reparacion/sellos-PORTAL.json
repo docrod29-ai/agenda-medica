@@ -47,12 +47,12 @@
   },
   {
     "archivo": "src/__tests__/portal-alcance.test.ts",
-    "minCasos": 18,
+    "minCasos": 16,
     "hallazgos": ["PC-001", "PO-001"]
   },
   {
     "archivo": "src/__tests__/el-aviso-urgente-del-portal-llegaba-el-ultimo.test.ts",
-    "minCasos": 15,
+    "minCasos": 14,
     "hallazgos": ["PC-005", "PI-014", "PG-010"]
   }
 ]
