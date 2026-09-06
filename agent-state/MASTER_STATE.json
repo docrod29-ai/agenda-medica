@@ -17,33 +17,12 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
-    "version": "nexusmed-v1184",
+    "version": "nexusmed-v1186",
     "confirmadaEl": "2026-09-06",
-    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34005457180",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34024381002",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M  .env.example",
-    "M  .github/workflows/ci.yml",
-    "M  .github/workflows/deploy-production.yml",
-    "M  .gitignore",
-    "M  agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/AUSCULTA_MASTER_LOOP.md",
-    "A  agent-state/AUSCULTA_MASTER_LOOP_DIRECTIVO.md",
-    "M  agent-state/BACKLOG.json",
-    "M  agent-state/BLOCKERS.md",
-    "M  agent-state/MASTER_STATE.json",
-    "M  docs/audit/lane-product-excellence.md",
-    "M  docs/audit/lint-techo.json",
-    "M  docs/audit/regression-ledger.md",
-    "A  docs/clinical/CATALOGO-PLAUSIBILIDAD-LABORATORIO.md",
-    "M  docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "A  docs/design/capturas/base/calendario-1440.png",
-    "A  docs/design/capturas/base/calendario-390.png",
-    "A  docs/design/capturas/base/citas-1440.png",
-    "A  docs/design/capturas/base/citas-390.png"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -76,7 +55,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/chat-pendientes-m4f9p9",
+  "ramaActual": "claude/app-production-deployment-cdhqdd",
   "derivado": {
     "regsEnElLedger": 388,
     "ultimaREG": "REG-604",

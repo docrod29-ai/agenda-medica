@@ -172,7 +172,23 @@ describe('el tablero coincide con el repositorio', () => {
 
       // El aviso de cierre, con la ejecución que lo confirma. Sin la URL sería
       // una afirmación sin evidencia, que es el defecto que cerró REG-505.
-      const cerrada = /SUPERADO/.test(txt) && /actions\/runs\/\d+/.test(txt)
+      //
+      // DOS FORMAS DE ESTAR CERRADA, y las dos valen. La de siempre es el aviso
+      // de SUPERADO que se AÑADE a un acta que nació diciendo «PREPARADO, NO
+      // PUBLICADO». La otra apareció con v1186: un acta escrita DESPUÉS de
+      // correr el botón, que nace declarando «Estado: PUBLICADO Y VERIFICADO»
+      // con su ejecución. Exigirle a ésa un SUPERADO obliga a escribir que
+      // alguna vez dijo «no publicado» —y nunca lo dijo—, o a dejar el tablero
+      // atrasado a propósito. Las dos salidas son mentiras, así que la compuerta
+      // acepta las dos formas.
+      //
+      // LO QUE ESTO NO CUBRE: que el estado declarado sea verdad. Comprueba que
+      // el acta no diga «nadie ha desplegado nada» de algo desplegado, y que
+      // enseñe la ejecución; no vuelve a preguntarle a la ejecución si salió
+      // bien. Eso lo hace la Compuerta 3 del propio workflow.
+      const conEvidencia = /actions\/runs\/\d+/.test(txt)
+      const nacioPublicada = /Estado: PUBLICADO Y VERIFICADO/.test(txt)
+      const cerrada = (/SUPERADO/.test(txt) || nacioPublicada) && conEvidencia
       if (!cerrada) sinCerrar.push(`${f} (v${m[1]})`)
     }
 
