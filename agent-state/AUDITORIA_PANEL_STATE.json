@@ -18,8 +18,8 @@
     "1_auditoria_paralela": {
       "estado": "en_curso",
       "oleada_1": {
-        "estado": "lanzada",
-        "agentes": [
+        "estado": "hecha",
+        "hechos": [
           "A-ingeniero-software",
           "B-ingeniero-ia",
           "C-programador",
@@ -28,11 +28,10 @@
           "N-negocio",
           "M-internista",
           "M-pediatra"
-        ],
-        "hechos": []
+        ]
       },
       "oleada_2": {
-        "estado": "pendiente",
+        "estado": "lanzada",
         "agentes": [
           "M-cirujano",
           "M-ginecologo",
@@ -46,7 +45,7 @@
         "hechos": []
       },
       "oleadas_pacientes": {
-        "estado": "pendiente",
+        "estado": "lanzada",
         "agentes": [
           "P-interna",
           "P-cirugia",
@@ -78,5 +77,5 @@
       "estado": "pendiente"
     }
   },
-  "actualizado": "2026-09-06T03:20Z"
+  "actualizado": "2026-09-06T04:10Z"
 }
