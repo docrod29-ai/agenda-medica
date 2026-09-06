@@ -10,7 +10,9 @@ Fecha: 2026-09-06 · Fuente: `crudos/*.json` (lente 1 del §4.0, «botones y fun
 - Los **30** hallazgos `tipo: boton_muerto` de los 20 auditores.
 - Además, **12** hallazgos `tipo: defecto` de la misma familia —«escrito y sin conectar» o «el dato no llega»— localizados por grep en título y evidencia: «nadie lo llama», «no llega», «sin llamador», «huérfano», «no se renderiza», «no persiste», y sus variantes literales en los JSON («nadie la lee», «cero llamadores», «no se guarda», «nunca aparecen»).
 
-Veredictos sobre esos 42: **31 confirmados · 5 parciales · 6 refutados**. Los refutados están en la última sección.
+Veredictos sobre esos 42: **31 confirmados · 5 parciales · 6 refutados**. Los refutados están en la penúltima sección.
+
+Además: la oleada de cierre de componentes (`crudos/Z-cierre-componentes.json`, 24 hallazgos sobre 49 componentes, escrita a las 08:19 mientras se redactaba este archivo) aporta **2** `boton_muerto` más que **todavía no tienen veredicto rojo**. Van en su propia sección, con la prioridad del auditor, y no entran en el conteo de confirmados.
 
 Lectura de columnas: *Control* es el texto que ve el usuario (o el símbolo, si no hay pantalla). *Qué hace hoy* y *Qué debería hacer* salen de `evidencia` y `propuesta` del auditor, recortadas. Un `parcial` significa que el hecho es cierto pero la consecuencia o la tipificación no lo era del todo; la nota del rojo dice cuál.
 
@@ -141,6 +143,17 @@ Lectura de columnas: *Control* es el texto que ve el usuario (o el símbolo, si 
 | Control | Qué hace hoy | Qué debería hacer | archivo:línea | id | Prioridad | Veredicto |
 |---|---|---|---|---|---|---|
 | `entryPoints: ['revisarFarmaco', 'ajustePorTFG', 'revisarListaRenal', 'estadioERC']` del motor de prescripción segura | `revisarFarmaco` y `estadioERC`: **cero llamadores** de producción; `revisarListaRenal` sólo en un comentario. Sólo corre `ajustePorTFG`. El rojo refuta la parte cara («el copiloto reimplementa el emparejador con otras reglas»): reutiliza `coincideRenal`/`coincideHepatico`; el registro miente, no el copiloto | Aserción en el guardián del registro: cada `entryPoint` declarado tiene al menos un llamador fuera de su archivo y de las pruebas, o está en una lista de excepciones con su razón (patrón `HUERFANOS_ACEPTADOS`). Ver MI-012 en `13-`: conectar `estadioERC`, retirar los otros dos del registro | `src/lib/clinical/registry.ts:1733` · `prescripcion-segura.ts:306` | A-002 | P2 | parcial |
+
+---
+
+## Pendientes de veredicto rojo (oleada de cierre de componentes)
+
+Sin refutación adversarial todavía. La prioridad es la del auditor; no se reparan hasta que el rojo pase por ellos.
+
+| Pantalla / componente | Control | Qué hace hoy | Qué debería hacer | archivo:línea | id | Prioridad (auditor) |
+|---|---|---|---|---|---|---|
+| `/consulta/[patientId]` › «Ya está firmada. Falta esto» (`ComoCerrarLaConsulta`) | Paso «Registrar el cobro» | Botón **deshabilitado sin explicación**: el paso nace con `ruta: null` (`que-falta-para-cerrar.ts:135-140`) y el único disparador del cobro (`consulta page:4465-4466`, `pedirCobroAlCerrar`) corre una sola vez al firmar. Si el médico cerró el modal, no hay forma de volver desde la consulta | Darle ruta de acción (`'#cobro'` que reabra `setCobrar(true)` vía `alIr`), o al menos «Se cobra desde Citas → esta cita» con enlace | `src/components/ComoCerrarLaConsulta.tsx:60` | ZC-007 | P2 |
+| Modal del aviso de privacidad (`AvisoPrivacidadModal`; ruta no declarada por el auditor) | Botón «Descargar PDF/texto» | Nunca produce un PDF: baja un `.txt` (`Blob text/plain`, `a.download = aviso-privacidad-….txt`) | Renombrar a «Descargar texto» o generar el PDF por la misma vía que la receta | `src/components/AvisoPrivacidadModal.tsx:74` · `:48-55` | ZC-008 | P2 |
 
 ---
 

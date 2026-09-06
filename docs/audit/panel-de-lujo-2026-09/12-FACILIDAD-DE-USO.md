@@ -15,6 +15,8 @@ Fecha: 2026-09-06 · Lente 2 del §4.0 («amigable y fácil de usar»): ¿se pue
 
 Un mismo id puede aparecer en dos pantallas cuando el auditor lo vio en las dos.
 
+Los ids `ZC-*` vienen de la oleada de cierre de componentes (`crudos/Z-cierre-componentes.json`, escrita a las 08:19 mientras se redactaba esto) y **no tienen veredicto rojo todavía**: se marcan «pend.» con la prioridad del auditor y no cuentan como confirmados.
+
 ---
 
 ## A. Pantallas de trabajo (dashboard, 45)
@@ -199,7 +201,22 @@ Tomadas literalmente de los campos `propuesta`. Ninguna añade un dato; todas ca
 
 ---
 
-## F. Se propuso y no procede (refutados por el equipo rojo)
+## F. Pendientes de veredicto rojo (oleada de cierre de componentes)
+
+Ocho `friccion` sin refutación adversarial. Se listan con la pantalla donde se monta el componente; la prioridad es la del auditor.
+
+| Pantalla | Componente | Qué falla | Propuesta | archivo:línea | id | Prioridad (auditor) |
+|---|---|---|---|---|---|---|
+| `/dashboard` › «Sigue abierto de antes» | `ContinuidadPanel` | `catch(() => {})`: el fallo de lectura se pinta como «nada pendiente»; y dice «más en el worklist» en inglés | Registrar el fallo y pintar «No se pudo leer lo pendiente»; «worklist» → «Pendientes» | `src/components/ContinuidadPanel.tsx:77`, `:116` | ZC-006 | P3 |
+| `/consulta/[patientId]` › buscador de herramientas | `Herramientas` | Input sin etiqueta accesible; botón «Buscar» de ≈20 px; «resultado(s)» | `aria-label`, `minHeight: 44`, plural real | `src/components/Herramientas.tsx:79`, `:91-95`, `:112-113` | ZC-011 | P2 |
+| `/uci/enfermeria` *(UCI, en pausa)* | `PanelEnfermeria` | Ningún campo con etiqueta: 12 listas de Braden/Morse sin nombre, SBAR sólo con placeholder; hex fuera de tokens | `id`/`htmlFor`, `aria-label` por select, `<label>` para el SBAR, tokens | `src/components/hospital/PanelEnfermeria.tsx:38`, `:65`, `:84`, `:101` | ZC-012 | P2 |
+| `/hospitalizacion/[internamientoId]` *(Hospital, en pausa)* › bandeja de alertas | `AlertasDelEpisodio` | «La vi» —la acción clínica más importante de la bandeja— mide ≈26 px de alto | `minHeight: 44`, como `EstadoDeOperaciones:74` | `src/components/AlertasDelEpisodio.tsx:144` | ZC-013 | P2 |
+| `/consulta/[patientId]` › panel de entidades | `NerPanel` | «Claude está identificando…», «cross-checks adicionales», «condición(es)», «Error en extracción: <crudo>» | «Leyendo la nota…», «N avisos de riesgo menor», plurales, «No se pudo leer la nota. Reintenta.» | `src/components/NerPanel.tsx:57`, `:68-69`, `:167`, `:193`, `:212` | ZC-016 | P3 |
+| `/motores` | `QueDiceElMotor` | Si el motor revienta, palomita + `TypeError: …` bajo «AHORA · el motor, corriendo» | `AlertTriangle` + «El motor no pudo con esta entrada»; detalle en `<details>` | `src/components/motores/QueDiceElMotor.tsx:63`, `:122`, `:141` | ZC-020 | P3 |
+| Shell del dashboard (todas) | `AvisoConfigNoCargada` | «Detalle técnico: permission-denied» en inglés de Firebase | Mapear `unavailable` → «sin conexión», `permission-denied` → «tu sesión no tiene permiso; vuelve a entrar»; código sólo en `title` | `src/components/AvisoConfigNoCargada.tsx:32` · `src/hooks/useConfig.ts:55` | ZC-021 | P3 |
+| `/demo` (pública) | `EvidenciaEnVivo` | Cuando PubMed falla se enseña `String(e)` («TypeError: Failed to fetch») al visitante | «No hay conexión con PubMed ahora mismo»; detalle en consola | `src/components/EvidenciaEnVivo.tsx:40`, `:127` | ZC-024 | P3 |
+
+## G. Se propuso y no procede (refutados por el equipo rojo)
 
 | id | Se propuso | Motivo del equipo rojo | Prioridad final |
 |---|---|---|---|
