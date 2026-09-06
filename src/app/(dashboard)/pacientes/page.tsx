@@ -19,6 +19,8 @@ import { duplicadosProbablesDe } from '@/lib/pacientes/candidatos'
 import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
 import { coincideConLaBusqueda, unirResultadosDeBusqueda } from '@/lib/pacientes/busqueda-local'
 import { revisarTelefonoDelPaciente } from '@/lib/pacientes/telefono-del-paciente'
+import { loQueSePierde, type PlanDeFusion } from '@/lib/pacientes/fusion'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { construirGuardadoDePaciente } from '@/lib/pacientes/campos-que-se-guardan'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -267,6 +269,65 @@ export default function PacientesPage() {
    */
   const [duplicados, setDuplicados] = useState<ParDuplicado<Patient>[]>([])
   const [revisandoDuplicados, setRevisandoDuplicados] = useState(false)
+  /**
+   * ASE-009 — FUNDIR DOS EXPEDIENTES, DESDE LA APP.
+   *
+   * El barrido los encontraba, el diálogo decía «nada se junta solo», y no
+   * había forma de juntarlos: el borrado de pacientes está cerrado en las
+   * reglas y el único borrado real vive en `/api/arco/cancelar`. El único
+   * camino era fingir una solicitud ARCO de cancelación de alguien que nunca la
+   * pidió — falsificar un registro legal para arreglar un problema de datos.
+   *
+   * El plan lo calcula el SERVIDOR con los documentos reales (`?simular`) y se
+   * enseña ANTES: quién absorbe a quién, por qué ése, y qué se pierde. Fundir a
+   * dos personas distintas es el daño caro de esta pantalla, así que la última
+   * palabra la tiene alguien que ya vio lo que va a pasar.
+   */
+  const [porFundir, setPorFundir] = useState<{ par: ParDuplicado<Patient>; plan: PlanDeFusion | null; cargando: boolean } | null>(null)
+  const [fundiendo, setFundiendo] = useState(false)
+
+  const pedirPlanDeFusion = async (par: ParDuplicado<Patient>) => {
+    if (!clinicId) return
+    setPorFundir({ par, plan: null, cargando: true })
+    try {
+      const res = await fetchAutenticado('/api/pacientes/fundir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, aId: par.a.id, bId: par.b.id, simular: true }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) {
+        toast(d.error || 'No se pudo revisar la fusión', 'error')
+        setPorFundir(null); return
+      }
+      setPorFundir({ par, plan: d.plan as PlanDeFusion, cargando: false })
+    } catch {
+      toast('No se pudo conectar para revisar la fusión', 'error')
+      setPorFundir(null)
+    }
+  }
+
+  const confirmarFusion = async () => {
+    if (!clinicId || !porFundir?.plan) return
+    setFundiendo(true)
+    try {
+      const res = await fetchAutenticado('/api/pacientes/fundir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId, aId: porFundir.par.a.id, bId: porFundir.par.b.id }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) { toast(d.error || 'No se pudo fundir', 'error'); return }
+      toast('Expedientes fundidos. El absorbido queda marcado, no borrado: si esto fue un error, sigue ahí.', 'success')
+      setPorFundir(null)
+      setRevisandoDuplicados(false)
+      load()
+    } catch {
+      toast('No se pudo conectar para fundir', 'error')
+    } finally {
+      setFundiendo(false)
+    }
+  }
   useEffect(() => {
     // Todo el `setState` dentro del temporizador, ninguno en el cuerpo del
     // efecto: lo segundo encadena renders y el linter lo marca con razón.
@@ -420,9 +481,10 @@ export default function PacientesPage() {
           footer={<Button variant="secondary" onClick={() => setRevisandoDuplicados(false)}>Cerrar</Button>}
         >
           <p style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.6, marginTop: 0 }}>
-            Abre los dos y compáralos. <strong>Nada se junta ni se borra solo</strong>: decidir que dos
+            Abre los dos y compáralos. <strong>Nada se junta solo</strong>: decidir que dos
             expedientes son la misma persona —y cuál se queda— es tuyo, y equivocarse mezclaría el
-            historial de dos pacientes distintos.
+            historial de dos pacientes distintos. Cuando lo decidas, «Son la misma persona» te enseña
+            qué va a pasar antes de hacer nada.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {duplicados.map(par => (
@@ -451,9 +513,70 @@ export default function PacientesPage() {
                     </div>
                   ))}
                 </div>
+                {/*
+                  ASE-009 — LA SALIDA QUE FALTABA.
+                  El aviso encontraba la pareja y el médico no tenía qué hacer
+                  con ella. Esto no funde: pide el plan al servidor y lo enseña.
+                */}
+                <div style={{ marginTop: 10 }}>
+                  <Button size="sm" variant="secondary" onClick={() => pedirPlanDeFusion(par)}>
+                    Son la misma persona…
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
+        </Modal>
+      )}
+
+      {/*
+        QUÉ VA A PASAR, ANTES DE QUE PASE.
+        Una fusión no se deshace. El plan sale del servidor con los documentos
+        reales —si viajara desde aquí, quien controle el navegador elegiría
+        quién absorbe a cuál— y lo que se pierde se dice con nombre y valor.
+      */}
+      {porFundir && (
+        <Modal
+          open
+          onClose={() => setPorFundir(null)}
+          title="Juntar dos expedientes en uno"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setPorFundir(null)} disabled={fundiendo}>Volver</Button>
+              <Button onClick={confirmarFusion} loading={fundiendo} disabled={!porFundir.plan}>
+                Sí, son la misma persona
+              </Button>
+            </>
+          }
+        >
+          {porFundir.cargando || !porFundir.plan ? (
+            <Spinner center label="Revisando los dos expedientes…" />
+          ) : (
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Se queda el expediente de{' '}
+                <strong style={{ color: 'var(--text)' }}>
+                  {[porFundir.par.a, porFundir.par.b].find(p => p.id === porFundir.plan!.sobreviveId)?.nombre}
+                </strong>{' '}
+                y absorbe al otro. {porFundir.plan.porQueSobreviveEse}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+                Se mudan sus notas —con su firma y su hash intactos—, laboratorios, fotos, citas y cobros.
+              </div>
+              {Object.keys(porFundir.plan.rellena).length > 0 && (
+                <div style={{ fontSize: 12.5, color: 'var(--text2)', lineHeight: 1.6, padding: 10, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <strong>Se rellenan huecos:</strong>{' '}
+                  {Object.entries(porFundir.plan.rellena).map(([k, v]) => `${k} → ${v}`).join(' · ')}
+                </div>
+              )}
+              <div style={{ fontSize: 12.5, lineHeight: 1.6, padding: 10, border: '1px solid var(--amber)', borderRadius: 8, background: 'color-mix(in srgb, var(--amber) 8%, transparent)' }}>
+                <strong style={{ color: 'var(--text)' }}>Lo que se pierde:</strong>
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--text2)' }}>
+                  {loQueSePierde(porFundir.plan).map((l, i) => <li key={i}>{l}</li>)}
+                </ul>
+              </div>
+            </div>
+          )}
         </Modal>
       )}
 
