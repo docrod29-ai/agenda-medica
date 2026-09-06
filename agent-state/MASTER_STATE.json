@@ -23,28 +23,12 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .claude/rules/data-privacy.md",
-    "A  .env.example",
-    "M  .github/CODEOWNERS",
-    "A  .github/workflows/backfill-peso-de-urgencia.yml",
-    "M  .github/workflows/deploy-production.yml",
-    "M  .gitignore",
-    "M  CLAUDE.md",
-    "MM agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/BACKLOG.json",
-    "M  agent-state/BLOCKERS.md",
-    "M  agent-state/LAST_SAFE_CHECKPOINT.md",
-    "M  agent-state/MASTER_STATE.json",
-    "M  agent-state/OWNER_DECISIONS_REQUIRED.md",
-    "M  agent-state/V9_COMPLETE_CRITERIA.md",
-    "M  docs/DECISIONES-DEL-DUENO.md",
-    "M  docs/SIMULACRO_RESTAURACION.md",
-    "M  docs/ai/V9-BITACORA-Y-OPERACION.md",
-    "A  docs/audit/ausculta-transformacion/README.md",
-    "A  docs/audit/ausculta-transformacion/antes/acta.json",
-    "A  docs/audit/ausculta-transformacion/antes/demo-escritorio.png"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt",
+    "?? docs/maintenance/PAQUETE-PRODUCCION-2026-09-06-v1182.md"
   ],
-  "actualizado": "2026-09-04",
+  "actualizado": "2026-09-06",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -84,5 +68,5 @@
     "casosDePrueba": 11418,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1181"
+  "versionEnElRepo": "nexusmed-v1182"
 }

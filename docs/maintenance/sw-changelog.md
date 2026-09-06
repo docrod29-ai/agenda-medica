@@ -3,6 +3,25 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1182 — el carril de excelencia de producto: doce encargos, medidos en un navegador
+
+El paquete completo, declarado antes de fusionar, en
+[`PAQUETE-PRODUCCION-2026-09-06-v1182.md`](PAQUETE-PRODUCCION-2026-09-06-v1182.md).
+
+**16 commits desde v1181** (15 de trabajo + 1 de fusión) · 139 archivos ·
++5 498 / −186 · **39 de código de producto** · 14 regresiones cerradas
+(REG-513 … REG-526) · 0 rutas nuevas · 0 pantallas nuevas · reglas e índices de
+Firestore **sin cambios**.
+
+Lo que más se nota, en el teléfono: **Finanzas dejó de esconder la tarjeta de
+Transferencia** detrás de un arrastre lateral, y **la agenda dice a quién
+tienes** en vez de repetir la hora que ya da la fila. Y en cualquier pantalla:
+**el diálogo que confirma un borrado ya no se dispara con un `Enter` apuntado a
+otra cosa** —medido, borraba la cita—, y **las tardes dejaron de envejecer un
+día a todo el que se hubiera atendido ese día**.
+
+No prueba iPhone: no hay WebKit en el entorno de medición.
+
 ## v1181 — Operaciones deja de abrumar: Hospital/UCI en pausa y la gestión tras un botón
 
 **PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
