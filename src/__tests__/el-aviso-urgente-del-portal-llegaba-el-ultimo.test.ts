@@ -231,7 +231,14 @@ describe('la barra de destinos puede tener dos formas', () => {
      * escritorio ni queriendo. Medido antes: 1440 × 60, cinco columnas de
      * 288 px, con la columna de contenido en 560. Después: 560 × 69, centrada.
      */
-    expect(CODIGO).toContain('<nav aria-label="Secciones" className="mi-barra-destinos">')
+    /*
+      El `<nav>` lleva ahora un `id`, porque PP-017 le añadió un enlace de salto
+      («ir a las secciones»): con lector de pantalla, la barra vive al final del
+      documento y cambiar de pestaña obligaba a atravesar la pantalla entera. Lo
+      que este caso vigila —que la colocación viva en la hoja y no en un estilo
+      en línea— no cambia, así que se mira el atributo que importa.
+    */
+    expect(CODIGO).toMatch(/<nav[^>]*aria-label="Secciones"[^>]*className="mi-barra-destinos"/)
     expect(CODIGO, 'volvió la colocación en línea').not.toMatch(/mi-barra-destinos" style=/)
     expect(CSS).toContain('.mi-barra-destinos {')
     const i = CSS.indexOf('@media (min-width: 900px) {\n  .mi-barra-destinos {')

@@ -84,7 +84,7 @@ export default function ViaDeUrgencia({ telefonoConsultorio }: { telefonoConsult
           <ul style={{ margin: '8px 0 0', paddingLeft: 20, fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
             {MOTIVOS.map(m => <li key={m}>{m}</li>)}
           </ul>
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text3)', lineHeight: 1.55 }}>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.55 }}>
             {LO_QUE_NO_SE_VIGILA}
           </p>
         </div>

@@ -237,7 +237,7 @@ export default function PortalPrivacidadPage() {
               PO-012: medía 55×20 px en móvil, menos de la mitad del mínimo
               táctil de 44×44 — y es el único camino de vuelta de esta pantalla.
             */}
-            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 15, marginBottom: 12, minHeight: 44, minWidth: 44, padding: '10px 4px', textAlign: 'left' }}>
+            <button onClick={() => setPaso('info')} style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: 16, marginBottom: 12, minHeight: 44, minWidth: 44, padding: '10px 4px', textAlign: 'left' }}>
               ← Volver
             </button>
             <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
@@ -255,7 +255,7 @@ export default function PortalPrivacidadPage() {
                 alguien que no está en el expediente y el consultorio no podía
                 localizarlo.
               */}
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, color: '#374151', lineHeight: 1.5 }}>
+              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 14, color: 'var(--text2)', lineHeight: 1.5 }}>
                 <input
                   type="checkbox"
                   checked={enRepresentacion}
@@ -291,13 +291,13 @@ export default function PortalPrivacidadPage() {
                   }}
                 />
                 {/*
-                  D-007: iba a 10.5 px con `#9ca3af` sobre blanco — 2.4:1, la
-                  mitad del mínimo AA. La compuerta del paciente no lo cazó
-                  porque mide TOKENS de color, y esto es un literal escrito a
-                  mano. `#4b5563` sobre blanco da 7.5:1, y el tamaño sube al del
-                  resto del formulario.
+                  D-007: iba a 10.5 px con un gris literal sobre blanco — 2.4:1,
+                  la mitad del mínimo AA. La compuerta del paciente no lo cazó
+                  porque mide TOKENS de color, y esto era un color escrito a
+                  mano. Ahora usa el token de texto secundario, que cumple en los
+                  dos temas, y el tamaño sube al del resto del formulario.
                 */}
-                <div id="arco-descripcion-cuenta" aria-live="polite" style={{ fontSize: 13, color: '#4b5563', textAlign: 'right', marginTop: 4 }}>
+                <div id="arco-descripcion-cuenta" aria-live="polite" style={{ fontSize: 14, color: 'var(--text2)', textAlign: 'right', marginTop: 4 }}>
                   {descripcion.length} de 1000 caracteres
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function PortalPrivacidadPage() {
                 </div>
               </div>
               {aviso && (
-                <p role="alert" style={{ fontSize: 14, color: '#b45309', lineHeight: 1.6, margin: 0 }}>
+                <p role="alert" style={{ fontSize: 14, color: 'var(--amber-texto)', lineHeight: 1.6, margin: 0 }}>
                   {aviso}
                 </p>
               )}
@@ -328,7 +328,7 @@ export default function PortalPrivacidadPage() {
                 falta —el mismo aviso que ve todo el mundo—, y `aria-describedby`
                 lo cuenta antes de pulsarlo.
               */}
-              <p id="arco-que-falta" style={{ fontSize: 13, color: '#4b5563', margin: 0, lineHeight: 1.5 }}>
+              <p id="arco-que-falta" style={{ fontSize: 14, color: 'var(--text2)', margin: 0, lineHeight: 1.5 }}>
                 Los campos con * son obligatorios.
               </p>
               <button

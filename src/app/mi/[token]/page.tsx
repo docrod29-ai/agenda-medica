@@ -511,8 +511,8 @@ export default function MiPortalPage() {
           <h1 className="t-h2" style={{ marginTop: 12 }}>
             {error.includes('venció') || error.includes('válido') ? 'Este enlace ya no sirve' : 'No pudimos abrir tu portal'}
           </h1>
-          <p style={{ color: 'var(--text2)', marginTop: 10, fontSize: 15, lineHeight: 1.6 }}>{error || 'No encontramos tu información.'}</p>
-          <p style={{ color: 'var(--text2)', marginTop: 12, fontSize: 15, lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--text2)', marginTop: 10, fontSize: 16, lineHeight: 1.6 }}>{error || 'No encontramos tu información.'}</p>
+          <p style={{ color: 'var(--text2)', marginTop: 12, fontSize: 16, lineHeight: 1.6 }}>
             Los enlaces caducan solos a los pocos días, por seguridad. Pídele uno
             nuevo a tu consultorio por el mismo número por el que agendaste tu
             cita: te lo mandan en un momento.
@@ -644,7 +644,7 @@ export default function MiPortalPage() {
         <div style={{ marginBottom: 20 }}>
           <div className="t-overline" style={{ color: 'var(--nexus)' }}>{sesion.clinica?.nombre || 'Mi portal'}</div>
           <h1 className="t-display" style={{ marginTop: 4 }}>Hola{sesion.paciente ? `, ${sesion.paciente.split(' ')[0]}` : ''}</h1>
-          <p style={{ color: 'var(--text2)', fontSize: 15, marginTop: 4, lineHeight: 1.55 }}>
+          <p style={{ color: 'var(--text2)', fontSize: 16, marginTop: 4, lineHeight: 1.55 }}>
             {DESTINOS.find(d => d.id === destino)?.pista}
           </p>
         </div>
@@ -683,7 +683,7 @@ export default function MiPortalPage() {
                   <div className="t-num" style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>{f.fecha.split(' ')[0]}</div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{f.dia} · {f.hora}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{f.dia} · {f.hora}</div>
                   <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}><Stethoscope size={13} className="ds-icon" /> {c.medicoNombre}</div>
                   <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={13} className="ds-icon" /> {TIPO_LABEL[c.tipo] || 'Consulta'}{c.lugar ? ` · ${c.lugar}` : ''}</div>
                   {c.confirmadoPaciente && <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 5 }}><CheckCircle2 size={13} className="ds-icon" /> Asistencia confirmada</div>}
@@ -805,7 +805,7 @@ export default function MiPortalPage() {
         */}
         {pasadas.length > 0 && (
           <details style={{ marginTop: 24 }}>
-            <summary style={{ cursor: 'pointer', color: 'var(--text2)', fontSize: 15, fontWeight: 600, padding: '10px 0', minHeight: 44 }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--text2)', fontSize: 16, fontWeight: 600, padding: '10px 0', minHeight: 44 }}>
               Mis citas anteriores ({pasadas.length})
             </summary>
             <div style={{ marginTop: 8 }}>
@@ -945,7 +945,7 @@ export default function MiPortalPage() {
                 }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 10 }}>
-                <span style={{ fontSize: 13.5, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
+                <span style={{ fontSize: 14, color: 'var(--text3)' }}>{borrador.trim().length}/300</span>
                 <button
                   type="button"
                   onClick={enviarPregunta}
@@ -1006,7 +1006,7 @@ export default function MiPortalPage() {
                       porque el riesgo clínico nunca se pinta sólo con color.
                     */}
                     {urgente && (
-                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 15, fontWeight: 700, color: 'var(--red-texto)' }}>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--red-texto)' }}>
                         <AlertTriangle size={16} aria-hidden="true" /> Esto puede ser una urgencia
                       </p>
                     )}
@@ -1047,14 +1047,14 @@ export default function MiPortalPage() {
                       </div>
                     )}
                     {p.procedencia?.fechaConsulta && (
-                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
                         <Quote size={12} aria-hidden="true" />
                         {/* PI-016: llegaba como «2026-09-05». */}
                         Esto lo dejó escrito tu médico en tu consulta del {fmtFecha(p.procedencia.fechaConsulta, tzClinica).fecha}
                       </p>
                     )}
                     {p.escalada && (
-                      <p style={{ fontSize: 13.5, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
+                      <p style={{ fontSize: 14, color: 'var(--text3)', margin: '10px 0 0', lineHeight: 1.55 }}>
                         {p.atendidaEn ? 'Tu consultorio ya la revisó.' : 'Tu consultorio la tiene pendiente de revisar.'}
                       </p>
                     )}
@@ -1190,8 +1190,8 @@ export default function MiPortalPage() {
 
                 {pk.warningSigns.length > 0 && (
                   <>
-                    <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 15, color: 'var(--text2)', lineHeight: 1.7 }}>
+                    <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Cuándo volver antes</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text2)', lineHeight: 1.7 }}>
                       {pk.warningSigns.map(w => <li key={w}>{w}</li>)}
                     </ul>
                   </>
@@ -1214,8 +1214,8 @@ export default function MiPortalPage() {
                 */}
                 {(pk.indicaciones ?? []).length > 0 && (
                   <>
-                    <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Lo que te indicó tu médico</h4>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 15, color: 'var(--text2)', lineHeight: 1.7 }}>
+                    <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '12px 0 6px' }}>Lo que te indicó tu médico</h4>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text2)', lineHeight: 1.7 }}>
                       {(pk.indicaciones ?? []).map(i => <li key={i}>{i}</li>)}
                     </ul>
                   </>
@@ -1239,14 +1239,14 @@ export default function MiPortalPage() {
                   </p>
                 )}
 
-                <p style={{ fontSize: 13.5, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: 'var(--text3)', margin: '14px 0 0', lineHeight: 1.6 }}>
                   {/* PP-016: quién firma iba a 12 px. Es de lo que más importa. */}
                   {pk.prescriptor.nombre}
                   {pk.prescriptor.cedulaProfesional ? ` · Céd. Prof. ${pk.prescriptor.cedulaProfesional}` : ''}
                   {pk.prescriptor.especialidad ? ` · ${pk.prescriptor.especialidad}` : ''}
                 </p>
                 {pk.clinicianContactRules && (
-                  <p style={{ fontSize: 13.5, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 14, color: 'var(--text3)', margin: '6px 0 0', lineHeight: 1.6 }}>
                     {pk.clinicianContactRules}
                   </p>
                 )}
@@ -1289,7 +1289,7 @@ export default function MiPortalPage() {
           <div style={{ marginTop: 28 }}>
             <h2 className="t-h2" style={{ marginBottom: 12 }}>Mis recetas</h2>
             <div style={{ padding: 20, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'var(--s1)' }}>
-              <p style={{ fontSize: 15, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
+              <p style={{ fontSize: 16, color: 'var(--text2)', margin: 0, lineHeight: 1.6 }}>
                 Todavía no tienes recetas aquí. Cuando tu médico firme una, la vas
                 a poder ver y descargar desde esta pantalla.
               </p>
@@ -1348,11 +1348,11 @@ export default function MiPortalPage() {
                   {d.medico}{d.cedulaProfesional ? ` · Céd. Prof. ${d.cedulaProfesional}` : ''}{d.especialidad ? ` · ${d.especialidad}` : ''}
                 </p>
                 {d.diagnostico && (
-                  <p style={{ fontSize: 15, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 16, color: 'var(--text2)', margin: '0 0 12px', lineHeight: 1.6 }}>
                     <strong>Diagnóstico:</strong> {d.diagnostico}
                   </p>
                 )}
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 15, color: 'var(--text)', lineHeight: 1.7 }}>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 16, color: 'var(--text)', lineHeight: 1.7 }}>
                   {d.medicamentos.map((m, i) => (
                     <li key={`${m.nombre}-${i}`}>
                       {[m.nombre, m.dosis, m.via, m.frecuencia, m.duracion].filter(Boolean).join(' · ')}
@@ -1360,7 +1360,7 @@ export default function MiPortalPage() {
                   ))}
                 </ul>
                 {alergiasLeidas && alergias && (
-                  <p style={{ fontSize: 15, color: 'var(--text2)', margin: '12px 0 0', lineHeight: 1.6 }}>
+                  <p style={{ fontSize: 16, color: 'var(--text2)', margin: '12px 0 0', lineHeight: 1.6 }}>
                     <strong>Alergias registradas:</strong> {alergias}
                   </p>
                 )}
@@ -1429,7 +1429,7 @@ export default function MiPortalPage() {
                 {cuidadores.map(c => (
                   <li key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                     <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{c.nombre}</div>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>{c.nombre}</div>
                       <div style={{ fontSize: 14, color: 'var(--text2)' }}>
                         {c.parentesco} · {c.alcance === 'clinico' ? 've tus citas y tus documentos' : 've sólo tus citas'}
                       </div>
@@ -1480,7 +1480,7 @@ export default function MiPortalPage() {
               mismo. Pídele otro a tu consultorio cuando lo necesites.
             </p>
             {cerrado ? (
-              <p role="status" style={{ fontSize: 15, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>
+              <p role="status" style={{ fontSize: 16, color: 'var(--text)', margin: 0, lineHeight: 1.6 }}>
                 Enlace cerrado. Esta pantalla ya no se puede volver a abrir con él.
               </p>
             ) : confirmandoCierre ? (
@@ -1529,7 +1529,7 @@ export default function MiPortalPage() {
 
         {/* Confianza */}
         {/* PP-016: iba a 11.5 px, la letra más pequeña de todo el portal. */}
-        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13.5, color: 'var(--text3)' }}>
+        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 14, color: 'var(--text3)' }}>
           <ShieldCheck size={14} className="ds-icon" /> Acceso privado y seguro · Ausculta
         </div>
         </>)}
@@ -1563,7 +1563,7 @@ export default function MiPortalPage() {
                 para rótulos de sección del lado del médico, no para la
                 navegación primaria de un paciente.
               */}
-              <span style={{ fontSize: 12.5, lineHeight: 1.2 }}>{d.etiqueta}</span>
+              <span style={{ fontSize: 12, lineHeight: 1.2 }}>{d.etiqueta}</span>
             </button>
           )
         })}
@@ -1786,7 +1786,7 @@ function FormularioPrevio({ token }: { token: string }) {
     return (
       <div style={{ marginTop: 16, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
         <CheckCircle2 size={18} style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1 }} />
-        <div style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
           Gracias, tu médico lo verá antes de la consulta. Puedes volver a llenarlo si algo cambia.
         </div>
       </div>
@@ -1803,7 +1803,7 @@ function FormularioPrevio({ token }: { token: string }) {
         data-abierto={abierto ? '' : undefined}
         style={{ width: '100%', textAlign: 'left', border: 'none', padding: 8, margin: -8, borderRadius: 10, cursor: 'pointer' }}
       >
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Cuéntale a tu médico antes de la consulta</div>
         <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4, lineHeight: 1.5 }}>
           Con calma, desde tu casa. Le ayuda a aprovechar mejor el tiempo contigo.
         </div>
