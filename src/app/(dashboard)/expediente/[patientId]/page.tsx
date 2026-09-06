@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { fetchAutenticado } from '@/lib/auth-client'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { useClinic } from '@/context/ClinicContext'
 import { useExpediente } from '@/hooks/useExpediente'
@@ -29,6 +29,7 @@ import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
 import { ProcedenciaDeLaNota } from '@/components/expediente/ProcedenciaDeLaNota'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
+import { logAudit } from '@/lib/expediente/audit-log'
 import { describirVacioDeUnaLista, contar } from '@/lib/ui/vacio-de-una-lista'
 import { Herramientas } from '@/components/Herramientas'
 import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
@@ -91,10 +92,41 @@ export default function ExpedientePage() {
   const [errorPaciente, setErrorPaciente] = useState('')
   const [descargandoTodo, setDescargandoTodo] = useState(false)
   const [patient, setPatient] = useState<Patient | null>(null)
-  // Por defecto muestra las notas de CONSULTORIO (no mezclar con hospital). Las
-  // notas de hospital viven en su episodio; aquí quedan bajo la pestaña "Hospital".
-  const [filtro, setFiltro] = useState<'todas' | 'consulta' | 'hospital'>('consulta')
-  const [expandida, setExpandida] = useState<string | null>(null)
+  /**
+   * D-023 (NAVIGATION_STATE_AUDIT) — EL EXPEDIENTE SE ACORDABA DE NADA.
+   *
+   * `filtro` y `expandida` vivían sólo en memoria: abrir una nota, entrar a la
+   * consulta y volver te devolvía al filtro de fábrica con todo cerrado, y
+   * había que buscar otra vez la nota que estabas leyendo. `/citas` ya resolvió
+   * esto poniendo su estado en `searchParams` (`:105`, `:124-125`), que además
+   * hace el estado COMPARTIBLE: el enlace que mandas abre lo que tú ves.
+   *
+   * Por defecto se muestran las notas de CONSULTORIO (no mezclar con hospital).
+   * Las notas de hospital viven en su episodio; aquí quedan bajo la pestaña
+   * «Hospital».
+   *
+   * NO se pone en la URL nada que identifique al paciente más allá del id que
+   * ya está en la ruta: `n` es el id de una nota, nunca su contenido. PHI en la
+   * barra de direcciones es lo que la regla de privacidad prohíbe.
+   */
+  const searchParams = useSearchParams()
+  const filtroDeLaUrl = searchParams.get('f')
+  const filtro: 'todas' | 'consulta' | 'hospital' =
+    filtroDeLaUrl === 'todas' || filtroDeLaUrl === 'hospital' ? filtroDeLaUrl : 'consulta'
+  const expandida = searchParams.get('n')
+
+  /** Escribe el estado en la URL SIN apilar historia: volver sale del expediente. */
+  const escribirEnLaUrl = (cambios: Record<string, string | null>) => {
+    const p = new URLSearchParams(searchParams.toString())
+    for (const [k, v] of Object.entries(cambios)) {
+      if (v === null || v === '') p.delete(k); else p.set(k, v)
+    }
+    const cadena = p.toString()
+    router.replace(cadena ? `?${cadena}` : `/expediente/${patientId}`, { scroll: false })
+  }
+  const setFiltro = (v: 'todas' | 'consulta' | 'hospital') =>
+    escribirEnLaUrl({ f: v === 'consulta' ? null : v })
+  const setExpandida = (v: string | null) => escribirEnLaUrl({ n: v })
   // Los dos de abajo NO abren su propia consulta a Firestore: son lo que
   // CabosSueltosDelPaciente/InternamientosDelPaciente YA leyeron, reportado
   // hacia arriba para que el Clinical Spine (§7) pueda mostrar un conteo real
@@ -655,14 +687,46 @@ export default function ExpedientePage() {
          * (`?editar=`), que es lo que el botón siempre prometió.
          */
         onEditar={() => router.push(`/pacientes?editar=${encodeURIComponent(patientId)}`)}
-        onRevocar={async () => {
+        /**
+         * PG-012 — INVALIDAR DEJA DICHO POR QUÉ.
+         *
+         * El equipo rojo refutó media acusación del auditor: `updatePatient`
+         * SIEMPRE emite `logAudit`, así que el asiento existía —con evento,
+         * consultorio, paciente, campo, fecha y quién—. Lo que NO quedaba era el
+         * MOTIVO, y el motivo es lo único que distingue «rotación rutinaria» de
+         * «el enlace acabó en manos de su expareja». Seis meses después, la
+         * bitácora sin motivo no contesta la pregunta que se le va a hacer.
+         *
+         * Se anota con un evento propio, además del que emite `updatePatient`:
+         * el de aquél habla del CAMPO que cambió; éste habla del ACTO.
+         */
+        onRevocar={async (motivo: string) => {
           if (!clinicId || !patientId) return
           if (!(await confirm(
             'Los enlaces del portal que ya le enviaste a este paciente dejarán de funcionar. Tendrás que mandarle uno nuevo. ¿Continuar?',
             { peligro: true, confirmar: 'Invalidar' },
           ))) return
           try {
-            await updatePatient(clinicId, patientId, { portalTokenVersion: (patient?.portalTokenVersion ?? 0) + 1 })
+            const version = (patient?.portalTokenVersion ?? 0) + 1
+            await updatePatient(clinicId, patientId, { portalTokenVersion: version })
+            /**
+             * `updatePatient` ya emite su propio asiento, y habla del CAMPO que
+             * cambió (`portalTokenVersion: 3`). Éste habla del ACTO, que es lo
+             * que se le va a preguntar a la bitácora dentro de seis meses:
+             * «¿por qué dejaron de funcionar los enlaces de este paciente?».
+             * Se usa el evento que ya existe en la lista blanca del servidor;
+             * inventar uno nuevo lo haría descartar en silencio (REG del
+             * `cobro_exento`).
+             */
+            void logAudit({
+              evento: 'paciente_modificado', clinicId, patientId,
+              meta: {
+                accion: 'invalidar-enlaces-del-portal',
+                versionNueva: version,
+                motivo: motivo.trim(),
+                quien: user?.email ?? 'desconocido',
+              },
+            })
             toast('Listo: los enlaces anteriores ya no sirven.', 'success')
           } catch {
             toast('No se pudieron invalidar. Revisa tu conexión.', 'error')
@@ -914,8 +978,21 @@ const AntibiogramaDelPaciente = dynamic(
   { ssr: false, loading: () => <Spinner /> },
 )
 
-function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | null; onEditar: () => void; onRevocar: () => void }) {
+function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | null; onEditar: () => void; onRevocar: (motivo: string) => void }) {
   const [abierto, setAbierto] = useState(false)
+  /**
+   * PG-012 — POR QUÉ SE INVALIDA, NO SÓLO QUE SE INVALIDÓ.
+   *
+   * El asiento existía (lo emite `updatePatient`), pero decía qué campo cambió
+   * y no por qué. «Rotación rutinaria» y «el enlace acabó en manos de su
+   * expareja» dejaban exactamente la misma huella, y la segunda es la que hay
+   * que poder reconstruir.
+   *
+   * Tres motivos ya escritos porque son los que pasan de verdad, más texto
+   * libre: una lista cerrada obligaría a mentir en el cuarto caso.
+   */
+  const [motivo, setMotivo] = useState('')
+  const [pidiendoMotivo, setPidiendoMotivo] = useState(false)
   if (!patient) return null
   const campos: Array<[string, string | undefined]> = [
     ['Edad', patient.edad ? `${patient.edad} años` : undefined],
@@ -983,10 +1060,56 @@ function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | nu
               o un mensaje reenviado a un grupo valían hasta caducar, y la única
               salida era esperar.
             */}
-            <button onClick={onRevocar} className="btn btn-secondary btn-sm" title="Invalida todos los enlaces del portal enviados a este paciente">
+            <button onClick={() => setPidiendoMotivo(true)} className="btn btn-secondary btn-sm" title="Invalida todos los enlaces del portal enviados a este paciente">
               <Link2Off size={13} /> Invalidar enlaces del portal
             </button>
           </div>
+
+          {/*
+            PG-012 — EL MOTIVO, ANTES DE INVALIDAR.
+            No es burocracia: es lo único que distingue una rotación rutinaria de
+            «el enlace acabó donde no debía», y es la pregunta que se le va a
+            hacer a la bitácora dentro de seis meses. Los tres motivos escritos
+            son los que pasan de verdad; el texto libre existe porque una lista
+            cerrada obliga a mentir en el cuarto caso.
+          */}
+          {pidiendoMotivo && (
+            <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--s1)' }}>
+              <label className="label" htmlFor="motivo-invalidar">¿Por qué los invalidas?</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0 8px' }}>
+                {[
+                  'El paciente perdió el teléfono',
+                  'El enlace se reenvió a alguien más',
+                  'Rotación por precaución',
+                ].map(m => (
+                  <button key={m} type="button" onClick={() => setMotivo(m)}
+                    aria-pressed={motivo === m}
+                    style={{
+                      padding: '5px 11px', borderRadius: 'var(--r-pill)', fontSize: 12, cursor: 'pointer',
+                      background: motivo === m ? 'var(--nexus-solido)' : 'transparent',
+                      color: motivo === m ? '#fff' : 'var(--text2)',
+                      border: `1px solid ${motivo === m ? 'var(--nexus-solido)' : 'var(--border)'}`,
+                    }}>{m}</button>
+                ))}
+              </div>
+              <input
+                id="motivo-invalidar"
+                className="input"
+                value={motivo}
+                onChange={e => setMotivo(e.target.value)}
+                placeholder="…o escríbelo con tus palabras"
+                style={{ width: '100%' }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setPidiendoMotivo(false); setMotivo('') }}>Cancelar</button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={!motivo.trim()}
+                  onClick={() => { onRevocar(motivo); setPidiendoMotivo(false); setMotivo('') }}
+                >Invalidar los enlaces</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
