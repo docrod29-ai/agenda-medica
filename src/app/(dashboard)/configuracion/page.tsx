@@ -21,6 +21,7 @@ const TZ_CONSULTORIO_DEFECTO = 'America/Mexico_City'
 import { AvisoConfigNoCargada } from '@/components/AvisoConfigNoCargada'
 import { useDoctors } from '@/hooks/useDoctors'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { useClinic } from '@/context/ClinicContext'
 import { auth, storage } from '@/lib/firebase'
 import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble, Trash2 } from 'lucide-react'
@@ -122,7 +123,7 @@ export default function ConfiguracionPage() {
       const uid = auth.currentUser?.uid
       if (uid) loadCalendars(uid)
     } else if (gcal === 'error') {
-      toast('Error al conectar Google Calendar', 'error')
+      toast(noSePudo('conectar Google Calendar'), 'error')
       setTab('integraciones')
     }
 
@@ -132,7 +133,7 @@ export default function ConfiguracionPage() {
       setTab('integraciones')
     } else if (wa === 'error') {
       const reason = searchParams.get('reason')
-      toast(`Error al conectar WhatsApp${reason ? `: ${reason}` : ''}`, 'error')
+      toast(noSePudo('conectar WhatsApp', reason ?? undefined), 'error')
       setTab('integraciones')
     }
 
@@ -158,7 +159,7 @@ export default function ConfiguracionPage() {
       if (!data?.url) { toast('No se pudo iniciar la conexión con Google', 'error'); return }
       window.location.href = data.url
     } catch {
-      toast('Error al conectar con Google', 'error')
+      toast(noSePudo('conectar con Google'), 'error')
     } finally {
       // Los dos `return` tempranos salían SIN reponer el estado y no había
       // finally: tras un 401 o un 500 el botón quedaba en "Conectando…" y
@@ -175,8 +176,8 @@ export default function ConfiguracionPage() {
       setGcalConnected(false)
       setGcalCalendars([])
       toast('Google Calendar desconectado', 'success')
-    } catch {
-      toast('Error al desconectar', 'error')
+    } catch (e) {
+      toast(noSePudo('desconectar Google Calendar', e), 'error')
     }
   }
 
@@ -229,7 +230,7 @@ export default function ConfiguracionPage() {
       configBaseRef.current = formCompacto  // avanza la base para el siguiente diff
       toast('Configuración guardada', 'success')
     } catch (e) {
-      toast(`Error al guardar: ${e instanceof Error ? e.message.slice(0, 80) : ''}`, 'error')
+      toast(noSePudo('guardar la configuración', e), 'error')
     } finally {
       setSaving(false)
     }
@@ -1211,10 +1212,10 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         toast(`WhatsApp conectado: ${data.phoneNumber}`, 'success')
         setTimeout(() => window.location.reload(), 900)
       } else {
-        toast(data.error ?? 'Error al conectar', 'error')
+        toast(data.error ?? noSePudo('conectar el número de WhatsApp'), 'error')
       }
     } catch {
-      toast('Error al conectar', 'error')
+      toast(noSePudo('conectar el número de WhatsApp'), 'error')
     } finally {
       setManualSaving(false)
     }
@@ -1264,7 +1265,7 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         },
       })
     } catch (e) {
-      toast('Error al cargar el SDK de Meta', 'error')
+      toast(noSePudo('cargar el conector de Meta', e), 'error')
       setConnecting(false)
     }
   }
@@ -1279,9 +1280,9 @@ function WhatsAppConnectCard({ clinicId }: { clinicId: string | null }) {
         body: JSON.stringify({ clinicId }),
       })
       if (res.ok) toast('WhatsApp desconectado', 'success')
-      else toast('Error al desconectar', 'error')
-    } catch {
-      toast('Error al desconectar', 'error')
+      else toast(noSePudo('desconectar WhatsApp'), 'error')
+    } catch (e) {
+      toast(noSePudo('desconectar WhatsApp', e), 'error')
     } finally {
       setDisconnecting(false)
     }
@@ -1451,8 +1452,8 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
         botConfig: { ...values, completado: true },
       })
       toast('Bot FAQ actualizado', 'success')
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      toast(noSePudo('guardar el bot de preguntas frecuentes', e), 'error')
     } finally {
       setSaving(false)
     }
@@ -1582,8 +1583,8 @@ function MedicosTab() {
       toast('Médico agregado', 'success')
       setShowForm(false)
       setForm({ nombre: '', especialidad: '', telefono: '', email: '', cedulaProfesional: '', activo: true })
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      toast(noSePudo('agregar al médico', e), 'error')
     } finally {
       setSaving(false)
     }
@@ -1672,7 +1673,7 @@ function MedicosTab() {
               {doc.activo ? 'Activo' : 'Inactivo'}
             </span>
             <button
-              onClick={() => updateDoctor(clinicId!, doc.id, { activo: !doc.activo }).catch(() => toast('Error', 'error'))}
+              onClick={() => updateDoctor(clinicId!, doc.id, { activo: !doc.activo }).catch((e: unknown) => toast(noSePudo('cambiar el estado de este médico', e), 'error'))}
               style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text3)', fontSize: 12, borderRadius: 6, padding: '4px 8px', cursor: 'pointer' }}
             >
               {doc.activo ? 'Desactivar' : 'Activar'}
@@ -1760,9 +1761,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
       })
       const data = await res.json()
       if (data.url) window.open(data.url, '_blank')
-      else toast(data.error ?? 'Error', 'error')
-    } catch {
-      toast('Error al abrir portal', 'error')
+      else toast(data.error ?? noSePudo('abrir el portal de facturación'), 'error')
+    } catch (e) {
+      toast(noSePudo('abrir el portal de facturación', e), 'error')
     } finally {
       setLoading(false)
     }
@@ -1787,9 +1788,9 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-      else toast(data.error ?? 'Error', 'error')
-    } catch {
-      toast('Error al iniciar pago', 'error')
+      else toast(data.error ?? noSePudo('iniciar el pago'), 'error')
+    } catch (e) {
+      toast(noSePudo('iniciar el pago', e), 'error')
     } finally {
       setCheckoutLoading(null)
     }
@@ -1975,7 +1976,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
       setNombreInv('')
       recargar()
     } catch {
-      toast('Error al crear la invitación', 'error')
+      toast(noSePudo('crear la invitación'), 'error')
     } finally { setCreando(false) }
   }
 
@@ -1994,7 +1995,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const revocar = async (code: string) => {
     if (!(await confirm('¿Revocar esta invitación? El enlace dejará de funcionar.', { peligro: true, confirmar: 'Revocar' }))) return
     try { await revocarInvitacion(code); recargar(); toast('Invitación revocada', 'info') }
-    catch { toast('Error al revocar', 'error') }
+    catch (e) { toast(noSePudo('revocar la invitación', e), 'error') }
   }
 
   const pendientes = invitaciones.filter(i => !i.used)
@@ -2296,8 +2297,8 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     try {
       await saveConfig(clinicId, { ...config, publicBookingEnabled: enabled, publicBookingNote: note })
       toast('Portal actualizado', 'success')
-    } catch {
-      toast('Error al guardar', 'error')
+    } catch (e) {
+      toast(noSePudo('guardar el portal de reservas', e), 'error')
     } finally {
       setSaving(false)
     }

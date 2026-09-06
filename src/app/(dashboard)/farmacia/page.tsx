@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { getPatient } from '@/lib/firestore'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import {
   listarItems, crearItem, actualizarItem, borrarItem, registrarMovimiento, listarMovimientos,
   CATEGORIA_LABEL,
@@ -269,7 +270,7 @@ export default function FarmaciaPage() {
               }
               setCreando(false); setEditando(null)
               recargar()
-            } catch { toast('Error al guardar', 'error') }
+            } catch (e) { toast(noSePudo('guardar el medicamento', e), 'error') }
           }}
         />
       )}
@@ -312,7 +313,7 @@ export default function FarmaciaPage() {
               )
               setMoviendo(null)
               recargar()
-            } catch { toast('Error al registrar', 'error') }
+            } catch (e) { toast(noSePudo('registrar la salida', e), 'error') }
           }}
         />
       )}

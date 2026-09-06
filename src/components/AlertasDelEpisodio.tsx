@@ -30,9 +30,10 @@
  * Aquí hay que pulsar. Es un clic, y es el que distingue «lo vi» de «pasó por
  * delante».
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Check, Bell } from 'lucide-react'
 import type { AlertaHospital } from '@/lib/hospital/firestore'
+import { NoSePudoLeer } from '@/components/ui/NoSePudoLeer'
 
 export interface AlertasDelEpisodioProps {
   clinicId: string
@@ -52,8 +53,20 @@ const COLOR: Record<AlertaHospital['tipo'], string> = {
 export function AlertasDelEpisodio(p: AlertasDelEpisodioProps) {
   const [alertas, setAlertas] = useState<AlertaHospital[] | null>(null)
   const [marcando, setMarcando] = useState<string | null>(null)
+  /**
+   * EL FALLO DE LECTURA ES UN ESTADO PROPIO — Panel de Lujo ZC-001.
+   *
+   * `alertas === null` significaba dos cosas incompatibles: «todavía no llegan»
+   * y «no se pudieron leer». Las dos terminaban en `return null`, así que un
+   * potasio de 7.2 escrito en la colección desaparecía de la pantalla igual que
+   * si el episodio no tuviera ninguna alerta — que es exactamente la mentira que
+   * este componente nació para reparar, cometida un piso más abajo.
+   */
+  const [falloAlLeer, setFalloAlLeer] = useState<unknown>(undefined)
+  const [intento, setIntento] = useState(0)
 
   const { clinicId, internamientoId, cargar } = p
+  const reintentar = useCallback(() => { setFalloAlLeer(undefined); setIntento(n => n + 1) }, [])
 
   /**
    * Las dependencias son los VALORES, no el objeto de props.
@@ -68,13 +81,13 @@ export function AlertasDelEpisodio(p: AlertasDelEpisodioProps) {
     let vivo = true
     cargar(clinicId, false)
       /* Sólo las de ESTE episodio: la colección es de toda la clínica. */
-      .then(todas => { if (vivo) setAlertas(todas.filter(a => a.internamientoId === internamientoId)) })
-      /* Sin lectura no se finge una bandeja vacía: `null` significa «no se
-         pudo cargar», y eso se dice. Enseñar «0 alertas» cuando la consulta
-         falló sería exactamente la mentira que este componente repara. */
-      .catch(() => { if (vivo) setAlertas(null) })
+      .then(todas => { if (vivo) { setAlertas(todas.filter(a => a.internamientoId === internamientoId)); setFalloAlLeer(undefined) } })
+      /* Sin lectura no se finge una bandeja vacía: el fallo se GUARDA y se
+         PINTA. Enseñar «0 alertas» cuando la consulta falló sería exactamente
+         la mentira que este componente repara. */
+      .catch((e: unknown) => { if (vivo) { setAlertas(null); setFalloAlLeer(e ?? new Error('lectura fallida')) } })
     return () => { vivo = false }
-  }, [clinicId, internamientoId, cargar])
+  }, [clinicId, internamientoId, cargar, intento])
 
   const marcar = async (id?: string) => {
     if (!id) return
@@ -84,6 +97,11 @@ export function AlertasDelEpisodio(p: AlertasDelEpisodioProps) {
       setAlertas(prev => prev?.map(a => (a.id === id ? { ...a, leida: true } : a)) ?? null)
     } catch { /* Si no se pudo marcar, se queda sin marcar: no se finge. */ }
     finally { setMarcando(null) }
+  }
+
+  /* Si NO se pudo leer, se dice — antes de cualquier «no hay nada». */
+  if (falloAlLeer !== undefined) {
+    return <NoSePudoLeer que="las alertas de este paciente" error={falloAlLeer} alReintentar={reintentar} />
   }
 
   /* Sin alertas de este episodio no se enseña un recuadro vacío. */
@@ -171,4 +189,6 @@ export const POR_QUE_NO_SE_MARCAN_SOLAS =
 
 export const POR_QUE_NULL_NO_ES_CERO =
   'Si la consulta falla se dice, no se enseña «0 alertas». Fingir una bandeja ' +
-  'vacía sería la misma mentira que este componente repara.'
+  'vacía sería la misma mentira que este componente repara. Y «se dice» quiere ' +
+  'decir en pantalla: hasta el Panel de Lujo (ZC-001) el fallo y el vacío ' +
+  'compartían el mismo `return null`, así que no se decía en ninguna parte.'

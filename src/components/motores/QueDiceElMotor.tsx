@@ -58,9 +58,27 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
    * fotograma en el que la respuesta y el texto no coinciden — y esta caja
    * existe precisamente para que se pueda confiar en lo que enseña.
    */
+  /**
+   * UN MOTOR QUE REVIENTA NO SE PINTA CON UNA PALOMITA — Panel de Lujo ZC-020.
+   *
+   * Antes, la excepción se guardaba en `dice` como si fuera la respuesta del
+   * motor: mismo icono `Check`, mismo rótulo «AHORA · el motor, corriendo sobre
+   * lo de arriba», y debajo `TypeError: …`. Sólo cambiaba el color, y el color
+   * solo nunca es la señal (es la misma regla que ya sigue el resto del
+   * producto). Esta pantalla existe para que el dueño VEA sus defensas
+   * funcionando; una defensa caída pintada como defensa viva es peor que no
+   * tener la pantalla.
+   */
   let dice: string
   let reventó = false
-  try { dice = p.motor(texto) } catch (e) { reventó = true; dice = String(e) }
+  let detalleTecnico = ''
+  try {
+    dice = p.motor(texto)
+  } catch (e) {
+    reventó = true
+    dice = 'El motor no pudo con esta entrada. No es una respuesta suya: es un fallo, y por eso no se enseña como resultado.'
+    detalleTecnico = e instanceof Error ? `${e.name}: ${e.message}` : String(e)
+  }
 
   return (
     <section style={{
@@ -119,13 +137,17 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
           border: `1px solid color-mix(in srgb, ${reventó ? 'var(--amber)' : 'var(--teal)'} 35%, transparent)`,
           background: `color-mix(in srgb, ${reventó ? 'var(--amber)' : 'var(--teal)'} 9%, transparent)`,
         }}>
-          <Check size={15} style={{ color: reventó ? 'var(--amber)' : 'var(--teal)', flexShrink: 0, marginTop: 1 }} />
+          {reventó
+            ? <AlertTriangle size={15} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: 1 }} />
+            : <Check size={15} style={{ color: 'var(--teal)', flexShrink: 0, marginTop: 1 }} />}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{
               fontSize: 10.5, fontWeight: 700, letterSpacing: '.03em',
               color: reventó ? 'var(--amber)' : 'var(--teal)',
             }}>
-              AHORA · el motor, corriendo sobre lo de arriba
+              {reventó
+                ? 'AHORA · el motor no pudo con esta entrada'
+                : 'AHORA · el motor, corriendo sobre lo de arriba'}
             </div>
             {/*
               `pre-line` NO es cosmético: varios motores contestan en VARIAS
@@ -139,6 +161,18 @@ export function QueDiceElMotor(p: QueDiceElMotorProps) {
               fontFamily: 'var(--font-mono, ui-monospace, monospace)', wordBreak: 'break-word',
               whiteSpace: 'pre-line',
             }}>{dice}</div>
+            {reventó && (
+              /* El detalle técnico existe —es lo único que sirve para
+                 arreglarlo— pero plegado: quien mira esta pantalla mira si la
+                 defensa funciona, no una traza. */
+              <details style={{ marginTop: 6 }}>
+                <summary style={{ fontSize: 12, color: 'var(--text3)', cursor: 'pointer' }}>Detalle técnico</summary>
+                <div style={{
+                  fontSize: 12, color: 'var(--text3)', marginTop: 4, wordBreak: 'break-word',
+                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                }}>{detalleTecnico}</div>
+              </details>
+            )}
           </div>
         </div>
       </div>

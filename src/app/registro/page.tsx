@@ -1,5 +1,6 @@
 'use client'
 import { esFalloDeRed, MENSAJE_SIN_RED } from '@/lib/auth/fallo-de-red'
+import { enEspanolLlano } from '@/lib/texto-es'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
@@ -71,7 +72,8 @@ function RegistroInner() {
     }).catch((err: unknown) => {
       const code = (err as { code?: string }).code ?? ''
       if (code === 'auth/unauthorized-domain') setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
-      else if (code) setError(`No se pudo registrar con Google: ${code}`)
+      /* C-022 — mismo motivo que en /login: el código de Firebase no se pinta. */
+      else if (code) { console.warn('[registro] fallo de Google', code); setError(`No se pudo registrar con Google. ${enEspanolLlano(err)}`) }
     })
   }, [])
 
@@ -114,7 +116,7 @@ function RegistroInner() {
       } else if (code === 'auth/weak-password') {
         setError('La contraseña debe tener al menos 6 caracteres.')
       } else {
-        setError('Error al crear la cuenta. Intenta de nuevo.')
+        setError(`No se pudo crear la cuenta. ${enEspanolLlano(err)}`)
       }
     } finally {
       setSubmitting(false)
@@ -133,7 +135,8 @@ function RegistroInner() {
       if (code === 'auth/unauthorized-domain') {
         setError('Este dominio no está autorizado en Firebase (Authentication → Configuración → Dominios autorizados).')
       } else {
-        setError(`No se pudo registrar con Google: ${code || 'error desconocido'}`)
+        console.warn('[registro] fallo de Google', code)
+        setError(`No se pudo registrar con Google. ${enEspanolLlano(err)}`)
       }
       setSubmitting(false)
     }

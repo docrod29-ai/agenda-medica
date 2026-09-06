@@ -21,6 +21,7 @@ import { subirImagen as subirImagenServidor } from '@/lib/subir-imagen'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { auth, storage } from '@/lib/firebase'
 import { cfgInput, cfgLabel } from './estilos'
 import { Upload, X as IconX, Pill, ClipboardList, Printer, Loader2, Ruler, Save, Sparkles, Settings2, ChevronDown, UserRound, AlertTriangle, Check } from 'lucide-react'
@@ -268,7 +269,7 @@ export function RecetasTab({ clinicId, firmaSlot, firmaLista, notasSlot }: {
     } catch (e) {
       // Mostrar la causa real — un "Error al guardar" mudo es indepurable
       const msg = e instanceof Error ? e.message.slice(0, 160) : String(e).slice(0, 160)
-      toast(`Error al guardar: ${msg}`, 'error')
+      toast(noSePudo('guardar la receta de ejemplo', msg), 'error')
       setResultado({ ok: false, texto: `No se guardó: ${msg}` })
       console.error('[recetas/guardar]', e)
     } finally {

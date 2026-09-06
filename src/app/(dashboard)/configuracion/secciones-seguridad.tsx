@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
+import { noSePudo } from '@/lib/texto-es'
 import { iniciarEnrolamientoTotp, completarEnrolamientoTotp, listarFactores, desactivarFactor } from '@/lib/mfa'
 import type { TotpSecret } from 'firebase/auth'
 import { KeyRound, Lock } from 'lucide-react'
@@ -69,7 +70,7 @@ export function SeguridadTab() {
       toast('Factor eliminado', 'success')
       setFactores(listarFactores(user))
     } catch (e) {
-      toast(`Error: ${(e as Error).message}`, 'error')
+      toast(noSePudo('aplicar el cambio de seguridad', e), 'error')
     }
   }
 
