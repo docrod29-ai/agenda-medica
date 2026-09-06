@@ -17,6 +17,7 @@ import { celdaSegura } from '@/lib/csv-seguro'
 import { instanteMX, sumarDiasISO, fechaISOLocal, TZ_DEFAULT, zonaActiva } from '@/lib/timezone'
 import { elegirMedicoCanonico, type MedicoDelCobro } from '@/lib/finanzas/medico-del-cobro'
 import { idIdempotente } from '@/lib/idempotencia'
+import { logAudit } from '@/lib/expediente/audit-log'
 
 /**
  * Límites de un día LOCAL del consultorio, en instantes UTC.
@@ -399,15 +400,110 @@ export async function exentarCobro(
   })
 }
 
-/** Revertir la cortesía (vuelve a aparecer el botón "Cobrar"). Auditable. */
-export async function quitarExencion(clinicId: string, citaId: string): Promise<void> {
-  await updateDoc(doc(db, 'clinics', clinicId, 'appointments', citaId), {
-    cobroExento: false,
-    exentoMotivo: '',
-    exentoPor: '',
-    exentoPorNombre: '',
-    exentoEn: '',
-  })
+/**
+ * Un sello de cortesía ya retirado. Se CONSERVA en `historialCortesia` de la
+ * cita: la autorización original y su retiro, con quién y por qué en los dos
+ * sentidos.
+ */
+export interface SelloCortesiaRetirada {
+  motivo: string
+  autorizoPor: string
+  autorizoPorNombre: string
+  autorizadaEn: string
+  retiradaPor: string
+  retiradaPorNombre: string
+  retiradaMotivo: string
+  retiradaEn: string
+}
+
+/**
+ * Revertir la cortesía (vuelve a aparecer el botón "Cobrar").
+ *
+ * ── ASC-004 (Panel de Lujo 2026-09) ──────────────────────────────────────────
+ *
+ * Esto era un `updateDoc` que ponía `cobroExento:false` y VACIABA `exentoMotivo`,
+ * `exentoPor`, `exentoPorNombre` y `exentoEn`. Sin motivo, sin autor y sin
+ * bitácora: el reverso exacto del hueco que cerró REG-003, con el agravante de
+ * que borraba el sello original. Marcar cortesía, cobrar en efectivo por fuera,
+ * quitar la cortesía, volver a marcarla con otro motivo — y la primera
+ * autorización desaparecía.
+ *
+ * Ahora es simétrico a `exentarCobro`: motivo y autor obligatorios, el sello
+ * original se conserva en `historialCortesia`, el retiro queda sellado en
+ * `exencionRetirada*`, y se deja asiento en la bitácora desde aquí (no desde el
+ * llamador, para que ningún llamador futuro lo olvide).
+ *
+ * Los parámetros nuevos son opcionales EN EL TIPO para no romper la compilación
+ * del llamador de Citas (archivo de otra rebanada), pero obligatorios EN TIEMPO
+ * DE EJECUCIÓN: sin motivo no se escribe nada.
+ */
+export async function quitarExencion(
+  clinicId: string,
+  citaId: string,
+  motivo?: string,
+  autorUid?: string,
+  autorNombre = '',
+): Promise<void> {
+  const m = (motivo || '').trim()
+  if (!m) throw new Error('Para quitar la cortesía hay que escribir el motivo.')
+  if (!autorUid) throw new Error('No se pudo identificar quién quita la cortesía.')
+  const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
+  let patientId: string | undefined
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(citaRef)
+    if (!snap.exists()) throw new Error('La cita no existe.')
+    const c = snap.data() as {
+      cobroExento?: boolean; exentoMotivo?: string; exentoPor?: string; exentoPorNombre?: string
+      exentoEn?: string; historialCortesia?: SelloCortesiaRetirada[]; pacienteId?: string
+    }
+    patientId = c.pacienteId
+    if (!c.cobroExento) return  // ya no está exenta → idempotente
+    const en = new Date().toISOString()
+    const sello: SelloCortesiaRetirada = {
+      motivo: c.exentoMotivo ?? '',
+      autorizoPor: c.exentoPor ?? '',
+      autorizoPorNombre: c.exentoPorNombre ?? '',
+      autorizadaEn: c.exentoEn ?? '',
+      retiradaPor: autorUid,
+      retiradaPorNombre: (autorNombre || '').trim(),
+      retiradaMotivo: m,
+      retiradaEn: en,
+    }
+    tx.update(citaRef, {
+      cobroExento: false,
+      // Los campos VIVOS se vacían para que ninguna pantalla enseñe «autorizó X»
+      // sobre una cita que ya no es cortesía; el sello se conserva abajo.
+      exentoMotivo: '',
+      exentoPor: '',
+      exentoPorNombre: '',
+      exentoEn: '',
+      exencionRetiradaMotivo: m,
+      exencionRetiradaPor: autorUid,
+      exencionRetiradaPorNombre: (autorNombre || '').trim(),
+      exencionRetiradaEn: en,
+      historialCortesia: [...(Array.isArray(c.historialCortesia) ? c.historialCortesia : []), sello],
+    })
+  }).catch(e => { throw errorLegible(e, 'quitar la cortesía') })
+  // Bitácora inmutable (best-effort), con el mismo evento que la cortesía y la
+  // acción marcada: así una consulta de la bitácora enseña ida y vuelta juntas.
+  logAudit({
+    evento: 'cobro_exento', clinicId, patientId,
+    meta: { citaId, accion: 'retirada', motivo: m },
+  }).catch(() => {})
+}
+
+/**
+ * Traduce un error del SDK de Firestore a una frase que una persona entiende.
+ * Los errores que lanzamos nosotros (sin `code`) pasan tal cual: ya hablan.
+ */
+function errorLegible(e: unknown, accion: string): Error {
+  const code = (e as { code?: unknown })?.code
+  if (e instanceof Error && typeof code !== 'string') return e
+  if (code === 'permission-denied') return new Error(`No tienes permiso para ${accion}.`)
+  if (code === 'unavailable' || code === 'deadline-exceeded') {
+    return new Error(`Sin conexión con el servidor: no se pudo ${accion}. Inténtalo de nuevo.`)
+  }
+  return new Error(`No se pudo ${accion}; inténtalo de nuevo.`)
 }
 
 /**
@@ -435,9 +531,42 @@ export async function cancelarCobro(
    * fuera de "Por cobrar", mientras el corte la mostraba pendiente. Silencioso.
    */
   await runTransaction(db, async (tx) => {
+    /**
+     * ═══ TODAS LAS LECTURAS ANTES DE TODAS LAS ESCRITURAS — ASC-001 (P0) ═══
+     *
+     * Aquí se escribía el cobro y DESPUÉS, dentro del `if (citaId)`, se leía
+     * la cita. El SDK de Firestore rechaza toda transacción que lea tras
+     * escribir («Firestore transactions require all reads to be executed
+     * before all writes»), así que anular un cobro ligado a una cita fallaba
+     * SIEMPRE, con el mensaje crudo del SDK en el toast, y como `delete` está
+     * prohibido por reglas, un cobro equivocado no se podía corregir por
+     * ninguna vía. Panel de Lujo 2026-09, AS-cobros; el equipo rojo lo subió a
+     * P0 porque el fallo era determinista y nada ejercitaba la transacción.
+     *
+     * `registrarCobro` ya seguía la regla («se lee ANTES de cualquier
+     * escritura»); ésta no la siguió. Ahora las dos lecturas van primero.
+     */
     const snap = await tx.get(cobroRef)
     if (!snap.exists()) throw new Error('El cobro no existe.')
     const citaId = snap.data()?.citaId as string | undefined
+    /**
+     * SÓLO SE LIBERA LA CITA SI EL COBRO ANULADO ES EL QUE LA TENÍA TOMADA.
+     *
+     * Antes se limpiaba `cobroId` con sólo ver que el cobro apuntara a esa
+     * cita, sin comprobar que fuera EL MISMO. Y los abonos apuntan a la cita
+     * pero NO reservan `cobroId` (a propósito: un pago parcial no la salda).
+     *
+     * Camino real: el paciente abona $300, luego paga $500 de cierre
+     * (`cobroId = A`). Si se anula el abono por un error de captura, la cita
+     * perdía el vínculo con A: reaparecía el botón «Cobrar», volvía a cuentas
+     * por cobrar, y se le podía cobrar otra vez una consulta ya saldada.
+     *
+     * La lectura va dentro de la transacción, así que si otro cobro toma la
+     * cita mientras tanto, Firestore reintenta con el valor nuevo.
+     */
+    const citaRef = citaId ? doc(db, 'clinics', clinicId, 'appointments', citaId) : null
+    const citaSnap = citaRef ? await tx.get(citaRef) : null
+
     tx.update(cobroRef, {
       cancelado: true,
       motivoCancelacion: m,
@@ -447,30 +576,11 @@ export async function cancelarCobro(
       canceladoPorNombre: (autorNombre || '').trim(),
       canceladoEn: new Date().toISOString(),
     })
-    if (citaId) {
-      /**
-       * SÓLO SE LIBERA LA CITA SI EL COBRO ANULADO ES EL QUE LA TENÍA TOMADA.
-       *
-       * Antes se limpiaba `cobroId` con sólo ver que el cobro apuntara a esa
-       * cita, sin comprobar que fuera EL MISMO. Y los abonos apuntan a la cita
-       * pero NO reservan `cobroId` (a propósito: un pago parcial no la salda).
-       *
-       * Camino real: el paciente abona $300, luego paga $500 de cierre
-       * (`cobroId = A`). Si se anula el abono por un error de captura, la cita
-       * perdía el vínculo con A: reaparecía el botón «Cobrar», volvía a cuentas
-       * por cobrar, y se le podía cobrar otra vez una consulta ya saldada.
-       *
-       * La lectura va dentro de la transacción, así que si otro cobro toma la
-       * cita mientras tanto, Firestore reintenta con el valor nuevo.
-       */
-      const citaRef = doc(db, 'clinics', clinicId, 'appointments', citaId)
-      const citaSnap = await tx.get(citaRef)
-      if (citaSnap.exists() && citaSnap.data()?.cobroId === cobroId) {
-        // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
-        tx.update(citaRef, { cobroId: '', cobradoEn: '' })
-      }
+    if (citaRef && citaSnap?.exists() && citaSnap.data()?.cobroId === cobroId) {
+      // Liberar la cita: reaparece el botón "Cobrar" y sale de "Por cobrar".
+      tx.update(citaRef, { cobroId: '', cobradoEn: '' })
     }
-  })
+  }).catch(e => { throw errorLegible(e, 'anular el cobro') })
 }
 
 /** Marcar cobro con factura SAT */

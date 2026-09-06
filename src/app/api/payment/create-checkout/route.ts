@@ -21,6 +21,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { limitarEstricto } from '@/lib/rate-limit'
 import { bloquearSiNoVigente } from '@/lib/portal/vigencia-del-enlace'
+import { custodiaDelAnticipo } from '@/lib/finanzas/custodia-del-anticipo'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
@@ -97,6 +98,35 @@ export async function POST(req: NextRequest) {
     const montoMXN = Math.round(montoServidor * 100) / 100
     const descripcion = `Anticipo de cita · ${clinicNombre}`
 
+    /**
+     * ═══ EL DINERO DEL PACIENTE NO SE COBRA EN LA CUENTA DE LA PLATAFORMA ═══
+     * N-002 (Panel de Lujo 2026-09, P0). Ver `lib/finanzas/custodia-del-anticipo`.
+     *
+     * Sin cuenta conectada del consultorio NO se abre la sesión: se responde
+     * 409 con la vía que sí existe (la liga propia del médico, o «en el
+     * consultorio») para que el portal la enseñe. Con cuenta conectada, el
+     * Checkout se abre con destino a esa cuenta (`transfer_data.destination` +
+     * `on_behalf_of`): el dinero se liquida al consultorio y el asiento del
+     * webhook en `cobros` vuelve a ser verdad.
+     */
+    const custodia = custodiaDelAnticipo({
+      stripeAccountId: clinicSnap.data()?.stripeAccountId,
+      anticipoLink: cfg.anticipoLink,
+      anticipoMonto: cfg.anticipoMonto,
+    })
+    if (custodia.via !== 'connect') {
+      return NextResponse.json({
+        ok: false,
+        error: custodia.via === 'liga-propia'
+          ? 'Este consultorio cobra el anticipo por su propio enlace de pago.'
+          : 'Este consultorio cobra el anticipo en el consultorio, no en línea.',
+        via: custodia.via,
+        ...(custodia.anticipoLink ? { anticipoLink: custodia.anticipoLink } : {}),
+        monto: montoMXN,
+      }, { status: 409 })
+    }
+    const cuentaDelConsultorio = custodia.stripeAccountId!
+
     // Stripe espera el monto en centavos del moneda local
     const unit_amount = Math.round(montoMXN * 100)
 
@@ -113,6 +143,16 @@ export async function POST(req: NextRequest) {
       success_url: `${APP_URL}/pago/exito?cita=${citaId}`,
       cancel_url:  `${APP_URL}/pago/cancelado?cita=${citaId}`,
       metadata: { clinicId, citaId, tipo: 'paciente_anticipo' },
+      payment_intent_data: {
+        // Cargo con destino: el cobro se liquida a la cuenta del consultorio y
+        // se declara a su nombre. La plataforma no retiene el dinero.
+        transfer_data: { destination: cuentaDelConsultorio },
+        on_behalf_of: cuentaDelConsultorio,
+        // Los mismos metadatos en el PaymentIntent (y por tanto en el cargo):
+        // es lo que permite que un `charge.refunded` llegue al libro del
+        // consultorio (ASC-005) sin tener que adivinar de quién era.
+        metadata: { clinicId, citaId, tipo: 'paciente_anticipo' },
+      },
     })
 
     /**
