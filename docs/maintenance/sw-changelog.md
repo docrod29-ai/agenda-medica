@@ -5,7 +5,8 @@ del `const CACHE`.
 
 ## v1184 — el programa de preservación: diecisiete regresiones cerradas, y la receta ve el expediente
 
-**PREPARADO, no publicado todavía.** El paquete y lo que declara viven en
+**Publicado el 6-sep 02:04 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #24).
+El paquete y lo que declara viven en
 [`PAQUETE-PRODUCCION-2026-09-06-v1184.md`](PAQUETE-PRODUCCION-2026-09-06-v1184.md).
 
 **Diecisiete cortes desde v1182, fusionados sobre v1183** (17 cortes + fusión + contabilidad) · 40 rutas de
@@ -3525,6 +3526,10 @@ Los cobros ya guardados **conservan su día**: recalcularlos sería reescribir
 cortes que usted ya cuadró.
 
 ## v1183 — 6-sep-2026
+
+**Publicado el 6-sep 01:32 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #23).
+El paquete y lo que declara viven en
+[`PAQUETE-PRODUCCION-2026-09-06-v1183.md`](PAQUETE-PRODUCCION-2026-09-06-v1183.md).
 
 Las cuatro cosas que el dueño encontró usando la app en su iPhone, y la
 auditoría de lo que aquéllas dejaron declarado: REG-515 (la receta ya no imprime
