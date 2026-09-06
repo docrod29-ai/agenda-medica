@@ -17,6 +17,8 @@ import { avatarColor } from '@/lib/avatar-color'
 import { buscarPosiblesDuplicados, barrerDuplicados, type ParDuplicado } from '@/lib/pacientes/duplicados'
 import { duplicadosProbablesDe } from '@/lib/pacientes/candidatos'
 import { describirListaVacia } from '@/lib/pacientes/vacio-de-la-lista'
+import { coincideConLaBusqueda, unirResultadosDeBusqueda } from '@/lib/pacientes/busqueda-local'
+import { revisarTelefonoDelPaciente } from '@/lib/pacientes/telefono-del-paciente'
 import { construirGuardadoDePaciente } from '@/lib/pacientes/campos-que-se-guardan'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
@@ -134,7 +136,6 @@ export default function PacientesPage() {
    * completo—. Mover no puede significar perder.
    */
 
-  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
   /**
    * REG-347 — LA BÚSQUEDA PREGUNTA AL SERVIDOR.
@@ -161,15 +162,32 @@ export default function PacientesPage() {
     return () => { vivo = false; clearTimeout(t) }
   }, [clinicId, search])
 
-  // Búsqueda: aplana resultados sobre TODOS los pacientes (ignora el chip).
+  /**
+   * ASE-001 — EL SERVIDOR SE UNE AL FILTRO LOCAL; NO LO SUSTITUYE.
+   *
+   * Esto decía `if (busquedaServidor && …) return busquedaServidor.pacientes`.
+   * Y el servidor no sabe «contiene»: su sondeo principal es por PREFIJO sobre
+   * `nombre` (`firestore.ts:333`). Teclear «iparraguirre» buscando a «Tadeo
+   * Iparraguirre Nolasco» devolvía `[]`, ese vacío pisaba el `includes` local
+   * que SÍ lo encontraba, y la pantalla decía «Ninguno de los 6 expedientes
+   * coincide» de alguien que estaba a la vista dos líneas más abajo.
+   *
+   * El vacío del servidor no significa «no está»: significa «no empieza por».
+   * Regla 4 de seguridad clínica en clave de directorio — y aquí un «no está»
+   * falso abre un segundo expediente y parte las alergias de alguien en dos.
+   *
+   * REG-347 sigue en pie: el servidor es lo que alcanza POR ENCIMA del techo de
+   * REG-341, y por eso no se puede quitar. Lo que cambia es que ya no borra lo
+   * que se ve. La regla de coincidencia vive fuera (`pacientes/busqueda-local`)
+   * porque es una decisión —qué cuenta como encontrar a alguien— y no un
+   * detalle de esta pantalla.
+   */
   const resultadosBusqueda = useMemo(() => {
-    const q = norm(search.trim())
+    const q = search.trim()
     if (!q) return null
-    if (busquedaServidor && busquedaServidor.q === search.trim()) return busquedaServidor.pacientes
-    const qDig = search.replace(/\D/g, '')  // teléfono: comparar solo dígitos (ignora espacios/guiones)
-    return patients
-      .filter(p => norm(p.nombre).includes(q) || (qDig !== '' && (p.telefono ?? '').replace(/\D/g, '').includes(qDig)) || norm(p.email ?? '').includes(q) || norm(p.curp ?? '').includes(q))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    const locales = patients.filter(p => coincideConLaBusqueda(p, q))
+    const delServidor = busquedaServidor && busquedaServidor.q === q ? busquedaServidor.pacientes : []
+    return unirResultadosDeBusqueda(delServidor, locales)
   }, [patients, search, busquedaServidor])
 
   /**
@@ -456,8 +474,17 @@ export default function PacientesPage() {
       <div style={{ position: 'relative', marginBottom: 12, maxWidth: 420 }}>
         <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }} />
         <input className="input" style={{ paddingLeft: 32 }} placeholder="Nombre, teléfono, correo o CURP…" aria-label="Buscar un paciente por nombre, teléfono, correo o CURP" value={search} onChange={e => setSearch(e.target.value)} />
+        {/* D-002 — un botón que sólo dibuja una X no tiene nombre para quien
+            lo oye: el lector de pantalla anunciaba «botón» a secas. WCAG 4.1.2.
+            `title` además lo dice con el ratón encima. */}
         {search && (
-          <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}>
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            aria-label="Limpiar la búsqueda"
+            title="Limpiar la búsqueda"
+            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)' }}
+          >
             <X size={14} />
           </button>
         )}
@@ -790,7 +817,10 @@ function PacienteRow({ p, mode, internado, clinico, manda, porQueId, onAbrirPorQ
               para enterarse de algo que la lista ya sabía. */}
           {visto && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Calendar size={11} className="ds-icon" /> {visto}</span>}
           {p.telefono && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Phone size={11} className="ds-icon" /> {p.telefono}</span>}
-          {p.edad && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad} años</span>}
+          {/* MP-017 — `p.edad &&` escondía al lactante: `edad: 0` es falso en
+              JavaScript, así que el único paciente cuya edad más importa era el
+              único que salía sin ella. */}
+          {p.edad != null && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Cake size={11} className="ds-icon" /> {p.edad === 0 ? 'menos de 1 año' : `${p.edad} años`}</span>}
           {internado && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--nexus)', fontWeight: 600 }}><BedDouble size={11} /> Internado — ver Hospitalización</span>}
         </div>
       </div>
@@ -896,6 +926,9 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
   const upd = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF(prev => ({ ...prev, [key]: e.target.value }))
 
+  /** ASM-001 — se revisa mientras se escribe, no al final: llegar tarde es un obstáculo. */
+  const revisionTelefono = useMemo(() => revisarTelefonoDelPaciente(f.telefono), [f.telefono])
+
   /**
    * POSIBLES DUPLICADOS, MIENTRAS SE ESCRIBE.
    *
@@ -947,8 +980,29 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
   }
 
   const handleSave = async () => {
-    if (!f.nombre.trim()) { toast('El nombre es requerido', 'error'); return }
-    if (!f.edad.trim()) { toast('La edad es requerida', 'error'); return }
+    // C-023 — el aviso anterior era un anglicismo de formulario («el nombre
+    // es …»). Se dice lo que falta y lo que hay que hacer, como una persona.
+    if (!f.nombre.trim()) { toast('Falta el nombre del paciente', 'error'); return }
+    /**
+     * ASR-020 — LA EDAD SÓLO SE EXIGE SI NO HAY FECHA DE NACIMIENTO.
+     *
+     * Se pedía siempre, incluso con la fecha puesta, que es de donde sale la
+     * edad buena. La edad a mano queda para el paciente que sólo la sabe
+     * aproximada, que es el caso que el dueño pidió conservar.
+     */
+    if (!f.fechaNacimiento.trim() && !f.edad.trim()) {
+      toast('Falta la edad. Si tienes su fecha de nacimiento, ponla y la calculamos.', 'error'); return
+    }
+    /**
+     * ASM-001 — EL TELÉFONO CON EL QUE SALEN LOS RECORDATORIOS.
+     *
+     * «12345» se guardaba con un toast en verde. El mensaje que no llega no
+     * falla en la pantalla de nadie: se ve igual que uno entregado, y lo que se
+     * nota es la inasistencia. Se comprueba la FORMA y se dice qué le falta;
+     * el teléfono vacío sigue siendo válido (hay pacientes sin teléfono).
+     */
+    const tel = revisarTelefonoDelPaciente(f.telefono)
+    if (!tel.valido) { toast(`Revisa el teléfono: ${tel.problema}`, 'error'); return }
     setSaving(true)
     try {
       /**
@@ -1170,9 +1224,24 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
             correo o CURP, y el export FHIR los sigue emitiendo si existen.
           */}
           <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 20px' }}>
+            {/*
+              ASE-020 — CADA CAMPO CON SU `htmlFor`.
+
+              Los siete `<label className="label">` estaban sueltos, sin `htmlFor`
+              ni `id`: para un lector de pantalla eran campos SIN NOMBRE, y
+              «campo sin etiqueta» es uno de los mínimos que fallan la compuerta
+              de `design-system.md` (WCAG 2.2 AA, 3.3.2). Además, al asociarlos,
+              pulsar la etiqueta enfoca el campo — que es lo que espera cualquiera.
+
+              ASR-020 — Y UNA SOLA CONVENCIÓN DE NOMBRE. El marcador de posición
+              decía «Apellido Apellido, Nombre» y el asistente —la otra puerta que
+              crea expedientes en la misma colección— decía «Nombre completo». Dos
+              órdenes distintos para la misma persona es la fábrica de duplicados
+              que el motor tiene que deshacer después.
+            */}
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Nombre completo *</label>
-              <input className="input" value={f.nombre} onChange={upd('nombre')} placeholder="Apellido Apellido, Nombre" />
+              <label className="label" htmlFor="p-nombre">Nombre completo *</label>
+              <input id="p-nombre" className="input" value={f.nombre} onChange={upd('nombre')} placeholder="Nombre y apellidos" />
             </div>
             {/*
               UN SOLO teléfono. Antes eran dos (Teléfono y WhatsApp) y en la práctica
@@ -1181,32 +1250,52 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
               quedara vacío, un paciente nuevo perdería su contacto móvil ahí.
             */}
             <div className="form-group">
-              <label className="label">Teléfono</label>
-              <input className="input" type="tel" value={f.telefono} onChange={upd('telefono')} placeholder="6641234567" />
+              <label className="label" htmlFor="p-telefono">Teléfono</label>
+              <input id="p-telefono" className="input" type="tel" value={f.telefono} onChange={upd('telefono')} placeholder="6641234567"
+                aria-invalid={!revisionTelefono.valido} aria-describedby="p-telefono-ayuda" />
+              {/*
+                ASM-001 — EL NÚMERO, TAL Y COMO LO VERÁ WHATSAPP.
+                Enseñarlo antes de guardar es lo que convierte «12345» en un
+                error que se ve, y no en un recordatorio que nunca sale.
+              */}
+              <p id="p-telefono-ayuda" style={{ fontSize: 11, margin: '4px 0 0', color: revisionTelefono.valido ? 'var(--text3)' : 'var(--red)' }}>
+                {!revisionTelefono.valido
+                  ? revisionTelefono.problema
+                  : revisionTelefono.vacio
+                    ? 'Sin teléfono no salen recordatorios de cita.'
+                    : `Se enviará a ${revisionTelefono.comoSeVera}. Se usa también para los recordatorios por WhatsApp.`}
+              </p>
+            </div>
+            {/*
+              MP-017 — CON FECHA DE NACIMIENTO, LA EDAD NO SE TECLEA.
+
+              Eran dos fuentes de verdad para el mismo dato: la fecha (que no
+              envejece) y una edad congelada a mano (que sí). La congelada es la
+              que imprime la receta, así que un niño registrado a los 6 seguía
+              saliendo con 6 dos años después. Con fecha puesta, la edad se
+              deriva y el campo se enseña sólo de lectura; sin fecha, sigue
+              capturándose a mano, que es el caso que el dueño pidió conservar.
+            */}
+            <div className="form-group">
+              <label className="label" htmlFor="p-edad">Edad {f.fechaNacimiento ? '' : '*'}</label>
+              <input id="p-edad" className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130}
+                readOnly={!!f.fechaNacimiento} />
               <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
-                Se usa también para los recordatorios por WhatsApp.
+                {f.fechaNacimiento
+                  ? 'Se calcula sola desde la fecha de nacimiento y se mantiene al día. La usan la dosis pediátrica, los percentiles y las escalas de riesgo.'
+                  : 'Si sabes su fecha de nacimiento, ponla abajo: la edad se calcula sola y no se queda vieja.'}
               </p>
             </div>
             <div className="form-group">
-              <label className="label">Edad *</label>
-              <input className="input" type="number" value={f.edad} onChange={upd('edad')} min={0} max={130} />
-              {f.fechaNacimiento && (
-                <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
-                  Calculada desde la fecha de nacimiento. La edad es la que usan la dosis pediátrica,
-                  los percentiles y las escalas de riesgo.
-                </p>
-              )}
-            </div>
-            <div className="form-group">
-              <label className="label">Fecha de nacimiento</label>
-              <input className="input" type="date" value={f.fechaNacimiento} onChange={setFechaNacimiento} />
+              <label className="label" htmlFor="p-fecha-nacimiento">Fecha de nacimiento</label>
+              <input id="p-fecha-nacimiento" className="input" type="date" value={f.fechaNacimiento} onChange={setFechaNacimiento} />
               <p style={{ fontSize: 11, color: 'var(--text3)', margin: '4px 0 0' }}>
                 Las farmacias la piden para dispensar: sale impresa en la receta.
               </p>
             </div>
             <div className="form-group">
-              <label className="label">Sexo</label>
-              <select className="input" value={f.sexo} onChange={upd('sexo')}>
+              <label className="label" htmlFor="p-sexo">Sexo</label>
+              <select id="p-sexo" className="input" value={f.sexo} onChange={upd('sexo')}>
                 <option value="">Seleccionar</option>
                 <option value="Masculino">Masculino</option>
                 <option value="Femenino">Femenino</option>
@@ -1214,15 +1303,15 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
               </select>
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Servicio médico</label>
-              <input className="input" value={f.seguroMedico} onChange={upd('seguroMedico')} placeholder="IMSS, ISSSTE, Gastos mayores…" />
+              <label className="label" htmlFor="p-seguro">Servicio médico</label>
+              <input id="p-seguro" className="input" value={f.seguroMedico} onChange={upd('seguroMedico')} placeholder="IMSS, ISSSTE, Gastos mayores…" />
             </div>
             {/* Dato CLÍNICO — solo médicos/admin pueden verlo y editarlo.
                 La asistente solo administra datos demográficos del paciente. */}
             {mode === 'medico' && (
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Alergias</label>
-                <input className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
+                <label className="label" htmlFor="p-alergias">Alergias</label>
+                <input id="p-alergias" className="input" value={f.alergias} onChange={upd('alergias')} placeholder="Penicilina, AINES, …" />
               </div>
             )}
           </div>

@@ -39,6 +39,7 @@
  * reloj no se puede probar dos veces con el mismo resultado.
  */
 import type { Patient } from '@/types'
+import { edadEnAnios } from '@/lib/expediente/pediatria'
 
 /** Los dos modos de la interfaz. `AppMode` no se exporta desde su contexto. */
 export type ModoDeEdicion = 'medico' | 'secretaria'
@@ -87,6 +88,26 @@ export function construirGuardadoDePaciente(
 ): Omit<Patient, 'id'> {
   const tel = f.telefono.replace(/\D/g, '')
 
+  /**
+   * MP-017 — UN SOLO DATO PARA UNA SOLA COSA: LA EDAD SALE DE LA FECHA.
+   *
+   * `edad` y `fechaNacimiento` se guardaban las dos, capturadas por separado.
+   * Eso son DOS FUENTES DE VERDAD para el mismo hecho, y la que envejece mal es
+   * la que acaba impresa: la receta lee `patient.edad`, así que un niño
+   * registrado a los 6 seguía saliendo con 6 dos años después, en un documento
+   * medicolegal. Nada avisaba, porque la cifra era plausible.
+   *
+   * Con fecha de nacimiento, la edad se DERIVA aquí y la tecleada se ignora:
+   * no puede quedar guardado «nació en 2019, edad 40». Sin fecha —el paciente
+   * que sólo sabe su edad aproximada, que es el caso que el dueño pidió
+   * conservar— se guarda la que se escribió, que es el único dato que hay.
+   *
+   * `?? undefined` y no `|| undefined`: **0 es una edad**. Es la del lactante,
+   * o sea justo el paciente cuya edad más pesa en una dosis.
+   */
+  const derivada = f.fechaNacimiento ? edadEnAnios(f.fechaNacimiento, ahora.slice(0, 10)) : null
+  const edad = derivada ?? (f.edad.trim() === '' ? undefined : Number(f.edad))
+
   const salida: Omit<Patient, 'id'> = {
     nombre: f.nombre.trim(),
     telefono: tel,
@@ -98,7 +119,7 @@ export function construirGuardadoDePaciente(
     whatsapp: (f.whatsapp.replace(/\D/g, '') || tel),
     email: f.email.trim(),
     fechaNacimiento: f.fechaNacimiento,
-    edad: f.edad ? Number(f.edad) : undefined,
+    edad: Number.isFinite(edad as number) ? edad : undefined,
     sexo: (f.sexo || undefined) as Patient['sexo'],
     curp: f.curp.trim().toUpperCase() || undefined,
     seguroMedico: f.seguroMedico.trim(),
