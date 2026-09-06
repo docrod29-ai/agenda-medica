@@ -165,6 +165,9 @@ function porQueEstaAqui(t: Pick<TareaClinica, 'origen' | 'tipo'>): string {
     case 'portal:pregunta':
       // REG-521. Qué preguntó va en el detalle de la tarjeta; aquí sólo consta quién abrió.
       return 'La escribió el paciente desde su portal y el motor la escaló: hace falta que alguien del consultorio la conteste.'
+    case 'whatsapp:pregunta':
+      // PP-003. El bot no contesta nada clínico: lo escala aquí.
+      return 'La escribió el paciente por WhatsApp; el bot no contesta preguntas clínicas y la escaló: hace falta que alguien del consultorio la conteste.'
     default:
       // No se reparte entre los tres conocidos. Se dice lo que consta.
       return t.origen

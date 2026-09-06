@@ -9,20 +9,20 @@
  */
 
 import { adminDb } from '@/lib/firebase-admin'
-import { normalizarTelefonoWa } from '@/lib/whatsapp/consent'
+import { claveTelefonoWa } from '@/lib/whatsapp/telefono'
 import { conteoDeHoy, siguienteConteo } from '@/lib/whatsapp/frecuencia'
 
 function contactRef(clinicId: string, telefono: string) {
   return adminDb
     .collection('clinics').doc(clinicId)
-    .collection('whatsapp_contacts').doc(normalizarTelefonoWa(telefono))
+    .collection('whatsapp_contacts').doc(claveTelefonoWa(telefono))
 }
 
 /** Registra que el contacto acaba de escribir (abre/renueva la ventana de 24 h). */
 export async function registrarEntrante(clinicId: string, telefono: string): Promise<void> {
   try {
     await contactRef(clinicId, telefono).set(
-      { telefono: normalizarTelefonoWa(telefono), lastInboundAt: new Date().toISOString() },
+      { telefono: claveTelefonoWa(telefono), lastInboundAt: new Date().toISOString() },
       { merge: true },
     )
   } catch (e) {
@@ -59,7 +59,7 @@ export async function registrarEnvioProactivo(clinicId: string, telefono: string
     await adminDb.runTransaction(async tx => {
       const snap = await tx.get(ref)
       const proactivo = siguienteConteo(snap.data()?.proactivo, fechaHoy)
-      tx.set(ref, { telefono: normalizarTelefonoWa(telefono), proactivo }, { merge: true })
+      tx.set(ref, { telefono: claveTelefonoWa(telefono), proactivo }, { merge: true })
     })
   } catch (e) {
     console.warn('[whatsapp/contacts] no se pudo registrar envío proactivo (ignorado):', String(e))

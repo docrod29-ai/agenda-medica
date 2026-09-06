@@ -26,7 +26,8 @@ import { parsearStatuses, registrarStatus } from '@/lib/whatsapp/status'
 
 // We import the core bot handler from the main webhook so we don't duplicate logic.
 // The main webhook exports handleMessage for reuse.
-import { handleMessage } from '@/app/api/whatsapp/webhook/route'
+import { handleMessage, manejarMensajeSinTexto } from '@/app/api/whatsapp/webhook/route'
+import { textoDelEntrante, esMensajeSinTexto } from '@/lib/whatsapp/texto-del-entrante'
 
 export async function POST(req: NextRequest) {
   // ── Identify clinic by api_key header ────────────────────────
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   // ── Parse payload ────────────────────────────────────────────
   let payload: {
-    messages?: { id?: string; from: string; type: string; text?: { body: string } }[]
+    messages?: { id?: string; from: string; type: string; text?: { body: string }; button?: { text?: string }; interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } } }[]
     statuses?: { id?: string; status?: string; recipient_id?: string; timestamp?: string; errors?: { code?: number; title?: string }[] }[]
   }
   try {
@@ -66,16 +67,19 @@ export async function POST(req: NextRequest) {
 
   // ── Process each message ─────────────────────────────────────
   for (const msg of messages) {
-    if (msg.type !== 'text' || !msg.text?.body) continue
+    // Botones e interactivos son texto; audio y foto se contestan (ASM-013).
+    const body = textoDelEntrante(msg)
+    const sinTexto = body == null && esMensajeSinTexto(msg)
+    if (!body && !sinTexto) continue
     const from = msg.from  // already E.164 without '+', e.g. "521234567890"
-    const body = msg.text.body.trim()
 
     // Idempotencia: 360dialog puede reentregar el mismo wamid. Fail-open.
     const { nuevo } = await marcarProcesado(msg.id)
     if (!nuevo) continue
 
     try {
-      await handleMessage(from, body, clinicId)
+      if (body) await handleMessage(from, body, clinicId)
+      else await manejarMensajeSinTexto(from, String(msg.type ?? ''), clinicId)
     } catch (err) {
       safeLog.error(`[360dialog webhook] handleMessage error for ${telefonoRedactado(from)}:`, err)
     }

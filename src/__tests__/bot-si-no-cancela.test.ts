@@ -36,9 +36,10 @@ const cron = leer('src', 'app', 'api', 'cron', 'reminders', 'route.ts')
 
 describe('cada pregunta tiene su propio estado', () => {
   it('preguntar «¿la cancelo?» deja la sesión en confirmando_cancelacion', () => {
-    // Las dos vías de cancelación: la cita única y la elegida de una lista.
+    // Las tres vías de cancelación: la cita única, la elegida de una lista y
+    // el «CAMBIAR» al recordatorio (ASM-012), que pregunta antes de cancelar.
     const veces = (webhook.match(/estado: 'confirmando_cancelacion'/g) ?? []).length
-    expect(veces, 'las dos preguntas de cancelación deben usar el estado propio').toBe(2)
+    expect(veces, 'las tres preguntas de cancelación deben usar el estado propio').toBe(3)
   })
 
   it('el recordatorio sigue usando confirmando_cita', () => {

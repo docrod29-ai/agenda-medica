@@ -33,10 +33,19 @@
  *
  * ── LO QUE NO DECIDE ─────────────────────────────────────────────────────────
  *
- * - No pone `venceEn`. Cuánto puede esperar una pregunta escalada es política
- *   del consultorio, y una fecha inventada se pintaría en rojo como «venció».
+ * - No INVENTA `venceEn`. Cuánto puede esperar una pregunta escalada es
+ *   política del consultorio (`NEEDS_CLINICAL_REVIEW`): sólo lo pone si el
+ *   consultorio declaró `horasParaContestarPreguntas` en su configuración. Sin
+ *   esa cifra, la tarea escala por otra vía que no necesita número: una
+ *   pregunta de paciente SIN DUEÑO escala en el acto (`debeEscalar`,
+ *   Panel de Lujo RT-006), y por eso nace con dueño cuando el llamador lo sabe.
  * - No cambia el texto que ve el paciente ni el clasificador: siguen siendo
  *   los de `pregunta-del-paciente.ts`, con sus fixtures.
+ *
+ * ── EL TÍTULO ES LO QUE DIJO EL PACIENTE (Panel de Lujo PO-005) ────────────────
+ * Antes el título describía el estado del plan («todavía no tiene ninguna
+ * consulta liberada») y la frase del paciente iba al final de la tarjeta. Ahora
+ * el título son sus primeras palabras y el motivo es el subtítulo.
  */
 import { pesoDeUrgencia, type TareaClinica, type Prioridad } from './modelo'
 import { MOTIVO_ESCALACION_LABEL, type MotivoEscalacion } from '@/lib/paciente/pregunta-del-paciente'
@@ -61,6 +70,17 @@ function etiquetaDelMotivo(motivo: MotivoUrgencia | MotivoEscalacion | null): st
   return String(motivo)
 }
 
+/** Cuántas palabras del paciente caben en el título antes de recortar. */
+export const TOPE_TITULO = 70
+
+export function tituloDeLaPregunta(texto: string): string {
+  const t = String(texto ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return 'Pregunta del paciente'
+  if (t.length <= TOPE_TITULO) return `«${t}»`
+  const corte = t.lastIndexOf(' ', TOPE_TITULO)
+  return `«${t.slice(0, corte > 30 ? corte : TOPE_TITULO).trim()}…»`
+}
+
 export interface PreguntaEscalada {
   clinicId: string
   patientId: string
@@ -72,6 +92,16 @@ export interface PreguntaEscalada {
   texto: string
   /** ISO de cuándo se recibió. Se pasa, no se lee del reloj. */
   ahoraIso: string
+  /** Por dónde entró: `ORIGEN_PREGUNTA` (portal) u otro canal. */
+  origen?: string
+  /** Quién responde. Nace con dueño cuando el llamador lo sabe (RT-006). */
+  ownerUid?: string
+  ownerNombre?: string
+  /**
+   * Plazo declarado por el consultorio, en horas. Sin él NO se inventa
+   * `venceEn`; la tarea escala por «sin dueño» hasta que alguien la tome.
+   */
+  horasParaContestar?: number | null
 }
 
 /**
@@ -89,17 +119,26 @@ export function tareaDeUnaPregunta(p: PreguntaEscalada): Omit<TareaClinica, 'id'
     clinicId: p.clinicId,
     patientId: p.patientId,
     tipo: 'pregunta_paciente',
-    titulo: `Pregunta del paciente: ${etiquetaDelMotivo(p.motivo)}`,
-    detalle: p.texto,
+    titulo: tituloDeLaPregunta(p.texto),
+    detalle: `Pregunta del paciente: ${etiquetaDelMotivo(p.motivo)}`,
     prioridad,
     pesoUrgencia: pesoDeUrgencia(prioridad),
     estado: 'solicitada',
     creadaEn: p.ahoraIso,
-    origen: ORIGEN_PREGUNTA,
+    origen: p.origen || ORIGEN_PREGUNTA,
     preguntaId: p.preguntaId,
   }
   // `undefined` revienta en Firestore («Unsupported field value»): sólo se
-  // añade el nombre si viene.
+  // añade lo que viene.
   if (p.patientNombre) tarea.patientNombre = p.patientNombre
+  if (p.ownerUid) {
+    tarea.ownerUid = p.ownerUid
+    if (p.ownerNombre) tarea.ownerNombre = p.ownerNombre
+  }
+  const horas = Number(p.horasParaContestar)
+  if (Number.isFinite(horas) && horas > 0) {
+    const t = Date.parse(p.ahoraIso)
+    if (Number.isFinite(t)) tarea.venceEn = new Date(t + horas * 3_600_000).toISOString()
+  }
   return tarea
 }
