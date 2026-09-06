@@ -81,6 +81,12 @@ falla y en reposo pasa; **comprobado en la rama base sin mis cambios**: falla un
 corrida y pasa la siguiente. No es una regresión de esta rebanada, pero conviene
 que alguien la haga determinista (un `fetch` inyectado en vez de la red real).
 
+Lo mismo, por otra razón, con
+`src/__tests__/un-antibiotico-no-se-convierte-en-otro.test.ts` → «ninguno de los
+126 desaparece y sale otro en su lugar»: tarda ~20 s en reposo y pasa; con la
+máquina compartida entre varias rebanadas llega a 38 s y se cae por tiempo.
+También pasa sola.
+
 ## 7. Lo que ninguna prueba de esta rebanada puede afirmar
 
 * **Que el dato LLEGUE a Firestore.** Las adendas de la carta de referencia y de

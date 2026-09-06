@@ -530,14 +530,6 @@ export default function GeneradorOrdenPage() {
   const sinCedula = !!config && !config.cedulaProfesional?.trim()
 
   /**
-   * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
-   *
-   * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
-   * qué ahí y no en la nota ni en una colección nueva). Idempotente por
-   * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
-   * documento inmutable.
-   */
-  /**
    * SI LA ORDEN CAMBIA, ES OTRA ORDEN.
    *
    * `asentada` evita enmendar dos veces la misma nota por el mismo papel (un
@@ -551,6 +543,14 @@ export default function GeneradorOrdenPage() {
     claveAsiento.current = null
   }, [estudios])
 
+  /**
+   * MO-005 — LA ORDEN EMITIDA QUEDA EN EL EXPEDIENTE.
+   *
+   * Se asienta como adenda de la nota firmada (ver `orden-emitida.ts` para por
+   * qué ahí y no en la nota ni en una colección nueva). Idempotente por
+   * `claveDeIntento`: reimprimir la misma orden no enmienda dos veces un
+   * documento inmutable.
+   */
   const asentarOrden = async (formato: 'impresa' | 'pdf' | 'word') => {
     if (!clinicId || !estudios.length) return
     if (nota?.estado !== 'firmada') return   // sin nota firmada no hay dónde asentar; la pantalla lo dice

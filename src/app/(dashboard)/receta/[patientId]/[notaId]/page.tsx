@@ -198,16 +198,6 @@ export default function GeneradorRecetaPage() {
   const pesoDeLaNota = nota?.signosVitales?.peso
 
   /**
-   * EL PESO QUE FALTA SE DICE — MP-007.
-   *
-   * Vive FUERA del memo a propósito: antes `esPediatrico` y `pesoParaDosis`
-   * eran variables internas del `useMemo`, así que ninguna rama de render podía
-   * leerlas y el aviso de peso ausente no existía ni podía existir. La receta
-   * avisaba por la edad (REG-524) y callaba por el peso, con el mismo modo de
-   * fallo: sin peso, la comprobación mg/kg no corre y la ausencia de alerta se
-   * lee como dosis revisada.
-   */
-  /**
    * EMBARAZO Y LACTANCIA — MG-002.
    *
    * Esta pantalla revisaba unidad, mg/kg, techos, alergias, duplicidad,
@@ -232,6 +222,16 @@ export default function GeneradorRecetaPage() {
   /** N-022 — lo vigente del expediente que todavía no está en la receta de hoy. */
   const porRenovar = medicamentosARenovar(vigentes, medicamentos)
 
+  /**
+   * EL PESO QUE FALTA SE DICE — MP-007.
+   *
+   * Vive FUERA del memo a propósito: antes `esPediatrico` y `pesoParaDosis`
+   * eran variables internas del `useMemo`, así que ninguna rama de render podía
+   * leerlas y el aviso de peso ausente no existía ni podía existir. La receta
+   * avisaba por la edad (REG-524) y callaba por el peso, con el mismo modo de
+   * fallo: sin peso, la comprobación mg/kg no corre y la ausencia de alerta se
+   * lee como dosis revisada.
+   */
   const esPediatrico = edadPaciente != null && edadPaciente < 18
   const pesoDosis = pesoParaDosificar(esPediatrico, pesoDeLaNota, pesoKg)
   const pesoParaDosis = pesoDosis.peso
