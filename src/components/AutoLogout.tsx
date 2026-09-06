@@ -157,9 +157,9 @@ export function AutoLogout() {
   if (!avisando) return null
 
   return (
-    <div style={{
+    <div className="nx-dialogo-telon" style={{
       position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.55)',
-      backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div
         ref={cajaRef}
@@ -168,6 +168,7 @@ export function AutoLogout() {
         aria-labelledby={tituloId}
         aria-describedby={textoId}
         tabIndex={-1}
+        className="nx-dialogo-panel"
         style={{
           width: '100%', maxWidth: 380, background: 'var(--s1)', border: '1px solid var(--border)',
           borderRadius: 16, padding: 26, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.35)',

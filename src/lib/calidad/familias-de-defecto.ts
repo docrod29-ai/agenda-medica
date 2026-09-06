@@ -986,7 +986,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro, y la pantalla no se podía usar. El patrón es el mismo que el del
      * aviso que interrumpe: correcto en su intención, intolerable en su efecto.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517],
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518],
   },
   {
     clave: 'perdida',

@@ -1279,7 +1279,9 @@ main:has(.nx-lienzo-completo) > .page-transition {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  /* El acolchado respeta la muesca y la barra inferior del teléfono. Ver REG-518. */
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   animation: nx-overlay-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes nx-overlay-in {
@@ -1304,6 +1306,45 @@ main:has(.nx-lienzo-completo) > .page-transition {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* ── UN DIÁLOGO NUNCA SE COME SU PROPIA SALIDA — REG-518 ─────────────────────
+   `.modal` (arriba) ya lo resuelve para todo lo que puede ser un `<Modal>`.
+   Pero el producto tiene diálogos que NO pueden serlo —el aviso de cierre de
+   sesión, el tour de bienvenida, el panel de ayuda— y cada uno se dibujaba a
+   mano, sin tope de alto. Con contenido que crece, el panel pasa de largo la
+   pantalla y sus botones quedan fuera de alcance.
+
+   No es incomodidad: en un diálogo MODAL no hay otra cosa que tocar. Lo
+   encontró el dueño en su iPhone, en el diálogo de FIRMAR (REG-517), y al
+   auditar el resto aparecieron tres más con la misma herida.
+
+   Dos clases, para no volver a escribirlo cuatro veces:
+     · `.nx-dialogo-telon` — el fondo, con el área segura respetada;
+     · `.nx-dialogo-panel` — la caja, columna con tope en `dvh`.
+   El contenido que puede crecer se marca con `.nx-dialogo-cuerpo`, y la fila de
+   botones queda FUERA de ese scroll con `.nx-dialogo-pie`.
+
+   `dvh` y no `vh`: en Safari de iPhone `100vh` es la altura con la barra del
+   navegador OCULTA, siempre mayor que lo que hay delante — justo el trozo donde
+   caen los botones. */
+.nx-dialogo-telon {
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+           max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+}
+.nx-dialogo-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+}
+.nx-dialogo-cuerpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nx-dialogo-pie { flex: 0 0 auto; }
+
 .modal-header {
   padding: 20px 24px 14px;
   border-bottom: 1px solid var(--border);

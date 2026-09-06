@@ -113,17 +113,18 @@ export function OnboardingTour({ enabled }: { enabled: boolean }) {
       aria-modal="true"
       aria-label="Bienvenida a Ausculta"
       onClick={cerrar}
+      className="nx-dialogo-telon"
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
       <div
         ref={tarjetaRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="nx-tour-card"
+        className="nx-tour-card nx-dialogo-panel"
         style={{
           width: '100%', maxWidth: 420, background: 'var(--s1)',
           border: '1px solid var(--border)', borderRadius: 18,
