@@ -370,6 +370,11 @@ function conLaEdadAlDia(p: Patient | null): Patient | null {
  * rótulo: una plantilla nueva que quiera aparecer en la hoja se añade aquí a
  * propósito, y ninguna aparece por accidente.
  */
+/** Cómo se llama cada signo cuando hay que nombrarlo en una frase (ASN-012). */
+const ETIQUETA_DE_SIGNO: Record<string, string> = {
+  ta: 'TA', fc: 'FC', fr: 'FR', temperatura: 'Temperatura', spo2: 'SpO₂', peso: 'Peso', talla: 'Talla',
+}
+
 const CLAVES_DE_INDICACIONES: readonly string[] = ['planPostop', 'signosAlarma', 'indicacionesAlta', 'indicacionesEgreso', 'planTratamiento', 'plan']
 
 export default function ConsultaActivaPage() {
@@ -867,6 +872,25 @@ export default function ConsultaActivaPage() {
   const pesoBloqueado = !revisionDelPeso.ok && !pesoConfirmado
   /** El peso que sale de la pantalla hacia los motores por kilo. */
   const pesoParaDosis = pesoBloqueado ? undefined : (signosNum.peso ?? undefined)
+
+  /** Los signos tal como venían de la nota guardada (línea base de ASN-012). */
+  const signosGuardadosRef = useRef<Record<string, unknown>>({})
+  const [motivoDeCorreccion, setMotivoDeCorreccion] = useState('')
+  const [correccionesRegistradas, setCorreccionesRegistradas] = useState(0)
+  /**
+   * ── QUÉ SIGNO YA GUARDADO SE ESTÁ CAMBIANDO (ASN-012) ─────────────────────
+   *
+   * Sólo cuenta lo que YA tenía valor en la nota guardada: capturar por primera
+   * vez no es corregir. `correccionesRegistradas` fuerza el recálculo cuando la
+   * constancia se deja en la nota y la línea base se mueve.
+   */
+  const correccionesDeSignos = useMemo(() => {
+    const base = signosGuardadosRef.current
+    return (['ta', 'fc', 'fr', 'temperatura', 'spo2', 'peso', 'talla'] as const)
+      .map(k => ({ campo: k, antes: String(base[k] ?? '').trim(), despues: String((signos as Record<string, unknown>)[k] ?? '').trim() }))
+      .filter(c => c.antes !== '' && c.antes !== c.despues)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signos, correccionesRegistradas])
 
   /** Lo que hay que preguntarle al médico sobre lo que acaba de capturar (ASN-002). */
   const avisosDeSignos = useMemo(
@@ -2353,6 +2377,16 @@ export default function ConsultaActivaPage() {
        */
       setSecciones(seccionesSanas(n.secciones))
       setSignos(n.signosVitales ?? {})
+      /**
+       * ASN-012 — LA LÍNEA BASE DE LOS SIGNOS YA GUARDADOS.
+       *
+       * Corregir un signo que ya está en el expediente no es capturarlo: es
+       * cambiar un dato que alguien más (la enfermera, o uno mismo hace una
+       * hora) escribió. En Hospital eso pide motivo y se pinta en ámbar desde
+       * C-5; en Practice no existía, y es justo donde dos personas tocan el
+       * mismo campo.
+       */
+      signosGuardadosRef.current = { ...(n.signosVitales ?? {}) } as Record<string, unknown>
       setDiagnosticos(diagnosticosSanos(n.diagnosticos))
       setMedicamentos(medicamentosSanos(n.medicamentos))
       setResumen(n.resumenEjecutivo ?? '')
@@ -7238,6 +7272,67 @@ export default function ConsultaActivaPage() {
           )}
 
           {/*
+            ── CORREGIR UN SIGNO YA GUARDADO DEJA RASTRO (ASN-012) ───────────
+            En Hospital, cambiar un valor ya asentado pide motivo y se pinta en
+            ámbar (C-5). En Practice no existía —y el consultorio es justo donde
+            la enfermera y el médico tocan el mismo campo—. No bloquea: pide el
+            motivo y deja la constancia DENTRO de la nota, que es el único sitio
+            donde sobrevive y se puede leer dentro de seis meses.
+          */}
+          {!firmada && correccionesDeSignos.length > 0 && (
+            <div style={{
+              marginTop: 10, borderRadius: 10, padding: '10px 12px',
+              border: '1px solid color-mix(in srgb, var(--amber) 35%, transparent)',
+              background: 'color-mix(in srgb, var(--amber) 8%, transparent)',
+            }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)' }}>
+                {correccionesDeSignos.length === 1
+                  ? 'Estás corrigiendo un signo que ya estaba guardado'
+                  : `Estás corrigiendo ${correccionesDeSignos.length} signos que ya estaban guardados`}
+              </div>
+              <ul style={{ margin: '6px 0 8px', paddingLeft: 18, fontSize: 12, color: 'var(--text2)', lineHeight: 1.55 }}>
+                {correccionesDeSignos.map(c => (
+                  <li key={c.campo}>{ETIQUETA_DE_SIGNO[c.campo]}: {c.antes} → {c.despues || '(sin valor)'}</li>
+                ))}
+              </ul>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  value={motivoDeCorreccion}
+                  onChange={e => setMotivoDeCorreccion(e.target.value)}
+                  placeholder="Motivo (ej. se volvió a tomar con brazalete adecuado)"
+                  aria-label="Motivo de la corrección de signos vitales"
+                  style={{ ...S.input, flex: 1, minWidth: 220 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                    const quien = identidadFirma.nombre || 'el médico de esta consulta'
+                    const texto = correccionesDeSignos
+                      .map(c => `${ETIQUETA_DE_SIGNO[c.campo]}: ${c.antes} → ${c.despues || 'sin valor'}`)
+                      .join('; ')
+                      + `. Corrección hecha a las ${hora} por ${quien}`
+                      + (motivoDeCorreccion.trim() ? `; motivo: ${motivoDeCorreccion.trim()}.` : '; sin motivo declarado.')
+                    if (agregarASeccion('correccionDeSignos', 'Correcciones de signos vitales')(texto)) {
+                      signosGuardadosRef.current = { ...(signos as Record<string, unknown>) }
+                      setMotivoDeCorreccion('')
+                      setCorreccionesRegistradas(n => n + 1)
+                    }
+                  }}
+                  className="nx-acc-caja"
+                  style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text2)', background: 'none', cursor: 'pointer' }}
+                >
+                  Dejar constancia en la nota
+                </button>
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 6, lineHeight: 1.45 }}>
+                El motivo no es obligatorio: sin él la constancia dice «sin motivo declarado», que
+                también es información. Lo que no puede pasar es que el cambio no conste.
+              </div>
+            </div>
+          )}
+
+          {/*
             ── EL ALTO EN SECO DEL PESO (MP-006 · REG-013) ───────────────────
             Mientras el peso no esté confirmado NO se calcula nada por kilo, y
             se dice que no se está calculando. No se corrige el valor: se
@@ -7450,12 +7545,31 @@ export default function ConsultaActivaPage() {
 
       {/* ── Medicamentos ── */}
       <Section id="seccion-medicamentos" title="Medicamentos / Plan farmacológico" icon={<Pill size={15} />}>
+        {/*
+          ── LOS CAMPOS TIENEN NOMBRE, NO SÓLO MARCADOR (D-005) ───────────────
+          El marcador de posición desaparece con el primer carácter: con la fila
+          llena, ni el médico ni un lector de pantalla saben cuál es la dosis y
+          cuál la frecuencia. Un encabezado UNA vez encima de la lista (no en
+          cada fila: eso sería ruido) y `aria-label` por campo, que es lo que
+          anuncia el lector. La fila no cambia de forma.
+        */}
+        {medicamentos.length > 0 && (
+          <div aria-hidden="true" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
+            <span style={{ flex: 2, minWidth: 120 }}>Medicamento</span>
+            <span style={{ flex: 1, minWidth: 70 }}>Dosis</span>
+            <span style={{ flex: 1, minWidth: 92 }}>Vía</span>
+            <span style={{ flex: 1, minWidth: 90 }}>Frecuencia</span>
+            <span style={{ flex: 1, minWidth: 80 }}>Duración</span>
+          </div>
+        )}
         {medicamentos.map((m, i) => (
           <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
+              aria-label={`Medicamento ${i + 1}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
               style={{ ...S.input, flex: 2, minWidth: 120 }} />
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
+              aria-label={`Dosis${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
             {/*
@@ -7496,9 +7610,11 @@ export default function ConsultaActivaPage() {
               <option value="otra">Otra</option>
             </select>
             <input value={m.frecuencia} disabled={firmada} placeholder="Frecuencia"
+              aria-label={`Frecuencia${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, frecuencia: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 90 }} />
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
+              aria-label={`Duración${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
             {!firmada && (
