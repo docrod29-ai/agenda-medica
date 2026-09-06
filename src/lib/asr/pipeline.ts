@@ -40,6 +40,7 @@ import { verificar, type Violacion } from '@/lib/asr/guardian-sustituciones'
 import { normalizar, type CambioNormalizacion } from '@/lib/asr/normalizacion'
 import { normalizarSiglas, type CambioSigla } from '@/lib/asr/siglas'
 import type { MotivoConfirmacion } from '@/lib/asr/politica-critica'
+import { contradiccionesDeLateralidad, type ContradiccionDeLado } from '@/lib/asr/lateralidad'
 
 export interface EtapaTexto {
   /** Nombre de la etapa, para poder auditar dónde cambió qué. */
@@ -68,6 +69,12 @@ export interface ResultadoPipeline {
   cambiosSiglas: CambioSigla[]
   /** Lo que hay que enseñarle al médico. */
   alertas: AlertaDictado[]
+  /**
+   * Contradicciones de lado DENTRO del dictado (MO-001/MO-002): la misma región
+   * con los dos lados, o «perdón / corrijo» junto a un lado. Van aparte de las
+   * violaciones porque no las produjo ninguna etapa: las dijo el médico.
+   */
+  contradiccionesDeLado: ContradiccionDeLado[]
   /** Gate de ambigüedad: por qué hay que preguntarle. Vacío = no hay que preguntar. */
   motivos: MotivoConfirmacion[]
   requiereConfirmacion: boolean
@@ -121,12 +128,27 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
   }
   if (vig.dosisRotas.length > 0) motivos.add('dosis_o_unidad_ambigua')
 
+  // ── 5-bis. Lateralidad contradictoria en el propio dictado ─────────────
+  // El corrector no toca «derecho» ni «izquierdo», así que el motivo de
+  // lateralidad sólo podía salir de una etapa que nunca lo producía. Aquí se
+  // mira lo que el médico DIJO: dos lados para la misma región, o una
+  // retractación. No se decide cuál vale; se pregunta.
+  const contradiccionesDeLado = contradiccionesDeLateralidad(texto)
+  if (contradiccionesDeLado.length > 0) motivos.add('lateralidad_contradictoria')
+
   const alertas: AlertaDictado[] = [
     ...alertasDe(vig),
     ...roto.map((v): AlertaDictado => ({
       tipo: 'sustitucion',
       titulo: `La normalización alteró «${v.antes}»`,
       detalle: `${v.mensaje} Se conservó el texto anterior a esa etapa.`,
+    })),
+    ...contradiccionesDeLado.map((c): AlertaDictado => ({
+      tipo: 'lateralidad',
+      titulo: c.region
+        ? `Se dictaron ${c.lados.length > 1 ? 'los dos lados' : 'un lado con corrección'} para ${c.region}`
+        : 'Se dictó una corrección de lado',
+      detalle: `«${c.frase}». Se conserva el último dictado (${c.ultima}); confirma el lado antes de firmar.`,
     })),
   ]
 
@@ -140,6 +162,7 @@ export function procesarTranscript(crudo: string): ResultadoPipeline {
     cambiosLexicos: vig.cambios,
     cambiosNormalizacion: num.cambios,
     cambiosSiglas: sig.cambios,
+    contradiccionesDeLado,
     alertas,
     motivos: [...motivos],
     requiereConfirmacion: motivos.size > 0,

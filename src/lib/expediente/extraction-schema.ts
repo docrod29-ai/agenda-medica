@@ -125,6 +125,71 @@ export const AlergiaAuditada = z.object({
 })
 export type AlergiaAuditada = z.infer<typeof AlergiaAuditada>
 
+/**
+ * ESTUDIO SOLICITADO EN EL DICTADO — estructurado (Panel de Lujo, MO-004).
+ *
+ * «Solicito radiografía AP y lateral de tobillo izquierdo» no llegaba a ningún
+ * sitio: la extracción devolvía resumen, secciones, diagnósticos, medicamentos,
+ * alergias y signos — sin estudios. `estudiosOrden` sólo lo llenaba la
+ * valoración del inmunocomprometido, y con receta y sin estudios la consulta se
+ * iba directo a la receta: la orden se quedaba en el tintero.
+ *
+ * Región, lateralidad y proyección van APARTE del nombre porque son lo que el
+ * ortopedista revisa antes de firmar una orden de imagen, y porque la
+ * lateralidad se coteja contra el dictado con un motor (`lateralidad.ts`).
+ * `soloPropuesto` es la marca del modelo; el motor `estudiosSoloPropuestos` la
+ * vuelve a comprobar de forma determinista sobre la transcripción.
+ */
+export const EstudioSolicitado = z.object({
+  nombre:       z.string(),
+  tipo:         z.enum(['laboratorio', 'imagen', 'otro']).optional().default('otro'),
+  region:       z.string().optional().default(''),
+  lateralidad:  z.enum(['derecho', 'izquierdo', 'bilateral', '']).optional().default(''),
+  proyeccion:   z.string().optional().default(''),
+  indicacion:   z.string().optional().default(''),
+  /** El modelo lo oyó como posibilidad («si no mejora, pedimos…»), no como orden. */
+  soloPropuesto: z.boolean().optional().default(false),
+  confidence:   Confianza.optional().default('baja'),
+  source_quote: z.string().optional().default(''),
+  speaker:      Hablante.optional().default('desconocido'),
+  needs_review: z.boolean().optional().default(true),
+  reason:       z.string().optional().default(''),
+})
+export type EstudioSolicitado = z.infer<typeof EstudioSolicitado>
+
+/**
+ * El renglón que va a `estudiosOrden` (la orden impresa) a partir del estudio
+ * estructurado: «Radiografía AP y lateral de tobillo izquierdo». Puro.
+ */
+export function textoDeEstudioSolicitado(e: EstudioSolicitado): string {
+  const partes = [e.nombre.trim()]
+  if (e.proyeccion.trim()) partes.push(e.proyeccion.trim())
+  if (e.region.trim()) partes.push(`de ${e.region.trim()}`)
+  if (e.lateralidad) partes.push(e.lateralidad)
+  return partes.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * Los estudios que SÍ van a la orden: los que el modelo no marcó como sólo
+ * propuestos. Los propuestos se devuelven aparte para que la pantalla los
+ * pregunte por el canal de `estudio_solo_propuesto`. No decide nada clínico:
+ * sólo separa lo dicho como orden de lo dicho como posibilidad.
+ */
+export function estudiosParaLaOrden(estudios: readonly EstudioSolicitado[]): { orden: string[]; propuestos: string[] } {
+  const orden: string[] = []
+  const propuestos: string[] = []
+  const vistos = new Set<string>()
+  for (const e of estudios) {
+    const t = textoDeEstudioSolicitado(e)
+    if (!t) continue
+    const k = t.toLowerCase()
+    if (vistos.has(k)) continue
+    vistos.add(k)
+    ;(e.soloPropuesto ? propuestos : orden).push(t)
+  }
+  return { orden, propuestos }
+}
+
 /** Bloque de seguridad/trazabilidad global. */
 export const SafetyBlock = z.object({
   /**
@@ -201,6 +266,22 @@ export const SafetyBlock = z.object({
    * la opinión del modelo, y como tal se guarda: útil para contrastar las dos.
    */
   dictamen: z.string().optional().default(''),
+  /**
+   * LAS CORRECCIONES DE AUDIO QUE HIZO EL MODELO, DECLARADAS (Panel de Lujo, MO-001).
+   *
+   * La regla G del prompt autorizaba escribir «directamente el término
+   * correcto, sin mostrar el error». Eso es una corrección que el médico no
+   * puede ver ni deshacer — regla 3 de seguridad clínica. Ahora el modelo sigue
+   * escribiendo el término correcto en la prosa (la nota no es un reporte del
+   * audio), pero DECLARA cada corrección aquí, para que la pantalla la enseñe
+   * junto a las del corrector léxico y el médico pueda revertirla. Lateralidad
+   * y negación no entran nunca: ésas no se corrigen; se preguntan.
+   */
+  correcciones_de_audio: z.array(z.object({
+    oido:      z.string().optional().default(''),
+    escrito:   z.string().optional().default(''),
+    ubicacion: z.string().optional().default(''),
+  })).optional().default([]),
 })
 export type SafetyBlock = z.infer<typeof SafetyBlock>
 
@@ -328,6 +409,9 @@ export const RespuestaExtraccion = z.object({
    * Esquema permisivo (record) porque los campos crecen con el tiempo.
    */
   preopInputs: z.record(z.string(), z.unknown()).optional(),
+
+  /** Estudios solicitados en el dictado (MO-004). Alimentan `estudiosOrden` tras revisión. */
+  estudiosSolicitados: z.array(EstudioSolicitado).optional().default([]),
 
   safety: SafetyBlock.optional(),
 })
