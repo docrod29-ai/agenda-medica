@@ -1,0 +1,127 @@
+{
+  "auditor": "M-pediatra",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "MP-001",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:353 (`function conLaEdadAlDia`) y :1967 (`.then(p => { setPatient(conLaEdadAlDia(p)); ... })`); prueba src/__tests__/la-edad-de-la-consulta-no-es-una-foto-vieja.test.ts:96-99 («con la edad al día, la compuerta pediátrica puede encenderse»)",
+      "nota": "La premisa central es falsa: el `patient` que leen las líneas 744/855/1083/7075 NO es el del expediente, sino el que devolvió `conLaEdadAlDia(p)`, que reemplaza `edad` por `edadEnAnios(fechaNacimiento)` cuando la fecha existe. Variante 1 (alta pública con fechaNacimiento y sin `edad`): la edad se deriva y el panel, el copiloto y las vacunas se encienden. Variante 2 (registrado a los 17, dos años después): `derivada !== p.edad` ⇒ se sustituye por 19 y el panel pediátrico NO aparece. Sólo queda en pie el caso sin fecha Y sin edad, donde la consulta no pinta el aviso ámbar que sí tiene la receta: eso es un hueco real pero es P3 y no es lo que dice el título del hallazgo."
+    },
+    {
+      "id": "MP-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:855 `vacunasSegunEdad(Math.round(patient.edad * 12))` vs src/components/PanelPediatria.tsx:41 `edadEnMeses(fechaNacimiento, hoy)`",
+      "nota": "`conLaEdadAlDia` (que refuta MP-001) NO salva a éste: deriva AÑOS, y un lactante de 11 meses queda en `edad: 0`. Medido con jiti sobre el motor puro: `vacunasSegunEdad(0).filter(estado==='atrasada').length = 0`; `vacunasSegunEdad(11) = 12`; `vacunasSegunEdad(36) = 16`. La barra calla exactamente en la franja con más vacunas y el panel, abierto a mano, dice otra cifra."
+    },
+    {
+      "id": "MP-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/copiloto.ts:288 `FARMACOS_PED.find(x => nm.includes(norm(x.nombre)) || norm(x.nombre).includes(nm))` y :290 `calcularDosisPediatrica(f, peso)`; src/lib/expediente/pediatria.ts:67-70 (la entrada neonatal lleva `edadMinimaMeses: 0` y ninguna edad máxima); :149-165 (el único filtro por edad es `edadMinimaMeses`)",
+      "nota": "Reproducido con jiti: para `nm='gentamicina'` el matcher devuelve literalmente «Gentamicina neonatal (≤7 días)», y `calcularDosisPediatrica(neonatal, 20, 96)` devuelve `porToma {min:50,max:50}` — la edad de 8 años no la descarta porque `edadMinimaMeses: 0` la deja pasar. Con 140 mg recetados (7 mg/kg, dentro del tope real de 7.5) sale `excede` ⇒ nivel `critico`. El comentario de pediatria.ts:65-66 («el matcher por edad la prefiera; calcularDosisPediatrica elige por edadMeses») describe una selección que no existe en el código: es «escrito y sin conectar»."
+    },
+    {
+      "id": "MP-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "docs/audit/regression-ledger.md:59 (REG-043, estado literal «**OPEN** — estructura lista, faltan los datos del Dr.»); src/__tests__/dosis-invariantes-property.test.ts:621 `expect(sinReferencia.length).toBe(20)`; src/lib/seguridad/dosis-de-la-lista.ts:96 `.filter(a => a.codigo !== 'sin_referencia')`",
+      "nota": "REG-043 verificado OPEN en el ledger, no cerrado — no aplica la refutación por «ya cerrado». Medido con jiti: `FARMACOS_PED.filter(f => buscarFarmaco(f.nombre) == null).length = 20` de 25; y `dosisPeligrosasDeLaLista` devuelve `[]` para «Prednisona 500 mg c/24 h» (15 a, 60 kg), «Ondansetrón 80 mg c/8 h» (6 a, 20 kg) y «Azitromicina 2 g c/24 h» (1 a, 8 kg). La aportación del auditor sobre el ledger es real: la entrada de REG-043 está redactada «al prescribirlos a un ADULTO», y el silencio es idéntico en el niño con peso capturado."
+    },
+    {
+      "id": "MP-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P0",
+      "evidencia": "src/lib/seguridad/dosis.ts:476 `if (RE_VOLUMEN.test(t)) return 'volumen'` + :504-522 (`revisarUnidadDosis` sólo alerta en `sin_cifra` y `sin_unidad`) + :305 (volumen ⇒ `extraerMg` null); src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:230-231 `const mg = extraerMg(m.dosis); if (mg == null) continue`; src/lib/receta-word.ts:107; src/components/RecetaDocumento.tsx:512; src/lib/paciente/como-se-lo-explico.ts:121 (vía src/lib/paciente/paquete-de-visita.ts:328)",
+      "nota": "Seguido el camino entero y NO hay defensa en ningún tramo. `grep -rn \"concentracion|presentacion|mg/mL|mg/5\" src/` sólo devuelve: dimensiones de laboratorio (types/clinical-quantity.ts), la biblioteca de infusiones de UCI (infusion-library.ts, otro modelo y en módulo pausado D-030) y el campo `presentacion` del INVENTARIO de farmacia (app/(dashboard)/farmacia/page.tsx:460, «Caja con 12») — ninguno toca `Medicamento` ni la receta. `Medicamento` (src/types/expediente.ts:121-128) no tiene campo de concentración. Reproducción sintética exacta, medida con jiti: `{ nombre: 'Amoxicilina', dosis: '5 mL', via: 'oral', frecuencia: 'cada 8 horas', duracion: '7 días' }` en la nota de un preescolar de 12 kg ⇒ `claseDeUnidad('5 mL') = volumen`; `revisarUnidadDosis('Amoxicilina','5 mL') = null`; `extraerMg('5 mL') = null`; `dosisPeligrosasDeLaLista([...], {edadAnios:4, pesoKg:12}) = []`; `comoTomarlo(...) = 'Amoxicilina · 5 mL · por la boca · cada 8 horas (3 veces al día) · durante 7 días'`. Es decir: cero avisos en la barra de consulta, cero en la receta, se imprime en Word y en PDF y llega literal al cuidador en el portal. Comprobado además que la forma correcta SÍ se distingue: `claseDeUnidad('250 mg/5 mL, 5 mL') = 'masa'`, así que la prueba propuesta por el auditor es implementable sin inventar cifras. P0 sostenido."
+    },
+    {
+      "id": "MP-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:6727 (los siete signos vitales, `['peso','Peso','kg']`, sin selector de unidad) y :6325 `pesoKg: signosNum.peso ?? undefined`; src/components/PanelPediatria.tsx:49 `revisarPesoPediatrico(pesoKg, pesoInicial)` con `pesoInicial={signosNum.peso}` (page.tsx:7083)",
+      "nota": "`grep -rn \"revisarPesoPediatrico|libraAKg\" src/ --include=*.ts --include=*.tsx` (sin tests) devuelve UN solo llamador de aplicación: PanelPediatria.tsx:48-49. Ni la barra de dosis de la consulta ni la receta pasan el peso por esa guarda. Y el «peso previo» del panel es el de HOY: medido, `revisarPesoPediatrico(20, 20) = {ok:true}`, así que la detección ×2.2 nunca puede disparar en el flujo normal (el campo se siembra con `pesoInicial`). REG-106 dice «cableada» y lo está — en una de las tres puertas por donde entra un peso."
+    },
+    {
+      "id": "MP-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:210-212 (`pesoParaDosis` puede quedar `undefined` en un pediátrico) y :755-765 (el único aviso ámbar es `origenEdad === 'desconocida'`)",
+      "nota": "`grep -n \"esPediatrico|pesoParaDosis\"` sobre la receta devuelve sólo las líneas 202/205/210/240: las dos variables viven DENTRO del `useMemo` de `alertasDosis` y no hay ninguna rama de render que las lea, así que no existe ni puede existir hoy un aviso de peso ausente. La asimetría con el aviso de edad (REG-524) es literal y del mismo modo de fallo."
+    },
+    {
+      "id": "MP-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/components/PanelPediatria.tsx:193-195 (`onAgregarANota` con el rango en texto) y src/app/(dashboard)/consulta/[patientId]/page.tsx:7084 `onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}`",
+      "nota": "Evidencia literal. `agregarASeccion` escribe en una sección de texto de la nota; no hay ninguna ruta de `PanelPediatria` a `setMedicamentos`. Es `friccion` con evidencia y lectura razonable (briefing §7): el motor que calcula no alimenta el papel que se firma, y por tanto tampoco al verificador."
+    },
+    {
+      "id": "MP-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/pediatria.ts:86-100 (`DosisCalculada` no tiene presentación ni volumen) y src/components/PanelPediatria.tsx:177-179",
+      "nota": "Mejora de producto con evidencia real; hermana estructural de MP-005 (sin tabla de presentaciones no hay conversión mg→mL determinista). Depende de datos que sólo puede aportar el dueño, por eso P3 y no más."
+    },
+    {
+      "id": "MP-010",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/fecha-local.ts:36 `const SOLO_FECHA = /^(\\d{4})-(\\d{2})-(\\d{2})$/` y :47 `new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))`",
+      "nota": "La REPRODUCCIÓN es falsa y la comprobé: `edadEnMeses('2020-13-40','2026-09-06') = 66`, no 0 — «2020-13-40» casa el regex de fecha suelta y `new Date(2020,12,40)` desborda a una fecha VÁLIDA (feb-2021), así que el panel no siembra un neonato. Sólo una cadena que ni siquiera parece fecha da 0: `edadEnMeses('no-es-fecha', ...) = 0`, que es lo que fija pediatria.test.ts:95-97. La asimetría que denuncia el auditor (`edadEnMeses` ⇒ 0 vs `edadEnAnios` ⇒ null, pediatria.ts:384 vs :391-399) SÍ existe, pero no encontré ninguna ruta de escritura que produzca esa cadena: `fechaNacimiento` entra por `<input type=\"date\">` y `grep -rn fechaNacimiento src/app/api/` sólo devuelve lecturas (public/booking:242, whatsapp/webhook:122). Se confirma el defecto latente, se refuta el caso y baja a P3."
+    },
+    {
+      "id": "MP-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/consulta/[patientId]/page.tsx:7078-7081 (`texto: '${n} vacuna(s) atrasada(s)', urgente: true` + `abrirPorDefecto`) frente a src/components/PanelPediatria.tsx:210 (badge «CORRESPONDE POR EDAD») y :282-286 (el comentario de la auditoría 2026-07 que quitó la palabra «atrasada»); src/lib/clinical/registry.ts:1838-1839 `fuente: 'pendiente_validacion_clinica'`",
+      "nota": "Contradicción literal dentro de la misma pantalla: la barra afirma «atrasadas» en rojo y urgente, el panel al abrirse dice que eso es sólo lo que corresponde por edad porque la app no tiene registro de aplicadas (`vacunasSegunEdad` se llama siempre sin `aplicadas`). Y ESQUEMA_MX no lleva edición ni fecha: la pregunta al médico ya está abierta en el registro de motores."
+    },
+    {
+      "id": "MP-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/oms-crecimiento.ts:20-21 «Cobertura: 0 a 60 meses … Para 5 a 19 años la OMS publica referencias distintas, NO incluidas aquí»; src/components/PanelPediatria.tsx:213-217 lo dice en ámbar al médico",
+      "nota": "Hueco declarado con honestidad y sin extrapolar (regla 5: vocabulario, no criterio). Es `mejora` de datos, no defecto de código; se confirma en P3 tal como lo puso el auditor y queda pendiente la decisión del dueño sobre qué referencia usar de 5 a 19 años."
+    },
+    {
+      "id": "MP-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/pregunta-del-paciente.ts:276 (`PREGUNTA_POR_TOMA`, que no contiene «cuantos» ni «le doy») y :423 `return escalar('no_esta_en_el_plan_liberado', true)`; evals/patient-ai/casos.json:54-55 (único caso con un menor)",
+      "nota": "El comportamiento es SEGURO y el propio auditor lo dice: no hay modelo de lenguaje (clasificador determinista, la clase la pone el servidor), «¿cuántos ml le doy?» no casa ninguna rama y cae en la escalación por omisión. Se confirma sólo como `mejora`/cobertura de fixture, con la evidencia comprobada: el fixture (29 casos) no tiene ni un cuidador preguntando por la dosis de un menor. No es P0 y el auditor no lo pretendió."
+    },
+    {
+      "id": "MP-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/types/index.ts:264-268 (`consentimientoGrabacion` sólo lleva `fecha` y `medicoId`; el comentario dice «Cuándo lo otorgó el paciente»); `grep -n \"tutor|responsable|representante|cuidador\" src/types/index.ts` no devuelve ningún campo en `Patient`; src/lib/expediente/templates.ts:105 `label: 'Declaración del paciente'`; src/app/mi/[token]/page.tsx:1071-1072 «el token del portal ata a UN paciente, sin concepto de cuidador»",
+      "nota": "Las cuatro piezas verificadas literalmente. El único `responsable` que existe en `types/index.ts` es el del aviso de privacidad (línea 510-517), no el tutor de un menor. El portal declara el hueco en vez de fingir el control, lo cual es correcto pero no lo cierra. P2 sostenido: es requisito de venta a pediatras y de la §8 de la regla de IA de cara al paciente, pero depende de decisiones del dueño."
+    },
+    {
+      "id": "MP-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/avisos-consulta.ts:135 `dosis_peligrosa: 'revisa'` y :502-511; src/lib/expediente/cuando-avisar.ts:59-70 (`esDePrescripcion` = ancla `medicamentos` ⇒ `alFirmar` lo excluye) y src/app/(dashboard)/consulta/[patientId]/page.tsx:3895-3906 (la llamada de `avisosParaFirmar` ni siquiera pasa `dosisPeligrosas`)",
+      "nota": "El hecho es cierto y la cita del auditor está MAL ubicada: la línea 6335-6336 que cita es el comentario de `pautas`, no de `dosisPeligrosas`. La exclusión real es doble y la localicé: el aviso está anclado a `medicamentos`, y `alFirmar` filtra por `!esDePrescripcion`. Se confirma como `friccion` de jerarquía (no de bloqueo: no bloquear es decisión del dueño del 5-ago, dosis-de-la-lista.ts:117-120) con la evidencia corregida."
+    },
+    {
+      "id": "MP-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/lib/expediente/copiloto.ts:290 `const d = calcularDosisPediatrica(f, peso)` — tercer argumento `edadMeses` ausente; src/lib/expediente/pediatria.ts:158 `if (f.edadMinimaMeses != null && edadMeses != null && edadMeses < f.edadMinimaMeses)`",
+      "nota": "Reproducido con jiti: `calcularDosisPediatrica(Ibuprofeno, 6)` (sin edad) devuelve `porToma {min:30,max:60}` y ningún `contraindicadoPorEdad`; `calcularDosisPediatrica(Ibuprofeno, 6, 3)` sí devuelve `contraindicadoPorEdad:true` con «No usar en menores de 6 meses». Y en la receta, `revisarDosis({farmaco:'Ibuprofeno', dosis:30 mg, tomasDia:3, peso:6 kg, via:'oral', edadAnios:0})` devuelve `[]`. Es decir: el motor está bien y sólo el panel le pasa la edad (PanelPediatria.tsx:58-61); el copiloto y la receta la tiran. Confirmado en P1."
+    },
+    {
+      "id": "MP-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/pacientes/campos-que-se-guardan.ts:100-101 (`fechaNacimiento` y `edad` se guardan los dos); src/app/(dashboard)/receta/[patientId]/[notaId]/page.tsx:294 `setPatient(ps)` (sin derivar) y :511 `pacienteEdad: patient?.edad`; src/lib/receta-word.ts:171 `${data.pacienteEdad ? ' · Edad: ' + ... : ''}`; src/components/RecetaDocumento.tsx:654 y :959",
+      "nota": "La receta NO aplica `conLaEdadAlDia` (que sí existe en la consulta, page.tsx:353): carga el paciente crudo y en la misma pantalla convive `edadPaciente` derivada (191-193, usada sólo para dosificar) con `patient?.edad` congelada (usada para imprimir). Verificado que el hueco alcanza también al PDF, no sólo al Word: RecetaDocumento.tsx:654 y :959 usan `data.paciente?.edad ? ... : ''`, así que un lactante con `edad: 0` sale impreso sin edad en los dos formatos. Dos fuentes de verdad para un dato derivable, en el documento medicolegal."
+    }
+  ],
+  "ratio": { "total": 17, "confirmados": 15, "refutados": 1, "parciales": 1 },
+  "observaciones_del_auditor": "Auditor de calidad alta y poco dado a exagerar: cita líneas exactas, marca él mismo lo que NO es P0 (MP-013), declara lo no alcanzado y no propone cifras clínicas. Tres patrones de error, todos del mismo tipo: (1) NO SIGUE EL DATO HASTA SU ORIGEN — leyó `patient?.edad` en la consulta y dio por congelada la edad sin buscar quién llena ese estado; `setPatient(conLaEdadAlDia(p))` (page.tsx:1967) tumba MP-001 entero, y su propia lista de «≥6 líneas que leen patient.edad» lo habría llevado a la definición si hubiera abierto el `useEffect` de carga. (2) NO EJECUTA LO QUE AFIRMA — la reproducción de MP-010 («2020-13-40» ⇒ 0 meses) es falsa: da 66, porque el regex de fecha suelta la acepta y `new Date` desborda; un `node` de treinta segundos lo habría visto. (3) CITAS DE APOYO DESPLAZADAS: en MP-015 atribuye a page.tsx:6335-6336 una exclusión que en realidad está en cuando-avisar.ts:70 y en la propia llamada de 3895; el hecho es correcto, la línea no. En cambio, todo lo que tocó los MOTORES puros (dosis.ts, pediatria.ts, copiloto.ts, dosis-de-la-lista.ts) resistió la verificación numérica sin una sola desviación, incluido el P0."
+}

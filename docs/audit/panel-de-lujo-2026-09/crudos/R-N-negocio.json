@@ -1,0 +1,190 @@
+{
+  "auditor": "N-negocio",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "N-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P0",
+      "evidencia": "src/app/api/stripe/webhook/route.ts:216 — `await stripe.subscriptions.cancel(s.id).catch(...)` (sin `prorate`, sin escritura de crédito); el camino que lleva ahí es src/app/(dashboard)/configuracion/page.tsx:1786 (`startCheckout` → POST /api/stripe/checkout) y src/app/api/stripe/checkout/route.ts:122, que crea SIEMPRE una sesión nueva sin mirar `clinicData.stripeSubscriptionId`.",
+      "nota": "Seguí el webhook completo y busqué `proration|transfer_data|on_behalf_of|stripeAccount|Connect` en todo el repo: el ÚNICO `proration_behavior: 'create_prorations'` vive en el ajuste de asientos (api/cron/asientos/route.ts:97 y api/stripe/asientos/route.ts:103), nunca en el cambio de plan. No hay línea que lo impida ni REG cerrado que lo cubra. Añado que el daño no es sólo del anual: cualquier cambio a mitad de ciclo se cobra entero y cancela el anterior sin abono."
+    },
+    {
+      "id": "N-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P0",
+      "evidencia": "src/app/api/payment/create-checkout/route.ts:103 — `stripe.checkout.sessions.create({ mode: 'payment', ... })` sobre el singleton de STRIPE_SECRET_KEY (src/lib/stripe.ts:6-18), sin `stripeAccount`, `transfer_data`, `on_behalf_of` ni `application_fee_amount`; el cobro se asienta como ingreso del consultorio en src/app/api/stripe/webhook/route.ts:419-434 (`metodo: 'stripe'`, que suma el corte de caja).",
+      "nota": "Grep en todo src/ de `transfer_data|on_behalf_of|stripeAccount|application_fee|payout|transfers.create|accounts.create|liquidac`: CERO resultados. Busqué decisión del dueño en docs/ y agent-state/: lo único que hay es docs/pendientes-externos.md:50-52 («para cobrar por consultorio, Stripe Connect») listado como PENDIENTE externo, y docs/roadmap/nexus-os/RETOMAR-AQUI.md:81 («falta decidir a quién se le cobra anticipo»). Ninguna decisión documentada explica el diseño actual: la pendiente lo agrava, no lo justifica."
+    },
+    {
+      "id": "N-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/api/portal/route.ts:374 (`anticipo: config?.anticipoLink ? {...} : null`) + src/app/mi/[token]/page.tsx:657 (el botón se pinta con `sesion.anticipo`) y :399 (`fetch('/api/payment/create-checkout')`), con la liga propia sólo dentro de `errorPago` (:687); el texto que promete lo contrario está en src/app/(dashboard)/configuracion/page.tsx:834.",
+      "nota": "La mecánica es exactamente la descrita. BAJO a P1 por dos razones: (a) el daño monetario es el de N-002 y no debe contarse dos veces —lo propio de N-003 es el rótulo falso de configuración—; (b) el desvío al checkout de plataforma fue un cambio DELIBERADO y documentado en src/app/mi/[token]/page.tsx:646-656 («abría un enlace externo suelto: sin retorno, sin webhook, sin cobro registrado… el enlace externo queda sólo como respaldo declarado»), así que la propuesta de volver a la liga propia reabre un defecto ya reparado. Lo que sí queda en pie sin discusión: la pantalla de configuración le dice al médico que cobrará por SU liga y no es verdad."
+    },
+    {
+      "id": "N-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/precios/page.tsx:193 — texto literal «los primeros 50 médicos congelan su tarifa de por vida… código FUNDADOR»; el único apoyo en código es `allow_promotion_codes: true` (src/app/api/stripe/checkout/route.ts:137) y una segunda mención en src/app/(dashboard)/layout.tsx:496.",
+      "nota": "Verificado: `esFundador`/src/lib/authz/fundador.ts es OTRA cosa (el dueño de la plataforma, no la oferta comercial), así que no hay contador de plazas ni campo de tarifa congelada en ninguna parte. Dos afirmaciones públicas —escasez y permanencia— sin nada detrás."
+    },
+    {
+      "id": "N-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P1",
+      "evidencia": "src/app/page.tsx:207 («Te avisamos tres días antes») contra vercel.json (cinco crons: reminders, limpiar-audio, vigilante, retencion, asientos) y `grep trialEndsAt src/app/api/cron/` sin resultados.",
+      "nota": "Comprobado además que no existe NINGÚN canal de correo en el repositorio (`ls src/lib | grep mail` sólo devuelve push-notifications.ts), así que el aviso no está «apagado»: no está construido. El único control es el banner de src/app/(dashboard)/layout.tsx:117-121, que exige que el médico entre."
+    },
+    {
+      "id": "N-006",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/cron/reminders/route.ts:117-119 — `.where('status', 'in', ['active', 'trial'])`; `grep trialEnds|puedeEscribir|paywall` en las 485 líneas del archivo: cero resultados. `pruebaVencida` (src/lib/finanzas/paywall-prueba.ts:76) confirma que una prueba caducada sigue en status 'trial'.",
+      "nota": "El defecto existe tal cual. BAJO de P1 a P2: severidad 2 declarada por el propio auditor, el costo depende de que estén puestas las credenciales globales de WhatsApp, y cortar tiene un contra real (dejar plantado al paciente con cita ya agendada) que el propio hallazgo reconoce como decisión abierta."
+    },
+    {
+      "id": "N-007",
+      "veredicto": "parcial",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/api/clinic/crear/route.ts:67 (`finPruebaMs = Date.now() + 14 días`) concedido a todo uid sin `clinic_members/{uid}` (:76-79); la defensa de src/lib/finanzas/prueba-gratis.ts es por cliente de Stripe, creado por consultorio (src/app/api/stripe/checkout/route.ts:83).",
+      "nota": "La mecánica se confirma, pero es exactamente la decisión ABIERTA del dueño N-1 en agent-state/OWNER_DECISIONS_REQUIRED.md:37 («¿Se puede repetir la prueba de 14 días?»), así que no es un hallazgo nuevo sino una nota sobre una decisión ya registrada. P2 y no P1 por lo que el propio auditor escribe: el costo está acotado por LIMITE_PRUEBA=30."
+    },
+    {
+      "id": "N-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:1725 (`trial: ['14 días gratuitos', 'Todas las funciones', 'Sin tarjeta de crédito']`) contra src/lib/ai-keys.ts:23 (`LIMITE_PRUEBA = 30`), src/lib/finanzas/tope-de-cortesia.ts:74 (`aplicaTopeDeCortesia` devuelve true para 'trial') y el cálculo «30 ÷ 4 ≈ 7 consultas» de tope-de-cortesia.ts:12-14.",
+      "nota": "Cita exacta y aritmética verificada en el código. BAJO a P2: el límite es correcto y es decisión del dueño (v972), el corte está bien implementado y explica qué hacer; lo que falla es una cadena de texto en una tarjeta. Sigue siendo cierto que no hay medidor de la prueba pese a que `estadoClavesIA` ya devuelve `uso.prueba` y `limitePrueba` (src/lib/ai-keys.ts:468)."
+    },
+    {
+      "id": "N-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/ai-keys.ts:429 (`secretos.data()?.uso?.[mesActual()]?.prueba`) con `mesActual = () => new Date().toISOString().slice(0,7)` (:26) y la escritura simétrica en `registrarUso` (:447-455), contra la ventana de 14 días de src/app/api/clinic/crear/route.ts:67.",
+      "nota": "Las dos ventanas son incompatibles por construcción: un alta el día 25 cruza el cambio de mes y el contador de prueba vuelve a cero. No hay línea que lo compense; `aplicaTopeDeCortesia` decide SI aplica, no sobre qué ventana se cuenta."
+    },
+    {
+      "id": "N-010",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/configuracion/page.tsx:1720 — `price: \\`${precioTexto(PLANES[c])} MXN/mes\\`` para todos los planes, mientras la misma pantalla conoce el ciclo en :1745 (`cicloActual`) y sólo lo usa para el checkout (:1786).",
+      "nota": "Verificado en las dos líneas. No hay ningún sitio de la pantalla que muestre el importe anual ni la fecha de renovación; el único camino es el portal de Stripe (:1829)."
+    },
+    {
+      "id": "N-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/registro/page.tsx:389-390 — `@media (max-width: 768px) { .registro-layout > div:first-child { display: none !important; } }`; el bloque escondido es el que contiene «14 días de prueba gratis / Sin tarjeta de crédito. Después, desde $349 MXN/mes» (:220-224).",
+      "nota": "Comprobado con grep sobre el archivo: las palabras «tarjeta» y el precio aparecen SÓLO en las líneas 223 y 13-18 (comentario); por debajo de 768 px no queda ninguna, salvo el texto del botón (:370)."
+    },
+    {
+      "id": "N-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/operaciones/page.tsx:154 — `para: 'Mensajes con pacientes y con el equipo'` contra src/lib/chat.ts:2 («Chat interno de la clínica — médico ↔ asistente… isMember(clinicId)»); `grep -c paciente src/app/(dashboard)/chat/page.tsx` = 0.",
+      "nota": "Cita exacta y premisa verificada. BAJO a P3 por coherencia con la severidad 1 que el propio auditor declara: es un rótulo de una tarjeta de índice, sin pérdida de datos ni de dinero, y el Sidebar ya dice sólo «Chat»."
+    },
+    {
+      "id": "N-013",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/operaciones/page.tsx:132 — `para: 'De dónde llegan los pacientes y qué pasó con cada contacto'`; `grep -c 'origen|fuente|canal' src/app/(dashboard)/crm/page.tsx` = 0.",
+      "nota": "Verificado. Mismo motivo de bajada que N-012: severidad 1 y sólo el texto del índice. La parte de «sellar el origen en la cita» es trabajo nuevo, no un defecto."
+    },
+    {
+      "id": "N-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/crm/page.tsx:211 — `<Sugerencia text={\\`Confirma manualmente ${pipeline['pendiente-confirmar']} citas pendientes…\\`} />` sin guarda, frente a :212 y :213 que sí llevan `requierenSeguimiento > 0 &&` y `pacientesInactivos > 5 &&`.",
+      "nota": "Confirmado literalmente, y también la cuarta sugerencia incondicional (:214, bot de WhatsApp). P3: severidad 1, una condición de una línea."
+    },
+    {
+      "id": "N-015",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/crm/page.tsx:3 («CRM / Revenue Dashboard»), :16 (`DollarSign` importado y sin usar — única aparición en el archivo), :222 (promesa de ingresos futuros) y el embudo ya pintado en src/app/(dashboard)/corte-caja/page.tsx:223-236.",
+      "nota": "Evidencia verificada, pero fusionar/retirar una pantalla es decisión del dueño (el propio hallazgo lo dice). Corrijo un dato del impacto: /crm ya NO ocupa sitio en la barra inferior del médico en V15 —src/components/BottomNav.tsx:122-124 sólo lo pone en la barra HEREDADA (`navPrimaria=false`); con `navPrimaria` manda CONTEXTOS_V15, que no lo incluye."
+    },
+    {
+      "id": "N-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/dashboard/page.tsx:200-205 — el único `action` del estado vacío es `<ButtonLink href=\"/asistente\">Agendar cita</ButtonLink>`; `grep -l 'Primeros pasos|primeros pasos|PrimerosPasos' src/app src/components` no devuelve nada y `lib/onboarding/embudo.ts` sólo lo consume api/superadmin/onboarding.",
+      "nota": "Comprobadas las dos afirmaciones que sostienen el hallazgo (no hay lista de primeros pasos en ninguna pantalla del médico; el embudo existe y sólo lo mira el dueño). El conteo de «nueve pasos» es discutible y no lo verifiqué paso a paso, pero no es lo que sostiene la conclusión."
+    },
+    {
+      "id": "N-017",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/setup/page.tsx:19 — `const [step, setStep] = useState(0)`; `grep -n 'step|setStep'` sobre el archivo entero devuelve SÓLO esa línea.",
+      "nota": "Verificado al pie de la letra. Sin conducta afectada; resto de código muerto."
+    },
+    {
+      "id": "N-018",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/registro/page.tsx:28-35 (`BENEFICIOS` = agenda, bot, recordatorios, lista de espera, Google Calendar, portal del asistente) y :192-198 («Tu consultorio, conectado» / «Agenda, expediente, recetas y cobros en una sola herramienta»), contra la corrección documentada de la portada en src/app/page.tsx:6-22.",
+      "nota": "Citas literales verificadas. Es opinión de producto con evidencia sólida: la puerta de registro vende la promesa que la portada retiró a propósito. No depende de ninguna decisión del dueño ya tomada."
+    },
+    {
+      "id": "N-019",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/api/superadmin/clientes/route.ts:132 (`medicos = await contar(cref.collection('doctors'))`) frente a src/lib/ai-keys.ts:255-263 (`contarMedicos` sobre `clinic_members` con role medico|admin), que es lo que usa src/app/api/cron/asientos/route.ts para ajustar Stripe.",
+      "nota": "Los dos conteos son distintos, confirmado. BAJO a P3 y refuto una parte del impacto: esta ruta es de SÓLO LECTURA para la consola del dueño, así que no puede producir «una factura que no cuadra» —lo que Stripe cobra lo decide el cron con `contarMedicos`—; el daño real es un MRR de tablero que no coincide con el de Stripe, y sólo para clínicas con `modeloPrecio: 'por_medico'`, que únicamente se escribe desde /api/superadmin/paquetes."
+    },
+    {
+      "id": "N-020",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp/ofrecer-hueco.ts:59 `ofrecerHuecoLiberado`, llamado automáticamente desde src/app/api/portal/route.ts:455 y :640 (cancela el paciente) y desde src/app/api/whatsapp/webhook/route.ts:363-364 (cancela por el bot); y src/app/api/cron/reminders/route.ts:212 («Responde *SÍ* para confirmar o *NO* para cancelar») con la sesión que lo interpreta en :334-350.",
+      "nota": "Premisa falsa en los DOS puntos que el propio hallazgo llama de más valor: (1) «el aviso al siguiente candidato lo dispara una persona» — no: la cabecera de ofrecer-hueco.ts:1-14 documenta que se sacó de la ruta precisamente para que la cancelación del PORTAL lo dispare sola; (2) «el recordatorio debería llevar confirmar/reprogramar/cancelar como respuesta» — ya lleva confirmar y cancelar, con la sesión `confirmando_cita` escrita por el propio cron. Queda en pie sólo (3), que el propio auditor califica de decisión de política."
+    },
+    {
+      "id": "N-021",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/demo/razonamiento/page.tsx (157 líneas, existe) y src/app/demo/page.tsx:44-52 («el activo más fuerte del repositorio para convencer a un médico»).",
+      "nota": "El inventario que declara es correcto y la brecha (no hay prueba pública sin cuenta) también. Queda `parcial` porque su propuesta central depende de una decisión del dueño que el hallazgo mismo formula —publicar una demostración con audio actuado— y choca con `.claude/rules/data-privacy.md` si el audio no es sintético o actuado con consentimiento."
+    },
+    {
+      "id": "N-022",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/RecetaDocumento.tsx:655-657 (comentario «Fecha de nacimiento: la exigen las farmacias para dispensar»); búsqueda de «renovar receta|repetir receta|receta anterior|adherencia» en src/lib y src/app: ninguna función de renovación ni de adherencia.",
+      "nota": "Propuesta de producto con inventario verificado y sin decisión del dueño pendiente. No propone ninguna cifra clínica, que es lo que habría que vigilar aquí."
+    },
+    {
+      "id": "N-023",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/portal/vigencia-del-enlace.ts:1-40 (enlace firmado con versión revocable, tres estados) y ausencia de cualquier renovación automática: `grep 'renovar|renueva' src/lib/portal src/app/api/portal` no devuelve nada.",
+      "nota": "Inventario y brecha verificados; la advertencia de no sustituir el magic-link por una cuenta es acertada y coherente con `patient-facing-ai.md` §8. Sin decisión del dueño pendiente."
+    },
+    {
+      "id": "N-024",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/cobros.ts:1-10 (libro de cobros inmutable) y la ausencia total de Connect ya comprobada en N-002.",
+      "nota": "No aporta hallazgo propio: su contenido es «resolver primero N-002/N-003», que es la misma decisión de custodia del dinero. Queda `parcial` por dependencia de esa decisión del dueño; no lo cuento como defecto separado para no triplicar el mismo P0."
+    },
+    {
+      "id": "N-025",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/whatsapp-send.ts:165-170 (cascada 360dialog → Meta propio → variables globales) y :179-183 (opt-out con pie «Responda BAJA»); la tarjeta de configuración sólo dice «Conectado · {número}» (src/app/(dashboard)/configuracion/page.tsx:~1305) y no menciona el respaldo global.",
+      "nota": "La brecha que describe es real —el médico no puede saber por cuál de las tres vías sale su mensaje—, pero la pregunta que hace («¿pueden los consultorios en prueba mandar desde el número de la plataforma?») es una decisión del dueño no tomada, y de ella depende si el arreglo es informar o apagar el respaldo."
+    },
+    {
+      "id": "N-026",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "821 líneas en src/app/(dashboard)/farmacia/page.tsx + 209 en src/lib/farmacia.ts; los únicos consumidores de la librería son su pantalla (:22) y el contador de src/app/(dashboard)/operaciones/page.tsx:29.",
+      "nota": "Conteos y consumidores verificados. `parcial` porque esconder o retirar un módulo es decisión del dueño, y porque la premisa está a medias: farmacia YA es un módulo con entitlement propio (src/lib/modulos.ts:69, $150/médico) y `rutaPermitida` la oculta a quien no la contrató; lo que pasa es que va incluida en el paquete CONSULTORIO (modulos.ts:23), así que la ve todo cliente de Clínica/Pro. Esconderla es cambiar la composición del paquete, no añadir un mecanismo."
+    }
+  ],
+  "ratio": { "total": 26, "confirmados": 19, "refutados": 1, "parciales": 6 },
+  "observaciones_del_auditor": "Auditor de calidad alta y poco habitual: abrí las 26 citas y TODAS coinciden literalmente en la línea indicada o a ±5 (N-003 apuntaba a mi/[token]:399 y :690 para el botón, que está en :657 y :687). No inventa código ni cifras, y declara lo que no puede afirmar (nota_de_metodo, «según mi conocimiento a 2026»). Dos patrones de error: (1) NO verifica llamadores cuando propone construir algo que ya existe — N-020 propone como «el único cambio que se paga solo» la oferta automática de hueco a la lista de espera, que ya está escrita y cableada desde el portal y desde el bot, y propone respuestas SÍ/NO en el recordatorio, que el propio cron ya escribe e interpreta; (2) infla el impacto por encima de lo que su evidencia sostiene — en N-019 concluye «factura que no cuadra» a partir de una ruta de sólo lectura de la consola del dueño, y en N-015 atribuye a /crm un sitio en la barra inferior que en V15 ya no ocupa. Prioridades: los tres P0 se sostienen enteros (N-001 y N-002 sin ningún control que los impida; N-003 lo bajo a P1 porque su daño monetario es el de N-002 contado dos veces). Tiende a poner P1/P2 a defectos de TEXTO de severidad 1-3 (N-006, N-008, N-012, N-013, N-014): bajé cinco por proporcionalidad, no por falta de evidencia. Y busqué decisión del dueño para el diseño de los anticipos en docs/ y agent-state/: no existe; sólo Stripe Connect listado como pendiente externo (docs/pendientes-externos.md:50) y la política de anticipo como decisión pendiente (docs/roadmap/nexus-os/RETOMAR-AQUI.md:81)."
+}
