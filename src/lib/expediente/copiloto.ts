@@ -14,7 +14,7 @@
  * Todo es PURO y testeado. El médico decide; esto solo pone lo que ya se sabe.
  */
 
-import { FARMACOS_PED, calcularDosisPediatrica, imc as calcImc } from './pediatria'
+import { FARMACOS_PED, elegirFarmacoPed, calcularDosisPediatrica, imc as calcImc } from './pediatria'
 import { AJUSTE_RENAL, ajustePorTFG, EMBARAZO_LACTANCIA, coincideRenal, RIESGO_HEPATICO, coincideHepatico } from './prescripcion-segura'
 import { ckdEpi2021 } from './calculadoras'
 import { creatininaPlausibleMgDl } from './funcion-renal'
@@ -63,6 +63,14 @@ export interface SignosConsulta {
 
 export interface EntradaCopiloto {
   edad?: number
+  /**
+   * Edad en MESES, cuando la pantalla la sabe (de la fecha de nacimiento).
+   * `edad` en años no distingue un lactante de tres meses de uno de once, y las
+   * contraindicaciones pediátricas se juegan justo ahí (MP-016).
+   */
+  edadMeses?: number
+  /** Edad en DÍAS: sólo el periodo neonatal la necesita (MP-003). */
+  edadDias?: number
   sexo?: string
   alergias?: string
   /**
@@ -282,13 +290,50 @@ function dosisPediatrica(e: EntradaCopiloto): Sugerencia[] {
     }]
   }
 
+  /**
+   * ── LA EDAD LLEGA AL MOTOR — MP-016 ───────────────────────────────────────
+   *
+   * Las contraindicaciones por edad (ibuprofeno < 6 meses, TMP-SMX < 2 meses,
+   * nitrofurantoína < 1 mes) estaban escritas y validadas en el catálogo, y el
+   * motor sabía aplicarlas: nadie le pasaba la edad. Así que «Ibuprofeno 30 mg
+   * c/8 h» a un lactante de 3 meses cruzaba la consulta sin un aviso.
+   *
+   * `edad` viene en AÑOS. Para un lactante eso es 0, que no distingue 3 meses
+   * de 11: por eso se prefiere `edadMeses` cuando la pantalla lo sabe, y sólo se
+   * deriva de los años cuando el niño ya tiene uno cumplido —donde la conversión
+   * no puede equivocarse hacia el lado peligroso—. Si no consta y el fármaco
+   * TIENE restricción por edad, el aviso lo dice en voz alta en vez de callar:
+   * que no se vigile no es que sea seguro (regla 5 de seguridad clínica).
+   */
+  const edadMeses = e.edadMeses ?? (edad >= 1 ? Math.round(edad * 12) : undefined)
+
   const out: Sugerencia[] = []
   for (const m of meds) {
     const nm = norm(m.nombre ?? '')
-    const f = FARMACOS_PED.find(x => nm.includes(norm(x.nombre)) || norm(x.nombre).includes(nm))
+    const f = elegirFarmacoPed(nm, edadMeses, e.edadDias)
     if (!f) continue
-    const d = calcularDosisPediatrica(f, peso)
+    if ((f.edadMinimaMeses != null || f.edadMaximaDias != null) && edadMeses == null && e.edadDias == null) {
+      out.push({
+        id: `ped:edad-desconocida:${m.nombre}`,
+        nivel: 'accion',
+        titulo: `No puedo verificar la restricción por edad de ${m.nombre}`,
+        detalle: `${f.restriccionEdad ?? 'Este fármaco tiene restricción por edad.'} Captura la fecha de nacimiento para que la compruebe: con la edad en años redondeada no se distingue un lactante de tres meses de uno de once.`,
+        textoNota: '',
+        pide: 'peso',
+      })
+    }
+    const d = calcularDosisPediatrica(f, peso, edadMeses, e.edadDias)
     if (!d) continue
+    if (d.contraindicadoPorEdad) {
+      out.push({
+        id: `ped:edad:${m.nombre}`,
+        nivel: 'critico',
+        titulo: `${m.nombre} no está indicado a esta edad`,
+        detalle: d.motivoEdad ?? 'Contraindicado por edad.',
+        textoNota: `Se revisó la indicación de ${m.nombre} por edad: ${d.motivoEdad ?? 'contraindicado por edad'}.`,
+      })
+      continue
+    }
 
     /**
      * UNA DOSIS POR KILO NO SE COMPARA CONTRA UN RANGO ABSOLUTO.

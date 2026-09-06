@@ -39,6 +39,20 @@ export interface FarmacoPed {
    * decían las notas (ibuprofeno <6m, TMP-SMX <2m, nitrofurantoína <1m).
    */
   edadMinimaMeses?: number
+  /**
+   * ── EDAD MÁXIMA EN DÍAS — MP-003 ──────────────────────────────────────────
+   *
+   * El espejo de `edadMinimaMeses`, y hacía falta: la pauta «Gentamicina
+   * neonatal (≤7 días)» decía su límite en el nombre y en la nota, pero no en
+   * ningún campo que el motor pudiera leer. El buscador la elegía por subcadena
+   * para **cualquier** niño llamado «gentamicina», así que un escolar recibía la
+   * alarma crítica de una pauta neonatal, y —al revés— la pauta de 7.5 mg/kg de
+   * dosis única se le ofrecía a un recién nacido.
+   *
+   * La cifra no se inventa: es la que el propio catálogo ya lleva escrita en el
+   * nombre de la entrada y en su nota.
+   */
+  edadMaximaDias?: number
   /** Texto de la restricción por edad, para mostrarla al médico. */
   restriccionEdad?: string
   /**
@@ -66,7 +80,7 @@ export const FARMACOS_PED: FarmacoPed[] = [
   { nombre: 'Vancomicina', mgKgDia: [40, 60], tomas: 4, intervalo: 'c/6 h', topeDia: 4000, unidad: 'mg', nota: 'Dosificar por AUC/CMI; monitorizar niveles y función renal.' },
   // Neonato ≤7 días: dosis reducida (validado por el Dr). Va ANTES para que el
   // matcher por edad la prefiera; calcularDosisPediatrica elige por edadMeses.
-  { nombre: 'Gentamicina neonatal (≤7 días)', mgKgDia: [5, 5], tomas: 2, intervalo: 'c/12 h', topeMgKgDia: 5, unidad: 'mg', edadMinimaMeses: 0, nota: 'Recién nacido ≤7 días: 2.5 mg/kg c/12 h, máx 5 mg/kg/día. Monitorizar niveles y función renal.' },
+  { nombre: 'Gentamicina neonatal (≤7 días)', mgKgDia: [5, 5], tomas: 2, intervalo: 'c/12 h', topeMgKgDia: 5, unidad: 'mg', edadMaximaDias: 7, restriccionEdad: 'Pauta sólo para recién nacido de 7 días o menos; por encima de esa edad se usa la pauta de gentamicina de dosis única diaria.', edadMinimaMeses: 0, nota: 'Recién nacido ≤7 días: 2.5 mg/kg c/12 h, máx 5 mg/kg/día. Monitorizar niveles y función renal.' },
   // Tope 7.5 mg/kg/día (Dr, ficha técnica). NO hay tope absoluto en mg validado en
   // pediatría → la protección real ante un PESO erróneo es la validación peso-edad.
   { nombre: 'Gentamicina', mgKgDia: [5, 7.5], tomas: 1, intervalo: 'c/24 h', topeMgKgDia: 7.5, unidad: 'mg', nota: 'Dosis única diaria; monitorizar niveles y función renal. En ≤7 días usar la pauta neonatal.' },
@@ -146,8 +160,72 @@ export function revisarPesoPediatrico(pesoKg: number, pesoPrevioKg?: number): Re
   return { ok: true }
 }
 
-export function calcularDosisPediatrica(f: FarmacoPed, pesoKg: number, edadMeses?: number): DosisCalculada | null {
+/**
+ * ── ELEGIR LA PAUTA QUE CORRESPONDE A ESA EDAD — MP-003 ─────────────────────
+ *
+ * El buscador era `nm.includes(nombre) || nombre.includes(nm)`: una subcadena
+ * suelta que, con «gentamicina» escrito en la receta, devolvía la **primera**
+ * entrada que casara. Y la primera es la neonatal, porque está antes en el
+ * catálogo. Resultado medido por la auditoría: alarma crítica de pauta neonatal
+ * en un escolar, y la pauta de dosis única ofrecida a un recién nacido.
+ *
+ * Ahora se eligen todas las candidatas y se descarta la que la edad excluye. Si
+ * la edad no consta, se prefiere la pauta SIN restricción de edad —la general—
+ * porque ofrecer la neonatal a quien no sabemos que es neonato es justamente el
+ * defecto que se está cerrando.
+ *
+ * Puro y exportado para poder probarlo solo.
+ */
+export function elegirFarmacoPed(
+  nombreEscrito: string,
+  edadMeses?: number,
+  edadDias?: number,
+): FarmacoPed | undefined {
+  const nm = (nombreEscrito ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+  if (!nm) return undefined
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const candidatas = FARMACOS_PED.filter(x => {
+    const n = norm(x.nombre)
+    // Se compara contra el nombre sin el paréntesis aclaratorio: «Gentamicina
+    // neonatal (≤7 días)» debe casar con «gentamicina», no exigir el paréntesis.
+    const base = n.replace(/\s*\(.*?\)\s*/g, ' ').trim()
+    return nm.includes(base) || base.includes(nm) || nm.includes(n) || n.includes(nm)
+  })
+  if (candidatas.length <= 1) return candidatas[0]
+  const dias = edadDias ?? (edadMeses != null ? Math.round(edadMeses * 30.4375) : undefined)
+  const cabeEnLaEdad = (x: FarmacoPed) => {
+    if (dias == null) return x.edadMaximaDias == null
+    if (x.edadMaximaDias != null && dias > x.edadMaximaDias) return false
+    if (x.edadMinimaMeses != null && edadMeses != null && edadMeses < x.edadMinimaMeses) return false
+    return true
+  }
+  // La más específica que cabe en la edad; si ninguna cabe, la general.
+  return candidatas.find(x => x.edadMaximaDias != null && cabeEnLaEdad(x))
+    ?? candidatas.find(cabeEnLaEdad)
+    ?? candidatas.find(x => x.edadMaximaDias == null)
+}
+
+export function calcularDosisPediatrica(
+  f: FarmacoPed,
+  pesoKg: number,
+  edadMeses?: number,
+  edadDias?: number,
+): DosisCalculada | null {
   if (!(pesoKg > 0)) return null
+
+  /**
+   * Bloqueo por edad MÁXIMA — MP-003. Una pauta neonatal fuera del periodo
+   * neonatal no se ofrece: se dice por qué y se remite a la pauta general.
+   */
+  const diasVividos = edadDias ?? (edadMeses != null ? Math.round(edadMeses * 30.4375) : undefined)
+  if (f.edadMaximaDias != null && diasVividos != null && diasVividos > f.edadMaximaDias) {
+    return {
+      farmaco: f.nombre, intervalo: f.intervalo, unidad: f.unidad, topeAplicado: false,
+      contraindicadoPorEdad: true,
+      motivoEdad: f.restriccionEdad ?? `Pauta sólo hasta los ${f.edadMaximaDias} días de vida.`,
+      porToma: { min: 0, max: 0 }, porDia: { min: 0, max: 0 }, nota: f.nota,
+    }
+  }
 
   /**
    * Bloqueo por EDAD — auditoría 2026-07 (P0). Si el fármaco tiene edad mínima y
