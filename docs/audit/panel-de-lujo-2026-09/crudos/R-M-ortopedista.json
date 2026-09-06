@@ -1,0 +1,120 @@
+{
+  "auditor": "M-ortopedista",
+  "fecha": "2026-09-06",
+  "veredictos": [
+    {
+      "id": "MO-001",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/prompts.ts:60-65 (autoriza escribir directo el termino corregido) y prompts.ts:86 (regla 4 solo cubre corregir al PACIENTE); grep -rn 'lateral|derech|izquierd|perdon|corrijo' sobre prompts.ts (884 lineas) y src/lib/ia devuelve UNICAMENTE prompts.ts:102 ('adenopatia cervical bilateral', un ejemplo de diagnostico) — cero reglas de lateralidad",
+      "nota": "Verificado con el grep exacto que pidio el encargo: no hay regla de lateralidad ni de autocorreccion del medico en ningun prompt, y ningun motor determinista coteja nota contra dictado (los unicos 'lateralidad' de src/lib/expediente son medical-ner.ts, el-procedimiento-que-no-quedo-escrito.ts y motivos-confirmacion-texto.ts). BAJO a P2 porque el auditor omitio un control que si existe: prompts.ts:192 manda 'una contradiccion entre dos datos incompatibles' a safety.conflicts_detected, y eso SI se pinta al medico antes de firmar (RevisionPanel.tsx:119, consulta page.tsx:3903). Es un control probabilistico del modelo, no determinista, asi que el hueco es real; pero la afirmacion 'la app no le marco nada' es mas fuerte de lo que sostiene el codigo."
+    },
+    {
+      "id": "MO-002",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/asr/pipeline.ts:114-119 — los motivos salen solo de [...vig.violaciones, ...post.violaciones]; grep 'lateralidad_incierta' en src sin tests: pipeline.ts:116, politica-critica.ts:107, motivos-confirmacion-texto.ts:27,55. Unico productor de 'cambio_lateralidad': guardian-sustituciones.ts:174-181, que compara crudo vs corregido",
+      "nota": "Premisa verificada: no hay otro emisor. Y el motivo esta practicamente muerto, porque el corrector no toca esas palabras (medical-vocabulary.ts:714) — el auditor lo dice bien. Confirmo, pero a P2 y como MITAD DE MO-001, no como defecto independiente: la propuesta es el mismo detector. El gate esta conectado y visible (consulta page.tsx:5663-5669) y no bloquea la firma por decision del Dr. (comentario L5658-5661), asi que 'la promesa de seguridad' no llega a ser falsa: llega a ser estrecha."
+    },
+    {
+      "id": "MO-003",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/app/(dashboard)/orden/[patientId]/[notaId]/page.tsx:263-271 (catalogo de radiografia, 'Radiografia de extremidades' en L269) y L557 `const ordenVacia = estudios.filter(e => e.trim()).length === 0`, unica compuerta de Imprimir/PDF/Word (L609, L614, L617)",
+      "nota": "Linea citada exacta (557) y catalogo exacto. BAJO a P2: la app no inventa nada — imprime literalmente lo que el medico eligio, se lo ensena en la vista previa antes de imprimir (RecetaDocumento) y el boton 'Personalizado' (L646-665) permite el texto completo con lado. Ademas la evidencia dice 'grep lateral...: 0 campos' cuando L264 si contiene 'lateral' (proyeccion): son 0 CAMPOS, no 0 apariciones. El defecto real es la falta de modelo estructurado de estudio de imagen, que es trabajo de producto, no una fuga de dato."
+    },
+    {
+      "id": "MO-004",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/extraction-schema.ts:314-321 (el bloque `extraction` no tiene estudios) + consulta page.tsx:1547-1548 y los UNICOS setEstudiosOrden: 2157 (nota recargada), 3567 y 3805 (borrador), 6811 (ValoracionInmuno); grep 'Estudios' en la pantalla de consulta: sin seccion editable. REG-244 sigue CERRADO: `npx vitest run src/__tests__/la-orden-no-se-queda-en-el-tintero.test.ts` → 'Test Files 1 passed (1) · Tests 19 passed (19)'",
+      "nota": "El hueco es real y llega a produccion (con receta y sin estudiosOrden, aDondeIrDirecto empuja a /receta: que-falta-para-cerrar.ts:172-173 + consulta page.tsx:4483-4491), y arrastra HojaParaElPaciente (estudios={estudiosOrden}, L6546) y paquete-de-visita.ts:341. REFUTO el encuadre: NO es 'la regresion REG-244 que sigue viva' — el defecto de REG-244 era la cadena de `if` y su guardian pasa entero hoy; lo que falta es aguas arriba (extraer estudios del dictado), que nunca estuvo en el alcance de REG-244. Por eso P2 y no P1: el dato no se pierde en silencio (queda dictado y en el plan de la nota, y el boton Orden esta en /nota:396); lo que falta es que llegue solo."
+    },
+    {
+      "id": "MO-005",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "orden/[patientId]/[notaId]/page.tsx: unica escritura al emitir es crearPendientesDeLaOrden (L357-372); grep 'updateNota|actualizarNota|setDoc|updateDoc|guardarNota|adenda' en el archivo: 0 (solo el import de fetchAutenticado en L9, que no se usa). Folio derivado del notaId (L400-403), auditoria truncada a 40 (L609). paquete-de-visita.ts:341 `orders: (n.estudiosOrden ?? [])`. grep -rn 'ServiceRequest' src/: 0 resultados (fhir/recursos.ts y fhir-export.ts no lo emiten)",
+      "nota": "Todo verificado literalmente, incluido que el propio codigo lo confiesa en el comentario L347-351 ('el medico elige los estudios AQUI, imprime, y la nota se queda vacia'). BAJO a P2: no es perdida total — la orden emitida deja tarea estudio_pendiente (derivar.ts:97-103) y evento de auditoria con folio; lo que falta es el asiento en el expediente/linea de tiempo, el portal y el bundle. Y hay via de escritura ya construida para una nota firmada: la Adenda (/nota page.tsx:399)."
+    },
+    {
+      "id": "MO-006",
+      "veredicto": "refutado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/prescripcion-segura.ts:123-134 — entrada 'Antiinflamatorios no esteroideos' con sinonimos ['aine','ibuprofeno','naproxeno','diclofenaco','ketorolaco',...] y reglas: TFG 30-60 'Evitar salvo indicacion clara'; TFG <30 'EVITAR: precipitan lesion renal aguda' contraindicado:true, con la nota de la triple whammy; VIVO en produccion desde copiloto.ts:414-431 (AJUSTE_RENAL + coincideRenal + ajustePorTFG), motor registrado en clinical/registry.ts:1723",
+      "nota": "La premisa 'un AINE con depuracion baja no dispara ninguna alerta renal' es FALSA. Ejecutado con jiti: `ajustePorTFG(naproxeno, 25)` → {\"conducta\":\"EVITAR: precipitan lesion renal aguda.\",\"contraindicado\":true,\"nota\":\"La combinacion de AINE, inhibidor de la enzima convertidora o ARA II y diuretico es la \\\"triple whammy\\\"...\"}; con TFG 50 → 'Evitar salvo indicacion clara, dosis minima y por pocos dias.'. El auditor no reviso prescripcion-segura.ts (no aparece en su lista 'revisado') y por eso lee como 'caso no vigilado sin declarar' lo que es el alcance declarado de otro motor (funcion-renal.ts:1-2, 'ajuste de dosis de antimicrobianos — nucleo de PROA'). Queda un residuo menor, distinto del hallazgo: la pantalla /receta calcula sus alertas con ajusteRenalFarmacos (receta page.tsx:284) en vez del catalogo de prescripcion segura — duplicidad de motores, no regla ausente."
+    },
+    {
+      "id": "MO-007",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/asr/aprendizaje.ts:210-215 — comparacion por forma exacta contra PARES_PROHIBIDOS (politica-critica.ts:86-89), con `limpia` que solo baja mayusculas y quita acentos (L50-51); llega a produccion por consulta page.tsx:1594 (paresDeUnaNota → esAprendible)",
+      "nota": "Reproducido con jiti, identidad {conocida:true}: 'derecha -> izquierda = false' · 'derecho -> izquierdo = false' · 'derecha -> izquierdo = TRUE' · 'derechas -> izquierdas = TRUE' · 'derecho -> izquierda = TRUE' · 'bilateral -> izquierdo = TRUE'. La prueba existente solo recorre los pares tal cual (aprendizaje-del-medico.test.ts:83-86), asi que el invariante declarado no se cumple para genero/numero cruzado. Se mantiene P2 (no P1) porque lo aprendido SOLO sesga (POR_QUE_SOLO_SESGA, aprendizaje.ts:321) y exige dos vistas."
+    },
+    {
+      "id": "MO-008",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/fotos-clinicas.ts:40-48 (REGIONES_AGRUPADAS: sin hombro/codo/muneca/cadera/rodilla/tobillo/columna como articulacion) y src/components/FotosClinicas.tsx:63-67 `fecha: new Date().toISOString()` sin campo de fecha de la toma",
+      "nota": "Evidencia literal y correcta. BAJO a P3: la mitad de la fecha reprocha al modulo un uso que no es el suyo — se llama 'Fotografia clinica seriada' y documenta lesion/herida; archivar una radiografia externa es MO-009, no esto. La parte que si es friccion legitima del nicho es la falta de regiones articulares con lado."
+    },
+    {
+      "id": "MO-009",
+      "veredicto": "confirmado",
+      "prioridad_final": "P2",
+      "evidencia": "src/lib/expediente/laboratorio/vision.ts:40 (regla 7: documento que no es laboratorio → {\"pacientes\":[],\"fecha\":\"\",\"filas\":[]}); tareas-clinicas/derivar.ts:145-185 `tareaDeResultado` con `origen: 'laboratorio'` fijo; grep 'imagen|radiograf' en src/lib/tareas-clinicas: 0",
+      "nota": "Confirmado el nucleo: no hay entidad ni ingesta para un resultado de imagen. CORRIJO una pata de la evidencia: tampoco el laboratorio CIERRA la tarea estudio_pendiente — `tareaDeResultado` abre una tarea NUEVA (resultado_por_revisar), no reconcilia con la orden; asi que el contraste 'la promesa es solo de laboratorio' esta exagerado: la reconciliacion orden↔resultado no existe para nadie. P2 se sostiene por el worklist que se ensucia."
+    },
+    {
+      "id": "MO-010",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/components/RecetaDocumento.tsx:49 y src/lib/receta-word.ts:20 — `tipo: 'receta' | 'orden'`, no hay tercer documento; no existe ruta en src/app/(dashboard)/ (solo receta, orden, referencia); pregunta-del-paciente.ts:184-189 es la unica aparicion funcional de incapacidad/certificado y solo sirve para escalar",
+      "nota": "La evidencia existe y la lectura es razonable, pero es una MEJORA que depende del dueno: un certificado o una incapacidad es el documento con mas carga legal del consultorio (falsedad en certificados) y su formato es politica legal, expresamente fuera de lo que un agente puede fijar. Queda 'parcial' hasta decision del dueno, con la prioridad bajada a P3 por lo mismo."
+    },
+    {
+      "id": "MO-011",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/app/(dashboard)/nota/[patientId]/[notaId]/page.tsx:390-398 (Receta y Orden solo con nota firmada, en rutas distintas) + consulta page.tsx:1547 (sin seccion de estudios en consulta normal) + orden page.tsx:646-665 (estudio personalizado tecleado)",
+      "nota": "Friccion con evidencia correcta; se confirma por la regla 7 del briefing. BAJO a P3 porque no es un hallazgo propio: es la suma de MO-003, MO-004 y MO-010 contada en clics, y el conteo '8-10 clics' no esta medido con un recorrido real (el propio auditor dice que la prueba de recorrido no existe)."
+    },
+    {
+      "id": "MO-012",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "orden/[patientId]/[notaId]/page.tsx:266 'Radiografia de columna (cervical / dorsal / lumbar)' y L297 'RM de columna (cervical / dorsal / lumbar)', L300 'RM articular (rodilla / hombro / cadera)'; el chip solo tiene boton Quitar (L687); RecetaDocumento.tsx:568-571 imprime la cadena literal",
+      "nota": "Verificado. Es peor de lo que cita el auditor: hay tres entradas con lista de opciones dentro del nombre, no una (L266, L297, L300). Se queda en P3 igualmente: friccion de catalogo, con salida por 'Personalizado'."
+    },
+    {
+      "id": "MO-013",
+      "veredicto": "parcial",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/expediente/guias-de-especialidad.ts:124-130 — la guia de ortopedia no menciona lado ni lateralidad (cierto). PERO: medido sobre src/lib/asr/data/especialidades.json, 65 de las 79 especialidades tienen `critical_terms: []`",
+      "nota": "La primera mitad se sostiene; la segunda no: 'critical_terms vacio' no es un descuido de ortopedia, es la norma del catalogo (65/79, contado con python sobre el JSON), y ademas el lexico global une lo critico de todas (lexicon.ts:185-186, 242). Presentarlo como 'el reconocedor no sabe que el lado pesa en esta especialidad' atribuye a ortopedia una carencia general del diseno del lexico."
+    },
+    {
+      "id": "MO-014",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/herramientas-por-especialidad.ts:87 (ortopedia y traumatolog → tronco 'cirugia') y L112 ('cirugia': ['copiloto','cirugia','calculadoras','antibiograma','fotos','laboratorios']); muestraPorDefecto = pertenece al tronco (L149-151)",
+      "nota": "Evidencia exacta y severidad 1 bien puesta por el auditor. Mejora de encaje, sin riesgo clinico; la propuesta hace bien en dejar cualquier punto de corte (Ottawa u otro) como NEEDS_CLINICAL_REVIEW."
+    },
+    {
+      "id": "MO-015",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/asr/guardian-sustituciones.ts:171-182 — la lateralidad se compara por PRESENCIA {d,i,b}; el conteo del bloque 2 (terminosCriticosPerdidos, L215-260) es por termino exacto, y 'derecho'/'derecha' son terminos distintos",
+      "nota": "Reproducido con jiti, y el auditor acerto en los dos casos: caso A `verificar('tobillo derecho y tobillo izquierdo','tobillo izquierdo y tobillo izquierdo')` → revertido:true, ['cambio_lateralidad']; caso B con el mismo genero `verificar('hombro derecho y pie izquierdo','hombro izquierdo y pie derecho')` → revertido:false, violaciones:[] (y 'rodilla derecha y mano izquierda' → 'rodilla izquierda y mano derecha' tambien false). Ojo: si el intercambio cruza generos (derecha↔izquierdo) SI se caza, porque los conteos son por forma. P3 correcto: hoy el corrector no toca esas palabras (medical-vocabulary.ts:714)."
+    },
+    {
+      "id": "MO-016",
+      "veredicto": "confirmado",
+      "prioridad_final": "P3",
+      "evidencia": "src/lib/paciente/paquete-de-visita.ts:133-160 — la interfaz PaqueteDeVisita no tiene campo de actividad/restricciones/ejercicios; grep -in 'manejar|conducir|ejercicio|actividad|cargar|caminar' en evals/patient-ai/casos.json: 0 coincidencias (266 lineas)",
+      "nota": "Verificado el campo ausente y el hueco de fixture. El propio hallazgo reconoce que el comportamiento de hoy es correcto y seguro (escala por omision, pregunta-del-paciente.ts sin modelo). Anadir el caso a la fixture es seguro y barato; anadir `activityRestrictions` y permitir contestarlo desde el paquete toca la §1 de patient-facing-ai y es decision del dueno."
+    }
+  ],
+  "ratio": { "total": 16, "confirmados": 13, "refutados": 1, "parciales": 2 },
+  "observaciones_del_auditor": "Auditor solido en lo textual: casi todas las lineas citadas existen donde dice (comprobadas ordenVacia:557, prompts.ts:60-65/86, pipeline.ts:116, aprendizaje.ts:211, orden page 263-271/358-371/417/609, paquete-de-visita.ts:341, fotos-clinicas.ts:42-49, guias:129) y sus dos reproducciones ejecutables (MO-007 y MO-015) salieron EXACTAS al correrlas. Tres patrones de error: (1) inventario incompleto — no reviso src/lib/expediente/prescripcion-segura.ts y de ahi sale su unico hallazgo falso, MO-006, afirmando 'no existe' una regla que esta viva y probada; (2) encuadre inflado hacia la regresion — MO-004 se vende como 'REG-244 sigue vivo' cuando el guardian de REG-244 pasa 19/19 y el hueco esta aguas arriba, fuera de su alcance; (3) prioridades altas por severidad imaginada, no por probabilidad medida: cinco P1 de los cuales ninguno sobrevive como P1 tras mirar los controles existentes (conflicts_detected en el prompt, vista previa antes de imprimir, boton Orden en /nota, tarea estudio_pendiente y evento de auditoria). Tambien tiende a presentar como carencia de una especialidad lo que es diseno general del catalogo (MO-013, critical_terms vacio en 65 de 79)."
+}

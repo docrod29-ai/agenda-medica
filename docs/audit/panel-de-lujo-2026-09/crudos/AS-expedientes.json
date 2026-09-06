@@ -1,0 +1,994 @@
+{
+  "rol": "expedientes-migracion-respaldo",
+  "fecha": "2026-09-06",
+  "resumen_clics": {
+    "encontrar_expediente_por_nombre": "Paciente → teclear → abrir: 2 clics + texto; falla por diseño cuando se busca por un apellido que no es la primera palabra o con acento distinto (ASE-001/002): de 40 búsquedas al día, las de «tráeme el de <apellido>» son las que salen mal",
+    "alta_paciente_completo": "Nuevo paciente → 7 campos → Registrar → aviso de privacidad: 3 clics + captura; el aviso de homónimo sí salta (REG-039 sigue cerrado; captura alta-homonimo.png)",
+    "importar_csv": "Operaciones → Ver la gestión → Migración → Elegir archivo → Analizar → Importar: 6 clics en modo médico; sin camino por menú en modo secretaria (ASE-018); lo que sale mal: apellidos, fechas y CURP entran sin validar (ASE-003/004/005)",
+    "fundir_duplicados": "imposible desde la app (ASE-009)",
+    "entregar_arco": "imposible para solicitudes reales del portal: no se puede ligar el expediente (ASE-010)",
+    "exportar_todo": "Operaciones → Descargar todo el consultorio: 2 clics; el archivo declara si quedó completo. Restaurarlo: sin interfaz (ASE-016)"
+  },
+  "lente_3": [
+    "expedientes vs pacientes: NO son dos pantallas; /expedientes redirige. Dejar.",
+    "legal: aporta al asistente (imprimir/copiar el aviso de privacidad para el mostrador); hoy escondida en modo médico (ASE-018). Dejar y abrir.",
+    "cumplimiento y sus subpantallas: Estado y Bitácora son para el auditor/dueño; ARCO es trabajo del asistente y hoy no se puede ejecutar (ASE-010); retención sin acción (ASE-022); seguridad (2FA) y motores son del médico; CSP es del ingeniero (S-011). Recomendación: dejar, pero separar «lo que el consultorio hace» (ARCO) de «lo que el auditor mira» (estado/CSP/motores)."
+  ],
+  "revisado": [
+    {
+      "pieza": "src/app/(dashboard)/pacientes/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "búsqueda, barrido de duplicados, formulario de alta; recorrido escritorio y móvil"
+    },
+    {
+      "pieza": "src/app/(dashboard)/expedientes/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "redirige a /pacientes; unificación correcta (lente 3: dejar, es sólo un redirect para marcadores viejos)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/migracion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "exportar/importar; CSV sintético de 3 filas importado y verificado en el emulador"
+    },
+    {
+      "pieza": "src/app/(dashboard)/legal/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "aviso y contrato generados; Copiar/Descargar/Imprimir funcionan por código; para el asistente aporta (imprime el aviso)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "ARCO: acceso, cancelación, oposición, rectificación; bitácora; CSP es para el ingeniero (S-011)"
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/retencion/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "lista sin acción"
+    },
+    {
+      "pieza": "src/app/(dashboard)/cumplimiento/seguridad/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "2FA TOTP; fuera del rol"
+    },
+    {
+      "pieza": "src/app/(dashboard)/configuracion/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "recorrido móvil: sin sección de respaldo/exportación (vive en Operaciones); escritorio tardó en pintar en el primer recorrido"
+    },
+    {
+      "pieza": "src/app/(dashboard)/operaciones/page.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "respaldo (2 clics) y promesa de limpieza al cerrar sesión"
+    },
+    {
+      "pieza": "src/app/(dashboard)/layout.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "RUTAS_SOLO_MEDICO y botón Cerrar sesión"
+    },
+    {
+      "pieza": "src/components/Sidebar.tsx",
+      "veredicto": "con hallazgos",
+      "nota": "modos por pantalla"
+    },
+    {
+      "pieza": "src/context/ModeContext.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "clamp de modo correcto"
+    },
+    {
+      "pieza": "src/components/OnboardingTour.tsx",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/csv-pacientes.ts",
+      "veredicto": "con hallazgos",
+      "nota": "parser, sinónimos, clasificarFilas"
+    },
+    {
+      "pieza": "src/lib/csv-seguro.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "inyección de fórmulas neutralizada"
+    },
+    {
+      "pieza": "src/lib/curp.ts",
+      "veredicto": "con hallazgos",
+      "nota": "validación existe y no se usa en la importación; siglo heurístico"
+    },
+    {
+      "pieza": "src/lib/pacientes/duplicados.ts",
+      "veredicto": "con hallazgos",
+      "nota": "motor correcto; compara fechas como cadena"
+    },
+    {
+      "pieza": "src/lib/pacientes/candidatos.ts",
+      "veredicto": "sin hallazgo"
+    },
+    {
+      "pieza": "src/lib/pacientes/campos-que-se-guardan.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "CURP se normaliza en el alta manual"
+    },
+    {
+      "pieza": "src/lib/firestore.ts",
+      "veredicto": "con hallazgos",
+      "nota": "buscarPacientes, createPatient"
+    },
+    {
+      "pieza": "src/lib/fecha-local.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "SOLO_FECHA ISO; correcto, el problema es quien le pasa dd/mm"
+    },
+    {
+      "pieza": "src/lib/expediente/pediatria.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "edadEnAnios devuelve null con fecha ilegible"
+    },
+    {
+      "pieza": "src/lib/expediente/firestore.ts",
+      "veredicto": "con hallazgos",
+      "nota": "deletePatientExpediente sin llamador"
+    },
+    {
+      "pieza": "src/lib/clinica/respaldo.ts",
+      "veredicto": "con hallazgos",
+      "nota": "manifiesto cruzado contra los 68 match de firestore.rules; googleTokens sin declarar; matriz ya cubierta por S-010/S-012"
+    },
+    {
+      "pieza": "firestore.rules",
+      "veredicto": "sin hallazgo",
+      "nota": "patients delete:false; arco_requests permite ligar patientId (nadie lo hace); googleTokens raíz"
+    },
+    {
+      "pieza": "src/lib/authz/matriz-acceso.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "cubierto por S-010; no se duplica"
+    },
+    {
+      "pieza": "src/lib/authz/registro-rutas.ts",
+      "veredicto": "con hallazgos",
+      "nota": "clinic/importar sin llamador de interfaz"
+    },
+    {
+      "pieza": "src/lib/arco.ts",
+      "veredicto": "con hallazgos"
+    },
+    {
+      "pieza": "src/lib/arco/cancelacion.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "dos caminos bien razonados (NOM-004)"
+    },
+    {
+      "pieza": "src/lib/arco/oposicion.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "no se revisó a fondo; la ruta /oponerse sí se ejecuta desde el panel"
+    },
+    {
+      "pieza": "src/app/api/arco/acceso/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "entrega con hash y acuse: correcto; identidad sólo por bandera del cliente"
+    },
+    {
+      "pieza": "src/app/api/arco/cancelar/route.ts",
+      "veredicto": "con hallazgos",
+      "nota": "supresión: alcance sin política"
+    },
+    {
+      "pieza": "src/app/api/arco/oponerse/route.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "no abierto a fondo"
+    },
+    {
+      "pieza": "src/app/privacidad/[clinicId]/page.tsx",
+      "veredicto": "sin hallazgo",
+      "nota": "único creador de solicitudes ARCO (sin patientId por regla)"
+    },
+    {
+      "pieza": "src/lib/salir-seguro.ts",
+      "veredicto": "con hallazgos",
+      "nota": "rama sin purga; aviso sin lector"
+    },
+    {
+      "pieza": "src/lib/firebase.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "persistentLocalCache en producción; limpiarCacheFirestore existe"
+    },
+    {
+      "pieza": "src/__tests__/salir-seguro.test.ts",
+      "veredicto": "con hallazgos",
+      "nota": "no cubre qué rama de salirSeguro purga"
+    },
+    {
+      "pieza": "src/__tests__/csv-pacientes.test.ts",
+      "veredicto": "con hallazgos",
+      "nota": "sólo fechas ISO; sin caso dd/mm ni CURP inválido"
+    },
+    {
+      "pieza": "src/__tests__/respaldo-consultorio.test.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "guardián sólo del bloque clinics/{clinicId}"
+    },
+    {
+      "pieza": "scripts/simulacro-respaldo.mjs",
+      "veredicto": "sin hallazgo",
+      "nota": "declara que no mide el RTO (O-2 pendiente, no se repite)"
+    },
+    {
+      "pieza": "scripts/recovery/simulacro-recuperacion.mjs",
+      "veredicto": "sin hallazgo",
+      "nota": "ídem; averías inyectadas y detectadas"
+    },
+    {
+      "pieza": "src/lib/durability/supresion-arco.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo cabecera; el importador distingue vacío de suprimido"
+    },
+    {
+      "pieza": "src/lib/durability/rpo-rto.ts",
+      "veredicto": "sin hallazgo",
+      "nota": "sólo importado por el arnés"
+    },
+    {
+      "pieza": "docs/SIMULACRO_RESTAURACION.md",
+      "veredicto": "sin hallazgo",
+      "nota": "procedimiento con consola, base nueva"
+    },
+    {
+      "pieza": "docs/audit/panel-de-lujo-2026-09/crudos/S-ciberseguridad.json",
+      "veredicto": "sin hallazgo",
+      "nota": "leído para no duplicar S-001, S-010, S-012"
+    }
+  ],
+  "hallazgos": [
+    {
+      "id": "ASE-001",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Buscar a un paciente por su apellido a secas («iparraguirre») contesta «Ninguno de los 6 expedientes coincide» aunque el paciente existe: la respuesta vacía del servidor pisa el acierto del filtro local",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 168,
+      "evidencia": "if (busquedaServidor && busquedaServidor.q === search.trim()) return busquedaServidor.pacientes\n— y en src/lib/firestore.ts:333 el sondeo principal es prefijo sobre `nombre` con [q, tituloCase(q)]; en :354 los sondeos por palabra excluyen la palabra cuando ES la búsqueda entera: `.filter(p => p.toLowerCase() !== q.toLowerCase())`",
+      "reproduccion": "App levantada, /pacientes, teclear «iparraguirre» (existe «Tadeo Iparraguirre Nolasco»): pantalla dice «Ninguno de los 6 expedientes coincide con «iparraguirre». Puede estar capturado con otro nombre…». El filtro en memoria (línea 171, `includes`) sí lo encontraba; el resultado vacío del servidor lo sustituye. Mismo resultado con «Barquin Salcedo» y «Sotomayor Benjamin». Captura: scratchpad/capturas-l/busqueda-ultima.png",
+      "impacto": {
+        "paciente": "El médico lo pide a gritos por el apellido, la asistente contesta «no está» y se abre un segundo expediente: alergias y antecedentes quedan partidos.",
+        "medico": "Pierde tiempo y confianza en el buscador; el aviso antiduplicado tampoco salta por este camino.",
+        "negocio": "Es la tarea que se hace 40 veces al día y falla en el caso más común: buscar por un apellido que no es la primera palabra."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "El bloque «Hay uno con un nombre parecido» (buscarPosiblesDuplicados, umbral 0.8) rescata algunos casos de dos palabras, pero no uno de tres con una sola palabra tecleada (similitud 0.67).",
+      "prioridad": "P1",
+      "propuesta": "Unir, no sustituir: el resultado final debe ser la UNIÓN del sondeo del servidor y del filtro local sobre lo ya cargado; y sondear por palabra también cuando la búsqueda es una sola palabra (quitar el filtro de :354 o sondear q como palabra). A medio plazo, un campo `nombreBusqueda` normalizado (sin acentos, minúsculas, tokens) escrito en createPatient/updatePatient e indexado por array-contains.",
+      "prueba_que_faltaria": "Prueba de pantalla/hook: con `patients` cargados que contienen «Tadeo Iparraguirre Nolasco» y un `buscarPacientes` que devuelve [] para «iparraguirre», `resultadosBusqueda` debe contener a Tadeo. Hoy devuelve [].",
+      "que_no_cubre": "No cubre el paciente que NO está entre los cargados (techo REG-341) y cuyo apellido no es la primera palabra: ése sigue necesitando un índice normalizado en el servidor.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-347",
+        "REG-358",
+        "REG-341"
+      ]
+    },
+    {
+      "id": "ASE-002",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La búsqueda del servidor distingue acentos y mayúsculas: «Barquin» no encuentra a «Barquín» ni «Villasenor» a «Villaseñor», justo lo que la asistente teclea deprisa",
+      "archivo": "src/lib/firestore.ts",
+      "linea": 333,
+      "evidencia": "planes.push({ estrategia: 'prefijo-nombre', campo: 'nombre', valores: [...new Set([q, tituloCase(q)])] })\n— tituloCase (línea 299) sólo capitaliza; no quita acentos ni compara con una forma normalizada, y ningún campo normalizado se escribe al crear (grep nombreNormalizado|nombreBusqueda en src: sin resultados).",
+      "reproduccion": "/pacientes, teclear «Villasenor» → «Ninguno de los 6 expedientes coincide con «Villasenor»» (existe «…Villaseñor Etchegaray»). El filtro local (norm() en :137) sí lo igualaría, pero se pisa (ASE-001).",
+      "impacto": {
+        "paciente": "Un paciente con apellido acentuado o con ñ se «pierde» y se duplica.",
+        "medico": "Busca dos o tres veces antes de rendirse.",
+        "negocio": "Los apellidos con acento son mayoría en México; el buscador falla por diseño en ellos."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "El filtro local normaliza acentos, pero sólo manda mientras no ha vuelto el servidor.",
+      "prioridad": "P2",
+      "propuesta": "Guardar en cada paciente un campo normalizado (minúsculas, NFD sin diacríticos, tokens) y sondear sobre él; migrar los existentes con un backfill declarado. Es el mismo campo que resuelve ASE-001.",
+      "prueba_que_faltaria": "Prueba de `buscarPacientes` contra emulador: con un paciente «Ana Villaseñor» la búsqueda «villasenor» debe devolverlo. Hoy devuelve [].",
+      "que_no_cubre": "No cubre dedazos («Rodriquez»): eso sigue siendo del módulo de parecidos.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-347",
+        "REG-358"
+      ]
+    },
+    {
+      "id": "ASE-003",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "El importador guarda la fecha de nacimiento tal cual venga («15/03/1980») sin validarla: la edad no se deriva, y ese mismo paciente capturado a mano («1980-03-15») es «otra persona» para el motor de duplicados por siempre",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 211,
+      "evidencia": "fechaNacimiento: fila.fechaNacimiento?.trim() || undefined,\n// (215) edad: edadEnAnios(fila.fechaNacimiento?.trim()) ?? undefined,\n— edadEnAnios → fechaLocalDesdeISO (src/lib/fecha-local.ts:36) sólo entiende ^\\d{4}-\\d{2}-\\d{2}$ y cae en new Date('15/03/1980') = Invalid; y src/lib/pacientes/duplicados.ts:185-186 compara `String(p.fechaNacimiento).slice(0,10)` como cadena, :222 `if (fA && fB && !mismaFecha) return null`.",
+      "reproduccion": "CSV sintético de 3 filas (nombres inventados, teléfonos 555) subido en /migracion y importado. Verificado DEL OTRO LADO en el emulador (REST): {nombre:'Ernestina', fechaNacimiento:'15/03/1980'} sin `edad`; {nombre:'Leocadio', fechaNacimiento:'03/04/1975', edad:51} (JS lo leyó como 4 de marzo; si era 3 de abril, la edad cambia el mes del cumpleaños); {nombre:'Fermina', fechaNacimiento:'1990-11-02', edad:35}. Ningún aviso en pantalla: «✅ 3 pacientes creados».",
+      "impacto": {
+        "paciente": "Un niño importado sin `edad` no dispara las herramientas pediátricas (comentario propio del código en :212-214); y la fecha ambigua 03/04 puede imprimirse en la receta con el día y el mes al revés. Al reimportar o dar de alta a mano al mismo paciente, el motor dice «fecha distinta → dos personas» y el historial se parte sin aviso.",
+        "medico": "Confía en un reporte que dice «3 creados» y no dice «3 sin fecha válida».",
+        "negocio": "Es la familia REG-160 (el dato se valida en un formato y se escribe en otro, o no se valida): una migración de 1 200 filas de Excel en dd/mm/aaaa —el formato de Excel en es-MX— entra entera con fechas que ningún motor puede leer."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno: no hay validación de fecha ni de CURP en construirFilas/importar; el test csv-pacientes.test.ts sólo usa fechas ISO.",
+      "prioridad": "P1",
+      "propuesta": "Normalizar la fecha en la importación a ISO con reglas explícitas (aceptar dd/mm/aaaa y aaaa-mm-dd; la ambigua dd/mm vs mm/dd se marca y se PREGUNTA por archivo, no por fila: «¿tus fechas son día/mes/año?»), rechazar la fila con fecha ilegible y decirlo en la vista previa; derivar `edad` sólo de la ISO resultante. El motor de duplicados debería comparar fechas normalizadas, no cadenas.",
+      "prueba_que_faltaria": "Test de `importar`/construirFilas: fila con «15/03/1980» debe producir fechaNacimiento '1980-03-15' y edad calculada; fila con «31/02/1980» debe quedar marcada con error visible. Hoy pasa el texto crudo y edad undefined.",
+      "que_no_cubre": "No cubre fechas que llegan bien formadas pero falsas (una fecha de nacimiento futura): eso es validación de rango, aparte.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-160",
+        "REG-351"
+      ]
+    },
+    {
+      "id": "ASE-004",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Un Excel con «Nombre», «Apellido paterno» y «Apellido materno» en columnas separadas —el formato de casi cualquier sistema mexicano— importa 1 200 pacientes con SOLO el nombre de pila y sin avisar",
+      "archivo": "src/lib/csv-pacientes.ts",
+      "linea": 80,
+      "evidencia": "const SINONIMOS: Record<string, keyof Patient> = {\n  nombre: 'nombre', paciente: 'nombre', 'nombre completo': 'nombre', name: 'nombre',\n  … (no existe ningún sinónimo para apellido/apellidos/apellido paterno/apellido materno; mapearEncabezados devuelve null y construirFilas :116 ignora la columna)",
+      "reproduccion": "CSV sintético con encabezado «Nombre,Apellido paterno,Apellido materno,…» → vista previa «3 nuevos»: Ernestina / Leocadio / Fermina. Importados así (verificado en el emulador: nombre:'Ernestina'). La pantalla no lista qué columnas reconoció ni cuáles descartó.",
+      "impacto": {
+        "paciente": "Tres «Ernestina» sin apellido en el directorio: la asistente no puede distinguirlas, el médico abre el expediente equivocado.",
+        "medico": "La migración hay que rehacerla a mano paciente por paciente, o pedir la migración asistida por correo.",
+        "negocio": "Es la primera impresión del producto para quien viene de otro sistema, y sale mal en silencio."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno: el auto-mapeo no enseña su resultado ni exige confirmación.",
+      "prioridad": "P1",
+      "propuesta": "(1) Añadir sinónimos de apellidos y COMPONER el nombre (nombre + apellido paterno + apellido materno) cuando vengan separados; (2) enseñar en la vista previa la tabla «columna del archivo → campo» con las columnas descartadas en rojo y un selector para corregir el mapeo antes de importar; (3) no habilitar «Importar» si hay columnas con datos que no se mapearon, sin confirmación explícita.",
+      "prueba_que_faltaria": "Test de mapearEncabezados/construirFilas: ['Nombre','Apellido paterno','Apellido materno'] con fila ['Ernestina','Quiroga','Balbuena'] debe producir nombre 'Ernestina Quiroga Balbuena'. Hoy produce 'Ernestina'.",
+      "que_no_cubre": "No cubre el orden «Apellidos, Nombre» dentro de una sola columna, que el motor de duplicados ya tolera pero la búsqueda por prefijo no (ASE-001).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-160"
+      ]
+    },
+    {
+      "id": "ASE-005",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "CURP inválido y sexo en formato distinto entran tal cual: se guardó «INVALIDO123» como CURP y «F»/«Mujer» se tiraron sin aviso — y el formulario ya no tiene campo CURP para corregirlo",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 216,
+      "evidencia": "sexo: fila.sexo === 'Masculino' || fila.sexo === 'Femenino' || fila.sexo === 'Otro' ? fila.sexo : undefined,\ncurp: fila.curp?.trim() || undefined,\n— src/lib/curp.ts:22 `validarCURP` y :47 `sexoDesdeCURP` existen y no se llaman aquí; el formulario de alta quitó el CURP de la pantalla por decisión del dueño (pacientes/page.tsx:1160-1170).",
+      "reproduccion": "CSV sintético: fila con CURP «INVALIDO123» y sexo «Mujer» → importada; emulador: curp:'INVALIDO123', sin sexo. Fila con sexo «F» → sin sexo. Ninguna advertencia en la vista previa ni en el reporte.",
+      "impacto": {
+        "paciente": "Un CURP mal capturado sale en la receta y en el expediente que se entrega por ARCO; el sexo vacío apaga las herramientas gineco por sexo.",
+        "medico": "No hay dónde corregir el CURP desde la interfaz (campo retirado); queda mal para siempre.",
+        "negocio": "Se guarda un identificador oficial sin la validación sintáctica que el propio repositorio ya tiene escrita."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "validarCURP existe; el motor de duplicados sólo usa CURP de 18 caracteres (duplicados.ts:190-193), así que el inválido no funde a nadie.",
+      "prioridad": "P2",
+      "propuesta": "En la importación: normalizarCURP + validarCURP; si es inválido, guardarlo NO y marcar la fila en la vista previa; derivar sexo (sexoDesdeCURP) y aceptar sinónimos (F/M/H/Mujer/Hombre/femenino…). Y, como desacuerdo argumentado con la decisión del 29-jul-2026: si el CURP no se puede capturar ni corregir en pantalla, o se saca del buscador y de la importación, o vuelve al formulario en una sección plegada.",
+      "prueba_que_faltaria": "Test de importar: fila con curp 'INVALIDO123' no debe escribir `curp`; fila con sexo 'F' debe escribir 'Femenino'. Hoy escribe 'INVALIDO123' y omite el sexo.",
+      "que_no_cubre": "No cubre CURP sintácticamente válidos pero de otra persona: eso sólo lo resuelve RENAPO, fuera de alcance.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-160"
+      ]
+    },
+    {
+      "id": "ASE-006",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Las filas que fallan al importar se cuentan pero no se nombran: «⚠️ 2 con error (revisa el formato)» sin decir cuáles, y el reporte desaparece al recargar",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 227,
+      "evidencia": "      } catch {\n        errores++\n      }\n… (402) {reporte.errores > 0 && <>⚠️ {reporte.errores} con error (revisa el formato)<br /></>}",
+      "reproduccion": "Lectura de código: el bucle de :204-230 traga la excepción de createPatient sin guardar fila ni motivo; setReporte sólo lleva conteos; :233 vacía el texto del CSV, así que no se puede reintentar sólo las fallidas.",
+      "impacto": {
+        "paciente": "Un paciente de los 1 200 no entró y nadie sabe cuál hasta que llega a consulta y «no está».",
+        "medico": "Tiene que comparar a ojo el Excel original contra el directorio.",
+        "negocio": "Una migración con 40 errores anónimos se convierte en un ticket de soporte."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "Ninguno.",
+      "prioridad": "P2",
+      "propuesta": "Guardar por cada fila fallida {nombre, teléfono, motivo} y listarlas en el reporte con un botón «Descargar las que fallaron (CSV)» para corregir y reimportar; no vaciar el textarea cuando hubo errores.",
+      "prueba_que_faltaria": "Test del flujo de importar con un createPatient que rechaza la segunda fila: el reporte debe incluir el nombre de esa fila. Hoy sólo cuenta 1.",
+      "que_no_cubre": "No cubre errores parciales dentro de una fila importada (p. ej. teléfono vacío): eso es validación previa, ASE-003/005.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-007",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "«N duplicados (se omiten)» no dice con QUIÉN coincide cada fila ni permite forzarla: el hijo homónimo del padre, sin fecha de nacimiento en el archivo, nunca entra",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 363,
+      "evidencia": "{conteo.duplicado} duplicados (se omiten)\n… (374-382) la fila se pinta con opacidad 0.55, nombre y teléfono, sin el paciente existente con el que chocó ni un control para importarla de todas formas; src/lib/csv-pacientes.ts:185 `const dup = comparables.some(c => compararPacientes(candidato, c) !== null)` descarta con CUALQUIER certeza, incluida 'probable' (puntaje 50: «nombre muy parecido» a secas).",
+      "reproduccion": "Lectura de código + vista previa observada en la app: la fila omitida sólo muestra nombre y teléfono.",
+      "impacto": {
+        "paciente": "Un homónimo real (padre/hijo, sin fecha) se queda fuera y su primera cita se cuelga del expediente del otro.",
+        "medico": "No puede revisar la decisión: la pantalla decide por él sin enseñar la evidencia.",
+        "negocio": "«Duplicados omitidos» se lee como trabajo bien hecho (el propio comentario de csv-pacientes.ts:136-139 lo advierte) y aquí vuelve a ocurrir por la puerta del umbral bajo."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El motor exige parecido de nombre (el teléfono no basta); la fecha de nacimiento separa cuando viene en el archivo.",
+      "prioridad": "P2",
+      "propuesta": "En la fila omitida mostrar «coincide con: <nombre existente> · <motivo>» y un control «Importar de todas formas» (o «Es otra persona», como ya hace el formulario de alta en :1107-1125). Omitir en automático sólo con certeza 'seguro'; las 'probable' se importan marcadas para revisión.",
+      "prueba_que_faltaria": "Test de clasificarFilas: candidato 'probable' (mismo nombre, sin fecha ni teléfono común) debe salir con estado distinguible de 'seguro' y con el id del existente. Hoy ambos son 'duplicado' sin referencia.",
+      "que_no_cubre": "No cubre duplicados entre filas del mismo archivo (ya se comparan entre sí) ni la fusión de los ya existentes (ASE-009).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-039"
+      ]
+    },
+    {
+      "id": "ASE-008",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "titulo": "«Sube un CSV o Excel» promete Excel, pero el selector sólo acepta .csv y un .xlsx real termina en «No se encontró una columna de Nombre»",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 327,
+      "evidencia": "<input type=\"file\" accept=\".csv,text/csv\" style={{ display: 'none' }}\n… (319) Sube un CSV o Excel exportado desde tu sistema actual (o desde Google Contactos).\n… (152) r.readAsText(f, 'utf-8')",
+      "reproduccion": "Lectura de código: FileReader.readAsText sobre un .xlsx (zip binario) produce texto ilegible; parseCsv no encuentra encabezados; :163-164 dispara el toast de columna Nombre. La exportación SÍ genera .xlsx (exportarLibro), lo que refuerza la expectativa.",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Guarda su Excel, lo sube, recibe un error que habla de otra cosa y no sabe que debe «Guardar como CSV».",
+        "negocio": "Primer contacto con la migración y el texto miente sobre lo que acepta."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno.",
+      "prioridad": "P2",
+      "propuesta": "O leer .xlsx de verdad (SheetJS ya se usa en exportar-excel) o cambiar el texto a «CSV (desde Excel: Guardar como → CSV UTF-8)» y rechazar el .xlsx con un mensaje que diga cómo convertirlo.",
+      "prueba_que_faltaria": "Test de la pantalla: subir un archivo con extensión .xlsx debe mostrar un mensaje que mencione «Guardar como CSV», no «columna de Nombre». Hoy muestra el segundo.",
+      "que_no_cubre": "No cubre CSV con separador «;» (parseCsv sólo entiende coma): un Excel en locale es-ES lo produce; en es-MX el separador por defecto es coma.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-009",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Fundir dos expedientes repetidos es imposible desde la app: el barrido los encuentra, el diálogo dice «nada se junta solo», y borrar el vacío está cerrado en las reglas — el único camino es fingir una solicitud ARCO de cancelación",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 404,
+      "evidencia": "Abre los dos y compáralos. <strong>Nada se junta ni se borra solo</strong>: decidir que dos expedientes son la misma persona —y cuál se queda— es tuyo…\n— y firestore.rules:186 `allow delete: if false;` para patients; el único borrado vive en /api/arco/cancelar (capacidad 'administrar', vía /cumplimiento).",
+      "reproduccion": "Clics medidos para «fundir duplicados»: Pacientes → Revisar → Abrir A / Abrir B → …y ahí termina: no hay «fundir», no hay «borrar este», no hay «marcar como el mismo». Un duplicado creado por la importación (ASE-003/004) queda vivo indefinidamente.",
+      "impacto": {
+        "paciente": "El médico abre el expediente equivocado y prescribe sin ver la alergia que quedó en el otro (es el escenario que abre duplicados.ts:5-10).",
+        "medico": "Tiene que copiar a mano alergias y antecedentes de uno al otro y recordar cuál es «el bueno».",
+        "negocio": "La detección sin remedio enseña a ignorar el aviso."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "El barrido y el aviso de alta reducen los duplicados nuevos; la prohibición de borrar protege las notas firmadas (NOM-004).",
+      "prioridad": "P2",
+      "propuesta": "Una ruta de servidor «fundir A en B» con capacidad 'administrar': re-apunta citas, cobros, laboratorios y notas de A a B (las firmadas conservan su hash y su autor), deja asiento en audit_log con los dos ids, marca A como fusionado (no se borra) y lo saca de listas y búsquedas. Mientras no exista, al menos «Marcar como la misma persona» que los enlace visiblemente. Qué se pierde al fundir hoy: nada, porque no se puede fundir.",
+      "prueba_que_faltaria": "Test del motor de fusión (no existe): dado A con alergia y B con nota firmada, fundir A→B deja la alergia en B, la nota intacta y A con `fusionadoEn: B`. Hoy no hay función que probar.",
+      "que_no_cubre": "No cubre decidir cuál de los dos es «el bueno»: eso es del médico, y la interfaz debe preguntarlo.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-039",
+        "REG-358"
+      ]
+    },
+    {
+      "id": "ASE-010",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Las solicitudes ARCO reales no se pueden ejecutar: llegan del portal sin expediente ligado, no existe pantalla para ligarlas, y el panel manda a «ejecutarla desde su expediente» donde no hay ninguna acción ARCO",
+      "archivo": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "linea": 931,
+      "evidencia": "{r.tipo === 'cancelacion' && !r.patientId && (\n  … Llegó sin expediente ligado. Identifica al paciente con su identificación delante y ejecuta la cancelación desde su expediente …\n— (259-262) entregarAcceso: `if (!clinicId || !req.id || !req.patientId) { toast('Esta solicitud no está ligada a un expediente. Identifícala primero.', 'error') …`\n— src/lib/arco.ts:100-101 crearSolicitudArco siempre escribe origen:'portal-publico', identidadVerificada:false, y su único llamador es src/app/privacidad/[clinicId]/page.tsx:70; firestore.rules:750-752 prohíbe patientId en el create público; :775-781 permite ligarlo después, pero ningún código lo hace (grep 'arco' en expediente/[patientId]/page.tsx: 0 resultados; ningún updateDoc escribe patientId).",
+      "reproduccion": "Recorrido: /cumplimiento → pestaña ARCO. Con una solicitud del portal (la única fuente), «Marcar resuelta» sobre un acceso → toast «Identifícala primero»; sobre una cancelación → texto que manda al expediente; en /expediente/<id sintético> no hay acción ARCO. Clics para «entregar un ARCO»: infinitos.",
+      "impacto": {
+        "paciente": "Su derecho de acceso o cancelación no se puede cumplir en el plazo de 20 días hábiles que la propia pantalla cuenta; se «resuelve» rechazando o escribiendo prosa.",
+        "medico": "El responsable del tratamiento tiene el mecanismo escrito y no lo puede usar.",
+        "negocio": "Incumplimiento LFPDPPP demostrable con la propia bitácora: solicitudes recibidas, ninguna ejecutada por la vía que el producto documenta."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Las rutas /api/arco/acceso y /cancelar funcionan si se les pasa patientId (por curl). El Rechazar y el prompt() de texto siguen disponibles.",
+      "prioridad": "P1",
+      "propuesta": "Añadir en la tarjeta de la solicitud «Ligar expediente»: buscador de pacientes (el mismo de /pacientes) + casilla «vi su identificación oficial» que escribe {patientId, identidadVerificada:true, identidadVerificadaPor, en} —las reglas ya lo permiten— y deja asiento en audit_log. Y en /expediente una acción «Derechos ARCO de este paciente» que cree la solicitud con origen:'consultorio' y patientId (crearSolicitudArco necesita ese parámetro).",
+      "prueba_que_faltaria": "Test de pantalla: una solicitud de acceso sin patientId debe ofrecer «Ligar expediente» y, tras ligar, «Entregar». Hoy sólo hay «Rechazar» y «Marcar resuelta» (que falla).",
+      "que_no_cubre": "No cubre acreditar la identidad de verdad (el portal la pide como texto libre): eso sigue siendo un acto humano con la INE delante.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-154",
+        "REG-526",
+        "S-001"
+      ]
+    },
+    {
+      "id": "ASE-011",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "titulo": "«Marcar resuelta» sobre un acceso no marca nada: descarga el expediente completo con `identidadVerificada: true` escrito a fuego, sin la casilla que la cancelación sí exige",
+      "archivo": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "linea": 268,
+      "evidencia": "body: JSON.stringify({ clinicId, patientId: req.patientId, solicitudId: req.id, identidadVerificada: true }),\n… (943) Marcar resuelta   ← mismo botón para los cinco tipos; (342) if (req.tipo === 'acceso' && estado === 'resuelta') { await entregarAcceso(req); return }\n— compárese con la cancelación: (433) disabled={… || !identidadOk} y (474) checked={identidadOk}.",
+      "reproduccion": "Lectura de código: el servidor (api/arco/acceso/route.ts:105-110) sólo comprueba que el cliente MANDE true; el cliente lo manda siempre. La tarjeta muestra «Identidad sin verificar» (:887-890) y aun así el botón entrega.",
+      "impacto": {
+        "paciente": "Su expediente íntegro (notas, laboratorios, fotos) baja al disco del consultorio con un clic etiquetado como otra cosa, sin que nadie afirme haber visto una identificación.",
+        "medico": "El acuse dice «identidadVerificadaPor: uid» de alguien que nunca marcó que la verificó.",
+        "negocio": "El control «acredita que quien pide es el titular» existe sólo como frase de error."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El archivo se descarga al equipo del consultorio, no al solicitante; una persona sigue entre el JSON y el paciente. Y hoy, por ASE-010, el botón ni siquiera llega a ejecutarse con solicitudes reales.",
+      "prioridad": "P2",
+      "propuesta": "Renombrar el botón según el tipo («Entregar expediente…», «Ejecutar oposición…») y pasar acceso y oposición por el mismo modal con casilla de identidad que ya tiene la cancelación; el `identidadVerificada` debe salir del estado de la casilla, nunca de una constante.",
+      "prueba_que_faltaria": "Test de pantalla: con identidadOk=false, pulsar el botón de un acceso NO debe llamar a /api/arco/acceso. Hoy lo llama.",
+      "que_no_cubre": "No cubre que el servidor pueda verificar la identidad por sí mismo: no puede; lo que se pide es que la afirmación la haga una persona.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "ASE-010",
+        "S-001"
+      ]
+    },
+    {
+      "id": "ASE-012",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Rectificación y revocación siguen «resolviéndose» con un prompt() de texto libre: el dato no se corrige ni el consentimiento se apaga",
+      "archivo": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "linea": 352,
+      "evidencia": "const resolucion = prompt(`Describe brevemente qué se hizo (${estado}):`)\n— src/lib/arco.ts:20 ArcoTipo incluye 'rectificacion' y 'revocacion'; sólo acceso, cancelación y oposición tienen ruta de servidor (src/app/api/arco/{acceso,cancelar,oponerse}).",
+      "reproduccion": "Lectura de código: para tipo 'rectificacion' el flujo es prompt → resolverSolicitudArco → estado 'resuelta'. Nada toca patients/{id}.",
+      "impacto": {
+        "paciente": "Pide corregir su fecha de nacimiento o su alergia y la solicitud queda «resuelta» con una frase; la receta sigue saliendo con el dato viejo.",
+        "medico": "Cree que el sistema aplicó la corrección.",
+        "negocio": "El propio ledger (REG-154) ya dijo que «resolver escribiendo un texto» no es ejecutar un derecho; quedan dos tipos así."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El médico puede editar el paciente a mano en /pacientes si se acuerda.",
+      "prioridad": "P2",
+      "propuesta": "Rectificación: abrir el editor del paciente prellenado, y al guardar escribir en la solicitud qué campos cambiaron (antes/después) como resolución. Revocación: ejecutar la misma baja que la oposición (registrarBaja) más marca en el paciente. El prompt() se queda sólo para «rechazada».",
+      "prueba_que_faltaria": "Test: resolver una solicitud 'rectificacion' debe terminar con un updatePatient registrado en audit_log; hoy sólo hay un update de arco_requests.",
+      "que_no_cubre": "No cubre rectificaciones de notas firmadas: ésas van por adenda, no por edición.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-154"
+      ]
+    },
+    {
+      "id": "ASE-013",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "Cerrar sesión desde Pacientes, Agenda u Operaciones —cualquier pantalla sin una consulta abierta— NO limpia la caché IndexedDB de Firestore con los expedientes, aunque Operaciones prometa «nada del consultorio se queda guardado aquí»",
+      "archivo": "src/lib/salir-seguro.ts",
+      "linea": 101,
+      "evidencia": "if (promesas.length === 0) {\n  await dormir(ESPERA_SIN_ACUSE_MS)\n  return { huboAcuse: false, todoGuardado: false, seAgotoElTiempo: false, audioSinTranscribir }\n}\n… (192) if (r.todoGuardado) { limpiarBorradoresLocales(); try { await auth.signOut() } finally { purgarAudio(); await limpiarCacheFirestore(); … } return }\n… (202-210) try { await auth.signOut() } finally { purgarAudio(); … window.location.href = `${destino}…pendiente=${aviso}` }   ← sin limpiarCacheFirestore\n— src/lib/firebase.ts:108-110 activa persistentLocalCache en producción; src/app/(dashboard)/operaciones/page.tsx:343 «Cierra y limpia este dispositivo: nada del consultorio se queda guardado aquí».",
+      "reproduccion": "Reproducido en la app: entrar, ir a /pacientes, pulsar «Cerrar sesión» → URL final /login?pendiente=sin_confirmar (la rama sin purga). En el emulador no hay caché persistente (getFirestore sin persistencia), así que el residuo no se pudo contar aquí; en producción la caché persistente existe por :108-110. El test src/__tests__/salir-seguro.test.ts sólo cubre guardarTodoYEsperar, no qué rama de salirSeguro purga.",
+      "impacto": {
+        "paciente": "Sus expedientes quedan legibles en el navegador del mostrador después de que la asistente cerró sesión: cualquiera que abra el equipo compartido con las herramientas del navegador los ve.",
+        "medico": "Cree que el botón limpió el equipo porque la interfaz se lo dice.",
+        "negocio": "Contradice la regla de data-privacy («Al cerrar sesión se limpia IndexedDB») en el caso más frecuente: el cierre de sesión normal de la recepción, sin ninguna consulta a medio dictar."
+      },
+      "severidad": 4,
+      "probabilidad": "alta",
+      "control_existente": "Cuando una consulta está abierta y contesta al evento, sí se purga. El cierre por inactividad (AutoLogout) pasa por la misma función y hereda el hueco.",
+      "prioridad": "P1",
+      "propuesta": "Distinguir «nadie tenía nada que guardar» (promesas.length===0) de «se intentó guardar y falló»: en el primero purgar TODO (borradores, audio, caché) igual que en todoGuardado; conservar la caché sólo cuando huboAcuse && !todoGuardado. Y añadir la prueba al revés.",
+      "prueba_que_faltaria": "Test de salirSeguro con cero oyentes del evento: limpiarCacheFirestore debe llamarse. Hoy no se llama (rama :202).",
+      "que_no_cubre": "No cubre la caché del Service Worker ni las capturas de pantalla del sistema operativo; sólo la caché de Firestore y los borradores.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-162",
+        "REG-297"
+      ]
+    },
+    {
+      "id": "ASE-014",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "titulo": "El aviso `?pendiente=guardado_lento|guardado_fallido|sin_confirmar` con el que sale la sesión no lo lee nadie: /login lo ignora y el médico nunca se entera de que algo no se guardó",
+      "archivo": "src/lib/salir-seguro.ts",
+      "linea": 206,
+      "evidencia": "const aviso = r.seAgotoElTiempo ? 'guardado_lento' : r.huboAcuse ? 'guardado_fallido' : 'sin_confirmar'\nwindow.location.href = `${destino}${destino.includes('?') ? '&' : '?'}pendiente=${aviso}`\n— grep de «pendiente=» / 'guardado_lento' / 'sin_confirmar' en src/app y src/components: ningún lector (src/app/login/page.tsx no lo usa).",
+      "reproduccion": "Reproducido: tras cerrar sesión desde /pacientes la URL es /login?pendiente=sin_confirmar y la pantalla de login es idéntica a la normal (texto visible sin aviso).",
+      "impacto": {
+        "paciente": "Una nota que no llegó al servidor se queda en el navegador sin que nadie lo sepa; si el equipo se apaga o se limpia, se pierde.",
+        "medico": "Cierra sesión creyendo que todo quedó guardado.",
+        "negocio": "El dato (el aviso) no LLEGA: es exactamente la familia de REG-160/167/170."
+      },
+      "severidad": 3,
+      "probabilidad": "alta",
+      "control_existente": "El borrador local se conserva (POR_QUE_NO_SE_PURGA_SI_FALLA) y el cartel de recuperación aparece al volver a entrar, pero eso depende de que vuelva la misma persona al mismo equipo.",
+      "prioridad": "P2",
+      "propuesta": "En /login leer `pendiente` y mostrar un aviso persistente en lenguaje de persona: «Quedó trabajo sin confirmar en este equipo. Vuelve a entrar aquí mismo para recuperarlo». O mejor: mostrarlo ANTES de cerrar, con opción de esperar.",
+      "prueba_que_faltaria": "Test de la página de login: con ?pendiente=guardado_fallido debe renderizar un aviso. Hoy no renderiza nada.",
+      "que_no_cubre": "No cubre el caso «sin_confirmar» falso positivo que ASE-013 describe: ése hay que arreglarlo en el origen.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-160",
+        "REG-297"
+      ]
+    },
+    {
+      "id": "ASE-015",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "defecto",
+      "titulo": "La supresión ARCO borra también las citas PASADAS del paciente y deja los cobros con su nombre: ni lo uno ni lo otro está decidido legalmente (LFPDPPP contra conservación fiscal y NOM-004)",
+      "archivo": "src/app/api/arco/cancelar/route.ts",
+      "linea": 174,
+      "evidencia": "const citasSnap = await clinicRef.collection('appointments').where('pacienteId', '==', patientId).get()\n… (195-198) for (const ref of [...notasSnap.docs.map(d => d.ref), ...citasSnap.docs.map(d => d.ref)]) { await adminDb.recursiveDelete(ref) }\n await adminDb.recursiveDelete(pacienteRef)\n— no se toca `cobros` (que llevan pacienteNombre/pacienteId, src/lib/cobros.ts:195), ni notification_logs, ni waitlist, ni memberships; audit_log conserva patientId (correcto).",
+      "reproduccion": "Lectura de código. El camino 'supresion' sólo aplica sin notas firmadas (caminoDeCancelacion), pero un paciente puede tener años de citas y cobros sin nota firmada (consultas antes de usar la nota electrónica).",
+      "impacto": {
+        "paciente": "Su nombre sigue en los cobros y en los registros de WhatsApp después de que se le dijo «se eliminó el expediente completo» (cancelacion.ts:63).",
+        "medico": "La agenda histórica pierde citas atendidas (afecta estadísticas y corte) y el contador puede necesitar esos cobros identificados 5 años (CFF art. 30).",
+        "negocio": "NEEDS_CLINICAL_REVIEW/legal: qué se conserva (cobros con nombre, citas pasadas, bajas de WhatsApp) y qué se anonimiza; hoy lo decide el código sin política escrita. Quién decide: el dueño con su asesor legal/fiscal."
+      },
+      "severidad": 3,
+      "probabilidad": "media",
+      "control_existente": "El bloqueo (no supresión) se aplica en cuanto hay una nota firmada; audit_log deja asiento.",
+      "prioridad": "P2",
+      "propuesta": "No decidir aquí. Poner en 04-DECISIONES-DEL-DUEÑO: política de supresión por colección (borrar / anonimizar nombre y teléfono conservando el importe / conservar). Recomendación por omisión: anonimizar cobros y notification_logs (pacienteNombre → 'suprimido', teléfono → hash), conservar la cita pasada como «atendida, paciente suprimido». Mientras tanto, que el texto de queOcurre no diga «completo» si quedan cobros con nombre.",
+      "prueba_que_faltaria": "Test de la ruta: tras supresión, ningún documento de cobros/notification_logs de esa clínica debe contener el nombre del paciente. Hoy los cobros lo conservan.",
+      "que_no_cubre": "No cubre respaldos ya descargados donde el paciente sigue: eso es política de retención de archivos fuera del sistema.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-420",
+        "REG-526",
+        "S-001"
+      ]
+    },
+    {
+      "id": "ASE-016",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "La restauración no tiene interfaz: el día que se pierdan los datos, «volver» exige que un ingeniero mande el NDJSON con curl a /api/clinic/importar",
+      "archivo": "src/lib/authz/registro-rutas.ts",
+      "linea": 267,
+      "evidencia": "'clinic/importar': { tipo: 'capacidad', capacidad: 'administrar' },\n— grep de «clinic/importar» en src/app (fuera de la propia ruta), src/components y src/hooks: ningún llamador. La descarga sí tiene botón (operaciones/page.tsx:481 descargarRespaldo).",
+      "reproduccion": "Recorrido de /operaciones («Descargar todo el consultorio», 2 clics) y /configuracion (secciones: datos, horario, …, Seguridad, Mi suscripción; ninguna de «Restaurar»). docs/SIMULACRO_RESTAURACION.md describe el procedimiento con consola.",
+      "impacto": {
+        "paciente": "Si el consultorio pierde datos un sábado, no vuelve hasta que alguien con terminal lo restaure.",
+        "medico": "Tiene el archivo y no tiene el botón.",
+        "negocio": "R-07 sigue «Parcial» y O-2 (cronometrar la restauración real con gcloud) sigue pendiente: no se repite aquí, se cita. El simulacro mide sólo nuestra mitad (scripts/simulacro-respaldo.mjs:18-21 y scripts/recovery/simulacro-recuperacion.mjs:24-28 lo dicen)."
+      },
+      "severidad": 3,
+      "probabilidad": "baja",
+      "control_existente": "El importador existe, está probado (REG-160, el-respaldo-sabe-volver-entero.test.ts) y respeta las notas firmadas; el simulacro de ida y vuelta corre en CI.",
+      "prioridad": "P2",
+      "propuesta": "Una pantalla «Restaurar desde un respaldo» en Operaciones (capacidad 'administrar'): subir el NDJSON, ver el resumen del archivo (fecha, cuántos documentos por colección, si quedó completo), ensayo en seco con el veredicto (src/lib/durability/veredicto.ts), y confirmación con frase tecleada. Sin decidir por el dueño cuándo se ejecuta O-2.",
+      "prueba_que_faltaria": "Test de pantalla que hoy no existe: subir un NDJSON sintético y ver el veredicto antes de escribir.",
+      "que_no_cubre": "No cubre la restauración a nivel de base (gcloud databases restore), que es de la plataforma y del ensayo O-2.",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "R-07",
+        "O-2",
+        "REG-160"
+      ]
+    },
+    {
+      "id": "ASE-017",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "`googleTokens` (credenciales de Google Calendar) es una colección raíz con regla propia que no está ni en COLECCIONES_RAIZ ni en RAIZ_EXCLUIDAS del manifiesto: tras restaurar, cada médico amanece desconectado del calendario y el manifiesto no lo declara",
+      "archivo": "src/lib/clinica/respaldo.ts",
+      "linea": 209,
+      "evidencia": "export const RAIZ_EXCLUIDAS: Record<string, string> = {\n  'platform_*': …, errores: …, soporte: …, rate_limits: …, oauthStates: …, transcript_owners: …, whatsapp_channels: …, whatsapp_dedup: …, anticipos_procesados: …, recargas_procesadas: … }\n— firestore.rules:1182 `match /googleTokens/{uid} { allow read, write: if false; }` (raíz). Cruce hecho con script: de los 68 match de rules, los no cubiertos por COLECCIONES/EXCLUIDAS/COLECCIONES_RAIZ/RAIZ_EXCLUIDAS son sólo googleTokens (bot_sessions, secretos, slot_locks están en EXCLUIDAS; platform_* en RAIZ_EXCLUIDAS; clinics es el documento padre).",
+      "reproduccion": "Cruce estático de los tres sitios; el auditor de ciberseguridad ya cubrió la matriz (S-010) y la forma congelada (S-012): no se duplica.",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Tras una restauración, sus citas dejan de sincronizarse con Google sin aviso hasta que reconecta.",
+        "negocio": "La regla de los tres sitios dice «declarar»; excluir sin declarar es la misma omisión que se castiga en `EXCLUIDAS` para secretos."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "El guardián respaldo-consultorio.test.ts sólo cruza el bloque clinics/{clinicId}; la colección está cerrada al cliente.",
+      "prioridad": "P3",
+      "propuesta": "Añadir googleTokens a RAIZ_EXCLUIDAS con la razón (credencial persistente, se reconecta desde Integraciones) y que el acta de restauración liste «lo que hay que reconectar a mano».",
+      "prueba_que_faltaria": "Ampliar el guardián para que también cruce los match raíz contra COLECCIONES_RAIZ ∪ RAIZ_EXCLUIDAS; hoy googleTokens no lo haría fallar.",
+      "que_no_cubre": "No cubre la matriz de acceso (S-010) ni el hasOnly (S-012).",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "S-010",
+        "R-07"
+      ]
+    },
+    {
+      "id": "ASE-018",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Migración, Documentos legales y Cumplimiento sólo existen en «modo médico»: la asistente que de verdad migra los 1 200 pacientes no ve la pantalla (su modo está forzado a secretaria), aunque la ruta le abre si la teclea",
+      "archivo": "src/components/Sidebar.tsx",
+      "linea": 54,
+      "evidencia": "{ href: '/cumplimiento',  label: 'Cumplimiento',   icon: ShieldCheck,     modos: 'medico' },\n{ href: '/legal',         label: 'Documentos legales', icon: FileText,    modos: 'medico' },\n{ href: '/migracion',     label: 'Migración',      icon: ArrowLeftRight,  modos: 'medico' },\n— src/context/ModeContext.tsx:34 `const mode: AppMode = esMedicoReal ? modePersistido : 'secretaria'`; src/app/(dashboard)/operaciones/page.tsx:145-147 mismas tres con modos:'medico' y :261 el filtro; src/app/(dashboard)/layout.tsx:575-578 RUTAS_SOLO_MEDICO incluye /cumplimiento pero NO /migracion ni /legal.",
+      "reproduccion": "Clics medidos para llegar a importar (médico): Operaciones → «Ver la gestión del consultorio» → Migración → Elegir archivo → Analizar → Importar = 6 clics. Para la asistente: no hay camino por menú; /migracion por URL funciona (la exportación clínica le devuelve 403 por 'clinico.escribir', la de pacientes sí).",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Tiene que hacer él la migración o prestar su modo.",
+        "negocio": "La tarjeta L del prompt maestro dice que quien migra y exporta es la asistente; el producto lo esconde justo a ella."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "La ruta no está bloqueada por rol; sólo escondida.",
+      "prioridad": "P2",
+      "propuesta": "Decidir por pantalla, no por bloque: Migración (importar/exportar directorio) con modos:'ambos'; Documentos legales 'ambos' (la asistente imprime el aviso de privacidad); Cumplimiento sigue de médico. Y quitar el texto «9 destinos que no hacen falta a diario» para lo que la recepción sí usa.",
+      "prueba_que_faltaria": "Test de Sidebar/Operaciones en modo secretaria: debe listar «Migración». Hoy no la lista.",
+      "que_no_cubre": "No cubre qué exportaciones clínicas puede bajar la asistente: eso es capacidad de servidor y está bien cerrado.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-019",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "boton_muerto",
+      "titulo": "Migración remite al «respaldo completo en Pacientes», y en Pacientes no hay ningún respaldo: vive en Operaciones",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 277,
+      "evidencia": "Para reconstruir el consultorio entero está el respaldo completo en Pacientes; esto es para leerlo, contarlo o dárselo a tu contador.\n— pacientes/page.tsx:130-134 documenta que el botón se MOVIÓ a `descargar-respaldo`; el llamador real es operaciones/page.tsx:481.",
+      "reproduccion": "Recorrido de /pacientes: controles Agendar, Nuevo paciente, chips, filas; ningún «respaldo». En /operaciones: «Descargar todo el consultorio».",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Busca el respaldo donde le dicen y no está.",
+        "negocio": "Texto que apunta a un sitio que ya no existe: se lee como producto sin mantener."
+      },
+      "severidad": 1,
+      "probabilidad": "alta",
+      "control_existente": "Ninguno.",
+      "prioridad": "P3",
+      "propuesta": "Cambiar el texto a «en Operaciones → Respaldo» o, mejor, poner el enlace.",
+      "prueba_que_faltaria": "Test de texto de la pantalla: no debe decir «en Pacientes». Hoy lo dice.",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-020",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El formulario de alta tiene sus siete campos con `<label>` sin `htmlFor`: para un lector de pantalla son campos sin nombre (falla el mínimo de la regla de diseño)",
+      "archivo": "src/app/(dashboard)/pacientes/page.tsx",
+      "linea": 1174,
+      "evidencia": "<label className=\"label\">Nombre completo *</label>\n<input className=\"input\" value={f.nombre} onChange={upd('nombre')} placeholder=\"Apellido Apellido, Nombre\" />\n(igual en :1185 teléfono, :1218 servicio médico, y edad, fecha, alergias)",
+      "reproduccion": "Recorrido con el inventario de controles: `input type=text \"Apellido Apellido, Nombre\" SIN-LABEL`, `input type=tel SIN-LABEL`, `input type=number SIN-LABEL`, `input type=date SIN-LABEL`, dos text más SIN-LABEL. Captura: capturas-l/alta-homonimo.png.",
+      "impacto": {
+        "paciente": "Ninguno directo.",
+        "medico": "Con lector de pantalla o con el foco por teclado, no sabe qué campo está llenando; el placeholder desaparece al teclear.",
+        "negocio": "design-system.md: «campo sin etiqueta» es fallo de compuerta WCAG 2.2 AA."
+      },
+      "severidad": 2,
+      "probabilidad": "alta",
+      "control_existente": "El texto visual de la etiqueta existe.",
+      "prioridad": "P2",
+      "propuesta": "`<label htmlFor=\"p-nombre\">` + `id` en cada input (o envolver el input en el label). Siete líneas.",
+      "prueba_que_faltaria": "Test con testing-library: getByLabelText('Nombre completo') debe encontrar el input. Hoy lanza.",
+      "que_no_cubre": "No cubre el resto de formularios del producto; es el de alta de paciente, el que la recepción usa a diario.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-021",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "innecesario",
+      "titulo": "`deletePatientExpediente`: 120 líneas de borrado sin un solo llamador (las reglas ya lo reconocen), y con una regla peligrosa dentro —borra citas que coincidan por TELÉFONO a solas, el de la familia—",
+      "archivo": "src/lib/expediente/firestore.ts",
+      "linea": 574,
+      "evidencia": "export async function deletePatientExpediente(\n… (637-643) const telefonoMatch = matchInfo.telefono && data.pacienteTelefono && normTel(data.pacienteTelefono) === normTel(matchInfo.telefono)\n  if (nombreMatch || telefonoMatch) { vistas.add(d.id); refsCitas.push(d.ref) }\n— firestore.rules:176-183: «la salvaguarda … vivía en deletePatientExpediente… una función sin un solo llamador»; grep en src/app, src/components, src/hooks: 0 llamadores.",
+      "reproduccion": "Grep de llamadores; lectura de código.",
+      "impacto": {
+        "paciente": "Hoy ninguno (código muerto). Si alguien lo conecta mañana, las citas de los hijos que comparten celular con la madre se borran con ella (la lección de REG-039).",
+        "medico": "Ninguno.",
+        "negocio": "Código muerto con una regla que contradice duplicados.ts:28-30 («el teléfono NUNCA basta por sí solo»)."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "Sin llamador; reglas cierran el delete desde cliente.",
+      "prioridad": "P3",
+      "propuesta": "Retirar la función o, si se conserva como referencia, quitarle el `telefonoMatch` y dejar escrito que el borrado va por /api/arco/cancelar. Recomendación: retirar.",
+      "prueba_que_faltaria": "Guardián de «escrito y sin conectar» que liste exportaciones de lib sin llamador; hoy ésta pasaría desapercibida.",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "REG-039"
+      ]
+    },
+    {
+      "id": "ASE-022",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Retención dice «con acciones disponibles» y la única acción es «Abrir»: al superar 5 años nadie sabe qué toca hacer",
+      "archivo": "src/app/(dashboard)/cumplimiento/retencion/page.tsx",
+      "linea": 251,
+      "evidencia": "<FilaPaciente key={e.patient.id} evaluacion={e} onAbrir={() => router.push(`/expediente/${e.patient.id}`)} />\n— (5) «último acto médico, con acciones disponibles».",
+      "reproduccion": "Recorrido /cumplimiento/retencion: controles «Por revisar (0)», «Todos (6)», y por fila sólo Abrir. Texto: «Ningún paciente requiere acción».",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Ve una lista de expedientes «por revisar» sin poder hacer nada con ella.",
+        "negocio": "NEEDS_CLINICAL_REVIEW/legal: qué hace el consultorio con un expediente que superó la conservación mínima (archivar, anonimizar, conservar) es política del dueño con su asesor; no lo decide esta auditoría."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "La lista existe y cuenta bien (cotas y truncamiento declarados).",
+      "prioridad": "P3",
+      "propuesta": "O quitar «con acciones disponibles» y renombrar a «Inventario de retención», o definir con el dueño la acción (p. ej. «Archivar»: sale de listas y búsquedas, se conserva íntegro) y ponerla.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "No cubre la política de destrucción, que es decisión del dueño.",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-023",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "El tour de bienvenida que aparece sobre Pacientes empieza diciendo «Aquí ves las citas del día… Es tu pantalla de inicio»",
+      "archivo": "src/components/OnboardingTour.tsx",
+      "linea": 22,
+      "evidencia": "titulo: 'Tu agenda, siempre a la mano',\ntexto: 'Aquí ves las citas del día y creas nuevas en segundos. Es tu pantalla de inicio.',",
+      "reproduccion": "Observado: al entrar por primera vez y abrir /pacientes, el diálogo «BIENVENIDO A AUSCULTA / Tu agenda, siempre a la mano» se superpone a la lista de pacientes (captura capturas-l/pacientes-1clicks.png).",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "El primer texto que lee describe otra pantalla.",
+        "negocio": "Primera impresión desalineada."
+      },
+      "severidad": 1,
+      "probabilidad": "media",
+      "control_existente": "Se puede saltar.",
+      "prioridad": "P3",
+      "propuesta": "Mostrar el tour sólo en /dashboard, o hacer que el primer paso describa la pantalla donde se abrió.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-024",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "El plazo de 20 días hábiles de una solicitud ARCO se calcula saltando sólo sábados y domingos, sin los días de descanso obligatorio",
+      "archivo": "src/lib/arco.ts",
+      "linea": 77,
+      "evidencia": "export function calcularFechaLimite(fechaSolicitud: string): string {\n  … while (agregados < 20) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) agregados++ }",
+      "reproduccion": "Lectura de código.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "El contador «Faltan N días» puede ir uno o dos días adelantado en diciembre o Semana Santa.",
+        "negocio": "NEEDS_CLINICAL_REVIEW/legal: si «días hábiles» de la LFPDPPP art. 32 excluye los días de descanso obligatorio del art. 74 LFT; quien decide: asesor legal del dueño."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "El contador es orientativo; el error va en la dirección conservadora (avisa antes).",
+      "prioridad": "P3",
+      "propuesta": "Si el asesor confirma, lista de feriados por año en un módulo puro con prueba.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-025",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "La fecha de nacimiento derivada del CURP asigna siglo XXI a cualquier año de dos cifras menor o igual al actual: un nacido en 1926 aparece como recién nacido",
+      "archivo": "src/lib/curp.ts",
+      "linea": 42,
+      "evidencia": "const siglo = parseInt(aa) <= ahoraAA ? '20' : '19'",
+      "reproduccion": "Lectura de código; hoy (2026) los AA 00-26 caen en 20xx.",
+      "impacto": {
+        "paciente": "Un centenario con CURP válido recibiría edad 0 si se usara esta función para derivar la fecha.",
+        "medico": "Ninguno hoy: fechaNacimientoDesdeCURP no se llama desde app/components (grep).",
+        "negocio": "Escrito y sin conectar; si se conecta para ASE-005, hay que corregirlo antes."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "Sin llamador.",
+      "prioridad": "P3",
+      "propuesta": "Usar la homoclave (letra = nacido ≥ 2000, dígito = < 2000), que es el criterio oficial del RENAPO; y prueba con AA=26.",
+      "prueba_que_faltaria": "Test: CURP con AA=26 y homoclave numérica → 1926. Hoy → 2026.",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    },
+    {
+      "id": "ASE-026",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "mejora",
+      "titulo": "La entrega ARCO de acceso baja un JSON crudo: correcto para el acuse con hash, dudoso como «copia comprensible» para un paciente de 70 años",
+      "archivo": "src/app/(dashboard)/cumplimiento/page.tsx",
+      "linea": 277,
+      "evidencia": "const blob = new Blob([JSON.stringify(d.expediente, null, 2)], { type: 'application/json' })\n… a.download = `arco_acceso_${req.id}.json`",
+      "reproduccion": "Lectura de código; la ruta calcula el hash sobre el JSON (api/arco/acceso/route.ts:113-114), así que el acuse es correcto.",
+      "impacto": {
+        "paciente": "Recibe un archivo que no puede abrir ni leer.",
+        "medico": "Tiene que reconvertirlo a mano.",
+        "negocio": "NEEDS_CLINICAL_REVIEW/legal: si el «formato legible» de la LFPDPPP art. 33 se satisface con JSON; quien decide: asesor legal del dueño."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "El JSON es completo, verificable y trazable.",
+      "prioridad": "P3",
+      "propuesta": "Entregar dos archivos: el JSON (con hash en el acuse) y un PDF legible generado del mismo paquete, con el mismo hash impreso.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": [
+        "ASE-010"
+      ]
+    },
+    {
+      "id": "ASE-027",
+      "panel": "asistente",
+      "rol": "expedientes-migracion-respaldo",
+      "modulo": "practice",
+      "tipo": "friccion",
+      "titulo": "Importar 1 200 pacientes son 1 200 altas una a una desde el navegador, sin reanudación: cerrar la pestaña a mitad deja media importación y ningún reporte",
+      "archivo": "src/app/(dashboard)/migracion/page.tsx",
+      "linea": 204,
+      "evidencia": "for (const { fila } of nuevos) {\n  try { … await createPatient(clinicId, data); creados++ } catch { errores++ }\n}",
+      "reproduccion": "Lectura de código; una importación de prueba de 3 filas tardó unos segundos; a 1 200 es lineal y depende de la pestaña abierta.",
+      "impacto": {
+        "paciente": "Ninguno.",
+        "medico": "Si se cierra la pestaña, tiene que volver a subir el archivo; el clasificador sí evita duplicar lo ya importado (misma cadena de fecha, ASE-003).",
+        "negocio": "La migración asistida por correo (:411) es hoy el camino real para consultorios grandes."
+      },
+      "severidad": 1,
+      "probabilidad": "baja",
+      "control_existente": "Reanalizar el mismo CSV clasifica como duplicado lo ya importado.",
+      "prioridad": "P3",
+      "propuesta": "Importar en lotes con progreso («340 de 1 200») y un servidor que reciba el archivo entero (como ya hace clinic/importar) para no depender de la pestaña.",
+      "prueba_que_faltaria": "—",
+      "que_no_cubre": "—",
+      "decision_del_dueno": null,
+      "relacionado": []
+    }
+  ]
+}
