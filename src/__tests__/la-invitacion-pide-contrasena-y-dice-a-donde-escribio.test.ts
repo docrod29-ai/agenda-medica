@@ -32,6 +32,15 @@
  *     `clinics/{clinicId}/config/main` y ella estaba mirando otro `clinicId`.
  *     La invitación seguía «pendiente» en el panel del médico.
  *
+ *  4. **Y el panel de pendientes nunca pudo enseñarla.** `allow list: if false`
+ *     en `clinic_invitations` (auditoría 2026-07, para que nadie enumere las
+ *     invitaciones de todas las clínicas) contra un `getDocs(query(...))` que
+ *     `listarInvitaciones()` hacía desde el navegador. La consulta se rechazaba
+ *     siempre, el componente tenía `finally` sin `catch`, y la pantalla decía
+ *     «No hay invitaciones pendientes» aunque se acabara de generar una. El
+ *     comentario de la propia regla afirmaba «el cliente no lista invitaciones
+ *     en ninguna parte»: llevaba tiempo sin ser verdad.
+ *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
  * Uso real: la primera asistente dada de alta en producción. El reporte llegó
@@ -47,6 +56,10 @@
  *   correo, y lo comprueba el servidor — no la pantalla.
  * · Con invitación pendiente, el destino de quien no tiene consultorio es
  *   terminarla, no crear uno (`destinoSinConsultorio`).
+ * · Una invitación es una CREDENCIAL: se emite, se lista y se revoca en el
+ *   servidor (`/api/clinic/invitaciones`), con el autor sacado del token. El
+ *   navegador pide; no firma. La regla de Firestore se conserva al día como
+ *   defensa en profundidad, pero el producto ya no depende de desplegarla.
  *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  *
@@ -316,5 +329,84 @@ describe('5 · la pantalla de la invitación pide contraseña y da de alta ahí 
 
   it('el correo llega fijado cuando la invitación es nominativa', () => {
     expect(codigo).toContain('readOnly={!!correoFijado}')
+  })
+})
+
+describe('6 · la invitación se emite, se lista y se revoca en el servidor', () => {
+  const ruta = leer('src/app/api/clinic/invitaciones/route.ts')
+  const codigo = sinComentarios(ruta)
+  const cliente = sinComentarios(leer('src/lib/invitations.ts'))
+
+  /**
+   * AL REVÉS: si alguien devuelve el `getDocs(query(...))` al navegador, esto
+   * cae — y ése es exactamente el renglón que dejaba el panel de pendientes
+   * vacío para siempre contra `allow list: if false`.
+   */
+  it('el navegador ya NO consulta la colección: la lista viene de la ruta', () => {
+    expect(cliente).not.toContain('getDocs')
+    expect(cliente).not.toContain('deleteDoc')
+    expect(cliente).not.toContain('setDoc')
+    expect(cliente).toContain('/api/clinic/invitaciones')
+    // Leer una invitación suelta SÍ sigue yendo directa: quien abre el enlace
+    // todavía no tiene sesión, y para eso existe `allow get: if true`.
+    expect(cliente).toContain('getDoc(')
+  })
+
+  it('y la regla que lo obliga sigue cerrada, que es lo que hacía falta respetar', () => {
+    const reglas = leer('firestore.rules')
+    const bloque = reglas.slice(reglas.indexOf('match /clinic_invitations/{code}'))
+    expect(bloque.slice(0, bloque.indexOf('}\n    }'))).toContain('allow list: if false')
+  })
+
+  it('las tres operaciones exigen la capacidad `administrar` sobre ESA clínica', () => {
+    /**
+     * `administrar` = {medico, admin} en la matriz E0-07. También el GET: en la
+     * lista van los CÓDIGOS, y un código es lo único que hace falta para entrar
+     * con el rol que diga la invitación. `equipo.leer` —que la asistente sí
+     * tiene— es para los correos del equipo, no para las credenciales.
+     */
+    for (const verbo of ['GET', 'POST', 'DELETE']) {
+      const i = codigo.indexOf(`export async function ${verbo}(`)
+      expect(i, verbo).toBeGreaterThan(-1)
+      const siguiente = codigo.indexOf('export async function', i + 10)
+      const cuerpo = codigo.slice(i, siguiente === -1 ? undefined : siguiente)
+      expect(cuerpo, verbo).toContain("verificarCapacidad(req, clinicId, 'administrar')")
+      // El gate binario de rol quedó retirado de las rutas de API (E0-07).
+      expect(cuerpo, verbo).not.toContain('verificarMedico(')
+    }
+    // Y declarado en el registro, que es lo que impide una ruta muda.
+    const registro = leer('src/lib/authz/registro-rutas.ts')
+    expect(registro).toContain("'clinic/invitaciones'")
+    expect(registro).toContain("{ GET: 'administrar', POST: 'administrar', DELETE: 'administrar' }")
+  })
+
+  it('el autor sale del token, no del cuerpo de la petición', () => {
+    // Firmar una invitación con el uid de otro es justo lo que ZL-011 cerró.
+    expect(codigo).toContain('creador: { uid: acc.uid')
+    const post = codigo.slice(codigo.indexOf('export async function POST'))
+    expect(post).not.toContain('body.creadoPor')
+    expect(post).not.toContain('body.code')
+    expect(post).toContain('generarCodigo()')
+  })
+
+  it('para invitar a un admin hay que ser admin, y el rol se valida contra la lista', () => {
+    const post = codigo.slice(codigo.indexOf('export async function POST'))
+    expect(post).toContain("role === 'admin' && acc.role !== 'admin'")
+    expect(post).toContain('ROLES_INVITACION.includes(role)')
+  })
+
+  it('revocar comprueba que la invitación es de TU consultorio', () => {
+    const del = codigo.slice(codigo.indexOf('export async function DELETE'))
+    // El clinicId del DOCUMENTO contra el de la petición: sin esto, conocer un
+    // código ajeno bastaba para borrar la invitación de otro consultorio.
+    expect(del).toContain("(snap.data() as { clinicId?: string }).clinicId !== clinicId")
+    // Y la comprobación va ANTES del borrado, no después.
+    expect(del.indexOf('.clinicId !== clinicId')).toBeLessThan(del.indexOf('ref.delete()'))
+  })
+
+  it('el panel distingue «no pude leer» de «no hay ninguna»', () => {
+    const pantalla = leer('src/app/(dashboard)/configuracion/page.tsx')
+    expect(pantalla).toContain("setFallo(noSePudo('leer las invitaciones', e))")
+    expect(pantalla).toContain('No hay invitaciones pendientes.')
   })
 })

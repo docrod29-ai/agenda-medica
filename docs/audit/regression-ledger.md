@@ -25643,9 +25643,20 @@ pendiente, el destino de quien no tiene consultorio es terminarla, no crear otro
 (23 casos). **No cubre** que el correo LLEGUE: lo envía Firebase, y la plantilla y el
 dominio viven en su consola, no en este repositorio.
 
-**Pendiente de despliegue.** La forma congelada de `clinic_invitations` admite ahora
-`emailInvitado`; hasta que se desplieguen las reglas, generar una invitación CON correo se
-rechaza. Declarado en `docs/ops/REGLAS-DE-FIRESTORE.md`.
+**Y un cuarto síntoma que salió al arreglar los tres.** `allow list: if false` en
+`clinic_invitations` (auditoría 2026-07, para que nadie enumere las invitaciones de todas
+las clínicas) contra un `getDocs(query(...))` que `listarInvitaciones()` hacía desde el
+navegador: el panel de «Invitaciones pendientes» tenía la lectura rechazada siempre, el
+componente tenía `finally` sin `catch`, y la pantalla decía «No hay invitaciones
+pendientes» aunque se acabara de generar una. El comentario de la propia regla afirmaba
+«el cliente no lista invitaciones en ninguna parte» y llevaba tiempo sin ser cierto.
+Emitir, listar y revocar pasan ahora por `/api/clinic/invitaciones` (Admin SDK), con el
+autor sacado del token y el rol validado — la misma forma que ya tenía `clinic_members`.
+
+**Despliegue de reglas: no bloquea.** La forma congelada admite ahora `emailInvitado`,
+pero la invitación ya no la escribe el navegador, así que nada espera al despliegue. La
+regla queda al día como defensa en profundidad y declarada en
+`docs/ops/REGLAS-DE-FIRESTORE.md`.
 
 
 ## REG-653 — «Intervalo de agenda: 5 minutos» y la agenda iba de 30 en 30

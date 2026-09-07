@@ -1,9 +1,9 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
-> **Estado**: hay **un** cambio escrito y sin desplegar (ver «PENDIENTE DE
-> DESPLIEGUE»). El resto de `firestore.rules` se publicó con la ejecución #28 del
-> botón de producción, y el sello lo registra. Este archivo dice cómo se sabe eso
-> sin fiarse de la memoria de nadie.
+> **Estado**: hay **un** cambio escrito y sin desplegar, y **no bloquea nada**
+> (ver «PENDIENTE DE DESPLIEGUE»). El resto de `firestore.rules` se publicó con
+> la ejecución #28 del botón de producción, y el sello lo registra. Este archivo
+> dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
 
@@ -62,7 +62,7 @@ Mientras no se despliegue, lo que sigue **está escrito y no rige**:
 
 | Regla escrita | Qué NO rige hoy | Qué se rompe mientras tanto |
 |---|---|---|
-| 7-sep-2026 · la forma congelada de `clinic_invitations` admite `emailInvitado` (invitación **nominativa**: sólo la acepta el correo al que se emitió) | El `hasOnly` desplegado no conoce la clave `emailInvitado` | Escribir «Su correo» al generar la invitación en Configuración → Equipo hace que la regla vieja **rechace la creación** por clave desconocida: el enlace no se genera. La invitación **sin correo** sigue funcionando exactamente igual que antes. Nada queda abierto — la regla desplegada es más estricta, no más laxa — y la comprobación del destinatario vive en el servidor (`/api/clinic/unirse`), que ya la aplica sobre cualquier documento que traiga el campo |
+| 7-sep-2026 · la forma congelada de `clinic_invitations` admite `emailInvitado` (invitación **nominativa**: sólo la acepta el correo al que se emitió) | El `hasOnly` desplegado no conoce la clave `emailInvitado` | **Nada, hoy.** La invitación ya no la escribe el navegador: la emite `/api/clinic/invitaciones` con el Admin SDK, que no pasa por las reglas. Esta fila queda porque lo escrito y lo desplegado difieren, y eso se declara siempre — pero es **defensa en profundidad**, para el día que alguien vuelva a escribir esta colección desde el cliente. La regla desplegada es más estricta, no más laxa: no hay nada abierto que esperar a cerrar |
 
 Se despliega con el comando de arriba, que requiere autorización del dueño.
 

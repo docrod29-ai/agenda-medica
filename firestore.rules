@@ -1320,9 +1320,18 @@ service cloud.firestore {
       // que la query del cliente filtrara por clinicId, pero un cliente malicioso
       // puede enumerar TODAS las invitaciones de TODAS las clínicas (nombre de
       // clínica, invitado, rol y el código de invitación que permite UNIRSE a esa
-      // clínica) — fuga cross-tenant + posible toma de cuenta (LFPDPPP). El cliente
-      // no lista invitaciones en ninguna parte (el join usa Admin SDK por id exacto,
-      // /api/clinic/unirse), así que cerrar `list` no rompe nada. `get` por id sigue.
+      // clínica) — fuga cross-tenant + posible toma de cuenta (LFPDPPP). `get` por
+      // id sigue abierto, que es lo que el invitado sin cuenta necesita.
+      //
+      // OJO CON EL COMENTARIO QUE HABÍA AQUÍ. Decía «el cliente no lista
+      // invitaciones en ninguna parte», y llevaba tiempo sin ser verdad:
+      // `listarInvitaciones()` hacía un `getDocs(query(...))` desde el navegador
+      // y el panel de «Invitaciones pendientes» lo llamaba al montarse. La
+      // consulta se rechazaba SIEMPRE y la pantalla decía «no hay ninguna».
+      // Cerrar una regla y dejar escrita la razón por la que no rompe nada es
+      // media reparación: la otra media es comprobarlo. Hoy el listado —y la
+      // creación, y la revocación— van por /api/clinic/invitaciones (Admin SDK),
+      // y hay un guardián que vigila que el cliente no vuelva a consultar.
       allow list: if false;
       // Crear: solo MÉDICO o ADMIN de la clínica destino (la secretaria/enfermería
       // ya NO puede invitar). Y para invitar con rol 'admin' hay que SER admin

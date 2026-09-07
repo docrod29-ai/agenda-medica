@@ -65,7 +65,15 @@ describe('ZL-011 · la invitación nace con autor, sin usar y con caducidad dobl
   })
 
   it('el código no sale de Math.random y usa el alfabeto sin I/O/0/1', () => {
-    const src = readFileSync(resolve(process.cwd(), 'src/lib/invitations.ts'), 'utf8')
+    /**
+     * El generador y la FORMA del documento se movieron a
+     * `src/lib/invitaciones/documento.ts`, sin Firebase, porque el servidor
+     * también los necesita: la invitación la escribe ahora
+     * `/api/clinic/invitaciones` con el Admin SDK. `invitations.ts` los
+     * reexporta —se comprueba abajo— para que no exista una segunda copia de la
+     * forma congelada, que es de lo que este golden protege.
+     */
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/invitaciones/documento.ts'), 'utf8')
     // Sobre el CÓDIGO, no sobre la prosa: el comentario del módulo nombra
     // `Math.random` justamente para explicar por qué no se usa, y un guardián
     // que mira el fichero entero castigaría esa explicación y empujaría a
@@ -77,6 +85,17 @@ describe('ZL-011 · la invitación nace con autor, sin usar y con caducidad dobl
     expect(fijo).toHaveLength(10)
     expect(fijo).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/)
     expect(generarCodigo()).toMatch(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/)
+  })
+
+  it('la forma vive en UN módulo: `invitations.ts` la reexporta, no la recopia', () => {
+    // Dos copias de la forma congelada es cómo se separan de la regla sin que
+    // nadie lo note: una se actualiza y la otra no.
+    const cliente = readFileSync(resolve(process.cwd(), 'src/lib/invitations.ts'), 'utf8')
+    expect(cliente).toContain("from '@/lib/invitaciones/documento'")
+    expect(cliente).toContain('documentoDeInvitacion')
+    const sinComentarios = cliente.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(sinComentarios).not.toContain('function documentoDeInvitacion')
+    expect(sinComentarios).not.toContain('function generarCodigo')
   })
 
   it('sin expiresAt la invitación NO es válida — ni en el cliente ni en el servidor', () => {

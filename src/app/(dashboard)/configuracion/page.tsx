@@ -2079,12 +2079,23 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://agenda-medica-one.vercel.app'
 
+  /**
+   * El `finally` sin `catch` era la mitad del defecto: cuando la lectura fallaba
+   * —y fallaba SIEMPRE, porque el `list` de la colección está cerrado y esto se
+   * pedía desde el navegador— se apagaba el spinner y la pantalla decía «No hay
+   * invitaciones pendientes». El médico acababa de generar una y no la veía.
+   * Ahora se lee por servidor y, si aun así falla, se DICE.
+   */
+  const [fallo, setFallo] = useState('')
   const recargar = async () => {
     if (!clinicId) return
     setLoading(true)
+    setFallo('')
     try {
       const list = await listarInvitaciones(clinicId)
       setInvitaciones(list)
+    } catch (e) {
+      setFallo(noSePudo('leer las invitaciones', e))
     } finally { setLoading(false) }
   }
   useEffect(() => { recargar() /* eslint-disable-next-line */ }, [clinicId])
@@ -2137,8 +2148,9 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     window.open(`https://wa.me/?text=${msg}`, '_blank')
   }
   const revocar = async (code: string) => {
+    if (!clinicId) return
     if (!(await confirm('¿Revocar esta invitación? El enlace dejará de funcionar.', { peligro: true, confirmar: 'Revocar' }))) return
-    try { await revocarInvitacion(code); recargar(); toast('Invitación revocada', 'info') }
+    try { await revocarInvitacion(code, clinicId); recargar(); toast('Invitación revocada', 'info') }
     catch (e) { toast(noSePudo('revocar la invitación', e), 'error') }
   }
 
@@ -2176,7 +2188,7 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
           <div>
             <label htmlFor="inv-correo" style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Su correo (recomendado)</label>
             <input id="inv-correo" className="input" type="email" value={emailInv} onChange={e => setEmailInv(e.target.value)} placeholder="maria@email.com" aria-describedby="inv-correo-porque" />
-            <div id="inv-correo-porque" style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+            <div id="inv-correo-porque" style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 4 }}>
               Con correo, el enlace <strong>sólo lo puede aceptar esa persona</strong>. Sin él, sirve a quien lo reciba.
             </div>
           </div>
@@ -2228,6 +2240,15 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         </div>
         {loading ? (
           <div style={{ fontSize: 13, color: 'var(--text3)' }}>Cargando…</div>
+        ) : fallo ? (
+          // «No pude leer» y «no hay ninguna» no son lo mismo, y confundirlos era
+          // lo que hacía invisible el defecto.
+          <div role="alert" style={{ fontSize: 12, color: 'var(--red)' }}>
+            {fallo}{' '}
+            <button onClick={recargar} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, fontSize: 12, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              Reintentar
+            </button>
+          </div>
         ) : pendientes.length === 0 ? (
           <div style={{ fontSize: 13, color: 'var(--text3)' }}>No hay invitaciones pendientes.</div>
         ) : (
