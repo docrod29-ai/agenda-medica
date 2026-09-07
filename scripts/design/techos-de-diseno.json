@@ -2,9 +2,9 @@
   "queEsEsto": "Techos del trinquete de diseño (V9 · DESIGN-SYSTEM-001). SOLO PUEDEN BAJAR. Si un cambio los sube, se arregla el cambio — no se sube el techo. Se bajan con `node scripts/design/trinquete-de-diseno.mjs --actualizar`.",
   "techos": {
     "respaldosDeToken": 0,
-    "hexEnLinea": 316,
-    "tamanosFueraDeEscala": 1840,
-    "radiosFueraDeEscala": 597,
+    "hexEnLinea": 312,
+    "tamanosFueraDeEscala": 1835,
+    "radiosFueraDeEscala": 596,
     "sombrasEnLinea": 19,
     "gradientes": 11,
     "cristal": 14,
@@ -16,14 +16,14 @@
       "archivo": "src/app/(dashboard)/configuracion/page.tsx",
       "respaldos": 0,
       "hex": 20,
-      "tam": 95,
-      "rad": 41,
+      "tam": 98,
+      "rad": 42,
       "sombras": 2,
       "gradientes": 1,
       "cristal": 0,
       "halos": 4,
       "lienzos": 0,
-      "total": 163
+      "total": 167
     },
     {
       "archivo": "src/app/(dashboard)/hospitalizacion/[internamientoId]/page.tsx",

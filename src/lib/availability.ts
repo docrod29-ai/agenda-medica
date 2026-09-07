@@ -172,10 +172,26 @@ export function getAvailableSlots(
     ? duracionMin
     : 30
 
-  // El step debe ser AL MENOS la duración de la cita, nunca menor.
-  // (fix histórico: intervalo=10 con citas 30min → slots fantasma cada 10min)
-  const intervalConf = Number(config.intervaloMinutos ?? 10)
-  const interval = Math.max(intervalConf, duracionSegura)
+  /**
+   * EL PASO ES LA DURACIÓN DE LA CITA. Punto.
+   *
+   * Antes era `max(intervaloMinutos, duración)`, con `intervaloMinutos` elegido
+   * en Configuración. Ese máximo venía del defecto histórico —intervalo 10 con
+   * citas de 30 daba huecos cada 10 minutos, o sea tres pacientes citados sobre
+   * la misma media hora— y lo arreglaba, pero dejaba una perilla que en la
+   * práctica no podía ganar nunca: cualquier duración clínica normal (20, 30,
+   * 40 min) es mayor que cualquier intervalo ofrecido (5…30). El médico leía
+   * «cada 5 minutos» en su pantalla y la agenda iba de 30 en 30.
+   *
+   * Retirada la perilla (petición del dueño, 7-sep-2026), el paso lo decide la
+   * duración del tipo de cita, que es lo que el médico piensa de verdad. El
+   * defecto histórico sigue cerrado por construcción: el paso ES la duración,
+   * así que dos huecos consecutivos nunca se solapan.
+   *
+   * `intervaloMinutos` se conserva en el tipo y en los respaldos —hay
+   * documentos vivos que lo traen— pero ya no gobierna nada.
+   */
+  const interval = duracionSegura
 
   // ── HARD GUARDRAIL 2: validar el horario ────────────────────────
   // Si el horario está corrupto (fin ≤ inicio, jornada > 14h), NO

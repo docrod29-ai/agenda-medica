@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { Stethoscope, Loader2, ArrowRight } from 'lucide-react'
 import { zonaDelNavegador } from '@/lib/zona-horaria-mx'
+import { invitacionPendiente, destinoSinConsultorio } from '@/lib/clinica/invitacion-pendiente'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 
 export default function SetupPage() {
@@ -46,8 +47,26 @@ export default function SetupPage() {
     cedulaProfesional: '',
   })
 
+  /**
+   * ANTES DE OFRECER UN CONSULTORIO NUEVO, MIRAR SI HAY UNA INVITACIÓN A MEDIAS.
+   *
+   * Ésta es la pantalla a la que el panel manda a todo el que entra sin
+   * membresía, y hasta hoy sólo sabía hacer una cosa: crear un consultorio. La
+   * asistente que perdía el hilo del enlace de invitación —pestaña cerrada, ida
+   * y vuelta de Google— aterrizaba aquí, rellenaba lo único que había, y salía
+   * siendo administradora de un consultorio VACÍO Y PROPIO. A partir de ahí
+   * nada de lo que configuraba su médico le aparecía: estaba mirando otro
+   * `clinicId`. Ver `src/lib/clinica/invitacion-pendiente.ts`.
+   */
+  const [invitacion, setInvitacion] = useState<string | null>(null)
   useEffect(() => {
     if (!authLoading && !user) { router.replace('/login'); return }
+    const pendiente = invitacionPendiente()
+    if (pendiente) {
+      setInvitacion(pendiente)
+      router.replace(destinoSinConsultorio(pendiente))
+      return
+    }
     // Registro con Google: pre-llenar el nombre del médico con el de su cuenta
     // (solo si aún está vacío, para no pisar lo que el usuario escriba).
     if (user?.displayName) {
@@ -100,6 +119,20 @@ export default function SetupPage() {
   }
 
   const canContinue = form.nombreMedico.trim().length > 2 && form.nombreClinica.trim().length > 2
+
+  // Con invitación pendiente esta pantalla no pinta su formulario ni un
+  // parpadeo: crear un consultorio aquí es justo el error que se está evitando.
+  if (invitacion) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text2)', fontSize: 14 }}>
+          <Loader2 size={20} color="var(--teal)" style={{ animation: 'spin 1s linear infinite' }} />
+          Tienes una invitación a un consultorio. Te llevamos a aceptarla…
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{

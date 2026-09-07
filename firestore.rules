@@ -1339,7 +1339,7 @@ service cloud.firestore {
       allow create: if isMedico(request.resource.data.clinicId)
         && (request.resource.data.role != 'admin' || isAdmin(request.resource.data.clinicId))
         && request.resource.data.keys().hasOnly(['code', 'clinicId', 'clinicNombre', 'role', 'nombreInvitado',
-             'especialidad', 'creadoPor', 'creadoPorEmail', 'createdAt', 'expiresAt', 'expiresAtMs', 'used'])
+             'emailInvitado', 'especialidad', 'creadoPor', 'creadoPorEmail', 'createdAt', 'expiresAt', 'expiresAtMs', 'used'])
         && request.resource.data.role in ['secretaria', 'medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio']
         && request.resource.data.creadoPor == request.auth.uid
         && request.resource.data.used == false

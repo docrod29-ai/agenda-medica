@@ -535,7 +535,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'plataforma',
     guardaLectura: 'publico',
     guardaEscritura: 'isMedico',
-    porQue: 'GET por código aleatorio para que el invitado sin cuenta la vea; LIST cerrado. Solo médico/admin invita, y para invitar `admin` hay que ser admin. Forma congelada: autor == uid, nace sin usar y caduca en ≤ 8 días (expiresAtMs) (ZL-011).',
+    porQue: 'GET por código aleatorio para que el invitado sin cuenta la vea; LIST cerrado. Solo médico/admin invita, y para invitar `admin` hay que ser admin. Forma congelada: autor == uid, nace sin usar y caduca en ≤ 8 días (expiresAtMs) (ZL-011). Con `emailInvitado` la invitación es NOMINATIVA y sólo la acepta ese correo — lo exige el servidor, no la pantalla.',
   },
   {
     ruta: 'clinic_members/{uid}',

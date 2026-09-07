@@ -24,7 +24,7 @@ import { useToast } from '@/context/ToastContext'
 import { noSePudo } from '@/lib/texto-es'
 import { useClinic } from '@/context/ClinicContext'
 import { auth, storage } from '@/lib/firebase'
-import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble, Trash2 } from 'lucide-react'
+import { Loader2, Save, Copy, Calendar, CheckCircle2, XCircle, Link, Bot, CreditCard, ExternalLink, MessageCircle, Smartphone, AlertTriangle, UserRound, QrCode, Code, Lightbulb, Star, Ruler, KeyRound, Lock, PenLine, Sparkles, ShieldCheck, BedDouble, Trash2, Mail } from 'lucide-react'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
 import { msgConfirmacion, msgRecordatorio24h, msgRecordatorioDia } from '@/lib/whatsapp'
 import { copyToClipboard } from '@/lib/whatsapp'
@@ -547,12 +547,21 @@ export default function ConfiguracionPage() {
             <input id="cfg-responsable-de-privacidad-persona" className="input" value={form.responsablePrivacidad ?? ''} onChange={upd('responsablePrivacidad')} placeholder="Nombre de quien atiende solicitudes de datos personales" />
           </div>
 
-          <div className="form-group">
-            <label className="label" htmlFor="cfg-intervalo-de-agenda-min">Intervalo de agenda (min)</label>
-            <select id="cfg-intervalo-de-agenda-min" className="input" value={form.intervaloMinutos} onChange={upd('intervaloMinutos')}>
-              {[5, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} minutos</option>)}
-            </select>
-          </div>
+          {/*
+            RETIRADO — «Intervalo de agenda (min)».
+
+            Era una perilla que no podía hacer nada. El generador de huecos toma
+            `max(intervalo, duración de la cita)` desde el arreglo del defecto
+            histórico —intervalo 10 con citas de 30 daba tres pacientes citados
+            sobre la misma media hora— así que con cualquier duración clínica
+            normal el intervalo perdía siempre. Aquí se leía «5 minutos» y la
+            agenda iba de 30 en 30: la pantalla decía una cosa y la agenda hacía
+            otra.
+
+            Quien decide la separación es la DURACIÓN de cada tipo de cita, que
+            se configura en su propia pestaña y es lo que el médico piensa de
+            verdad. Ver `src/lib/availability.ts`.
+          */}
           <div className="form-group">
             <label className="label" htmlFor="cfg-zona-horaria">Zona horaria</label>
             <select id="cfg-zona-horaria" className="input" value={form.zonaHoraria} onChange={upd('zonaHoraria')}>
@@ -587,7 +596,9 @@ export default function ConfiguracionPage() {
             const h = form.horario[dia]
             // Preview de slots por día — usa la duración de "primera vez" o 30 min default
             const duracionDefault = Number(form.duraciones?.['primera-vez'] ?? form.duraciones?.['seguimiento'] ?? 30)
-            const intervalo = Math.max(Number(form.intervaloMinutos ?? 10), duracionDefault)
+            // El paso es la duración, igual que en `availability.ts`: un preview
+            // que cuente con otro paso miente sobre cuántos pacientes caben.
+            const intervalo = duracionDefault
             let cantidadSlots = 0
             let minutos = 0
             if (h.activo && h.inicio && h.fin) {
@@ -2049,6 +2060,18 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const [loading, setLoading] = useState(true)
   const [creando, setCreando] = useState(false)
   const [nombreInv, setNombreInv] = useState('')
+  /**
+   * EL CORREO DE LA PERSONA INVITADA — el campo que no existía.
+   *
+   * Sin él la invitación era un enlace AL PORTADOR: quien lo recibiera por
+   * WhatsApp (o a quien se lo reenviaran) entraba al consultorio con el rol
+   * escrito en el documento. Y no había forma de mandársela por correo, que es
+   * lo que el médico esperaba que pasara al generarla.
+   *
+   * Con correo, `/api/clinic/unirse` sólo deja aceptarla a esa dirección, y
+   * `/unirse/CODE` lo trae puesto para que ella no lo teclee mal.
+   */
+  const [emailInv, setEmailInv] = useState('')
   const [profesion, setProfesion] = useState('Asistente / Secretaria')  // etiqueta elegida
   const opcionRol = OPCIONES_ROL_FLAT.find(o => o.label === profesion) ?? OPCIONES_ROL_FLAT[0]
   const [generada, setGenerada] = useState<Invitacion | null>(null)
@@ -2073,10 +2096,11 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
       const inv = await crearInvitacion(
         clinicId, clinicNombre, opcionRol.role,
         { uid: user.uid, email: user.email ?? '' },
-        nombreInv, opcionRol.especialidad,
+        nombreInv, opcionRol.especialidad, emailInv,
       )
       setGenerada(inv)
       setNombreInv('')
+      setEmailInv('')
       recargar()
     } catch {
       toast(noSePudo('crear la invitación'), 'error')
@@ -2088,6 +2112,23 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const copiar = async (text: string) => {
     try { await navigator.clipboard.writeText(text); setCopiado(true); setTimeout(() => setCopiado(false), 2000); toast('Enlace copiado', 'success') }
     catch { toast('No se pudo copiar', 'error') }
+  }
+  /**
+   * MANDARLA POR CORREO. Se abre el correo del propio médico (`mailto:`) en vez
+   * de mandarla desde el servidor: esta plataforma no tiene proveedor de correo
+   * saliente —buscado: ni resend, ni sendgrid, ni SMTP— y elegir uno es una
+   * decisión del dueño, no un efecto colateral de arreglar esta pantalla. Lo que
+   * sí se arregla es que ya no hay que copiar el enlace a mano.
+   */
+  const compartirCorreo = (inv: Invitacion) => {
+    const asunto = encodeURIComponent(`Te invito a ${clinicNombre} en Ausculta`)
+    const cuerpo = encodeURIComponent(
+      `Hola${inv.nombreInvitado ? ` ${inv.nombreInvitado}` : ''}:\n\n` +
+      `Te invito a unirte a ${clinicNombre} como ${inv.role === 'secretaria' ? 'asistente' : inv.role}.\n\n` +
+      `Abre este enlace y crea tu contraseña:\n${linkDe(inv)}\n\n` +
+      `El enlace caduca el ${new Date(inv.expiresAt).toLocaleDateString('es-MX')}.`,
+    )
+    window.open(`mailto:${inv.emailInvitado ?? ''}?subject=${asunto}&body=${cuerpo}`, '_self')
   }
   const compartirWhatsApp = (inv: Invitacion) => {
     const msg = encodeURIComponent(
@@ -2129,12 +2170,19 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>Invitar a alguien</div>
         <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Nombre (opcional)</label>
-            <input aria-label="Nombre (opcional)" className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
+            <label htmlFor="inv-nombre" style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Nombre (opcional)</label>
+            <input id="inv-nombre" className="input" value={nombreInv} onChange={e => setNombreInv(e.target.value)} placeholder="María Pérez" />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol / profesión</label>
-            <select aria-label="Rol / profesión" className="input" value={profesion} onChange={e => setProfesion(e.target.value)}>
+            <label htmlFor="inv-correo" style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Su correo (recomendado)</label>
+            <input id="inv-correo" className="input" type="email" value={emailInv} onChange={e => setEmailInv(e.target.value)} placeholder="maria@email.com" aria-describedby="inv-correo-porque" />
+            <div id="inv-correo-porque" style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+              Con correo, el enlace <strong>sólo lo puede aceptar esa persona</strong>. Sin él, sirve a quien lo reciba.
+            </div>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label htmlFor="inv-rol" style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 4 }}>Rol / profesión</label>
+            <select id="inv-rol" className="input" value={profesion} onChange={e => setProfesion(e.target.value)}>
               {GRUPOS_ROL.map(g => (
                 <optgroup key={g.grupo} label={g.grupo}>
                   {g.opciones.map(o => <option key={o.label} value={o.label}>{o.label}</option>)}
@@ -2165,6 +2213,9 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
               <button onClick={() => compartirWhatsApp(generada)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                 <MessageCircle size={12} /> Enviar por WhatsApp
               </button>
+              <button onClick={() => compartirCorreo(generada)} style={{ background: 'var(--s2)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Mail size={12} /> Enviar por correo
+              </button>
             </div>
           </div>
         )}
@@ -2188,7 +2239,10 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                     {inv.nombreInvitado || '(Sin nombre)'} · <span style={{ color: 'var(--teal)' }}>{inv.role}</span>
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    Creado {new Date(inv.createdAt).toLocaleDateString('es-MX')} · Expira {new Date(inv.expiresAt).toLocaleDateString('es-MX')}
+                    {inv.emailInvitado
+                      ? <>Sólo para {inv.emailInvitado} · </>
+                      : <>Sirve a quien reciba el enlace · </>}
+                    Expira {new Date(inv.expiresAt).toLocaleDateString('es-MX')}
                   </div>
                 </div>
                 <button onClick={() => copiar(linkDe(inv))} style={{ background: 'var(--s3)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
@@ -2196,6 +2250,9 @@ function EquipoTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
                 </button>
                 <button onClick={() => compartirWhatsApp(inv)} style={{ background: '#25D366', border: 'none', color: '#fff', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                   WhatsApp
+                </button>
+                <button onClick={() => compartirCorreo(inv)} style={{ background: 'var(--s3)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
+                  Correo
                 </button>
                 <button onClick={() => revocar(inv.code)} style={{ background: 'none', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)', color: 'var(--red)', borderRadius: 6, padding: '5px 10px', fontSize: 11.5, cursor: 'pointer' }}>
                   Revocar

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { useAuth } from '@/hooks/useAuth'
+import { BotonGoogle } from '@/components/brand/BotonGoogle'
 import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
 /**
  * EL PRECIO SALE DEL CATÁLOGO, NO DE UN NÚMERO ESCRITO A MANO.
@@ -20,6 +21,8 @@ import { Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react'
  */
 import { PLANES } from '@/lib/planes-ia'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
+import { pedirCorreoDeConfirmacion } from '@/lib/auth/correo-de-confirmacion'
+import { recordarInvitacion } from '@/lib/clinica/invitacion-pendiente'
 import Link from 'next/link'
 import { MetaPixel, trackConversion } from '@/components/MetaPixel'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
@@ -89,10 +92,17 @@ function RegistroInner() {
   const [showPwd, setShowPwd]   = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  /** Qué pasó con el correo de confirmación. Se pinta; ya no se susurra a la consola. */
+  const [avisoCorreo, setAvisoCorreo] = useState('')
 
   useEffect(() => {
     if (!loading && user) router.replace(destinoTrasRegistro)
   }, [user, loading, router, destinoTrasRegistro])
+
+  // El código de invitación deja de vivir sólo en la barra de direcciones: si
+  // este alta se interrumpe, el siguiente arranque sabe volver a `/unirse/CODE`
+  // en vez de ofrecer crear un consultorio nuevo.
+  useEffect(() => { if (invite) recordarInvitacion(invite) }, [invite])
 
   // Completa el registro con Google por REDIRECCIÓN (Safari) y muestra errores.
   useEffect(() => {
@@ -131,10 +141,16 @@ function RegistroInner() {
        * avisa desde dentro. Bloquear sería cambiar la promesa comercial, y esa
        * decisión no es mía.
        */
-      void sendEmailVerification(cred.user).catch(() => {
-        // Si el envío falla no se rompe el alta: el médico ya tiene cuenta.
-        console.warn('[registro] no se pudo enviar la verificación de correo')
-      })
+      const envio = await pedirCorreoDeConfirmacion(
+        cred.user,
+        (ajustes) => (ajustes ? sendEmailVerification(cred.user, ajustes) : sendEmailVerification(cred.user)),
+        typeof window !== 'undefined' ? window.location.origin : null,
+      )
+      // Ya no es un `console.warn`: si Firebase no aceptó el envío, se dice —
+      // y con el aviso puesto el alta continúa igual, que la cuenta ya existe.
+      setAvisoCorreo(envio.enviado
+        ? `Te mandamos un correo de confirmación a ${envio.a}. Revisa también el correo no deseado.`
+        : `Tu cuenta quedó creada, pero no pudimos enviar el correo de confirmación a ${envio.a}. Podrás reenviarlo desde el panel.`)
       trackConversion('CompleteRegistration')  // conversión Meta: registro completado
       router.replace(destinoTrasRegistro)
     } catch (err: unknown) {
@@ -301,24 +317,7 @@ function RegistroInner() {
           </p>
 
           {/* Google — registro en un clic */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={submitting}
-            className="btn"
-            style={{
-              width: '100%', justifyContent: 'center', gap: 10, minHeight: 48,
-              background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
-              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/>
-              <path fill="#FBBC05" d="M10.5 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.4l7.9-6.1z"/>
-              <path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.3-5.5l-7.1-5.5c-2 1.4-4.6 2.2-8.2 2.2-6.3 0-11.6-3.7-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
-            </svg>
-            Continuar con Google
-          </button>
+          <BotonGoogle onClick={handleGoogle} disabled={submitting} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -396,6 +395,15 @@ function RegistroInner() {
                 </button>
               </div>
             </div>
+
+            {avisoCorreo && (
+              <div role="status" style={{
+                background: 'var(--nexus-soft)', border: '1px solid color-mix(in srgb, var(--nexus) 25%, transparent)',
+                borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.55,
+              }}>
+                {avisoCorreo}
+              </div>
+            )}
 
             {error && (
               <div role="alert" style={{

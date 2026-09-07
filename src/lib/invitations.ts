@@ -5,9 +5,12 @@
  * leerla directamente con el código del link, antes de tener membresía.
  *
  * Flujo:
- *  1. Médico genera invitación → se guarda con code aleatorio y expira en 7d.
- *  2. Comparte el link /unirse/{code} por WhatsApp/email.
- *  3. Invitado abre el link → si no tiene cuenta, /registro?invite=code → /unirse/code.
+ *  1. Médico genera invitación → code aleatorio, caduca en 7 días y puede llevar
+ *     el CORREO de la persona invitada (entonces sólo ella la acepta).
+ *  2. Comparte el enlace /unirse/{code} por WhatsApp o por correo.
+ *  3. Invitado abre el enlace y **crea su cuenta ahí mismo**, con contraseña.
+ *     Antes esto rebotaba a `/registro?invite=code` y el rebote se perdía: ver
+ *     la cabecera de `src/app/unirse/[code]/page.tsx`.
  *  4. /unirse acepta: crea clinic_members/{uid} + marca invitación como used.
  */
 import {
@@ -15,7 +18,7 @@ import {
   query, where, orderBy,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { invitacionVigente } from '@/lib/security/invitacion-vigente'
+import { invitacionVigente, correoNormalizado } from '@/lib/security/invitacion-vigente'
 
 export type RolInvitacion = 'secretaria' | 'medico' | 'admin' | 'enfermeria' | 'farmacia' | 'laboratorio'
 
@@ -25,6 +28,13 @@ export interface Invitacion {
   clinicNombre: string
   role: RolInvitacion
   nombreInvitado?: string         // opcional, para mostrar "Bienvenida María"
+  /**
+   * Correo de la persona invitada. OPCIONAL, y cuando está, MANDA:
+   * `/api/clinic/unirse` sólo deja aceptar a esa dirección. Sin él la
+   * invitación es al portador — así estaban las emitidas antes de este campo y
+   * así se quedan. Ver `invitacionEsParaEsteCorreo`.
+   */
+  emailInvitado?: string
   especialidad?: string           // profesión/especialidad (para la ficha del médico)
   creadoPor: string               // uid del médico que invitó
   creadoPorEmail: string
@@ -70,7 +80,8 @@ function bytesAleatorios(n: number): Uint8Array {
 /** Lo que se escribe al crear. Puro, para que la prueba lo fije sin Firestore. */
 export function documentoDeInvitacion(p: {
   code: string; clinicId: string; clinicNombre: string; role: RolInvitacion
-  creador: { uid: string; email: string }; nombreInvitado?: string; especialidad?: string; ahoraMs: number
+  creador: { uid: string; email: string }; nombreInvitado?: string; emailInvitado?: string
+  especialidad?: string; ahoraMs: number
 }): Invitacion {
   const data: Invitacion = {
     code: p.code, clinicId: p.clinicId, clinicNombre: p.clinicNombre, role: p.role,
@@ -84,6 +95,11 @@ export function documentoDeInvitacion(p: {
   // Sólo si vienen: Firestore rechaza `undefined` y la regla congela la forma.
   const nombre = p.nombreInvitado?.trim()
   if (nombre) data.nombreInvitado = nombre
+  // Normalizado al escribir, no al comparar: si se guarda «Maria@Gmail.com  » y
+  // ella entra como «maria@gmail.com», la comparación del servidor tiene que dar
+  // igual sin depender de que alguien se acuerde de normalizar en cada sitio.
+  const correo = correoNormalizado(p.emailInvitado)
+  if (correo) data.emailInvitado = correo
   const esp = p.especialidad?.trim()
   if (esp) data.especialidad = esp
   return data
@@ -97,10 +113,12 @@ export async function crearInvitacion(
   creador: { uid: string; email: string },
   nombreInvitado?: string,
   especialidad?: string,
+  emailInvitado?: string,
 ): Promise<Invitacion> {
   const code = generarCodigo()
   const data = documentoDeInvitacion({
-    code, clinicId, clinicNombre, role, creador, nombreInvitado, especialidad, ahoraMs: Date.now(),
+    code, clinicId, clinicNombre, role, creador, nombreInvitado, emailInvitado, especialidad,
+    ahoraMs: Date.now(),
   })
   // Usamos el code como ID del doc para lectura O(1) por código
   await setDoc(doc(db, COL, code), data)

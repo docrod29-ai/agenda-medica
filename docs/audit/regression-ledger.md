@@ -25607,6 +25607,75 @@ mecanismo que las declararía ya existe y avisa solo. No se rellenaron.
 **Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
 
 
+## REG-652 — La asistente entró sin contraseña, sin correo de confirmación y a otro consultorio
+
+**Área**: Alta de equipo y aislamiento entre consultorios (P1) · **Estado**: CLOSED
+
+**Qué fallaba.** Tres síntomas del mismo camino, el de la invitación de equipo.
+(1) `/unirse/[code]` no daba de alta a nadie: rebotaba a `/registro`. Con una sesión ya
+abierta ni siquiera ofrecía crear cuenta, y como el médico que generó el enlace ya es
+miembro de esa clínica, el atajo «ya perteneces a esta clínica» de `/api/clinic/unirse`
+contestaba `ok`: se trabajaba dentro de la sesión del médico, sin contraseña propia y sin
+rastro separado en la bitácora. (2) El correo de confirmación se pedía con
+`void sendEmailVerification(u).catch(() => console.warn(…))`: si Firebase no aceptaba el
+envío el único rastro era un `console.warn`, y en ningún sitio se decía a qué dirección se
+había escrito. (3) Si el rebote a `/registro` se perdía —pestaña cerrada, ida y vuelta de
+`signInWithRedirect`— el siguiente arranque entraba sin membresía y el layout mandaba a
+`/setup`, que es «crea tu consultorio»: la asistente acababa siendo administradora de un
+consultorio vacío y propio, y por eso nada de lo que configuraba su médico le aparecía
+(`useConfig` lee `clinics/{clinicId}/config/main`, y ella miraba otro `clinicId`).
+
+**Cómo se descubrió.** Uso real: la primera asistente dada de alta en producción, 7-sep-2026.
+El dueño lo reportó como tres quejas sueltas; recorrer el camino entero enseñó que eran una.
+
+**Causa raíz.** El alta por invitación estaba repartida entre tres pantallas y su único
+estado compartido era el parámetro `?invite=` de la barra de direcciones. Cualquier
+interrupción lo tiraba, y el destino por omisión de quien no tiene consultorio era crear
+uno nuevo.
+
+**La regla que lo hace seguro.** El alta ocurre en la pantalla de la invitación, con
+contraseña a la vista. La invitación puede ser nominativa (`emailInvitado`) y entonces sólo
+la acepta ese correo, comprobado en el servidor y en los dos caminos. Con invitación
+pendiente, el destino de quien no tiene consultorio es terminarla, no crear otro.
+`pedirCorreoDeConfirmacion` nunca devuelve éxito sin haberlo intentado.
+
+**Prueba.** `src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts`
+(23 casos). **No cubre** que el correo LLEGUE: lo envía Firebase, y la plantilla y el
+dominio viven en su consola, no en este repositorio.
+
+**Pendiente de despliegue.** La forma congelada de `clinic_invitations` admite ahora
+`emailInvitado`; hasta que se desplieguen las reglas, generar una invitación CON correo se
+rechaza. Declarado en `docs/ops/REGLAS-DE-FIRESTORE.md`.
+
+
+## REG-653 — «Intervalo de agenda: 5 minutos» y la agenda iba de 30 en 30
+
+**Área**: Agenda y portal público (P2) · **Estado**: CLOSED
+
+**Qué fallaba.** Configuración ofrecía un selector «Intervalo de agenda (min)» con 5, 10,
+15, 20 y 30, y el generador de huecos hacía `Math.max(intervaloMinutos ?? 10, duración)`.
+Ese máximo cerraba un defecto histórico real —intervalo 10 con citas de 30 daba huecos cada
+10 minutos, tres pacientes citados sobre la misma media hora— pero convertía el selector en
+una perilla que casi nunca podía ganar: cualquier duración clínica normal es mayor que
+cualquier intervalo ofrecido. La pantalla decía «5 minutos» y la agenda iba de 30 en 30. Y
+cuando sí ganaba era peor: con intervalo 30 y citas de 20 se perdía un hueco por hora sin
+que nada lo explicara.
+
+**Cómo se descubrió.** El dueño mandó la captura del selector (7-sep-2026) pidiendo
+quitarlo. Al ir a quitarlo se vio que llevaba tiempo sin hacer lo que decía.
+
+**La regla que lo hace seguro.** El paso de la agenda ES la duración del tipo de cita, en el
+panel y en el portal público — si divergieran, el portal ofrecería huecos que el panel no
+tiene. El defecto histórico queda cerrado por construcción: con el paso igual a la duración,
+dos huecos consecutivos no pueden solaparse. `intervaloMinutos` se conserva en el tipo y en
+los respaldos (hay documentos vivos que lo traen) pero ya no gobierna nada.
+
+**Prueba.** `src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts`
+(7 casos, probada al revés: con el `Math.max` viejo, dos casos fallan). **No cubre** cuánto
+debe durar cada tipo de cita, que es criterio del médico.
+
+
+
 ### Pruebas selladas de esta auditoria que no cuelgan de un REG concreto
 
 Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porque no eran regresiones con causa raíz separada, pero se sellan igual — un archivo sellado que nadie reclama se borra el día que estorbe.
