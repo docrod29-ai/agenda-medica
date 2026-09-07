@@ -1074,7 +1074,21 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la entrada incluía al sujeto. Se vio mirando la pantalla en el arnés,
      * con 33 pruebas en verde.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535],
+    /**
+     * 652 y 654 son esta familia en su forma más pura: dos preguntas que el
+     * producto le hacía al médico en cada nota y que no eran suyas. Elegir el
+     * motor de IA exige saber qué modelo hay detrás de cada emoji; contestar el
+     * cartel de `[IA — no dictado]` tenía siempre la misma respuesta. Ninguna
+     * de las dos estaba MAL por dentro —el menú derivaba de `MOTORES`, el
+     * cartel enseñaba las líneas antes de borrarlas, que fue lo que arregló
+     * REG-195—. Lo insoportable era su efecto: una consulta que termina con dos
+     * decisiones administrativas y el paciente todavía enfrente.
+     *
+     * Lo que esta familia aprende aquí: una pregunta cuya respuesta es siempre
+     * la misma no es una salvaguarda, es una casilla. La salvaguarda de verdad
+     * fue moverla —al servidor una, a la procedencia la otra—, no repetirla.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 652, 654],
   },
   {
     clave: 'perdida',
@@ -1460,7 +1474,20 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * cerrado. Se agradece que el módulo se negara a inventar el dato; lo que
      * hacía falta era el eje.
      */
-    regs: [183, 227, 360, 607, 635, 636, 644],
+    /**
+     * 653 es el REG-183 de esta misma lista, tres reparaciones después, y por
+     * eso importa: el eje que faltaba —«¿ya lo toma o se lo receto hoy?»— se
+     * añadió (183), se declaró en el esquema plano, se le sumó `speaker` (515)…
+     * y el antecedente seguía saliendo impreso. Porque las dos formas de leer
+     * ese eje eran una OPINIÓN del modelo y un dato que sólo existe con
+     * diarización.
+     *
+     * Lo que esta familia aprende aquí: un eje no está cerrado cuando existe el
+     * campo, sino cuando existe una fuente que lo llena y no depende de que el
+     * modelo acierte sobre sí mismo. La tercera fuente fue la nota: dónde quedó
+     * escrito el fármaco.
+     */
+    regs: [183, 227, 360, 607, 635, 636, 644, 653],
   },
   {
     /**

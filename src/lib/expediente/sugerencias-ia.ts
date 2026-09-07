@@ -107,3 +107,118 @@ export function lineasSugeridas(secciones: readonly { value?: string; label?: st
 export function sugerenciasPendientes(secciones: readonly { value?: string }[]): number {
   return secciones.reduce((n, s) => n + contarSugerencias(s.value), 0)
 }
+
+/**
+ * ── LA MARCA SALE DEL TEXTO Y SE QUEDA EN LA PROCEDENCIA (7-sep-2026) ────────
+ *
+ * ── LO QUE EL DUEÑO DIJO, TEXTUAL ───────────────────────────────────────────
+ *
+ *   «Y luego me pones que la inteligencia artificial no escuchó esto y lo
+ *    inventó. Pues no le pongas, tú pon lo mejor. Esos cachos no quiero que los
+ *    vea el médico […] no quiero que empiece a modificar nada; a lo mejor, si
+ *    faltó algo, pues le dices que faltó, pero no quiero que batalle.»
+ *
+ * ── QUÉ CAMBIA Y QUÉ NO ─────────────────────────────────────────────────────
+ *
+ * Lo que cambia es DÓNDE vive la marca. Lo que no cambia es que exista.
+ *
+ * Hasta hoy `[IA — no dictado]` iba **dentro del texto de la nota**, y de ahí
+ * colgaba un cartel antes de firmar con dos botones —«acepto las 7» / «quítalas
+ * todas»—. Esa era la batalla: cada nota terminaba con una pregunta cuya
+ * respuesta era siempre la misma, y el precio de equivocarse era perder el plan
+ * entero de una nota real (REG-195).
+ *
+ * Ahora el texto sale limpio y las mismas líneas viajan aparte, en
+ * `redactadoPorIA`, que es procedencia: se guarda con la nota, se puede
+ * enseñar, se puede auditar y se puede contar. Medicolegalmente **no se pierde
+ * nada** —sigue constando qué redactó la IA y qué salió del dictado—; lo que se
+ * pierde es la fricción de que eso viva incrustado en el documento que el
+ * médico lee.
+ *
+ * ── POR QUÉ ESTO NO CONTRADICE LA REGLA 3 DE SEGURIDAD CLÍNICA ──────────────
+ *
+ * «Nada cambia en silencio» pide que toda corrección automática sea VISIBLE y
+ * REVERSIBLE. Sigue siéndolo: la lista de lo que redactó la IA se le enseña al
+ * médico —resumida, en una línea, sin bloquear— y el texto sigue siendo suyo
+ * para editar. Lo que la regla nunca exigió es que el aviso viva dentro del
+ * párrafo, prefijando cada renglón.
+ *
+ * ── LO QUE SIGUE VIGILADO ───────────────────────────────────────────────────
+ *
+ * `sugerenciasPendientes` y su cartel se quedan en la pantalla como RED: si una
+ * marca llegara a colarse hasta el editor —una ruta que no despegue, un texto
+ * pegado a mano—, el cartel vuelve a aparecer y la marca no se imprime. Con el
+ * despegue en su sitio ese contador vale cero, y ésa es justamente la prueba de
+ * que el despegue funciona.
+ */
+
+/** Una línea que redactó la IA porque no se dictó, con el apartado del que salió. */
+export interface LineaDeLaIA {
+  /** Clave del apartado (`planTratamiento`, `exploracionFisica`…). */
+  seccion: string
+  /** El texto, ya sin la marca. */
+  linea: string
+}
+
+export interface NotaDespegada<T> {
+  /** Los apartados, con el mismo tipo que entraron y sin una sola marca. */
+  secciones: T
+  /** Lo que redactó la IA. Vacío cuando el médico lo dictó todo. */
+  redactadoPorIA: LineaDeLaIA[]
+}
+
+/** Quita la marca de una línea y devuelve el texto limpio. */
+function sinMarca(linea: string): string {
+  return linea.split(MARCA_SUGERENCIA).join('').replace(/^\s+/, '')
+}
+
+/**
+ * Despega las marcas del texto de los apartados y las devuelve aparte.
+ *
+ * Trabaja sobre el mapa plano `{clave: texto}` que produce la extracción, que
+ * es donde hay que hacerlo: **antes** de que el texto llegue a la pantalla. Que
+ * lo hiciera el componente sería la misma familia de defecto que ya costó caro
+ * —una regla clínica que sólo protege a la pantalla que la escribió—, y la nota
+ * viaja además al portal, al PDF y al expediente.
+ *
+ * El contenido NO se toca: la línea se queda entera, sólo pierde el prefijo. Se
+ * eligió conservar y no borrar porque es lo que el dueño pidió («tú pon lo
+ * mejor»), y porque borrar en silencio el plan que la IA redactó es exactamente
+ * el defecto de REG-195 con el signo cambiado.
+ */
+export function despegarMarcas(
+  secciones: Readonly<Record<string, unknown>> | null | undefined,
+): NotaDespegada<Record<string, unknown>> {
+  const entrada = secciones ?? {}
+  const salida: Record<string, unknown> = { ...entrada }
+  const redactadoPorIA: LineaDeLaIA[] = []
+
+  for (const [clave, valor] of Object.entries(entrada)) {
+    if (typeof valor !== 'string' || !valor.includes(MARCA_SUGERENCIA)) continue
+    const lineas = valor.split('\n')
+    salida[clave] = lineas.map(l => (l.includes(MARCA_SUGERENCIA) ? sinMarca(l) : l)).join('\n')
+    for (const l of lineas) {
+      if (!l.includes(MARCA_SUGERENCIA)) continue
+      const limpia = sinMarca(l).trim()
+      if (limpia) redactadoPorIA.push({ seccion: clave, linea: limpia })
+    }
+  }
+  return { secciones: salida, redactadoPorIA }
+}
+
+/** Los apartados que la IA tuvo que redactar, sin repetir. Es lo que «faltó». */
+export function apartadosQueFaltaron(lineas: readonly LineaDeLaIA[]): string[] {
+  return [...new Set((lineas ?? []).map(l => l.seccion))]
+}
+
+export const POR_QUE_LA_MARCA_SALE_DEL_TEXTO =
+  'Decisión del dueño, 7-sep-2026. La marca no desaparece: cambia de sitio. '
+  + 'Sale del documento que el médico lee y se queda en la procedencia, que se '
+  + 'guarda con la nota y se le enseña resumida. Lo que se elimina es la '
+  + 'pregunta obligatoria antes de firmar, cuya respuesta era siempre la misma '
+  + 'y cuyo error costaba el plan entero de una nota real (REG-195).'
+
+export const POR_QUE_EL_CARTEL_SE_QUEDA_COMO_RED =
+  'Porque una marca que se cuele hasta el editor —una ruta que no despegue, un '
+  + 'texto pegado a mano— no debe imprimirse. Con el despegue en su sitio el '
+  + 'contador vale cero, y eso es la prueba de que el despegue funciona.'

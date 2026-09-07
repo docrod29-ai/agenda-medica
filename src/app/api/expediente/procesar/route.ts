@@ -32,6 +32,9 @@ import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-modelo-se-eligio'
+import { elegirMotorAutomatico, dentroDelTecho } from '@/lib/ia/motor-automatico'
+import { laRecetaSeArmaDelPlan } from '@/lib/expediente/el-plan-manda-en-la-receta'
+import { despegarMarcas } from '@/lib/expediente/sugerencias-ia'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -411,11 +414,34 @@ export async function POST(req: NextRequest) {
 
   const nivel = await nivelIADe(clinicId)
 
-  // ── MENÚ DE IA ──────────────────────────────────────────────────────────
-  // El cliente pide un MOTOR (⚡ Rápida / ⭐ Estándar / 💎 Máxima) que define el
-  // modelo y cuántos créditos quema. Si no manda motor, se usa el default del
-  // plan (Pro→Máxima, Clínica→Estándar). El borrador en vivo siempre es Rápida.
-  const motorPedido = rapido ? MOTORES.rapida : (body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel))
+  /**
+   * ── QUÉ CEREBRO USA ESTA NOTA — LO DECIDE EL SERVIDOR (7-sep-2026) ──────
+   *
+   * Aquí había un MENÚ: el cliente mandaba `body.motor` con lo que el médico
+   * hubiera pulsado (⚡ Rápida / ⭐ Estándar / 💎 Máxima) y esta ruta lo obedecía.
+   *
+   * Decisión del dueño: **el médico no ve ni elige el tipo de inteligencia**.
+   * Se enruta con el dictado delante (`motor-automatico.ts`), y el plan sigue
+   * poniendo el techo — un caso difícil en un plan Clínica se redacta con
+   * Estándar, que es lo que ese plan vende.
+   *
+   * `body.motor` se IGNORA a propósito, no se elimina del contrato: una versión
+   * vieja de la PWA cacheada en el teléfono del médico lo seguirá mandando
+   * durante días, y aceptarlo-y-no-usarlo es lo que hace que esa nota salga
+   * bien igual. Lo que no puede es volver a mandar en la decisión.
+   */
+  const techoDelPlan = motorPorDefecto(nivel)
+  const eleccionMotor = elegirMotorAutomatico(
+    {
+      transcripcion: String(transcripcion ?? ''),
+      tipo: String(tipo ?? ''),
+      edadEnAnios: typeof contexto?.edad === 'number' ? contexto.edad : null,
+    },
+    { enVivo: rapido },
+  )
+  const motorPedido = rapido
+    ? MOTORES.rapida
+    : motorPorClave(dentroDelTecho(eleccionMotor.clave, techoDelPlan.clave))
 
   // ── DEGRADACIÓN (nunca bloquea) ─────────────────────────────────────────
   // Con la llave del DUEÑO ('prueba'), si el consultorio ya agotó sus créditos del
@@ -616,7 +642,15 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
+      /**
+       * El camino de esquema PARCIAL también despega las marcas.
+       *
+       * Es una nota que igualmente llega al médico y se puede firmar. Dejar
+       * `[IA — no dictado]` sólo en este ramal sería la marca apareciendo en las
+       * notas de los días malos — justo cuando menos se entiende por qué.
+       */
+      const parcial = despegarMarcas((parsed as Record<string, unknown>).secciones as Record<string, unknown>)
+      return NextResponse.json({ ok: true, ...parsed, secciones: parcial.secciones, _redactadoPorIA: parcial.redactadoPorIA, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
 
     void registrarUso(clinicId, fuente)
@@ -709,8 +743,43 @@ export async function POST(req: NextRequest) {
      * Un genérico silencioso es la peor de las opciones: el médico no sabe que
      * su nota se redactó con el criterio de ninguna rama. Se dice.
      */
+    /**
+     * ── LO ÚLTIMO QUE PASA ANTES DE QUE LA NOTA SALGA DE AQUÍ ───────────────
+     *
+     * Dos reglas del dueño que sólo valen si se aplican EN EL SERVIDOR, porque
+     * esta respuesta no la lee sólo la pantalla de consulta: de ella cuelgan el
+     * expediente, el PDF, el paquete del paciente y la receta.
+     *
+     * 1 · **La receta se arma del plan.** `laRecetaSeArmaDelPlan` corrige
+     *     `procedenciaClinica` con lo que la propia nota dice —el fármaco que
+     *     sólo aparece en antecedentes es historia, el que aparece en el plan es
+     *     de hoy—. No borra renglones: los motores de alergias, interacciones y
+     *     dosis siguen viéndolos todos.
+     *
+     * 2 · **La marca sale del texto.** `despegarMarcas` quita `[IA — no dictado]`
+     *     de los apartados y devuelve esas líneas aparte, en `_redactadoPorIA`.
+     *     El médico lee una nota limpia y sigue constando qué redactó la IA.
+     *
+     * El orden importa: primero la receta —que lee los apartados tal como el
+     * modelo los escribió, marca incluida, y `loNombra` no se inmuta— y después
+     * el despegue. Al revés daría lo mismo hoy, y dependería de que siga dando
+     * lo mismo mañana.
+     */
+    const seccionesDelModelo = (notaFinal.secciones ?? {}) as Record<string, unknown>
+    if (Array.isArray(notaFinal.medicamentos)) {
+      notaFinal = {
+        ...notaFinal,
+        medicamentos: laRecetaSeArmaDelPlan(
+          notaFinal.medicamentos as { nombre?: unknown; procedenciaClinica?: 'ya_lo_toma' | 'se_prescribe_hoy' }[],
+          seccionesDelModelo,
+        ),
+      }
+    }
+    const despegada = despegarMarcas(seccionesDelModelo)
+    notaFinal = { ...notaFinal, secciones: despegada.secciones }
+
     const conGuia = tieneGuia(contexto.especialidad)
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _redactadoPorIA: despegada.redactadoPorIA, _motorAutomatico: { clave: motor.clave, porQue: eleccionMotor.porQue }, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

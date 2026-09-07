@@ -10,7 +10,7 @@ import { especialidadesDelMedico } from '@/lib/asr/especialidad-del-medico'
 import { paresDeUnaNota, loAprendido, identidadDe, fusionar, type Aprendido } from '@/lib/asr/aprendizaje'
 import { leerAprendido, acumular } from '@/lib/asr/aprendizaje-firestore'
 import { HistorialVersiones } from '@/components/HistorialVersiones'
-import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas } from '@/lib/expediente/sugerencias-ia'
+import { sugerenciasPendientes, resolverSugerencias, lineasSugeridas, apartadosQueFaltaron } from '@/lib/expediente/sugerencias-ia'
 import dynamic from 'next/dynamic'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -61,7 +61,7 @@ import {
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
-import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
+import { type ClaveMotor } from '@/lib/planes-ia'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -290,27 +290,23 @@ const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPa
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 /**
- * NIVEL DE IA DE LA NOTA — lo que el médico elige es el CASO, no el modelo.
+ * EL MENÚ DE IA YA NO EXISTE EN LA PANTALLA — 7-sep-2026.
  *
- * Esta lista estaba escrita a mano con la marca del proveedor en `desc`
- * ('Haiku · seguimiento simple', 'Opus + GPT-5 · caso complejo'). Eran dos
- * defectos en el mismo renglón: pedía al médico decidir cómputo por marca —lo
- * que el Board #296 prohíbe— y era un SEGUNDO catálogo al lado de `MOTORES`,
- * libre de discrepar de los créditos que la ruta cobra de verdad.
+ * Aquí vivía `MOTORES_UI`: tres botones (⚡ Rápida / ⭐ Estándar / 💎 Máxima) con
+ * sus créditos, y el médico elegía antes de cada nota con qué inteligencia se
+ * iba a redactar.
  *
- * Ahora se DERIVA de `MOTORES`: la intención clínica sale de `usoRecomendado` y
- * los créditos de la misma fuente que cobra `/api/expediente/procesar`. El
- * proveedor real queda donde toca —procedencia y auditoría— y el contrato con el
- * médico es «qué caso tengo enfrente».
+ * Decisión del dueño, textual: «el usuario no debe ver ni elegir el tipo de
+ * inteligencia con la que vas a realizar la nota. Tú vas a elegirla de acuerdo
+ * a las necesidades». Es una decisión de ingeniería disfrazada de decisión
+ * clínica: para contestarla bien hay que saber qué modelo hay detrás de cada
+ * emoji, y eso no es trabajo del que tiene al paciente enfrente.
+ *
+ * Ahora la elige el servidor con el dictado delante (`lib/ia/motor-automatico.ts`),
+ * y el plan sigue poniendo el techo. La pantalla no manda `motor` y **tampoco
+ * lo enseña**: qué modelo se usó sigue viajando en la procedencia de la nota,
+ * que es donde importa —auditoría y medicolegal—, no en un cartel.
  */
-const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] =
-  (['rapida', 'estandar', 'maxima'] as const).map(k => ({
-    clave: k,
-    emoji: MOTORES[k].emoji,
-    nombre: MOTORES[k].nombre,
-    creditos: MOTORES[k].creditos,
-    desc: MOTORES[k].usoRecomendado,
-  }))
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -1412,13 +1408,28 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[]; huella: string } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
-  // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
-  // (Pro → 💎 Máxima, Clínica → ⭐ Estándar). El motor que usó la última nota.
-  const [motorSel, setMotorSel] = useState<ClaveMotor | null>(null)
+  /**
+   * Qué motor acabó usando la última nota. **No se pinta**: se guarda con la
+   * nota (`motor:` al firmar) porque la procedencia de un documento firmado
+   * tiene que decir con qué se redactó. Ya no hay `motorSel`: el médico no
+   * elige.
+   */
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
+  /**
+   * QUÉ APARTADOS REDACTÓ LA IA PORQUE NO SE DICTARON — 7-sep-2026.
+   *
+   * Antes esto vivía DENTRO del texto de la nota, prefijando cada renglón con
+   * `[IA — no dictado]`, y de ahí colgaba un cartel con dos botones que había
+   * que contestar antes de firmar. Eso era la batalla que el dueño pidió quitar.
+   *
+   * Ahora el servidor despega las marcas (`despegarMarcas`) y manda la lista
+   * aparte. Aquí sólo se enseña, en una línea y sin botones: «esto lo redacté
+   * yo porque no lo dictaste». La regla 3 —nada cambia en silencio— se cumple
+   * diciéndolo; nunca exigió decirlo dentro del párrafo.
+   */
+  const [redactadoPorIA, setRedactadoPorIA] = useState<{ seccion: string; linea: string }[]>([])
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
   const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
-  const motorEfectivo: ClaveMotor = motorSel ?? (planActual === 'premium' ? 'maxima' : 'estandar')
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
@@ -2600,7 +2611,6 @@ export default function ConsultaActivaPage() {
           diagnosticos: dxDelCuadro,
           medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
-          motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
           resumen: resumenTexto.slice(0, 2000),
           /**
            * La creatinina viaja CON SU VIGENCIA (REG-375) porque el motor de
@@ -2634,7 +2644,7 @@ export default function ConsultaActivaPage() {
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(comoSeDegrada('evidencia_red', { dijo: String(e).slice(0, 60) }).mensaje, 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
@@ -2753,7 +2763,6 @@ export default function ConsultaActivaPage() {
           // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
           // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
           rapido: enVivo || preliminar,
-          motor: (enVivo || preliminar) ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -2784,6 +2793,7 @@ export default function ConsultaActivaPage() {
       }
       if (!enVivo) {
         setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
+        setRedactadoPorIA(Array.isArray(data._redactadoPorIA) ? data._redactadoPorIA as { seccion: string; linea: string }[] : [])
         if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
         setAvisoModelo(data._modeloDegradado ? String(data._avisoModelo ?? '') : '')
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
@@ -3038,7 +3048,7 @@ export default function ConsultaActivaPage() {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc, motorEfectivo])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc])
 
   // Comprar recarga de créditos (Stripe pago único). Al pagar, el webhook suma los
   // créditos al mes en curso (agregarCreditosExtra) y vuelve la IA máxima.
@@ -6286,46 +6296,23 @@ export default function ConsultaActivaPage() {
             </>
           )}
 
-          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
-              §8.5 «nonessential admin disappears»: `!voz.grabando` sólo
-              cubría la ruta de Web Speech. Con el grabador de audio
-              (diarización/Whisper), `voz.transcripcion` se llena en vivo
-              desde `audio.transcripcionParcial` (línea ~531) mientras
-              `voz.grabando` sigue en false, así que este menú SÍ aparecía
-              con el mismo peso durante la grabación real. `grabandoAhora()`
-              (ya definido más arriba, mismo criterio que usa el resto de la
-              página para "activo" — incluye pausado) cubre las dos rutas. */}
-          {voz.transcripcion.trim() && !grabandoAhora() && (
-            <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Nivel de IA para esta nota</span>
-                {usoIA && (
-                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
-                    {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {MOTORES_UI.map(m => {
-                  const on = motorEfectivo === m.clave
-                  return (
-                    <button key={m.clave} onClick={() => setMotorSel(m.clave)}
-                      style={{
-                        flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', borderRadius: 10, padding: '9px 11px',
-                        border: '1px solid ' + (on ? 'var(--teal)' : 'var(--border)'),
-                        background: on ? 'rgba(13,148,136,0.08)' : 'var(--s1)', color: 'var(--text)',
-                      }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{m.emoji} {m.nombre} <span style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11 }}>· {m.creditos} cr</span></div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>{m.desc}</div>
-                    </button>
-                  )
-                })}
-              </div>
-              {motorUsado && (
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-                  Última nota generada con {MOTORES_UI.find(m => m.clave === motorUsado)?.emoji} <b>{MOTORES_UI.find(m => m.clave === motorUsado)?.nombre}</b>
-                </div>
-              )}
+          {/* ── CRÉDITOS RESTANTES ────────────────────────────────────────
+              Lo que había aquí era el MENÚ DE IA: tres botones para elegir con
+              qué inteligencia se redactaba la nota, más un renglón diciendo con
+              cuál se generó la anterior.
+
+              Se fue entero por decisión del dueño (7-sep-2026): el médico no
+              ve ni elige el tipo de inteligencia. Lo enruta el servidor con el
+              dictado delante (`lib/ia/motor-automatico.ts`).
+
+              Lo que SÍ se queda es el medidor de créditos, que no habla de
+              modelos: habla de cuánto le queda de su plan este mes, que es suyo
+              y lo tiene que poder ver. */}
+          {usoIA && voz.transcripcion.trim() && !grabandoAhora() && (
+            <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+              <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
+                {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
+              </span>
             </div>
           )}
 
@@ -7249,6 +7236,33 @@ export default function ConsultaActivaPage() {
       )}
 
       {/* ── Sugerencias de la IA pendientes de que el médico las avale ── */}
+      {/* ── LO QUE FALTÓ DICTAR ───────────────────────────────────────────
+          «a lo mejor, si faltó algo, pues le dices que faltó, pero no quiero
+          que batalle» (dueño, 7-sep-2026).
+
+          Esto NO pide nada y no bloquea la firma: dice qué apartados tuvo que
+          redactar la IA porque no se dictaron, para que el médico los mire si
+          quiere. La nota ya está completa y limpia; el texto es suyo y lo puede
+          editar como cualquier otro. Sin botones a propósito — un botón obliga
+          a decidir, y aquí no hay nada que decidir. */}
+      {!firmada && redactadoPorIA.length > 0 && (() => {
+        const claves = apartadosQueFaltaron(redactadoPorIA)
+        const nombres = claves.map(k => secciones.find(s => s.key === k)?.label ?? k)
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap',
+            border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)',
+            padding: '11px 14px', marginBottom: 14,
+          }}>
+            <Sparkles size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: '1 1 260px', fontSize: 13, lineHeight: 1.55, color: 'var(--text2)' }}>
+              No dictaste <strong>{nombres.join(', ')}</strong>. Lo redacté para que la nota
+              quedara completa — revísalo si quieres cambiarlo.
+            </div>
+          </div>
+        )
+      })()}
+
       {!firmada && sugerenciasPendientes(secciones) > 0 && (() => {
         const n = sugerenciasPendientes(secciones)
         return (

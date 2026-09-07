@@ -25635,3 +25635,125 @@ Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porq
 - `src/__tests__/no-se-pudo-leer-no-es-no-hay-nada.test.ts`
 - `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts`
 - `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts`
+
+---
+
+# La consulta deja de preguntar (7-sep-2026) — REG-652 a REG-654
+
+Las tres salen de la misma sesión y de la misma queja del médico dueño: **la
+nota tiene que salir hecha, y él no tiene que decidir nada para que salga**.
+No son hallazgos de una auditoría: son tres sitios donde el producto le pasaba
+al médico una decisión que era del sistema.
+
+## REG-652 — El médico tenía que elegir con qué inteligencia se redactaba su nota
+
+**Área**: Producto / IA (P1) · **Estado**: CLOSED
+
+**Qué fallaba.** Antes de cada nota, la pantalla de consulta enseñaba tres
+botones —⚡ Rápida (1 crédito), ⭐ Estándar (3), 💎 Máxima (10)— y el médico
+elegía. El cliente mandaba `motor` en el cuerpo y `/api/expediente/procesar` lo
+obedecía tal cual.
+
+Es una decisión de ingeniería disfrazada de decisión clínica: para contestarla
+bien hay que saber qué modelo hay detrás de cada emoji y cómo rinde en este
+caso. Y el error se paga en los dos sentidos — de menos, una nota difícil sin
+razonamiento; de más, diez créditos y treinta segundos para un catarro.
+
+**Cómo se descubrió.** Lo dijo el dueño: «el usuario no debe ver ni elegir el
+tipo de inteligencia con la que vas a realizar la nota. Tú vas a elegirla de
+acuerdo a las necesidades […] Si es algo muy fácil y nomás hacer la nota,
+utiliza el modelo más rápido, y si necesitas pensar, pues lo usas».
+
+**La reparación.** `src/lib/ia/motor-automatico.ts` enruta con el dictado
+delante, determinista y sin llamar a ningún modelo —preguntárselo al modelo
+costaría la latencia que se quería ahorrar—. El plan sigue poniendo el techo.
+
+**La asimetría es la política**: el punto de partida es ⭐ Estándar, no ⚡ Rápida.
+Se BAJA a Rápida sólo cuando el caso es demostrablemente trivial; se SUBE a
+Máxima con una señal de complejidad; cuando no se sabe, se queda en medio. El
+vocabulario de señales es vocabulario, no criterio (regla 5): con el punto de
+partida en Rápida, cada hueco del vocabulario sería una nota difícil redactada
+con el modelo más barato, en silencio.
+
+**Qué NO cubre.** Que el modelo elegido RINDA como se espera —esto compara
+claves de motor, no calidad—; el copiloto de UCI, el consultor y la
+transcripción, que eligen su modelo por su cuenta; y que la pantalla se vea bien
+sin el menú, que no se aprueba leyendo código.
+
+**Prueba permanente (sellada).** `src/__tests__/el-medico-no-elige-el-cerebro.test.ts`
+
+## REG-653 — El losartán de los antecedentes seguía saliendo impreso
+
+**Área**: Seguridad clínica (P1) · **Estado**: CLOSED
+
+**Qué fallaba.** «Si yo te digo los antecedentes —paciente hipertenso, toma
+sartán— me lo pones en la pinche receta, y te dije que no: tú vas a poner ahí el
+plan de lo que te diga el doctor.»
+
+**Por qué las dos reparaciones anteriores no bastaron.** REG-183 declaró
+`procedenciaClinica` en el esquema plano y REG-515 añadió `speaker`. Las dos
+fallan JUNTAS en el caso común de este consultorio:
+
+1. `procedenciaClinica` es **la opinión del modelo**; cuando etiqueta el
+   antecedente como `se_prescribe_hoy`, se acabó la defensa.
+2. `speaker` sólo existe **si hubo diarización**; sin ella viene ausente, y la
+   ausencia no se castiga a propósito —castigarla borraría del papel los
+   renglones que el médico escribió a mano—.
+
+Modelo equivocado + sin voces separadas = nada en pie.
+
+**Reproducción que fallaba.** El primer caso del golden monta ese estado exacto
+y comprueba que `medicamentosDeLaReceta` —las dos defensas viejas, tal cual—
+deja pasar el losartán al papel.
+
+**La reparación.** `src/lib/expediente/el-plan-manda-en-la-receta.ts`: la receta
+se arma del apartado del PLAN, que es texto que el propio modelo redactó leyendo
+el dictado entero. Dónde quedó escrito el fármaco es un hecho de la nota, no una
+opinión sobre ella, y no depende de la diarización. Corre en el SERVIDOR,
+porque de esa respuesta cuelgan también el PDF, el expediente y el portal.
+
+**No borra ningún renglón**: los motores de alergias, interacciones y dosis
+siguen viéndolos todos. Sólo cambia la etiqueta que decide qué baja al papel.
+
+**Qué NO cubre.** Que el modelo escriba el plan EN el apartado del plan; los
+fármacos que el médico teclea a mano, que no pasan por la nota; y la renovación
+—el fármaco aparece en los dos sitios— donde sigue mandando la etiqueta del
+modelo, porque renovar hoy lo que ya tomaba es una receta normal.
+
+**Prueba permanente (sellada).** `src/__tests__/la-receta-se-arma-del-plan.test.ts`
+
+## REG-654 — «[IA — no dictado]» dentro de la nota, y una pregunta antes de cada firma
+
+**Área**: Producto / Seguridad clínica (P2) · **Estado**: CLOSED
+
+**Qué fallaba.** La marca `[IA — no dictado]` iba **dentro del texto de la
+nota**, prefijando cada renglón que la IA había redactado, y de ahí colgaba un
+cartel antes de firmar con dos botones. La firma quedaba bloqueada hasta
+contestarlo.
+
+**Cómo se descubrió.** El dueño: «me pones que la inteligencia artificial no
+escuchó esto y lo inventó. Pues no le pongas, tú pon lo mejor. Esos cachos no
+quiero que los vea el médico […] no quiero que batalle».
+
+**La causa raíz.** Se confundió el AVISO con su SITIO. La regla 3 de seguridad
+clínica pide que toda redacción automática sea visible y reversible; nunca pidió
+que el aviso viviera incrustado en el párrafo. Ponerlo ahí convirtió cada nota
+en una pregunta obligatoria cuya respuesta era siempre la misma — y cuyo error
+costaba el plan entero de una nota real (REG-195).
+
+**La reparación.** `despegarMarcas` en `sugerencias-ia.ts`: la marca **cambia de
+sitio**, no desaparece. El texto sale limpio y las mismas líneas viajan en
+`_redactadoPorIA`, que es procedencia. La pantalla lo dice en una línea sin
+botones —«No dictaste X. Lo redacté para que la nota quedara completa»—, que es
+literalmente lo que él pidió: «si faltó algo, pues le dices que faltó».
+
+El cartel de firma **no se borró**: se apaga solo porque ya no hay marcas que
+contar, y sigue de red por si una ruta dejara de despegar.
+
+**Qué NO cubre.** Que el modelo siga marcando bien lo que redacta —eso lo fija
+`los-huecos-se-proponen-marcados.test.ts`, y el prompt no cambia—; que la línea
+se lea bien en pantalla; y que la procedencia se persista en el documento
+firmado, que hoy viaja en la respuesta y se enseña, pero guardarla es trabajo
+con nombre.
+
+**Prueba permanente (sellada).** `src/__tests__/la-marca-sale-del-texto-y-queda-en-la-procedencia.test.ts`

@@ -62,8 +62,8 @@
   ],
   "ramaActual": "ops/acta-v1187",
   "derivado": {
-    "regsEnElLedger": 436,
-    "ultimaREG": "REG-651",
+    "regsEnElLedger": 439,
+    "ultimaREG": "REG-654",
     "archivosDePrueba": 1089,
     "casosDePrueba": 12971,
     "lint": "ver scripts/lint-trinquete.mjs"

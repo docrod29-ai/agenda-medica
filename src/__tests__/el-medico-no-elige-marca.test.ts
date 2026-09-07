@@ -141,13 +141,30 @@ describe('el médico elige intención clínica, nunca una marca (#345)', () => {
     }
   })
 
-  it('el selector de la consulta no rehace un catálogo con marcas', () => {
+  /**
+   * ── EL SELECTOR DESAPARECIÓ — 7-sep-2026 ─────────────────────────────────
+   *
+   * Este caso vigilaba que el catálogo del selector de la consulta derivara de
+   * `MOTORES` y no reescribiera a mano las marcas de los proveedores.
+   *
+   * El dueño retiró el selector entero: el médico no ve ni elige el tipo de
+   * inteligencia, lo enruta el servidor. Un selector que no existe no puede
+   * nombrar una marca — es la forma más fuerte de cumplir el Board #345 y no
+   * hay nada más que derivar.
+   *
+   * Lo que se congela ahora es que no vuelva a nacer un catálogo de motores
+   * dentro de la pantalla, con o sin marcas.
+   */
+  it('la consulta ya no rehace ningún catálogo de motores', () => {
     const src = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
-    const decl = src.slice(src.indexOf('const MOTORES_UI'))
-    const bloque = decl.slice(0, decl.indexOf('\n\n'))
-    expect(MARCA.test(bloque), `marca en el selector de nota: ${bloque}`).toBe(false)
-    // Y deriva de la fuente única, en vez de escribir su propia tabla a mano.
-    expect(bloque).toContain('MOTORES[k]')
+    expect(src).not.toMatch(/const MOTORES_UI/)
+    expect(src).not.toMatch(/setMotorSel\(/)
+    /**
+     * El texto visible de esta pantalla ya lo recorre entero el caso «las
+     * superficies donde el médico elige/compra IA no nombran proveedores», con
+     * sus regiones exentas declaradas. Repetirlo aquí sin ellas sólo compraría
+     * un rojo que no habla del selector.
+     */
   })
 
   it('lo que el médico sí elige es intención clínica', () => {

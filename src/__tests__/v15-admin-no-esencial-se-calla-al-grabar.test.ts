@@ -62,8 +62,22 @@ const PAGE = readFileSync(
 )
 
 describe('V15 — admin no esencial de /consulta se calla mientras graba', () => {
-  it('el menú de motor de IA usa grabandoAhora(), no sólo voz.grabando (cubre la ruta de audio real)', () => {
-    expect(PAGE).toContain("{voz.transcripcion.trim() && !grabandoAhora() && (")
+  /**
+   * ── EL MENÚ DE IA YA NO EXISTE — 7-sep-2026 ────────────────────────────
+   *
+   * Este caso comprobaba que el menú de motor (⚡/⭐/💎) se callara mientras se
+   * graba. Ya no hay menú: el dueño decidió que el médico **no ve ni elige** el
+   * tipo de inteligencia, y el enrutado se hace en el servidor
+   * (`lib/ia/motor-automatico.ts`). Callarse durante el dictado dejó de ser una
+   * propiedad del menú y pasó a ser una propiedad de lo único que quedó en su
+   * sitio: el medidor de créditos.
+   *
+   * Lo que este caso protege sigue siendo lo mismo —que ese bloque use
+   * `grabandoAhora()` y no `voz.grabando`, que sólo cubría Web Speech— sobre el
+   * bloque que hoy vive ahí.
+   */
+  it('lo que quedó del admin de IA usa grabandoAhora(), no sólo voz.grabando', () => {
+    expect(PAGE).toContain("{usoIA && voz.transcripcion.trim() && !grabandoAhora() && (")
     // El criterio viejo, que sólo cubría Web Speech, no debe quedar como
     // compuerta activa de este bloque.
     expect(PAGE).not.toContain('{voz.transcripcion.trim() && !voz.grabando && (')
@@ -89,13 +103,24 @@ describe('V15 — admin no esencial de /consulta se calla mientras graba', () =>
 })
 
 describe('V15 — freeze funcional: nada de lo que hacen estos bloques cambió', () => {
-  it('el menú de motor de IA sigue leyendo motorEfectivo/MOTORES_UI/setMotorSel, sin lógica nueva', () => {
-    const inicio = PAGE.indexOf('MENÚ DE IA: motor por nota')
-    expect(inicio).toBeGreaterThan(0)
-    const bloque = PAGE.slice(inicio, inicio + 2200)
-    expect(bloque).toContain('MOTORES_UI.map(m =>')
-    expect(bloque).toContain('onClick={() => setMotorSel(m.clave)}')
-    expect(bloque).toContain('motorEfectivo === m.clave')
+  /**
+   * El freeze de este bloque dejó de tener sentido cuando el bloque desapareció.
+   * Lo que se congela ahora es lo contrario, y es más fuerte: que el menú **no
+   * vuelva**. Un selector de motor reintroducido por descuido pondría esto en
+   * rojo el mismo día, que es exactamente para lo que sirve un trinquete.
+   */
+  it('el menú de motor de IA no vuelve: ni catálogo, ni selección, ni motor en la petición', () => {
+    /**
+     * Se buscan formas de CÓDIGO, no el nombre suelto: los comentarios que
+     * cuentan por qué se retiró el menú lo nombran a propósito, y una prueba
+     * que se pusiera roja por documentar el cambio sería el mismo defecto que
+     * ya se reparó en el barrido de motores —un instrumento al que se le tapa
+     * la boca, o se le abre, escribiendo prosa—.
+     */
+    expect(PAGE).not.toMatch(/MOTORES_UI\s*[.[]/)
+    expect(PAGE).not.toMatch(/setMotorSel\(/)
+    expect(PAGE).not.toMatch(/motorEfectivo\s*(===|,|\))/)
+    expect(PAGE).not.toContain('Nivel de IA para esta nota')
   })
 
   it('el botón "Comprar más créditos" y el enlace "Ver planes" conservan su onClick/href de siempre', () => {
