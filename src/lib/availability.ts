@@ -209,7 +209,69 @@ export function getAvailableSlots(
   // HORARIO PARTIDO: la hora de comida deja de ofrecerse a los pacientes sin que
   // el médico tenga que crear un bloqueo a mano para cada día del año.
   const descansos = descansosEnMinutos(schedule.descansos)
-  for (let m = startMin; m + duracionSegura <= endMin; m += interval) {
+
+  /**
+   * LA REJILLA SE RE-ANCLA DONDE ACABA LO QUE YA HAY.
+   *
+   * ── QUÉ FALLABA ────────────────────────────────────────────────────────────
+   *
+   * Los inicios posibles salían de UN SOLO sitio: la hora de apertura, a saltos
+   * fijos. Nada volvía a anclar la rejilla, así que en cuanto una cita de
+   * duración distinta rompía el ritmo, el hueco que dejaba **no existía** para
+   * el producto.
+   *
+   * El caso que lo destapó, contado por una dermatóloga: 45 min, luego 15, luego
+   * 30. Con `intervaloMinutos: 30` y jornada 09:00-14:00 la pantalla ofrecía
+   *
+   *     45 min, día vacío   09:00  09:45  10:30  11:15  12:00
+   *     luego una de 15     10:00  10:30  11:00  ...        ← 09:45 no está
+   *
+   * La de 45 acaba a las 09:45 y la de 15 cabe entera antes de las 10:00. Ese
+   * cuarto de hora libre no se ofrecía NINGÚN día, y no había forma de pedirlo:
+   * el campo de hora manual sólo aparece cuando no queda ni un hueco.
+   *
+   * Y no hacía falta un intervalo raro. Con `intervaloMinutos: 10`, tras esa
+   * misma cita de 45 la siguiente de 30 se ofrecía a las 10:00 — nunca a las
+   * 09:45, porque la rejilla de 30 va 09:00, 09:30, 10:00 y jamás se recoloca.
+   *
+   * ── LA REGLA ───────────────────────────────────────────────────────────────
+   *
+   * Una hora libre de verdad se ofrece. A los inicios del reloj se les suman los
+   * instantes donde TERMINA algo: cada cita del día y cada descanso. Es aditivo
+   * —ningún hueco de los de antes desaparece— y acotado: como mucho un ancla por
+   * cita, no una rejilla más fina. Los filtros de abajo (pasado, descanso,
+   * bloqueo, empalme) se aplican igual a las anclas que a la rejilla, así que un
+   * ancla no puede colar una hora que no cabe.
+   *
+   * El paso del reloj NO se toca: `Math.max(intervalo, duración)` sigue mandando
+   * en la rejilla base, y con eso sigue en pie la regla que lo puso ahí (con
+   * intervalo 10 y citas de 30 no salen huecos cada 10 minutos).
+   *
+   * ── QUÉ NO CUBRE ───────────────────────────────────────────────────────────
+   *
+   * El final de un BLOQUEO (vacaciones, ausencia) no ancla. `TimeBlock` guarda
+   * instantes ISO que pueden venir en absoluto o en hora de pared, y pasarlos a
+   * minutos del día pide la zona del consultorio; se dejó fuera a propósito en
+   * vez de hacerlo a medias. Un bloqueo que acaba a las 11:20 sigue sin ofrecer
+   * las 11:20 — se pide a mano, que desde ahora siempre se puede.
+   *
+   * Tampoco cambia nada para el paciente en el portal público ni para el bot:
+   * les llega más oferta, que es lo mismo que ve el médico. Un hueco que existe
+   * no se esconde según quién pregunte.
+   */
+  const minutosDeCita = (a: Appointment): number => {
+    const [h, m] = a.fechaHora.slice(11, 16).split(':').map(Number)
+    return h * 60 + m
+  }
+  const inicios = new Set<number>()
+  for (let m = startMin; m + duracionSegura <= endMin; m += interval) inicios.add(m)
+  const anclar = (min: number) => {
+    if (Number.isFinite(min) && min > startMin && min + duracionSegura <= endMin) inicios.add(min)
+  }
+  for (const a of dayAppts) anclar(minutosDeCita(a) + a.duracion)
+  for (const d of descansos) anclar(d.hasta)
+
+  for (const m of [...inicios].sort((a, b) => a - b)) {
     // ── FRENO ANTI-DESBOCADO ────────────────────────────────────
     // Ninguna agenda real llega aquí: son 200 huecos en un día. Si se alcanza,
     // la configuración está corrupta, y se DECLARA en la salida en vez de
@@ -262,6 +324,57 @@ let ultimoDiagnostico: { fecha: string; truncado: boolean; techo: number } | nul
 
 export function diagnosticoDeHuecos(): { fecha: string; truncado: boolean; techo: number } | null {
   return ultimoDiagnostico
+}
+
+/**
+ * POR QUÉ ESA HORA NO CABE — para poder DECIRLO, en vez de borrarla.
+ *
+ * ── QUÉ FALLABA ──────────────────────────────────────────────────────────────
+ *
+ * El modal borraba la hora elegida en cuanto dejaba de estar en la lista de
+ * huecos (subir la duración después de elegir la hora es el camino corto). El
+ * campo se quedaba en blanco sin una palabra, y al médico le parecía que la
+ * pantalla se había «reseteado sola». Eso choca con la regla 3 de seguridad
+ * clínica dicha en lenguaje de interfaz: nada cambia en silencio.
+ *
+ * Pero no basta con dejar la hora quieta: `hasConflict` devuelve `true` tanto
+ * por un empalme como por salirse del horario, y el aviso decía siempre «ese
+ * horario ya está ocupado». Con una cita de 45 min a las 13:30 en una jornada
+ * que cierra a las 14:00, ese mensaje es sencillamente falso, y encima el
+ * servidor responde 409 sin salida autorizada: el sobreagendamiento cubre el
+ * empalme, no el cierre.
+ *
+ * Esto separa las dos causas para que la pantalla diga la de verdad y proponga
+ * lo que sí arregla el caso (bajar la duración o mover la hora).
+ *
+ * Devuelve `null` cuando la cita SÍ cabe en el horario del día. Que quepa no
+ * significa que esté libre: el empalme lo sigue mirando `hasConflict`.
+ */
+export type PorQueNoCabe =
+  | { razon: 'dia-cerrado' }
+  | { razon: 'horario-invalido'; detalle: string }
+  | { razon: 'fuera-del-horario'; abre: string; cierra: string }
+  | null
+
+export function porQueNoCabeEnElHorario(
+  fecha: string,
+  hora: string,
+  duracionMin: number,
+  config: ClinicConfig,
+): PorQueNoCabe {
+  if (!fecha || !hora) return null
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hora.trim())
+  if (!m) return null                        // hora a medio teclear: aún no se juzga
+  const schedule = getDaySchedule(fecha, config)
+  if (!schedule) return { razon: 'dia-cerrado' }
+  const vh = validarHorarioDia(schedule.inicio, schedule.fin)
+  if (!vh.valido) return { razon: 'horario-invalido', detalle: vh.motivo ?? 'horario mal configurado' }
+  const inicio = Number(m[1]) * 60 + Number(m[2])
+  const dur = Number.isFinite(duracionMin) && duracionMin > 0 ? duracionMin : 30
+  if (inicio < vh.startMin || inicio + dur > vh.endMin) {
+    return { razon: 'fuera-del-horario', abre: schedule.inicio, cierra: schedule.fin }
+  }
+  return null
 }
 
 export function hasConflict(

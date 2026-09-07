@@ -25635,3 +25635,22 @@ Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porq
 - `src/__tests__/no-se-pudo-leer-no-es-no-hay-nada.test.ts`
 - `src/__tests__/panel-de-lujo-la-consulta-entrega-lo-que-promete.test.ts`
 - `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts`
+
+
+# Agenda de la consulta (7-sep-2026) — REG-652
+
+## REG-652 — El hueco que deja una cita de duración distinta no se ofrece nunca, y no hay forma de pedirlo a mano
+
+**Área**: Agenda / experiencia del médico (P2) · **Hallazgo(s) de la auditoría**: reporte del dueño · **Estado**: CLOSED
+
+**Qué fallaba.** Los inicios de `getAvailableSlots` salían de un solo sitio —la hora de apertura, a saltos de `Math.max(intervaloMinutos, duración)`— y nada volvía a anclar la rejilla. En cuanto una cita de duración distinta rompía el ritmo, el hueco que dejaba detrás **no existía** para el producto (`availability.ts:212`). Y no se podía pedir a mano: el campo de hora libre del modal vivía en el `else` de «¿hay huecos?», así que sólo aparecía con el día COMPLETO —justo cuando ya no sirve— (`AppointmentModal.tsx:579`). Tercer defecto del mismo flujo: subir la duración después de elegir la hora borraba la hora **en silencio** (`setHora('')`), y el aviso decía «ese horario ya está ocupado» incluso cuando la causa real era pasarse del cierre — un mensaje falso que además empuja a la salida de sobreagenda, que el servidor no acepta para ese caso (`api/appointments/route.ts:169` responde 409 sin excepción).
+
+**Cómo se descubrió.** Contado por el dueño el 7-sep-2026 con el caso de una dermatóloga que agenda 45 min, luego 15, luego 30. Trazado el bucle con `intervaloMinutos: 30` y jornada 09:00–14:00: la de 45 ocupa 09:00–09:45 y la de 15 se ofrecía a las 10:00 — el cuarto de hora libre de 09:45 se perdía todos los días. Con `intervaloMinutos: 10` pasaba lo mismo para una cita de 30: la rejilla va 09:00, 09:30, 10:00 y jamás se recoloca.
+
+**Reproducción que fallaba.** Con el bucle anterior, `src/__tests__/la-rejilla-se-reancla-donde-acaba-la-cita-anterior.test.ts` falla en 3 casos (las 09:45 no aparecen por ninguno de los tres caminos) y `src/__tests__/la-hora-a-mano-siempre-esta.test.ts` falla en 5. Comprobado quitando cada arreglo por separado con `git stash`.
+
+**Prueba permanente (sellada).** `src/__tests__/la-rejilla-se-reancla-donde-acaba-la-cita-anterior.test.ts` y `src/__tests__/la-hora-a-mano-siempre-esta.test.ts`
+
+**Estado**: reparado. A los inicios del reloj se les suman los instantes donde TERMINA algo —cada cita del día y cada descanso—, de forma **aditiva** (ningún hueco de antes desaparece) y **acotada** (como mucho un ancla por cita, no una rejilla más fina); las anclas pasan por los mismos filtros que la rejilla, así que no pueden colar una hora que no cabe. El paso del reloj NO se tocó: `Math.max(intervalo, duración)` sigue mandando en la rejilla base y sigue en pie la regla que lo puso ahí (con intervalo 10 y citas de 30 no salen huecos cada 10 min). En la pantalla, el campo libre pasa a ser una elección del médico —un `<button>` junto al desplegable—, la hora deja de borrarse sola y el aviso separa «no cabe en el horario» de «está ocupado» con `porQueNoCabeEnElHorario`.
+
+**Qué NO cubre.** El final de un **bloqueo** (vacaciones, ausencia) no ancla: `TimeBlock` guarda instantes ISO que pueden venir en absoluto o en hora de pared, y pasarlos a minutos del día pide la zona del consultorio; se dejó fuera a propósito en vez de hacerlo a medias — un bloqueo que acaba a las 11:20 sigue sin ofrecer las 11:20, y ahora se pide a mano. Tampoco se toca que **un médico no pueda tener sus propias duraciones**: `horarioPropio` sigue sin encenderlo ninguna pantalla (`horario-medico.ts:55`), pese a que el alta de médicos promete «puedes editarlos después» (`configuracion/page.tsx:1696`). Eso queda abierto y **declarado**, no arreglado.

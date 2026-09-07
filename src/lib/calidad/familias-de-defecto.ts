@@ -1074,7 +1074,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la entrada incluía al sujeto. Se vio mirando la pantalla en el arnés,
      * con 33 pruebas en verde.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535],
+    /**
+     * 652: la rejilla de la agenda no ofrecía el hueco que dejaba una cita de
+     * duración distinta, y el campo para pedir esa hora a mano sólo aparecía con
+     * el día completo — justo cuando ya no sirve. Por dentro todo correcto: la
+     * regla que puso ahí el paso (`max(intervalo, duración)`) venía de un
+     * defecto real de citas encimadas. Por fuera, una dermatóloga perdía un
+     * cuarto de hora cada vez que encadenaba 45 y 15 minutos, y la salida del
+     * consultorio era mover otra cita. Misma forma que 337: nada roto por
+     * dentro, insufrible en la consulta.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 652],
   },
   {
     clave: 'perdida',

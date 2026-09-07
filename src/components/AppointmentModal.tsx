@@ -10,7 +10,7 @@ import { configParaMedico } from '@/lib/horario-medico'
 import { instanteMX } from '@/lib/timezone'
 import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/context/ToastContext'
-import { getAvailableSlots, hasConflict } from '@/lib/availability'
+import { getAvailableSlots, hasConflict, porQueNoCabeEnElHorario } from '@/lib/availability'
 import { listarBloques, type TimeBlock } from '@/lib/time-blocks'
 import { hoyISO } from '@/lib/timezone'
 import { useClinic } from '@/context/ClinicContext'
@@ -71,6 +71,20 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
   const [telefono, setTelefono]   = useState('')
   const [fecha, setFecha]         = useState(defaultDate ?? today)
   const [hora, setHora]           = useState(defaultHour ?? '')
+  /**
+   * ESCRIBIR LA HORA A MANO: SIEMPRE, NO SÓLO CUANDO NO QUEDA NADA.
+   *
+   * El campo libre existía, pero vivía en el `else` de «¿hay huecos?»: sólo
+   * aparecía con el día COMPLETO, que es justo cuando ya no sirve de nada. Con
+   * un solo hueco libre en la lista, una hora libre de verdad que la lista no
+   * trajera era inalcanzable — y la salida real del consultorio era teclear la
+   * hora en otro lado o mover otra cita.
+   *
+   * Ahora es una elección del médico, no una consecuencia de que la lista esté
+   * vacía. La hora tecleada pasa por los mismos chequeos que la elegida
+   * (`hasConflict` + el 409 del servidor): se abre la puerta, no la reja.
+   */
+  const [horaManual, setHoraManual] = useState(false)
 
   /**
    * La ventana la manda el padre. Cada llamada al hook tiene estado propio, así
@@ -178,6 +192,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       setConsent(appointment.consentimientoMensajes)
       // Médico de la cita; si no tiene, cae al filtro activo o al primero.
       setMedicoId(appointment.medicoId || filtroMedico || activeDoctors[0]?.id || '')
+      setHoraManual(false)
     } else {
       setNombre(''); setTelefono(''); setFecha(defaultDate ?? today)
       setHora(defaultHour ?? ''); setTipo('primera-vez'); setDuracion(60)
@@ -185,6 +200,7 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
       setEstado('pendiente-confirmar'); setConsent(true)
       // Nueva cita: al médico que la asistente tiene filtrado, o al primero.
       setMedicoId(filtroMedico || activeDoctors[0]?.id || '')
+      setHoraManual(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, appointment, defaultDate, defaultHour, today])
@@ -227,19 +243,55 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
     if (!fecha || !hora) { setConflict(false); return }
     setConflict(hasConflict(fecha, hora, duracion, appointments, appointment?.id, bloquesTotales, medicoId || undefined, cfgAgenda))
     /**
-     * Si se sube la duración DESPUÉS de elegir la hora, esa hora puede dejar de
-     * caber. El desplegable se quedaba visualmente en blanco pero el estado seguía
-     * con la hora vieja, así que se guardaba una cita que terminaba después del
-     * cierre. Se limpia para obligar a elegir de nuevo entre las que sí caben.
+     * LA HORA YA NO SE BORRA SOLA.
+     *
+     * Subir la duración después de elegir la hora puede dejarla sin caber, y
+     * aquí se limpiaba el campo por eso. El defecto que arreglaba era real —se
+     * guardaba una cita que terminaba después del cierre— pero el remedio era
+     * una edición en silencio sobre lo que el médico acababa de teclear: el
+     * campo se quedaba en blanco sin una palabra y parecía que la pantalla se
+     * había reseteado sola.
+     *
+     * Ahora la hora se queda donde está y se DICE qué pasa (`noCabe` más abajo),
+     * con la salida que de verdad arregla el caso: bajar la duración o mover la
+     * hora. El guardado sigue cerrado mientras no quepa —`handleSave` lo corta y
+     * el servidor responde 409—, así que no se pierde ninguna defensa: se pierde
+     * el silencio.
      */
-    // No borres la hora ORIGINAL de una cita en edición: siempre es válida aunque
-    // ya haya pasado (slots la incluye). Antes se limpiaba y bloqueaba el guardado.
-    if (hora && hora !== horaOriginal && slots.length > 0 && !slots.includes(hora)) setHora('')
   }, [fecha, hora, duracion, appointments, appointment?.id, medicoId, bloquesTotales, horaOriginal, slots])
+
+  /**
+   * ¿Por qué no cabe esta hora? Distingue «se sale del horario» de «está
+   * ocupada»: `hasConflict` devuelve `true` por las dos causas y el aviso decía
+   * siempre «ya está ocupado», que con una cita que se pasa del cierre es
+   * sencillamente falso. La hora original de una cita en edición no se juzga:
+   * ya está agendada y el horario pudo cambiar después.
+   */
+  const noCabe = useMemo(
+    () => (hora && hora !== horaOriginal ? porQueNoCabeEnElHorario(fecha, hora, duracion, cfgAgenda) : null),
+    [fecha, hora, duracion, cfgAgenda, horaOriginal],
+  )
 
   const handleSave = async () => {
     if (!nombre.trim()) { toast('Ingresa el nombre del paciente', 'error'); return }
     if (!fecha || !hora) { toast('Selecciona fecha y hora', 'error'); return }
+    /**
+     * Fuera del horario no hay salida autorizada: el servidor responde 409 sin
+     * excepción para el médico (a diferencia del empalme, que sí la tiene). Se
+     * corta aquí con el motivo de verdad en vez de dejar que el guardado falle
+     * con un mensaje que no explica nada.
+     */
+    if (noCabe) {
+      toast(
+        noCabe.razon === 'dia-cerrado'
+          ? 'Ese día el consultorio no da servicio. Elige otra fecha o activa el día en Configuración.'
+          : noCabe.razon === 'horario-invalido'
+            ? `El horario de ese día está mal configurado (${noCabe.detalle}). Revísalo en Configuración.`
+            : `Con ${duracion} min, las ${hora} no caben en el horario de ese día (${noCabe.abre}–${noCabe.cierra}). Baja la duración o mueve la hora.`,
+        'error',
+      )
+      return
+    }
     if (conflict && !esMedicoReal) {
       toast('Ese horario ya está ocupado. Sólo el médico puede agendar encima: pídeselo y él lo autoriza.', 'error')
       return
@@ -558,16 +610,17 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
 
             {/* Hora */}
             <div className="form-group">
-              <label className="label">
+              <label className="label" htmlFor="cita-hora">
                 Hora *
-                {slots.length > 0 && (
+                {slots.length > 0 && !horaManual && (
                   <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text3)' }}>
                     ({slots.length} disponibles)
                   </span>
                 )}
               </label>
-              {slots.length > 0 ? (
+              {slots.length > 0 && !horaManual ? (
                 <select
+                  id="cita-hora"
                   className="input"
                   value={hora}
                   onChange={e => setHora(e.target.value)}
@@ -576,7 +629,36 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                   {slots.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               ) : (
-                <input className="input" type="time" value={hora} onChange={e => setHora(e.target.value)} />
+                <input id="cita-hora" className="input" type="time" value={hora} onChange={e => setHora(e.target.value)} />
+              )}
+              {/*
+                LA PUERTA, NO LA REJA.
+                El campo libre existía pero sólo salía con el día COMPLETO —justo
+                cuando ya no sirve—, así que una hora libre que la lista no
+                trajera era inalcanzable. Se ofrece siempre, y lo tecleado pasa
+                por los mismos chequeos que lo elegido: `hasConflict` aquí y el
+                409 del servidor después. `type="button"` para que no envíe el
+                formulario, y alto de 44 px para que sirva con el dedo.
+              */}
+              {slots.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setHoraManual(v => !v)}
+                  style={{
+                    background: 'none', border: 'none', padding: '0 2px', marginTop: 2,
+                    minHeight: 44, display: 'flex', alignItems: 'center', gap: 5,
+                    fontSize: 12, color: 'var(--teal)', cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <Clock size={13} aria-hidden="true" />
+                  {horaManual ? 'Elegir de las horas libres' : 'Escribir la hora a mano'}
+                </button>
+              )}
+              {horaManual && (
+                <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 2, lineHeight: 1.45 }}>
+                  Puedes poner cualquier hora dentro del horario del día. Si se empalma con otra
+                  cita, se avisa aquí abajo y hace falta el motivo del médico.
+                </div>
               )}
               {/*
                 SI NO SE PUDO PREGUNTAR A GOOGLE, SE DICE.
@@ -611,7 +693,27 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
                   Se descontaron {ocupadoGoogle.length} {ocupadoGoogle.length === 1 ? 'evento' : 'eventos'} de tu Google Calendar.
                 </div>
               )}
-              {conflict && (
+              {/*
+                PRIMERO EL MOTIVO DE VERDAD.
+                Cuando la hora se sale del horario, `conflict` también es `true`,
+                y el aviso de abajo decía «ya está ocupado» — falso, y encima
+                mandaba a una salida (el motivo de sobreagenda) que el servidor
+                no acepta para este caso: responde 409 sin excepción. Se dice qué
+                pasa y qué lo arregla.
+              */}
+              {noCabe && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5, fontSize: 12, color: 'var(--red)', marginTop: 6, lineHeight: 1.45 }}>
+                  <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>
+                    {noCabe.razon === 'dia-cerrado'
+                      ? 'Ese día el consultorio no da servicio. Elige otra fecha, o activa el día en Configuración → Horario.'
+                      : noCabe.razon === 'horario-invalido'
+                        ? `El horario de ese día está mal configurado (${noCabe.detalle}). Revísalo en Configuración → Horario.`
+                        : <>Con <strong>{duracion} min</strong>, las {hora} no caben en el horario de ese día ({noCabe.abre}–{noCabe.cierra}). Baja la duración o mueve la hora.</>}
+                  </span>
+                </div>
+              )}
+              {conflict && !noCabe && (
                 <div style={{ marginTop: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--red)' }}>
                     <AlertCircle size={13} /> Ese horario ya está ocupado
