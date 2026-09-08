@@ -23,19 +23,28 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
+    "M  .github/workflows/deploy-production.yml",
+    " M agent-state/MASTER_STATE.json",
+    "MM docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    "M  docs/design/SCREEN_INVENTORY.md",
+    "M  docs/maintenance/sw-changelog.md",
+    "M  docs/ops/INDICES-DE-FIRESTORE.md",
+    "M  docs/ops/REGLAS-DE-FIRESTORE.md",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/components/AppointmentModal.tsx",
-    " M src/lib/availability.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-hora-a-mano-siempre-esta.test.ts",
-    "?? src/__tests__/la-rejilla-se-reancla-donde-acaba-la-cita-anterior.test.ts"
+    "M  docs/security/matriz-acceso-phi.md",
+    "M  firestore.rules",
+    "M  firestore.rules.estado.json",
+    "M  public/sw.js",
+    "M  public/version.txt",
+    "M  scripts/design/techos-de-diseno.json",
+    "M  src/__tests__/authz-rutas-declaradas.test.ts",
+    "A  src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
+    "M  src/__tests__/invitaciones-caducan-y-tienen-autor.test.ts",
+    "A  src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts"
   ],
-  "actualizado": "2026-09-06",
+  "actualizado": "2026-09-08",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -69,11 +78,11 @@
   ],
   "ramaActual": "claude/patient-scheduling-issues-qkafws",
   "derivado": {
-    "regsEnElLedger": 437,
-    "ultimaREG": "REG-652",
-    "archivosDePrueba": 1091,
-    "casosDePrueba": 12987,
+    "regsEnElLedger": 439,
+    "ultimaREG": "REG-654",
+    "archivosDePrueba": 1093,
+    "casosDePrueba": 13026,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1187"
+  "versionEnElRepo": "nexusmed-v1188"
 }

@@ -92,8 +92,11 @@ export async function GET(
 
     const duracionRaw = Number((cfg.duraciones ?? {})[tipo] ?? 30)
     const duracion = Number.isFinite(duracionRaw) && duracionRaw >= DURACION_MIN_SEGURA ? duracionRaw : 30
-    const intervalConf = Number(cfg.intervaloMinutos ?? 10)
-    const interval = Math.max(intervalConf, duracion)
+    // Mismo paso que el panel: la DURACIÓN de la cita. `intervaloMinutos` se
+    // retiró de Configuración porque no podía ganarle nunca — ver la nota larga
+    // en `src/lib/availability.ts`. Si estas dos rutas usaran pasos distintos,
+    // el portal público ofrecería huecos que el panel no tiene.
+    const interval = duracion
 
     // HARD GUARDRAIL: validar el horario antes de generar. Si está corrupto
     // (fin ≤ inicio, jornada > 14h, 24:00 mal formado) NO generamos slots

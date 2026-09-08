@@ -7,6 +7,7 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, get
 import { auth } from '@/lib/firebase'
 import { obtenerResolverMfa, resolverLoginTotp, type MultiFactorResolver } from '@/lib/mfa'
 import { useAuth } from '@/hooks/useAuth'
+import { BotonGoogle } from '@/components/brand/BotonGoogle'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { MarcaAuth } from '@/components/brand/MarcaAuth'
@@ -242,24 +243,7 @@ function LoginInner() {
           </h2>
 
           {/* Google — un clic, menos fricción */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={submitting}
-            className="btn"
-            style={{
-              width: '100%', justifyContent: 'center', gap: 10, minHeight: 48,
-              background: '#fff', color: '#1a1a1a', border: '1px solid var(--border2)', fontWeight: 600,
-            }}
-          >
-            <svg width="17" height="17" viewBox="0 0 48 48" aria-hidden="true">
-              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/>
-              <path fill="#FBBC05" d="M10.5 28.3c-.5-1.4-.8-2.9-.8-4.3s.3-3 .8-4.3l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.4l7.9-6.1z"/>
-              <path fill="#34A853" d="M24 48c6.2 0 11.5-2 15.3-5.5l-7.1-5.5c-2 1.4-4.6 2.2-8.2 2.2-6.3 0-11.6-3.7-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
-            </svg>
-            Continuar con Google
-          </button>
+          <BotonGoogle onClick={handleGoogle} disabled={submitting} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />

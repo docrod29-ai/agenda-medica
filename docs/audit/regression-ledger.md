@@ -25607,6 +25607,86 @@ mecanismo que las declararía ya existe y avisa solo. No se rellenaron.
 **Estado**: reparado. La bitácora de su rebanada, en `docs/audit/panel-de-lujo-2026-09/reparacion/`, dice con qué prueba y qué decisión por omisión se aplicó cuando hubo que elegir.
 
 
+## REG-652 — La asistente entró sin contraseña, sin correo de confirmación y a otro consultorio
+
+**Área**: Alta de equipo y aislamiento entre consultorios (P1) · **Estado**: CLOSED
+
+**Qué fallaba.** Tres síntomas del mismo camino, el de la invitación de equipo.
+(1) `/unirse/[code]` no daba de alta a nadie: rebotaba a `/registro`. Con una sesión ya
+abierta ni siquiera ofrecía crear cuenta, y como el médico que generó el enlace ya es
+miembro de esa clínica, el atajo «ya perteneces a esta clínica» de `/api/clinic/unirse`
+contestaba `ok`: se trabajaba dentro de la sesión del médico, sin contraseña propia y sin
+rastro separado en la bitácora. (2) El correo de confirmación se pedía con
+`void sendEmailVerification(u).catch(() => console.warn(…))`: si Firebase no aceptaba el
+envío el único rastro era un `console.warn`, y en ningún sitio se decía a qué dirección se
+había escrito. (3) Si el rebote a `/registro` se perdía —pestaña cerrada, ida y vuelta de
+`signInWithRedirect`— el siguiente arranque entraba sin membresía y el layout mandaba a
+`/setup`, que es «crea tu consultorio»: la asistente acababa siendo administradora de un
+consultorio vacío y propio, y por eso nada de lo que configuraba su médico le aparecía
+(`useConfig` lee `clinics/{clinicId}/config/main`, y ella miraba otro `clinicId`).
+
+**Cómo se descubrió.** Uso real: la primera asistente dada de alta en producción, 7-sep-2026.
+El dueño lo reportó como tres quejas sueltas; recorrer el camino entero enseñó que eran una.
+
+**Causa raíz.** El alta por invitación estaba repartida entre tres pantallas y su único
+estado compartido era el parámetro `?invite=` de la barra de direcciones. Cualquier
+interrupción lo tiraba, y el destino por omisión de quien no tiene consultorio era crear
+uno nuevo.
+
+**La regla que lo hace seguro.** El alta ocurre en la pantalla de la invitación, con
+contraseña a la vista. La invitación puede ser nominativa (`emailInvitado`) y entonces sólo
+la acepta ese correo, comprobado en el servidor y en los dos caminos. Con invitación
+pendiente, el destino de quien no tiene consultorio es terminarla, no crear otro.
+`pedirCorreoDeConfirmacion` nunca devuelve éxito sin haberlo intentado.
+
+**Prueba.** `src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts`
+(23 casos). **No cubre** que el correo LLEGUE: lo envía Firebase, y la plantilla y el
+dominio viven en su consola, no en este repositorio.
+
+**Y un cuarto síntoma que salió al arreglar los tres.** `allow list: if false` en
+`clinic_invitations` (auditoría 2026-07, para que nadie enumere las invitaciones de todas
+las clínicas) contra un `getDocs(query(...))` que `listarInvitaciones()` hacía desde el
+navegador: el panel de «Invitaciones pendientes» tenía la lectura rechazada siempre, el
+componente tenía `finally` sin `catch`, y la pantalla decía «No hay invitaciones
+pendientes» aunque se acabara de generar una. El comentario de la propia regla afirmaba
+«el cliente no lista invitaciones en ninguna parte» y llevaba tiempo sin ser cierto.
+Emitir, listar y revocar pasan ahora por `/api/clinic/invitaciones` (Admin SDK), con el
+autor sacado del token y el rol validado — la misma forma que ya tenía `clinic_members`.
+
+**Despliegue de reglas: no bloquea.** La forma congelada admite ahora `emailInvitado`,
+pero la invitación ya no la escribe el navegador, así que nada espera al despliegue. La
+regla queda al día como defensa en profundidad y declarada en
+`docs/ops/REGLAS-DE-FIRESTORE.md`.
+
+
+## REG-653 — «Intervalo de agenda: 5 minutos» y la agenda iba de 30 en 30
+
+**Área**: Agenda y portal público (P2) · **Estado**: CLOSED
+
+**Qué fallaba.** Configuración ofrecía un selector «Intervalo de agenda (min)» con 5, 10,
+15, 20 y 30, y el generador de huecos hacía `Math.max(intervaloMinutos ?? 10, duración)`.
+Ese máximo cerraba un defecto histórico real —intervalo 10 con citas de 30 daba huecos cada
+10 minutos, tres pacientes citados sobre la misma media hora— pero convertía el selector en
+una perilla que casi nunca podía ganar: cualquier duración clínica normal es mayor que
+cualquier intervalo ofrecido. La pantalla decía «5 minutos» y la agenda iba de 30 en 30. Y
+cuando sí ganaba era peor: con intervalo 30 y citas de 20 se perdía un hueco por hora sin
+que nada lo explicara.
+
+**Cómo se descubrió.** El dueño mandó la captura del selector (7-sep-2026) pidiendo
+quitarlo. Al ir a quitarlo se vio que llevaba tiempo sin hacer lo que decía.
+
+**La regla que lo hace seguro.** El paso de la agenda ES la duración del tipo de cita, en el
+panel y en el portal público — si divergieran, el portal ofrecería huecos que el panel no
+tiene. El defecto histórico queda cerrado por construcción: con el paso igual a la duración,
+dos huecos consecutivos no pueden solaparse. `intervaloMinutos` se conserva en el tipo y en
+los respaldos (hay documentos vivos que lo traen) pero ya no gobierna nada.
+
+**Prueba.** `src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts`
+(7 casos, probada al revés: con el `Math.max` viejo, dos casos fallan). **No cubre** cuánto
+debe durar cada tipo de cita, que es criterio del médico.
+
+
+
 ### Pruebas selladas de esta auditoria que no cuelgan de un REG concreto
 
 Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porque no eran regresiones con causa raíz separada, pero se sellan igual — un archivo sellado que nadie reclama se borra el día que estorbe.
@@ -25637,13 +25717,13 @@ Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porq
 - `src/__tests__/panel-de-lujo-los-paneles-de-la-consulta.test.ts`
 
 
-# Agenda de la consulta (7-sep-2026) — REG-652
+# Agenda de la consulta (8-sep-2026) — REG-654
 
-## REG-652 — El hueco que deja una cita de duración distinta no se ofrece nunca, y no hay forma de pedirlo a mano
+## REG-654 — El hueco que deja una cita de duración distinta no se ofrece nunca, y no hay forma de pedirlo a mano
 
 **Área**: Agenda / experiencia del médico (P2) · **Hallazgo(s) de la auditoría**: reporte del dueño · **Estado**: CLOSED
 
-**Qué fallaba.** Los inicios de `getAvailableSlots` salían de un solo sitio —la hora de apertura, a saltos de `Math.max(intervaloMinutos, duración)`— y nada volvía a anclar la rejilla. En cuanto una cita de duración distinta rompía el ritmo, el hueco que dejaba detrás **no existía** para el producto (`availability.ts:212`). Y no se podía pedir a mano: el campo de hora libre del modal vivía en el `else` de «¿hay huecos?», así que sólo aparecía con el día COMPLETO —justo cuando ya no sirve— (`AppointmentModal.tsx:579`). Tercer defecto del mismo flujo: subir la duración después de elegir la hora borraba la hora **en silencio** (`setHora('')`), y el aviso decía «ese horario ya está ocupado» incluso cuando la causa real era pasarse del cierre — un mensaje falso que además empuja a la salida de sobreagenda, que el servidor no acepta para ese caso (`api/appointments/route.ts:169` responde 409 sin excepción).
+**Qué fallaba.** Los inicios de `getAvailableSlots` salían de un solo sitio —la hora de apertura, a saltos fijos— y nada volvía a anclar la rejilla. **REG-653 aterrizó en `main` mientras esta rama estaba abierta** y cambió ese paso: de `Math.max(intervaloMinutos, duración)` a la duración a secas. Eso arregla la perilla que mentía, y NO arregla esto: el paso sigue contándose desde la apertura, así que un hueco que no cae en múltiplo de la duración desde la hora de abrir sigue sin existir. El caso vivo tras REG-653 es una cita de 30 min después de una de 45: la rejilla va 09:00, 09:30, 10:00 y las 09:45 —libres de verdad— no se ofrecen. En cuanto una cita de duración distinta rompía el ritmo, el hueco que dejaba detrás **no existía** para el producto (`availability.ts:212`). Y no se podía pedir a mano: el campo de hora libre del modal vivía en el `else` de «¿hay huecos?», así que sólo aparecía con el día COMPLETO —justo cuando ya no sirve— (`AppointmentModal.tsx:579`). Tercer defecto del mismo flujo: subir la duración después de elegir la hora borraba la hora **en silencio** (`setHora('')`), y el aviso decía «ese horario ya está ocupado» incluso cuando la causa real era pasarse del cierre — un mensaje falso que además empuja a la salida de sobreagenda, que el servidor no acepta para ese caso (`api/appointments/route.ts:169` responde 409 sin excepción).
 
 **Cómo se descubrió.** Contado por el dueño el 7-sep-2026 con el caso de una dermatóloga que agenda 45 min, luego 15, luego 30. Trazado el bucle con `intervaloMinutos: 30` y jornada 09:00–14:00: la de 45 ocupa 09:00–09:45 y la de 15 se ofrecía a las 10:00 — el cuarto de hora libre de 09:45 se perdía todos los días. Con `intervaloMinutos: 10` pasaba lo mismo para una cita de 30: la rejilla va 09:00, 09:30, 10:00 y jamás se recoloca.
 
@@ -25651,6 +25731,6 @@ Cierran hallazgos P2 y P3 de las mismas rebanadas: no tienen entrada propia porq
 
 **Prueba permanente (sellada).** `src/__tests__/la-rejilla-se-reancla-donde-acaba-la-cita-anterior.test.ts` y `src/__tests__/la-hora-a-mano-siempre-esta.test.ts`
 
-**Estado**: reparado. A los inicios del reloj se les suman los instantes donde TERMINA algo —cada cita del día y cada descanso—, de forma **aditiva** (ningún hueco de antes desaparece) y **acotada** (como mucho un ancla por cita, no una rejilla más fina); las anclas pasan por los mismos filtros que la rejilla, así que no pueden colar una hora que no cabe. El paso del reloj NO se tocó: `Math.max(intervalo, duración)` sigue mandando en la rejilla base y sigue en pie la regla que lo puso ahí (con intervalo 10 y citas de 30 no salen huecos cada 10 min). En la pantalla, el campo libre pasa a ser una elección del médico —un `<button>` junto al desplegable—, la hora deja de borrarse sola y el aviso separa «no cabe en el horario» de «está ocupado» con `porQueNoCabeEnElHorario`.
+**Estado**: reparado. A los inicios del reloj se les suman los instantes donde TERMINA algo —cada cita del día y cada descanso—, de forma **aditiva** (ningún hueco de antes desaparece) y **acotada** (como mucho un ancla por cita, no una rejilla más fina); las anclas pasan por los mismos filtros que la rejilla, así que no pueden colar una hora que no cabe. El paso de la rejilla base NO se tocó: lo fija REG-653 y es la duración del tipo de cita. Las dos reparaciones se **componen** y ninguna sustituye a la otra: REG-653 hace que el paso diga la verdad, REG-654 hace que la rejilla se recoloque cuando las duraciones se mezclan. En la pantalla, el campo libre pasa a ser una elección del médico —un `<button>` junto al desplegable—, la hora deja de borrarse sola y el aviso separa «no cabe en el horario» de «está ocupado» con `porQueNoCabeEnElHorario`.
 
 **Qué NO cubre.** El final de un **bloqueo** (vacaciones, ausencia) no ancla: `TimeBlock` guarda instantes ISO que pueden venir en absoluto o en hora de pared, y pasarlos a minutos del día pide la zona del consultorio; se dejó fuera a propósito en vez de hacerlo a medias — un bloqueo que acaba a las 11:20 sigue sin ofrecer las 11:20, y ahora se pide a mano. Tampoco se toca que **un médico no pueda tener sus propias duraciones**: `horarioPropio` sigue sin encenderlo ninguna pantalla (`horario-medico.ts:55`), pese a que el alta de médicos promete «puedes editarlos después» (`configuracion/page.tsx:1696`). Eso queda abierto y **declarado**, no arreglado.

@@ -172,10 +172,26 @@ export function getAvailableSlots(
     ? duracionMin
     : 30
 
-  // El step debe ser AL MENOS la duración de la cita, nunca menor.
-  // (fix histórico: intervalo=10 con citas 30min → slots fantasma cada 10min)
-  const intervalConf = Number(config.intervaloMinutos ?? 10)
-  const interval = Math.max(intervalConf, duracionSegura)
+  /**
+   * EL PASO ES LA DURACIÓN DE LA CITA. Punto.
+   *
+   * Antes era `max(intervaloMinutos, duración)`, con `intervaloMinutos` elegido
+   * en Configuración. Ese máximo venía del defecto histórico —intervalo 10 con
+   * citas de 30 daba huecos cada 10 minutos, o sea tres pacientes citados sobre
+   * la misma media hora— y lo arreglaba, pero dejaba una perilla que en la
+   * práctica no podía ganar nunca: cualquier duración clínica normal (20, 30,
+   * 40 min) es mayor que cualquier intervalo ofrecido (5…30). El médico leía
+   * «cada 5 minutos» en su pantalla y la agenda iba de 30 en 30.
+   *
+   * Retirada la perilla (petición del dueño, 7-sep-2026), el paso lo decide la
+   * duración del tipo de cita, que es lo que el médico piensa de verdad. El
+   * defecto histórico sigue cerrado por construcción: el paso ES la duración,
+   * así que dos huecos consecutivos nunca se solapan.
+   *
+   * `intervaloMinutos` se conserva en el tipo y en los respaldos —hay
+   * documentos vivos que lo traen— pero ya no gobierna nada.
+   */
+  const interval = duracionSegura
 
   // ── HARD GUARDRAIL 2: validar el horario ────────────────────────
   // Si el horario está corrupto (fin ≤ inicio, jornada > 14h), NO
@@ -221,18 +237,26 @@ export function getAvailableSlots(
    * el producto.
    *
    * El caso que lo destapó, contado por una dermatóloga: 45 min, luego 15, luego
-   * 30. Con `intervaloMinutos: 30` y jornada 09:00-14:00 la pantalla ofrecía
+   * 30. Con jornada 09:00-14:00, la de 45 acaba a las 09:45 y la siguiente cabe
+   * entera antes de las 10:00 — y ese cuarto de hora no se ofrecía NINGÚN día.
+   * Tampoco había forma de pedirlo: el campo de hora manual sólo aparecía
+   * cuando no quedaba ni un hueco.
    *
-   *     45 min, día vacío   09:00  09:45  10:30  11:15  12:00
-   *     luego una de 15     10:00  10:30  11:00  ...        ← 09:45 no está
+   * ── QUÉ QUEDA DE ESO DESPUÉS DE REG-653 ────────────────────────────────────
    *
-   * La de 45 acaba a las 09:45 y la de 15 cabe entera antes de las 10:00. Ese
-   * cuarto de hora libre no se ofrecía NINGÚN día, y no había forma de pedirlo:
-   * el campo de hora manual sólo aparece cuando no queda ni un hueco.
+   * REG-653 aterrizó primero y cambió el paso —de `Math.max(intervaloMinutos,
+   * duración)` a la duración a secas—, así que el ejemplo de arriba con la cita
+   * de 15 min ya lo cubre la rejilla base. **El defecto NO se cerró con eso**:
+   * el paso se sigue contando DESDE LA APERTURA, y un hueco que no cae en
+   * múltiplo de la duración desde la hora de abrir sigue sin existir.
    *
-   * Y no hacía falta un intervalo raro. Con `intervaloMinutos: 10`, tras esa
-   * misma cita de 45 la siguiente de 30 se ofrecía a las 10:00 — nunca a las
-   * 09:45, porque la rejilla de 30 va 09:00, 09:30, 10:00 y jamás se recoloca.
+   * El caso vivo hoy es la tercera cita de la dermatóloga:
+   *
+   *     tras la de 45 (09:00-09:45), una de 30
+   *     rejilla base       09:00  09:30  10:00  ...   ← las 09:45 no están
+   *
+   * Las dos reparaciones se componen: REG-653 hace que el paso diga la verdad,
+   * ésta hace que la rejilla se recoloque cuando las duraciones se mezclan.
    *
    * ── LA REGLA ───────────────────────────────────────────────────────────────
    *
@@ -243,9 +267,8 @@ export function getAvailableSlots(
    * bloqueo, empalme) se aplican igual a las anclas que a la rejilla, así que un
    * ancla no puede colar una hora que no cabe.
    *
-   * El paso del reloj NO se toca: `Math.max(intervalo, duración)` sigue mandando
-   * en la rejilla base, y con eso sigue en pie la regla que lo puso ahí (con
-   * intervalo 10 y citas de 30 no salen huecos cada 10 minutos).
+   * El paso de la rejilla base NO se toca: lo fija REG-653 y es la duración del
+   * tipo de cita, en el panel y en el portal público.
    *
    * ── QUÉ NO CUBRE ───────────────────────────────────────────────────────────
    *

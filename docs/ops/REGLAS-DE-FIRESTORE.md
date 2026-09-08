@@ -1,8 +1,8 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
-> **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó el
-> **31-ago-2026** junto con `nexusmed-v1177`, y el sello lo registra. Este archivo
-> dice cómo se sabe eso sin fiarse de la memoria de nadie.
+> **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó con la
+> ejecución **#29** del botón de producción (8-sep-2026, v1188), y el sello lo
+> registra. Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
 
@@ -58,8 +58,22 @@ Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
 **Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
-archivo (`e91f8aad…`) coincide con `hashDesplegado` en
+archivo (`5a5acc35…`) coincide con `hashDesplegado` en
 `firestore.rules.estado.json`.
+
+La fila que hubo aquí, el 7-sep-2026, era la clave `emailInvitado` en la forma
+congelada de `clinic_invitations` — la invitación **nominativa**, que sólo acepta
+el correo al que se emitió (REG-652). **Se cerró el 8-sep** con la ejecución
+**#29** del botón, sobre el árbol `8b81f357` (v1188).
+
+Conviene conservar lo que decía, porque es el caso raro: era una fila que **no
+declaraba ningún hueco**. Mientras no rigió, no había nada desprotegido, porque
+la invitación dejó de escribirla el navegador en ese mismo cambio y pasó a
+`/api/clinic/invitaciones` (Admin SDK, que no pasa por las reglas). La regla se
+mantiene al día como defensa en profundidad, para el día que alguien vuelva a
+escribir esa colección desde el cliente. Declararla igual es la norma: lo escrito
+y lo desplegado difieren, y eso se dice **siempre**, aunque la respuesta a «qué se
+rompe mientras tanto» sea «nada».
 
 Las ocho filas que hubo aquí, el 6-sep-2026, eran las 339 líneas que añadió la
 auditoría «Panel de Lujo» al fusionarse #469: la forma congelada (`hasOnly`) de
