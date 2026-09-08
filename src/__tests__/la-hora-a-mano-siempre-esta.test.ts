@@ -73,7 +73,15 @@ describe('la hora a mano siempre está', () => {
     // Regla de accesibilidad: un control interactivo que no es `<button>` falla
     // la compuerta. Y `type="button"` para no enviar el formulario sin querer.
     const s = src()
-    const boton = s.match(/<button[^>]*onClick=\{\(\)\s*=>\s*setHoraManual[^>]*>/s)
+    /*
+     * `[\s\S]` y NO el flag `/s`: el `target` del tsconfig es anterior a ES2018
+     * y `tsc` rechaza el flag (TS1501). La suite pasaba en verde porque vitest
+     * transpila, así que el CI lo cazó y la corrida local no — la lección es que
+     * `npx vitest run` no sustituye a `npm run build`, que es justo lo que dice
+     * la regla de compuertas. Aquí además el flag sobraba: el patrón no tiene
+     * un solo `.` al que `dotAll` pudiera afectar.
+     */
+    const boton = s.match(/<button[\s\S]*?onClick=\{\(\)\s*=>\s*setHoraManual[\s\S]*?>/)
       ?? s.match(/<button[\s\S]{0,400}?setHoraManual\(v\s*=>\s*!v\)[\s\S]{0,400}?>/)
     expect(boton, 'el interruptor de hora manual dejó de ser un <button>').not.toBeNull()
     expect(s, 'el interruptor perdió type="button": envía el formulario').toMatch(/type="button"/)
