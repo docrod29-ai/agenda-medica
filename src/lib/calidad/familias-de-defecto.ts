@@ -1086,7 +1086,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * arregló la otra mitad —el paso que decía «5 minutos» e iba de 30 en 30—;
      * ninguna de las dos tapa a la otra.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654],
+    /**
+     * 655: la tercera vuelta de la misma zona, y por eso vale contarla aparte.
+     * 653 arregló el paso; 654, el ancla hacia adelante. Los dos arreglos eran
+     * correctos y ninguno miraba el otro extremo del hueco: sobre una jornada
+     * VACÍA —sin ninguna cita que anclar— la rejilla se paraba antes del cierre
+     * y los últimos quince minutos no los podía usar nadie, ningún día. Que dos
+     * reparaciones seguidas de la misma zona dejaran vivo el caso más simple de
+     * todos (un día sin nada) dice que se estaba mirando el defecto contado y no
+     * el conjunto de casos; se cerró corriendo el acta del dueño entera contra el
+     * motor, caso por caso, en vez de por dónde había ido el arreglo anterior.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655],
   },
   {
     clave: 'perdida',

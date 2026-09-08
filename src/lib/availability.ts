@@ -144,6 +144,76 @@ export function validarHorarioDia(inicio: string, fin: string): ValidacionHorari
   return { valido: true, startMin, endMin }
 }
 
+/**
+ * UNA PARED: cualquier cosa contra la que una cita no puede empezar ni terminar.
+ * El cierre del día, una cita ya puesta, un descanso. Minutos desde medianoche,
+ * `[desde, hasta)`, porque para la aritmética de huecos son lo mismo.
+ */
+export interface Pared { desde: number; hasta: number }
+
+/**
+ * LOS INSTANTES EN QUE PUEDE EMPEZAR UNA CONSULTA DE `duracion` MINUTOS.
+ *
+ * ── POR QUÉ ESTO ES UNA FUNCIÓN Y NO TRES BUCLES ───────────────────────────
+ *
+ * Esta aritmética vivía suelta en tres sitios: aquí, en
+ * `GET /api/public/availability` y en el preview del horario de Configuración.
+ * Mientras las tres copias dijeran lo mismo no se notaba. Dejaron de decirlo:
+ * REG-654 enseñó a ÉSTA a recolocar la rejilla donde termina una cita, y las
+ * otras dos se quedaron atrás — el portal ofrecía al paciente menos horas que
+ * el panel al médico, y el preview prometía un número de espacios que no era
+ * el que se iba a ver.
+ *
+ * Es el mismo patrón que ya costó cinco implementaciones del cálculo de huecos.
+ * Ahora la aritmética vive una vez y los tres la llaman.
+ *
+ * ── LA REGLA ───────────────────────────────────────────────────────────────
+ *
+ * A la rejilla del reloj —que arranca en la apertura y avanza a `paso`— se le
+ * suman las ARISTAS, en las dos direcciones:
+ *
+ *  · `pared.hasta` — donde algo TERMINA nace un hueco, y la siguiente consulta
+ *    puede empezar en ese mismo minuto, sin separación artificial (REG-654);
+ *  · `pared.desde - duracion` — el último arranque que cabe ENTERO antes de la
+ *    siguiente pared, que es lo que permite terminar pegado al cierre
+ *    (18:15-19:00 con jornada hasta las 19:00) y llenar un hueco por su final.
+ *
+ * Es ADITIVO —ningún inicio de los de antes desaparece— y ACOTADO: como mucho
+ * dos anclas por pared, no una rejilla más fina.
+ *
+ * ── QUÉ NO DECIDE ──────────────────────────────────────────────────────────
+ *
+ * Si el hueco está LIBRE. Sólo dice qué horas vale la pena mirar; descartar
+ * solapes, descansos, bloqueos y horas pasadas es del llamador, con los mismos
+ * filtros aplicados por igual a la rejilla y a las anclas — así un ancla nunca
+ * puede colar una hora que no cabe.
+ *
+ * Un inicio fuera de `[startMin, endMin - duracion]` se descarta; no se redondea
+ * hacia dentro, que sería inventar una hora que nadie pidió.
+ */
+export function iniciosPosibles(
+  startMin: number,
+  endMin: number,
+  duracion: number,
+  paso: number,
+  paredes: readonly Pared[] = [],
+): number[] {
+  // Un paso corrupto no puede colgar el bucle ni dejar el día en una sola hora.
+  const pasoSeguro = Number.isFinite(paso) && paso >= 1 ? Math.floor(paso) : DURACION_MIN_SEGURA
+  const inicios = new Set<number>()
+  for (let m = startMin; m + duracion <= endMin; m += pasoSeguro) inicios.add(m)
+  const anclar = (min: number) => {
+    if (Number.isFinite(min) && min > startMin && min + duracion <= endMin) inicios.add(Math.round(min))
+  }
+  anclar(endMin - duracion)
+  for (const p of paredes) {
+    if (!Number.isFinite(p?.desde) || !Number.isFinite(p?.hasta)) continue
+    anclar(p.hasta)
+    anclar(p.desde - duracion)
+  }
+  return [...inicios].sort((a, b) => a - b)
+}
+
 export function getDaySchedule(fecha: string, config: ClinicConfig) {
   const d = new Date(fecha + 'T12:00:00')
   const dayKey = DAY_KEYS[d.getDay()]
@@ -286,15 +356,23 @@ export function getAvailableSlots(
     const [h, m] = a.fechaHora.slice(11, 16).split(':').map(Number)
     return h * 60 + m
   }
-  const inicios = new Set<number>()
-  for (let m = startMin; m + duracionSegura <= endMin; m += interval) inicios.add(m)
-  const anclar = (min: number) => {
-    if (Number.isFinite(min) && min > startMin && min + duracionSegura <= endMin) inicios.add(min)
-  }
-  for (const a of dayAppts) anclar(minutosDeCita(a) + a.duracion)
-  for (const d of descansos) anclar(d.hasta)
+  /**
+   * La aritmética vive en `iniciosPosibles` y la comparten el portal público y
+   * el preview del horario. Aquí sólo se dice CUÁLES son las paredes de este
+   * día: las citas vivas del médico y los descansos del horario partido.
+   *
+   * Los BLOQUEOS no entran como pared, igual que en REG-654: `TimeBlock` guarda
+   * instantes que pueden venir en absoluto o en hora de pared, y pasarlos a
+   * minutos del día pide la zona del consultorio. Se deja fuera a propósito en
+   * vez de hacerlo a medias; el filtro de abajo los sigue descartando, y esa
+   * hora se pide a mano, que siempre se puede.
+   */
+  const paredes: Pared[] = [
+    ...dayAppts.map(a => ({ desde: minutosDeCita(a), hasta: minutosDeCita(a) + a.duracion })),
+    ...descansos,
+  ]
 
-  for (const m of [...inicios].sort((a, b) => a - b)) {
+  for (const m of iniciosPosibles(startMin, endMin, duracionSegura, interval, paredes)) {
     // ── FRENO ANTI-DESBOCADO ────────────────────────────────────
     // Ninguna agenda real llega aquí: son 200 huecos en un día. Si se alcanza,
     // la configuración está corrupta, y se DECLARA en la salida en vez de
@@ -433,6 +511,23 @@ export function hasConflict(
     if (!schedule) return true                      // día inactivo o festivo
     const vh = validarHorarioDia(schedule.inicio, schedule.fin)
     if (!vh.valido || startMin < vh.startMin || endMin > vh.endMin) return true
+    /**
+     * EL HORARIO PARTIDO TAMBIÉN SE COMPRUEBA AQUÍ — y era lo que faltaba.
+     *
+     * Un médico que atiende 10-13 y 15-19 lo declara con un descanso de 13:00 a
+     * 15:00. `getAvailableSlots` ya se salta las horas que lo pisan, y el
+     * booking público ya lo rechaza… pero este guardián —el que usa el modal
+     * del consultorio y el que respalda el alta desde el panel— sólo miraba
+     * `inicio` y `fin`. Una cita de 12:45 a 13:15 cruza el hueco de comida
+     * entero y pasaba: no se OFRECÍA, pero sí se ACEPTABA.
+     *
+     * Y el camino para llegar ahí no es raro: el campo de hora manual permite
+     * pedir cualquier hora, que es justo lo que se abrió al arreglar la rejilla.
+     *
+     * Es la misma lección que este repositorio ya tiene escrita dos veces para
+     * los bloqueos: «no ofrecer» y «no aceptar» son dos cosas distintas.
+     */
+    if (pisaDescanso(startMin, endMin, descansosEnMinutos(schedule.descansos))) return true
   }
 
   // Bloqueo (vacaciones/ausencia) del médico o de toda la clínica — en la zona de la clínica.

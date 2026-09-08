@@ -98,17 +98,55 @@ describe('El paso de la agenda es la duración de la cita', () => {
   })
 
   /**
-   * El defecto histórico que justificaba el `max` sigue cerrado — ahora por
-   * construcción, no por una comparación: si el paso ES la duración, dos huecos
-   * consecutivos no pueden solaparse.
+   * EL PASO SIGUE SIENDO LA DURACIÓN — y ahora se dice con esas palabras.
+   *
+   * ── QUÉ DECÍA ANTES ────────────────────────────────────────────────────────
+   *
+   * «Ningún hueco empieza antes de que acabe el anterior», comprobando que dos
+   * inicios consecutivos distaran al menos la duración. Era un PROXY del rumbo
+   * de verdad —«el paso ES la duración»— y funcionaba mientras la lista fuera
+   * sólo la rejilla.
+   *
+   * ── POR QUÉ EL PROXY DEJÓ DE VALER ─────────────────────────────────────────
+   *
+   * REG-654 ya había empezado a añadir ANCLAS a la rejilla (los instantes donde
+   * termina una cita o un descanso). Este caso no lo notaba porque mide un día
+   * VACÍO, donde no hay nada que anclar.
+   *
+   * El ancla del CIERRE sí se ve en un día vacío: con jornada 09:00-13:00 y
+   * consultas de 45, la rejilla se para en las 12:00 y los últimos quince
+   * minutos —12:15-13:00, que caben exactos— no los podía usar nadie, ningún
+   * día. Ese ancla dista 15 min de las 12:00, así que el proxy la leía como el
+   * defecto histórico que vigila. No lo es: el defecto era **el paso**, y el
+   * paso no se ha movido.
+   *
+   * ── LO QUE SE SELLA AHORA, QUE ES MÁS ─────────────────────────────────────
+   *
+   * Que la REJILLA avanza exactamente la duración (no «al menos»: exactamente),
+   * y que el único inicio que no sale de ella es el ancla del cierre, que
+   * termina clavado en la hora de cerrar. Dicho así, un paso más fino no puede
+   * colarse escondido entre las anclas — que es lo que el caso anterior quería
+   * impedir y este impide mejor.
+   *
+   * El defecto histórico —tres pacientes citados sobre la misma media hora—
+   * nunca dependió de esto de todas formas: los huecos se calculan CONTRA las
+   * citas vivas, así que en cuanto alguien toma las 09:00 las que se solapan
+   * con ella desaparecen solas.
    */
-  it('ningún hueco empieza antes de que acabe el anterior', () => {
+  it('la rejilla avanza exactamente la duración, y el único extra es el ancla del cierre', () => {
+    const CIERRE = 13 * 60
     for (const duracion of [15, 20, 30, 45, 60]) {
       const slots = getAvailableSlots(LUNES, duracion, [], cfg({ intervaloMinutos: 5 } as Partial<ClinicConfig>))
       const enMinutos = slots.map(h => { const [a, b] = h.split(':').map(Number); return a * 60 + b })
-      for (let i = 1; i < enMinutos.length; i++) {
-        expect(enMinutos[i] - enMinutos[i - 1], `duración ${duracion}`).toBeGreaterThanOrEqual(duracion)
+      const anclaDelCierre = CIERRE - duracion
+      const rejilla = enMinutos.filter(m => m !== anclaDelCierre)
+      for (let i = 1; i < rejilla.length; i++) {
+        expect(rejilla[i] - rejilla[i - 1], `duración ${duracion}`).toBe(duracion)
       }
+      // Y el último arranque que cabe entero antes de cerrar SIEMPRE se ofrece:
+      // es el cuarto de hora que la jornada perdía todos los días.
+      expect(enMinutos, `duración ${duracion}`).toContain(anclaDelCierre)
+      expect(anclaDelCierre + duracion).toBe(CIERRE)
     }
   })
 })

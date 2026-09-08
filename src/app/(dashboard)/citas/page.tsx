@@ -462,6 +462,9 @@ export default function CitasPage() {
             hora: appt.fechaHora.slice(11, 16),
             clinicId,
             tipo: appt.tipo,
+            // La duración del hueco, para que el rango horario del paciente se
+            // compruebe contra lo que de verdad se liberó y no contra 30 min.
+            duracion: appt.duracion,
             medicoId: appt.medicoId,   // ofrecer el hueco solo a quien espera con ESE médico
           }),
         }).then(res => {

@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       const doc = docSnap.data()
       cfgEfectiva = configParaMedico(cfgEfectiva, doc)
     }
-    const { getDaySchedule, validarHorarioDia } = await import('@/lib/availability')
+    const { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } = await import('@/lib/availability')
     const schedule = getDaySchedule(fecha, cfgEfectiva)
     if (!schedule) {
       return NextResponse.json({ error: 'Ese día el consultorio no da servicio' }, { status: 409 })
@@ -169,6 +169,24 @@ export async function POST(req: NextRequest) {
     const vh = validarHorarioDia(schedule.inicio, schedule.fin)
     if (!vh.valido || start < vh.startMin || end > vh.endMin) {
       return NextResponse.json({ error: `Fuera del horario de ese día (${schedule.inicio}–${schedule.fin})` }, { status: 409 })
+    }
+
+    /**
+     * EL HORARIO PARTIDO, TAMBIÉN AQUÍ.
+     *
+     * De los tres caminos que escriben una cita, sólo el booking público
+     * comprobaba los descansos. Un médico que atiende 10-13 y 15-19 lo declara
+     * con un descanso de 13:00 a 15:00, y por esta vía —la del consultorio, por
+     * la que pasa la mayor parte de la agenda— una cita de 12:45 a 13:15
+     * entraba cruzando la comida entera.
+     *
+     * No hacía falta mala fe: el campo de hora manual permite pedir cualquier
+     * hora, y el motor de huecos ya no ofrecía ésa. Se ofrecía una cosa y se
+     * aceptaba otra, que es exactamente lo que este archivo ya tiene escrito
+     * para los bloqueos unas líneas más abajo.
+     */
+    if (pisaDescanso(start, end, descansosEnMinutos(schedule.descansos))) {
+      return NextResponse.json({ error: 'Ese horario cae en un descanso del día (comida, quirófano). Elige otro.' }, { status: 409 })
     }
 
     /**

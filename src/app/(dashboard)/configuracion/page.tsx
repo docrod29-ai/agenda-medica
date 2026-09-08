@@ -13,7 +13,7 @@ import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIA
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useConfig } from '@/hooks/useConfig'
-import { descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { descansosEnMinutos, pisaDescanso, iniciosPosibles } from '@/lib/availability'
 import { instanteMX } from '@/lib/timezone'
 
 /** Si el consultorio no declaró zona, la misma que usa el resto del producto. */
@@ -612,10 +612,21 @@ export default function ConfiguracionPage() {
                 const pausas = descansosEnMinutos(h.descansos)
                 const desde = hI * 60 + mI
                 const hasta = hF * 60 + mF
-                for (let m = desde; m + duracionDefault <= hasta; m += intervalo) {
-                  if (pisaDescanso(m, m + duracionDefault, pausas)) continue
-                  cantidadSlots++
-                }
+                /**
+                 * CUENTA CON EL MOTOR, no con una fórmula propia.
+                 *
+                 * Este bucle era la tercera copia de la aritmética de inicios, y
+                 * se quedó atrás en cuanto el motor aprendió a recolocar la
+                 * rejilla: el preview prometía menos espacios de los que el
+                 * médico iba a ver. Y es el número con el que decide su horario.
+                 *
+                 * Sobre un día VACÍO las únicas paredes son los descansos: esto
+                 * dice cuántos espacios GENERA el horario, no cuántos quedan
+                 * libres hoy.
+                 */
+                cantidadSlots = iniciosPosibles(desde, hasta, duracionDefault, intervalo, pausas)
+                  .filter(m => !pisaDescanso(m, m + duracionDefault, pausas))
+                  .length
               }
             }
             const horas = (minutos / 60).toFixed(1).replace('.0', '')

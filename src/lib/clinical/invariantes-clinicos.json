@@ -2335,6 +2335,22 @@
   {
    "archivo": "src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts",
    "minCasos": 30
+  },
+  {
+   "archivo": "src/__tests__/la-jornada-no-pierde-su-ultimo-cuarto-de-hora.test.ts",
+   "minCasos": 14
+  },
+  {
+   "archivo": "src/__tests__/las-tres-puertas-de-la-agenda-dicen-lo-mismo.test.ts",
+   "minCasos": 11
+  },
+  {
+   "archivo": "src/__tests__/el-hueco-de-un-cuarto-de-hora-no-es-un-hueco-inutil.test.ts",
+   "minCasos": 5
+  },
+  {
+   "archivo": "src/__tests__/sin-huecos-el-bot-no-cuelga-al-paciente.test.ts",
+   "minCasos": 7
   }
  ]
 }

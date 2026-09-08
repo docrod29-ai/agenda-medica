@@ -114,6 +114,7 @@ export type AuditEvento =
   | 'cita_cancelada_portal'      // el paciente canceló desde su enlace
   | 'cita_reagendada_portal'     // el paciente movió su cita desde su enlace
   | 'cita_cancelada_whatsapp'    // el paciente canceló hablando con el bot
+  | 'lista_espera_alta_bot'      // el paciente se anotó solo cuando no había huecos
   | 'formulario_previo_enviado'  // el paciente llenó su información antes de la consulta
   /**
    * === LO QUE SE LE LIBERA AL PACIENTE (V9 · POSTVISIT-001) ===
@@ -190,6 +191,7 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   cita_cancelada_portal: 'El paciente canceló (portal)',
   cita_reagendada_portal: 'El paciente reagendó (portal)',
   cita_cancelada_whatsapp: 'El paciente canceló (WhatsApp)',
+  lista_espera_alta_bot: 'El paciente se anotó en lista de espera (WhatsApp)',
   formulario_previo_enviado: 'El paciente envió su información previa',
   paquete_liberado: 'Liberó el resumen de la visita al paciente',
   paquete_retirado: 'Retiró el resumen de la visita del portal',

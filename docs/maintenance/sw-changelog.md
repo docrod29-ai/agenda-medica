@@ -3,6 +3,61 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1190 — la jornada deja de perder su último cuarto de hora
+
+**8 archivos de producto · 4 goldens nuevos · 1 golden revisado · 0 pantallas
+nuevas · 0 colecciones nuevas · `firestore.rules` NO cambia ·
+`firestore.indexes.json` NO cambia.**
+
+REG-655. Se corrieron los casos A…J del acta de agenda del dueño contra el motor
+de v1189 **uno por uno**, en vez de darlos por cubiertos porque REG-653 y REG-654
+ya hubieran tocado esa zona. Tres seguían rojos.
+
+### Lo que seguía fallando
+
+**El hueco que muere contra una pared.** REG-654 ancló la rejilla donde TERMINA
+algo; el otro extremo se quedó sin cubrir. En una jornada **vacía** de 15:00 a
+19:00 con consultas de 45 min no hay ninguna cita que anclar, así que la rejilla
+va 15:00, 15:45, 16:30, 17:15, 18:00 y ahí se acaba: los últimos quince minutos
+no los podía usar nadie, ningún día, aunque 18:15–19:00 cabe exacto.
+
+**El descanso se aceptaba aunque no se ofreciera.** `hasConflict` y
+`POST /api/appointments` validaban día, horario y bloqueos, pero no descansos: una
+cita de 12:45 a 13:15 sobre un horario 10-13 / 15-19 cruzaba la comida entera y
+entraba. De los tres caminos que escriben una cita, sólo el booking público los
+miraba. Y REG-654 abrió el campo de hora manual, que permite pedir cualquier hora.
+
+**El portal público se quedó sin las anclas de REG-654.** Tiene su propia copia
+del bucle y no la recibió: desde entonces el médico y el paciente veían listas
+distintas del mismo día.
+
+Y dos que no eran de la rejilla: la lista de espera medía el hueco liberado como
+si siempre durara 30 min por la puerta del consultorio (un retiro de 15 a las
+11:45 se le saltaba a quien pidió «9-12»), y el bot, sin huecos en catorce días,
+despedía al paciente y borraba la sesión en vez de ofrecerle la lista.
+
+### Qué cambia
+
+Las anclas van en las dos direcciones: `pared.hasta` y `pared.desde - duracion`.
+La aritmética vivía suelta en **tres** sitios y ya se había desincronizado una
+vez; se extrae a `iniciosPosibles()` y la llaman el motor, el portal y el preview
+del horario.
+
+**El paso NO se toca.** Lo fija REG-653 y es la duración del tipo de cita;
+`intervaloMinutos` sigue sin gobernar nada. Devolverle la vida sería revertir una
+decisión del dueño y no le toca a esta reparación.
+
+El golden de REG-653 «ningún hueco empieza antes de que acabe el anterior» se
+revisa, no se borra: era un proxy que sólo valía mientras la lista fuera sólo la
+rejilla. Ahora sella que la rejilla avanza **exactamente** la duración y que el
+único inicio ajeno a ella es el ancla del cierre — sella más, no menos.
+
+### Qué NO cubre
+
+Los bloqueos siguen sin anclar (misma razón declarada en REG-654). No hay
+arrastrar ni redimensionar citas en el calendario — no existían antes y no se
+añaden aquí. El bot sigue sin interpretar «¿a las 4:20?»: es un menú numerado.
+
 ## v1189 — la rejilla de la agenda se recoloca donde acaba la cita anterior
 
 **5 archivos de código y prueba · 1 regresión documentada (REG-654) · 0 rutas

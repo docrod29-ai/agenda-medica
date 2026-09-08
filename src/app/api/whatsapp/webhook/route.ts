@@ -14,6 +14,7 @@
  *   agendar_confirm  → confirm all details, user says SÍ/NO
  *   info             → answered FAQ, back to menu
  *   cancelar_buscar  → searching for appointment to cancel
+ *   ofrecer_lista    → no había huecos; se le preguntó si quiere lista de espera
  *   esperando_lista  → patient on waitlist, waiting for slot offer
  */
 
@@ -830,7 +831,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
    * consultorio. Sólo en estados de reposo: a mitad de un alta, «2» es una
    * opción, no un síntoma.
    */
-  const ESTADOS_EN_VUELO = ['agendar_nombre', 'agendar_tipo', 'agendar_fecha', 'agendar_hora', 'agendar_confirm', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'cancelar_elegir', 'aviso_privacidad']
+  const ESTADOS_EN_VUELO = ['agendar_nombre', 'agendar_tipo', 'agendar_fecha', 'agendar_hora', 'agendar_confirm', 'ofrecer_lista', 'esperando_lista', 'confirmando_cita', 'confirmando_cancelacion', 'cancelar_elegir', 'aviso_privacidad']
   if (intencion.tipo !== 'agendar' && intencion.tipo !== 'cancelar' && !ESTADOS_EN_VUELO.includes(estado) && hablaDeMedicamentoOSintoma(text)) {
     await escalarPreguntaClinica(clinicId, from, text, config, adminPhone, send)
     await saveSession(clinicId, from, { estado: 'menu', datos: {} })
@@ -1017,14 +1018,121 @@ export async function handleMessage(from: string, body: string, clinicId: string
     // Find available days (next 7 days)
     const availableDays = await getAvailableDays(clinicId, datos.duracion, config, doctor)
     if (availableDays.length === 0) {
-      await send(from, `En este momento no hay horarios disponibles.\n\nLe invitamos a llamar al ${adminPhone} para coordinar su cita.`)
-      await clearSession(clinicId, from)
+      /**
+       * SIN HUECOS NO SE CUELGA AL PACIENTE — SE LE OFRECE LA LISTA.
+       *
+       * Esto decía «llame al consultorio» y BORRABA la sesión. El paciente
+       * quedaba fuera con el trabajo hecho —ya había dado su nombre y su tipo
+       * de consulta— y el consultorio no se enteraba de que alguien había
+       * intentado agendar y no había podido: la demanda que no cabe es
+       * justamente la que hay que ver.
+       *
+       * Y la lista de espera ya existía, con todo montado a su alrededor: la
+       * pantalla del consultorio, el emparejamiento por tipo y rango horario, y
+       * el aviso automático en cuanto alguien cancela. Sólo faltaba la puerta
+       * por la que entra la gente que llega cuando no queda sitio.
+       *
+       * El teléfono del consultorio se sigue dando: la lista es una opción, no
+       * un sustituto de poder hablar con alguien.
+       */
+      await send(from, [
+        `En este momento no tengo horarios disponibles en los próximos días. 😕`,
+        ``,
+        `¿Le anoto en la *lista de espera*? Le aviso en cuanto se libere un lugar que le sirva.`,
+        ``,
+        `Responda *SÍ* para anotarle, o *NO* si prefiere llamar al ${adminPhone}.`,
+      ].join('\n'))
+      await saveSession(clinicId, from, { estado: 'ofrecer_lista', datos })
       return
     }
     datos.availableDays = availableDays.join(',')
     const daysMenu = availableDays.map((d, i) => `${i + 1}️⃣ ${formatDate(d)} (${d})`).join('\n')
     await send(from, `¿Qué día prefiere?\n\n${daysMenu}`)
     await saveSession(clinicId, from, { estado: 'agendar_fecha', datos })
+    return
+  }
+
+  // ── SIN HUECOS: ¿le anoto en la lista de espera? ───────────
+  if (estado === 'ofrecer_lista') {
+    /**
+     * EL MISMO VOCABULARIO DE SIEMPRE (ASM-012): SÍ / NO. No se inventa uno
+     * nuevo por estado — que es como el bot acabó teniendo tres formas de decir
+     * que sí y entendiendo sólo una.
+     */
+    if (respuestaAlRecordatorio(text) !== 'si') {
+      await send(from, `Entendido. Puede llamarnos al ${adminPhone} y con gusto le buscamos un espacio. 🙏`)
+      await clearSession(clinicId, from)
+      return
+    }
+
+    /**
+     * EL MISMO ID QUE ESCRIBE EL CONSULTORIO, Y POR EL MISMO MOTIVO.
+     *
+     * `createWaitlistEntry` (la vía del panel) deriva el id de teléfono + tipo +
+     * fecha deseada + rango. Aquí se deriva IGUAL, con las mismas funciones
+     * puras, así que dos altas de la misma persona con las mismas preferencias
+     * —el reintento de WhatsApp, o la asistente anotándolo a la vez que él—
+     * convergen a UN documento en vez de dos.
+     *
+     * No es cosmética: al liberarse un hueco sólo se avisa a tres personas, y
+     * un paciente repetido ocupa dos de esos tres sitios.
+     */
+    const { idIdempotente } = await import('@/lib/idempotencia')
+    const { claveDeEspera } = await import('@/lib/whatsapp/lista-espera')
+    const entrada = {
+      pacienteNombre: datos.nombre || 'Paciente de WhatsApp',
+      /**
+       * EN DIEZ DÍGITOS, IGUAL QUE EL PANEL.
+       *
+       * `claveTelefonoWa` da la forma canónica (`52` + 10) y el panel guarda
+       * diez. Si el bot escribiera la canónica, el id idempotente NO
+       * convergería con el del panel y la asistente anotando al mismo paciente
+       * crearía una segunda entrada — justo el duplicado que este id evita.
+       * `candidatosDeTelefono` es el criterio que ya usa `resolverPacienteBot`;
+       * se reutiliza en vez de inventar aquí otra forma de normalizar.
+       */
+      pacienteTelefono: candidatosDeTelefono(from)[0] ?? claveTelefonoWa(from),
+      tipo: datos.tipo || undefined,
+      /**
+       * PRIORIDAD 3 — la de en medio, y dicha.
+       *
+       * Quien llega por el bot no es más ni menos urgente que quien llama: eso
+       * lo decide el consultorio, que puede subirla o bajarla desde su pantalla.
+       * Ponerle 1 sería colar al que escribe por delante del que llamó por
+       * teléfono; ponerle 5 sería enterrarlo. En medio, y visible.
+       */
+      prioridad: 3,
+      estado: 'activo' as const,
+      notas: 'Se anotó solo por WhatsApp: no había huecos en los próximos días.',
+      createdAt: new Date().toISOString(),
+      creadoPor: 'bot-whatsapp',
+    }
+    try {
+      const id = idIdempotente(clinicId, 'lista-espera', claveDeEspera(entrada))
+      await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(id)
+        .set(entrada, { merge: true })
+      await send(from, [
+        `Listo, le anoté en la lista de espera. ✅`,
+        ``,
+        `En cuanto se libere un lugar le escribo por aquí. Si mientras tanto quiere agendar más adelante, escriba *cita*.`,
+      ].join('\n'))
+      void adminDb.collection('clinics').doc(clinicId).collection('audit_log').add({
+        evento: 'lista_espera_alta_bot',
+        clinicId, citaId: '', patientId: '',
+        timestamp: new Date().toISOString(),
+        // Sin nombre ni teléfono: el registro dice QUÉ pasó, no quién es.
+        meta: { origen: 'bot-whatsapp', tipo: String(datos.tipo ?? '') },
+      }).catch(() => { /* la bitácora no tumba el alta */ })
+    } catch (e) {
+      /**
+       * NO SE LE DICE «LISTO» SI NO SE PUDO. El paciente se quedaría esperando
+       * un aviso que nadie va a mandar, que es peor que no haberle ofrecido
+       * nada.
+       */
+      safeLog.warn('[bot] no se pudo anotar en lista de espera:', String(e))
+      await send(from, `No pude anotarle en la lista en este momento. Por favor llame al ${adminPhone} y le anotamos. 🙏`)
+    }
+    await clearSession(clinicId, from)
     return
   }
 

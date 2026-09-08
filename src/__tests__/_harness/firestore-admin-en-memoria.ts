@@ -200,7 +200,22 @@ class Consulta {
    * coleccion, `col.where(...).limit(1).get()` -que es lo que escribe media
    * aplicacion- reventaria con «no es una funcion». Aqui lo heredan las dos.
    */
-  async get(): Promise<{ docs: Array<{ id: string; data: () => Datos; ref: RefDoc }>; size: number; empty: boolean }> {
+  /**
+   * El resultado lleva `forEach`, como el `QuerySnapshot` de verdad — y como ya
+   * lo lleva el `get` de dentro de una transacción, unas líneas más abajo.
+   *
+   * No es azúcar: hay rutas de producción que recorren el resultado SOLO con
+   * `snap.forEach(...)` —`GET /api/public/availability` es una— y sin él la
+   * ruta revienta con «no es una función» en cuanto una prueba la ejercita. Un
+   * doble menos capaz que el original no prueba la ruta: la hace intocable, y
+   * por eso esa ruta no tenía ni un caso que la ejercitara de verdad.
+   */
+  async get(): Promise<{
+    docs: Array<{ id: string; data: () => Datos; ref: RefDoc }>
+    size: number
+    empty: boolean
+    forEach: (fn: (doc: { id: string; data: () => Datos; ref: RefDoc }) => void) => void
+  }> {
     const todos = this.tienda.listar(this.ruta).map(d => ({
       id: d.id,
       datos: d.datos,
@@ -227,7 +242,7 @@ class Consulta {
         return 0
       })
     const docs = this.tope === null ? todos : todos.slice(0, this.tope)
-    return { docs, size: docs.length, empty: docs.length === 0 }
+    return { docs, size: docs.length, empty: docs.length === 0, forEach: (fn) => docs.forEach(fn) }
   }
 }
 
