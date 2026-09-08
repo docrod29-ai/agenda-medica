@@ -3,6 +3,60 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1188 — el alta por invitación: contraseña, correo y un solo consultorio
+
+**36 archivos · 25 de código de producto · 2 regresiones documentadas
+(REG-652 y REG-653) · 1 ruta nueva (`api/clinic/invitaciones`) · 0 pantallas
+nuevas · `firestore.rules` SÍ cambia (una clave: `emailInvitado`) ·
+`firestore.indexes.json` no.**
+
+### Qué se repara
+
+Reporte del dueño, 7-sep-2026, sobre la primera asistente dada de alta en
+producción: «no pide contraseña, la asistente no tiene contraseña, no manda al
+correo la confirmación» y «lo que genera el médico, por ejemplo ajuste de
+configuración, debe aparecerle a la asistente igual».
+
+Cuatro síntomas del MISMO camino, el de la invitación de equipo (REG-652):
+
+1. `/unirse/[code]` no daba de alta a nadie: rebotaba a `/registro`. Con una
+   sesión abierta sólo ofrecía «Aceptar y entrar», y como el médico que genera
+   el enlace ya es miembro de esa clínica, el servidor contestaba `ok`. Se
+   trabajaba dentro de la sesión del médico: nunca se pidió contraseña porque
+   nunca se creó una cuenta.
+2. La verificación de correo se mandaba con un `console.warn` como único rastro
+   del fallo, y en ningún sitio se decía a qué dirección se había escrito.
+3. Si el rebote se perdía, el siguiente arranque acababa en `/setup` y la
+   asistente se creaba SU PROPIO consultorio vacío. Por eso nada de lo que
+   configuraba el médico le aparecía: miraba otro `clinicId`.
+4. El panel de «Invitaciones pendientes» nunca pudo cargar: `allow list: if
+   false` contra una consulta que el navegador hacía igual. Decía «no hay
+   invitaciones» aunque se acabara de generar una.
+
+Y el selector «Intervalo de agenda» decía 5 minutos mientras la agenda iba de 30
+en 30, porque el paso es `max(intervalo, duración)` y la duración gana siempre
+(REG-653). Retirado por decisión del dueño: el paso es la duración.
+
+### Cómo queda
+
+El alta ocurre en la pantalla de la invitación, con contraseña a la vista. La
+invitación puede llevar el correo de la persona y entonces sólo ella la acepta,
+comprobado en el servidor. Emitir, listar y revocar pasan por
+`/api/clinic/invitaciones` (Admin SDK, capacidad `administrar` en los tres
+métodos). Con invitación pendiente, quien no tiene consultorio va a terminarla,
+no a crear otro.
+
+### `firestore.rules`
+
+Una sola clave nueva en la forma congelada de `clinic_invitations`:
+`emailInvitado`. **No bloquea nada mientras no rija**: la invitación ya no la
+escribe el navegador. Es defensa en profundidad para el día que alguien vuelva a
+escribir esa colección desde el cliente.
+
+### Publicado
+
+Pendiente. Se llenará con la ejecución del botón de producción.
+
 ## v1187 — la auditoría del panel de lujo, reparada entera
 
 **269 archivos · 164 de código de producto · 47 regresiones documentadas
