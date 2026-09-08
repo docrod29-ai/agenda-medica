@@ -55,7 +55,22 @@ escribir esa colección desde el cliente.
 
 ### Publicado
 
-Pendiente. Se llenará con la ejecución del botón de producción.
+Ejecución **#29** del botón de producción, 8-sep-2026, sobre el árbol
+`8b81f357`. Los seis renglones en verde: versión servida, reglas, índices,
+seguridad, smoke y portal fail-closed (401 sin enlace). `PRODUCTION_RELEASE =
+SUCCESS`.
+
+La clave `emailInvitado` **ya rige**: el sello que emitió el workflow
+(`5a5acc35…`) coincide con el sha256 del árbol, y la sección PENDIENTE de
+`docs/ops/REGLAS-DE-FIRESTORE.md` vuelve a estar vacía. Estuvo unas horas escrita
+y sin regir, y quedó declarado que en ese rato **no había ningún hueco**: la
+invitación había dejado de escribirla el navegador en el mismo cambio.
+
+Lo que esto **no** demuestra: que los índices estén construidos (no cambiaron en
+esta versión, así que no hay nada nuevo que construir), ni que el correo de
+confirmación **llegue a la bandeja**. Lo segundo depende de la plantilla y de los
+dominios autorizados de la consola de Firebase, no de este repositorio, y sigue
+sin comprobarse contra una bandeja real.
 
 ## v1187 — la auditoría del panel de lujo, reparada entera
 
