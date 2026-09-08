@@ -1,8 +1,8 @@
 {
- "sellado": "2026-09-07",
+ "sellado": "2026-09-06",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 8010,
+ "totalCasos": 7960,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -589,10 +589,6 @@
    "minCasos": 10
   },
   {
-   "archivo": "src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
-   "minCasos": 7
-  },
-  {
    "archivo": "src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts",
    "minCasos": 4
   },
@@ -1153,16 +1149,16 @@
    "minCasos": 12
   },
   {
+   "archivo": "src/__tests__/la-hora-a-mano-siempre-esta.test.ts",
+   "minCasos": 6
+  },
+  {
    "archivo": "src/__tests__/la-huella-de-la-receta-larga-no-se-pierde.test.ts",
    "minCasos": 8
   },
   {
    "archivo": "src/__tests__/la-identidad-de-la-publicacion-no-se-tira.test.ts",
    "minCasos": 10
-  },
-  {
-   "archivo": "src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts",
-   "minCasos": 30
   },
   {
    "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
@@ -1311,6 +1307,10 @@
   {
    "archivo": "src/__tests__/la-reescritura-no-pierde-cifras.test.ts",
    "minCasos": 20
+  },
+  {
+   "archivo": "src/__tests__/la-rejilla-se-reancla-donde-acaba-la-cita-anterior.test.ts",
+   "minCasos": 11
   },
   {
    "archivo": "src/__tests__/la-revista-no-sube-la-calidad.test.ts",
@@ -2327,6 +2327,14 @@
   {
    "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
    "minCasos": 15
+  },
+  {
+   "archivo": "src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
+   "minCasos": 7
+  },
+  {
+   "archivo": "src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts",
+   "minCasos": 30
   }
  ]
 }

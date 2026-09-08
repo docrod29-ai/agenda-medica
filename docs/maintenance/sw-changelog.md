@@ -3,6 +3,66 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1189 — la rejilla de la agenda se recoloca donde acaba la cita anterior
+
+**5 archivos de código y prueba · 1 regresión documentada (REG-654) · 0 rutas
+nuevas · 0 pantallas nuevas · `firestore.rules` NO cambia ·
+`firestore.indexes.json` tampoco.**
+
+### Qué se repara
+
+Reporte del dueño, 7-sep-2026, con el caso de una dermatóloga que agenda 45
+minutos, luego 15, luego 30: «los intervalos de tiempo no coinciden» y «no
+empieza bien».
+
+Tres defectos del mismo flujo (REG-654):
+
+1. **La rejilla nacía en la hora de apertura y no se recolocaba nunca.** Los
+   inicios posibles salían de un solo sitio y nada volvía a anclarlos, así que
+   en cuanto una cita de duración distinta rompía el ritmo, el hueco que dejaba
+   detrás **no existía** para el producto.
+2. **El campo de hora libre vivía en el `else`** de «¿hay huecos?»: sólo
+   aparecía con el día COMPLETO, justo cuando ya no sirve. Con un hueco en la
+   lista, una hora libre que la lista no trajera era inalcanzable.
+3. **La hora se borraba sola** al subir la duración, sin decir nada, y el aviso
+   decía «ya está ocupado» aunque la causa real fuera pasarse del cierre — que
+   es falso, y encima empuja a la salida de sobreagenda que el servidor rechaza
+   con 409 para ese caso.
+
+### Su relación con REG-653, de la versión anterior
+
+v1188 cambió el PASO de la rejilla: de `max(intervaloMinutos, duración)` a la
+duración del tipo de cita. Eso arregló la perilla que mentía y cubrió el segundo
+tramo del caso de la dermatóloga. **No cerró éste**: el paso se sigue contando
+desde la apertura, así que el tercer tramo seguía roto — tras la cita de 45, una
+de 30 tiene rejilla 09:00 · 09:30 · 10:00 y las 09:45 no están.
+
+Las dos se componen. Ninguna tapa a la otra.
+
+### Cómo queda
+
+A los inicios del reloj se les suman los instantes donde TERMINA algo: cada cita
+del día y cada descanso. Es **aditivo** —ningún hueco de antes desaparece— y
+**acotado** —un ancla por cita, no una rejilla más fina—. Las anclas pasan por
+los mismos filtros que la rejilla, así que no pueden colar una hora que no cabe.
+
+En la pantalla, el campo libre pasa a ser una elección del médico (un `<button>`
+junto al desplegable), la hora deja de borrarse sola, y `porQueNoCabeEnElHorario`
+separa «no cabe en el horario» de «está ocupada» para que el aviso diga la causa
+de verdad.
+
+### Qué NO demuestra esta versión
+
+- **Que la pantalla se vea bien.** No se abrió en un navegador: hay pruebas,
+  typecheck y build, y la regla de diseño pide recorrer el flujo de verdad. Queda
+  dicho, no dado por hecho.
+- **Que el final de un BLOQUEO recoloque la rejilla.** No ancla: `TimeBlock`
+  guarda instantes ISO y pasarlos a minutos del día pide la zona del consultorio.
+  Un bloqueo que acaba a las 11:20 sigue sin ofrecer las 11:20; se pide a mano.
+- **Que un médico pueda tener sus propias duraciones.** Sigue sin poder:
+  `horarioPropio` no lo enciende ninguna pantalla, pese a que el alta de médicos
+  promete «puedes editarlos después».
+
 ## v1188 — el alta por invitación: contraseña, correo y un solo consultorio
 
 **36 archivos · 25 de código de producto · 2 regresiones documentadas
