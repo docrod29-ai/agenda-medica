@@ -1,124 +1,86 @@
 /**
- * Invitaciones de clínica.
+ * Invitaciones de clínica — el lado del NAVEGADOR.
  *
- * Colección top-level `clinic_invitations/{code}` para que el invitado pueda
- * leerla directamente con el código del link, antes de tener membresía.
+ * Colección top-level `clinic_invitations/{code}`. El invitado la LEE con el
+ * código directamente (`allow get: if true`), porque todavía no tiene membresía
+ * que le abra ninguna otra puerta.
+ *
+ * Todo lo demás —crear, listar, revocar— pasa por `/api/clinic/invitaciones`
+ * (Admin SDK). Ver la cabecera de esa ruta: el listado desde el navegador
+ * llevaba tiempo roto contra `allow list: if false`, y la creación desde el
+ * navegador ataba lo que el producto puede guardar a que las reglas
+ * desplegadas ya conocieran el campo.
  *
  * Flujo:
- *  1. Médico genera invitación → se guarda con code aleatorio y expira en 7d.
- *  2. Comparte el link /unirse/{code} por WhatsApp/email.
- *  3. Invitado abre el link → si no tiene cuenta, /registro?invite=code → /unirse/code.
+ *  1. Médico genera invitación → code aleatorio, caduca en 7 días y puede llevar
+ *     el CORREO de la persona invitada (entonces sólo ella la acepta).
+ *  2. Comparte el enlace /unirse/{code} por WhatsApp o por correo.
+ *  3. Invitado abre el enlace y **crea su cuenta ahí mismo**, con contraseña.
+ *     Antes esto rebotaba a `/registro?invite=code` y el rebote se perdía: ver
+ *     la cabecera de `src/app/unirse/[code]/page.tsx`.
  *  4. /unirse acepta: crea clinic_members/{uid} + marca invitación como used.
  */
-import {
-  collection, doc, getDoc, getDocs, deleteDoc, setDoc,
-  query, where, orderBy,
-} from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { invitacionVigente } from '@/lib/security/invitacion-vigente'
-
-export type RolInvitacion = 'secretaria' | 'medico' | 'admin' | 'enfermeria' | 'farmacia' | 'laboratorio'
-
-export interface Invitacion {
-  code: string                    // = doc id
-  clinicId: string
-  clinicNombre: string
-  role: RolInvitacion
-  nombreInvitado?: string         // opcional, para mostrar "Bienvenida María"
-  especialidad?: string           // profesión/especialidad (para la ficha del médico)
-  creadoPor: string               // uid del médico que invitó
-  creadoPorEmail: string
-  createdAt: string
-  expiresAt: string               // ISO
-  /**
-   * La MISMA caducidad en epoch-ms. Las reglas de Firestore no saben leer ISO,
-   * y sin un número no podían exigir que la invitación caducara (ZL-011): una
-   * invitación sin `expiresAt` era eterna. El servidor sigue leyendo `expiresAt`.
-   */
-  expiresAtMs: number
-  used: boolean
-  usedBy?: string                 // uid del que aceptó
-  usedAt?: string                 // ISO
-}
-
-const COL = 'clinic_invitations'
-export const DURACION_MS = 7 * 24 * 60 * 60 * 1000  // 7 días
-
-const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  // sin I,O,0,1 para no confundir
+import { fetchAutenticado } from '@/lib/auth-client'
 
 /**
- * Código de invitación con azar CRIPTOGRÁFICO (Panel de Lujo ZL-011).
- *
- * `Math.random` no está pensado para secretos: es predecible si se observa la
- * secuencia. El código es lo único que hace falta para unirse al consultorio,
- * así que sale de `crypto.getRandomValues`. El alfabeto tiene 32 símbolos, que
- * dividen exactamente los 256 valores de un byte: `% 32` no sesga.
+ * La FORMA del documento y el generador del código viven aparte y sin Firebase,
+ * porque el servidor también los necesita. Se reexportan para que ningún sitio
+ * que ya importaba de aquí tenga que cambiar — y para que no aparezca nunca una
+ * segunda copia de la forma congelada.
  */
-export function generarCodigo(azar: (n: number) => Uint8Array = bytesAleatorios): string {
-  const bytes = azar(10)
-  let s = ''
-  for (let i = 0; i < 10; i++) s += ALFABETO[bytes[i] % ALFABETO.length]
-  return s
-}
+export {
+  DURACION_MS, ROLES_INVITACION, generarCodigo, documentoDeInvitacion,
+} from '@/lib/invitaciones/documento'
+export type { Invitacion, RolInvitacion } from '@/lib/invitaciones/documento'
 
-function bytesAleatorios(n: number): Uint8Array {
-  const out = new Uint8Array(n)
-  globalThis.crypto.getRandomValues(out)
-  return out
-}
+import type { Invitacion, RolInvitacion } from '@/lib/invitaciones/documento'
 
-/** Lo que se escribe al crear. Puro, para que la prueba lo fije sin Firestore. */
-export function documentoDeInvitacion(p: {
-  code: string; clinicId: string; clinicNombre: string; role: RolInvitacion
-  creador: { uid: string; email: string }; nombreInvitado?: string; especialidad?: string; ahoraMs: number
-}): Invitacion {
-  const data: Invitacion = {
-    code: p.code, clinicId: p.clinicId, clinicNombre: p.clinicNombre, role: p.role,
-    creadoPor: p.creador.uid,
-    creadoPorEmail: p.creador.email,
-    createdAt: new Date(p.ahoraMs).toISOString(),
-    expiresAt: new Date(p.ahoraMs + DURACION_MS).toISOString(),
-    expiresAtMs: p.ahoraMs + DURACION_MS,
-    used: false,
-  }
-  // Sólo si vienen: Firestore rechaza `undefined` y la regla congela la forma.
-  const nombre = p.nombreInvitado?.trim()
-  if (nombre) data.nombreInvitado = nombre
-  const esp = p.especialidad?.trim()
-  if (esp) data.especialidad = esp
-  return data
-}
+const COL = 'clinic_invitations'
+const RUTA = '/api/clinic/invitaciones'
 
-/** Crea una invitación y devuelve el código. */
+/** Crea una invitación. La escribe el SERVIDOR con el rol y el autor validados. */
 export async function crearInvitacion(
   clinicId: string,
   clinicNombre: string,
   role: RolInvitacion,
-  creador: { uid: string; email: string },
+  _creador: { uid: string; email: string },
   nombreInvitado?: string,
   especialidad?: string,
+  emailInvitado?: string,
 ): Promise<Invitacion> {
-  const code = generarCodigo()
-  const data = documentoDeInvitacion({
-    code, clinicId, clinicNombre, role, creador, nombreInvitado, especialidad, ahoraMs: Date.now(),
+  // `_creador` se conserva en la firma por compatibilidad con quien ya llamaba
+  // así, pero NO se manda: el autor sale del token en el servidor. Mandarlo
+  // sería ofrecerle al cliente firmar una invitación con el uid de otro.
+  const res = await fetchAutenticado(RUTA, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clinicId, clinicNombre, role, nombreInvitado, especialidad, emailInvitado }),
   })
-  // Usamos el code como ID del doc para lectura O(1) por código
-  await setDoc(doc(db, COL, code), data)
-  return data
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok || !d?.ok) throw new Error(d?.error || 'No se pudo crear la invitación')
+  return d.invitacion as Invitacion
 }
 
-/** Lee una invitación por código (sin requerir membresía — el invitado aún no la tiene). */
+/**
+ * Lee una invitación por código. Ésta SÍ va directa a Firestore: quien la abre
+ * todavía no tiene sesión, así que no hay token que mandarle a ninguna ruta.
+ * `allow get: if true` existe exactamente para este momento.
+ */
 export async function obtenerInvitacion(code: string): Promise<Invitacion | null> {
   const snap = await getDoc(doc(db, COL, code))
   if (!snap.exists()) return null
   return { code, ...(snap.data() as Omit<Invitacion, 'code'>) }
 }
 
-/** Lista las invitaciones de una clínica (para el panel del médico). */
+/** Lista las invitaciones de una clínica (para el panel del médico), vía servidor. */
 export async function listarInvitaciones(clinicId: string): Promise<Invitacion[]> {
-  const q = query(collection(db, COL), where('clinicId', '==', clinicId), orderBy('createdAt', 'desc'))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ code: d.id, ...(d.data() as Omit<Invitacion, 'code'>) }))
+  const res = await fetchAutenticado(`${RUTA}?clinicId=${encodeURIComponent(clinicId)}`)
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok || !d?.ok) throw new Error(d?.error || 'No se pudieron leer las invitaciones')
+  return (d.invitaciones ?? []) as Invitacion[]
 }
 
 /** Verifica si la invitación es válida (no usada, no expirada). */
@@ -139,7 +101,6 @@ export async function aceptarInvitacion(
   code: string,
   _user?: { uid: string; email: string },
 ): Promise<{ ok: boolean; motivo?: string; clinicId?: string }> {
-  const { fetchAutenticado } = await import('@/lib/auth-client')
   try {
     const res = await fetchAutenticado('/api/clinic/unirse', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -152,7 +113,11 @@ export async function aceptarInvitacion(
   }
 }
 
-/** Revoca una invitación pendiente (la borra). */
-export async function revocarInvitacion(code: string): Promise<void> {
-  await deleteDoc(doc(db, COL, code))
+/** Revoca una invitación pendiente (la borra), vía servidor. */
+export async function revocarInvitacion(code: string, clinicId: string): Promise<void> {
+  const res = await fetchAutenticado(`${RUTA}?code=${encodeURIComponent(code)}&clinicId=${encodeURIComponent(clinicId)}`, {
+    method: 'DELETE',
+  })
+  const d = await res.json().catch(() => ({}))
+  if (!res.ok || !d?.ok) throw new Error(d?.error || 'No se pudo revocar la invitación')
 }

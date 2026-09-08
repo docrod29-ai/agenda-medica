@@ -15,6 +15,7 @@ import { InstrumentStrip } from '@/components/InstrumentStrip'
 import { ToastProvider } from '@/context/ToastContext'
 import { AvisoModuloBloqueado, EVENTO_MODULO_BLOQUEADO } from '@/components/AvisoModuloBloqueado'
 import { AvisoCorreoSinVerificar } from '@/components/AvisoCorreoSinVerificar'
+import { invitacionPendiente, destinoSinConsultorio } from '@/lib/clinica/invitacion-pendiente'
 import { ModeProvider } from '@/context/ModeContext'
 import { ClinicProvider } from '@/context/ClinicContext'
 import { BorradorProvider } from '@/context/BorradorContext'
@@ -587,7 +588,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (authLoading || clinicLoading) return
     if (!user) { router.replace('/login'); return }
-    if (needsSetup) { router.replace('/setup'); return }
+    /**
+     * `/setup` es «crea tu consultorio». Para quien llega con una invitación a
+     * medias, ése es el destino equivocado: acaba con un consultorio propio y
+     * vacío en el que nada de lo que configura su médico aparece nunca.
+     */
+    if (needsSetup) { router.replace(destinoSinConsultorio(invitacionPendiente())); return }
     // Bloqueo basado en el ROL REAL del Firestore, no en el toggle de UI
     if (!esMedicoReal && RUTAS_SOLO_MEDICO.some(r => pathname.startsWith(r))) {
       router.replace('/dashboard')

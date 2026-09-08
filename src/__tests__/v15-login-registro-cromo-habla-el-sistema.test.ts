@@ -74,6 +74,13 @@ import { join } from 'node:path'
 
 const LOGIN = readFileSync(join('src', 'app', 'login', 'page.tsx'), 'utf8')
 const REGISTRO = readFileSync(join('src', 'app', 'registro', 'page.tsx'), 'utf8')
+/**
+ * El botón de Google salió de las dos pantallas a un componente: estaba
+ * copiado a mano, con sus trece colores de marca, en `/login`, en `/registro`
+ * y —al añadir el alta dentro de la invitación— iba por la tercera copia. El
+ * objetivo táctil se sigue midiendo; ahora en el sitio donde vive.
+ */
+const BOTON_GOOGLE = readFileSync(join('src', 'components', 'brand', 'BotonGoogle.tsx'), 'utf8')
 const sinComentarios = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 
 describe('V15 puerta de entrada — la CTA de /registro es la primaria del sistema (la razón de ser)', () => {
@@ -140,8 +147,11 @@ describe('V15 puerta de entrada — tokens POR TEMA', () => {
 
 describe('V15 puerta de entrada — objetivo táctil 44 (§24)', () => {
   it('las CTA de auth llevan minHeight 48 (.btn trae height 36 fijo; min-height gana)', () => {
-    expect((LOGIN.match(/minHeight: 48/g) ?? []).length).toBe(3)   // Google, MFA, submit
-    expect((REGISTRO.match(/minHeight: 48/g) ?? []).length).toBe(2) // Google, submit
+    expect((LOGIN.match(/minHeight: 48/g) ?? []).length).toBe(2)   // MFA, submit
+    expect((REGISTRO.match(/minHeight: 48/g) ?? []).length).toBe(1) // submit
+    // El de Google, una vez y para las tres pantallas que lo usan.
+    expect((BOTON_GOOGLE.match(/minHeight: 48/g) ?? []).length).toBe(1)
+    for (const src of [LOGIN, REGISTRO]) expect(src).toContain('<BotonGoogle')
   })
 
   it('«¿Olvidaste tu contraseña?» y «← Volver» alcanzan 44 de alto', () => {

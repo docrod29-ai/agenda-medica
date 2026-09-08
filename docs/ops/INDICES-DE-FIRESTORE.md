@@ -220,7 +220,7 @@ entonces fusionar el código que lo usa.
 | `appointments` | pacienteId ↑ · fechaHora ↓ | `usePatientAppointments` — las citas del paciente en la consulta |
 | `errores` | visto ↑ · fecha ↓ | El vigilante: los errores del navegador sin ver, del más nuevo al más viejo (REG-578). **Enviado y aceptado el 6-sep (ejecución #26); falta confirmar `Enabled` en la consola.** |
 | `arco_requests` | estado ↑ · fechaSolicitud ↓ | La bandeja de derechos ARCO |
-| `clinic_invitations` | clinicId ↑ · createdAt ↓ | `listarInvitaciones` — invitar a alguien al consultorio |
+| `clinic_invitations` | clinicId ↑ · createdAt ↓ | `api/clinic/invitaciones` GET — el panel de equipo. La consulta era del navegador hasta el 7-sep-2026 y se movió al servidor (el `list` de la colección está cerrado en las reglas y el navegador la pedía igual, así que el panel nunca cargaba). La consulta es la MISMA, y por eso el índice sigue haciendo falta |
 | `farmacia` | activo ↑ · nombre ↑ | La lista de la farmacia |
 | `farmacia_movimientos` | itemId ↑ · fecha ↓ | El rastro de un controlado |
 | `notas` | estado ↑ · fechaConsulta ↓ | `getUltimasNotasResumen` — las tres firmadas más recientes |

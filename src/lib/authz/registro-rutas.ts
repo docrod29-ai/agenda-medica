@@ -293,6 +293,17 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
     tipo: 'capacidad', capacidad: 'equipo.leer',
     activacionPendiente: 'Q3 — ¿enfermería/farmacia/laboratorio deben poder listar los correos del equipo? HOY PUEDEN.',
   },
+  /**
+   * Los TRES métodos exigen `administrar`, GET incluido. `equipo.leer` —que la
+   * asistente sí tiene— sirve para ver los correos del equipo; esta lista lleva
+   * los CÓDIGOS, y un código es lo único que hace falta para entrar con el rol
+   * que diga la invitación. Emitir, ver y revocar credenciales de acceso es
+   * administración, no directorio.
+   */
+  'clinic/invitaciones': {
+    tipo: 'porMetodo',
+    metodos: { GET: 'administrar', POST: 'administrar', DELETE: 'administrar' },
+  },
   'clinic/unirse': { tipo: 'sesion', motivo: 'Canjea un código de invitación: el usuario todavía NO es miembro de ninguna clínica.' },
   'clinic/whatsapp-disconnect': { tipo: 'capacidad', capacidad: 'administrar' },
   'config/imagen': { tipo: 'sesion', motivo: 'Sube una imagen de membrete/firma a Storage bajo el propio uid; la ruta no lee datos de la clínica.' },

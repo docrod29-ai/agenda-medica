@@ -1,7 +1,8 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
-> **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó el
-> **31-ago-2026** junto con `nexusmed-v1177`, y el sello lo registra. Este archivo
+> **Estado**: hay **un** cambio escrito y sin desplegar, y **no bloquea nada**
+> (ver «PENDIENTE DE DESPLIEGUE»). El resto de `firestore.rules` se publicó con
+> la ejecución #28 del botón de producción, y el sello lo registra. Este archivo
 > dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
@@ -57,9 +58,13 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
-archivo (`e91f8aad…`) coincide con `hashDesplegado` en
-`firestore.rules.estado.json`.
+Mientras no se despliegue, lo que sigue **está escrito y no rige**:
+
+| Regla escrita | Qué NO rige hoy | Qué se rompe mientras tanto |
+|---|---|---|
+| 7-sep-2026 · la forma congelada de `clinic_invitations` admite `emailInvitado` (invitación **nominativa**: sólo la acepta el correo al que se emitió) | El `hasOnly` desplegado no conoce la clave `emailInvitado` | **Nada, hoy.** La invitación ya no la escribe el navegador: la emite `/api/clinic/invitaciones` con el Admin SDK, que no pasa por las reglas. Esta fila queda porque lo escrito y lo desplegado difieren, y eso se declara siempre — pero es **defensa en profundidad**, para el día que alguien vuelva a escribir esta colección desde el cliente. La regla desplegada es más estricta, no más laxa: no hay nada abierto que esperar a cerrar |
+
+Se despliega con el comando de arriba, que requiere autorización del dueño.
 
 Las ocho filas que hubo aquí, el 6-sep-2026, eran las 339 líneas que añadió la
 auditoría «Panel de Lujo» al fusionarse #469: la forma congelada (`hasOnly`) de

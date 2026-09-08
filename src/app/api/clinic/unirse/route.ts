@@ -17,7 +17,7 @@ import { DEFAULT_CONFIG } from '@/types'
 import { safeLog } from '@/lib/security/sanitize'
 // SIN CADUCIDAD NO ES VÁLIDA (ZL-011): la vigencia la decide un módulo puro
 // compartido con el cliente, para que los dos lados no digan cosas distintas.
-import { invitacionVigente } from '@/lib/security/invitacion-vigente'
+import { invitacionVigente, invitacionEsParaEsteCorreo } from '@/lib/security/invitacion-vigente'
 
 /** Crea la ficha del médico en el catálogo (para su agenda) si aún no existe
  *  una con ese correo. Toma el horario base de la config de la clínica. */
@@ -64,17 +64,39 @@ export async function POST(req: NextRequest) {
     if (memberSnap.exists) {
       const existing = memberSnap.data() as { clinicId?: string }
       const inv = await invRef.get()
-      const invClinic = inv.exists ? (inv.data() as { clinicId?: string }).clinicId : undefined
-      if (existing.clinicId && existing.clinicId === invClinic) return NextResponse.json({ ok: true, clinicId: existing.clinicId })
+      const invData = inv.exists ? (inv.data() as { clinicId?: string; emailInvitado?: string }) : undefined
+      const invClinic = invData?.clinicId
+      if (existing.clinicId && existing.clinicId === invClinic) {
+        /**
+         * MISMA CLÍNICA NO ES «ADELANTE» CUANDO LA INVITACIÓN TIENE NOMBRE.
+         *
+         * Éste es el camino por el que la asistente acababa trabajando DENTRO de
+         * la sesión de su médico: el médico genera el enlace en su navegador, se
+         * lo enseña, y como él ya es miembro de esa misma clínica el servidor
+         * contestaba `ok` — la página decía «¡Bienvenida!» y entraba al panel sin
+         * pedir contraseña ni crear cuenta. Nadie veía un error.
+         *
+         * Con destinatario, la respuesta correcta es que ESA sesión no es la
+         * invitada. Sin destinatario se mantiene el comportamiento de antes:
+         * volver a abrir tu propio enlace no puede echarte de tu consultorio.
+         */
+        const deQuien = invitacionEsParaEsteCorreo(invData ?? {}, acc.email)
+        if (!deQuien.ok) return NextResponse.json({ ok: false, motivo: deQuien.motivo }, { status: 409 })
+        return NextResponse.json({ ok: true, clinicId: existing.clinicId })
+      }
       return NextResponse.json({ ok: false, motivo: 'Ya perteneces a otra clínica. Cierra sesión y crea una cuenta nueva para aceptar esta invitación.' }, { status: 409 })
     }
 
     const resultado = await adminDb.runTransaction(async (tx) => {
       const snap = await tx.get(invRef)
       if (!snap.exists) return { ok: false as const, motivo: 'Invitación no encontrada.' }
-      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string; especialidad?: string }
+      const inv = snap.data() as { clinicId: string; role: string; used?: boolean; expiresAt?: string; creadoPor?: string; nombreInvitado?: string; emailInvitado?: string; especialidad?: string }
       const vigencia = invitacionVigente(inv, Date.now())
       if (!vigencia.ok) return { ok: false as const, motivo: vigencia.motivo }
+      // Nominativa: sólo la acepta el correo al que se emitió. El enlace viaja por
+      // WhatsApp y se reenvía solo; sin esto, quien lo reciba entra al expediente.
+      const deQuien = invitacionEsParaEsteCorreo(inv, acc.email)
+      if (!deQuien.ok) return { ok: false as const, motivo: deQuien.motivo }
 
       tx.set(memberRef, {
         clinicId: inv.clinicId,
