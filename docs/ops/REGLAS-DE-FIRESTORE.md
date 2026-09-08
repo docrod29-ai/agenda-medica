@@ -1,9 +1,8 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
-> **Estado**: hay **un** cambio escrito y sin desplegar, y **no bloquea nada**
-> (ver «PENDIENTE DE DESPLIEGUE»). El resto de `firestore.rules` se publicó con
-> la ejecución #28 del botón de producción, y el sello lo registra. Este archivo
-> dice cómo se sabe eso sin fiarse de la memoria de nadie.
+> **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó con la
+> ejecución **#29** del botón de producción (8-sep-2026, v1188), y el sello lo
+> registra. Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
 
@@ -58,13 +57,23 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-Mientras no se despliegue, lo que sigue **está escrito y no rige**:
+**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
+archivo (`5a5acc35…`) coincide con `hashDesplegado` en
+`firestore.rules.estado.json`.
 
-| Regla escrita | Qué NO rige hoy | Qué se rompe mientras tanto |
-|---|---|---|
-| 7-sep-2026 · la forma congelada de `clinic_invitations` admite `emailInvitado` (invitación **nominativa**: sólo la acepta el correo al que se emitió) | El `hasOnly` desplegado no conoce la clave `emailInvitado` | **Nada, hoy.** La invitación ya no la escribe el navegador: la emite `/api/clinic/invitaciones` con el Admin SDK, que no pasa por las reglas. Esta fila queda porque lo escrito y lo desplegado difieren, y eso se declara siempre — pero es **defensa en profundidad**, para el día que alguien vuelva a escribir esta colección desde el cliente. La regla desplegada es más estricta, no más laxa: no hay nada abierto que esperar a cerrar |
+La fila que hubo aquí, el 7-sep-2026, era la clave `emailInvitado` en la forma
+congelada de `clinic_invitations` — la invitación **nominativa**, que sólo acepta
+el correo al que se emitió (REG-652). **Se cerró el 8-sep** con la ejecución
+**#29** del botón, sobre el árbol `8b81f357` (v1188).
 
-Se despliega con el comando de arriba, que requiere autorización del dueño.
+Conviene conservar lo que decía, porque es el caso raro: era una fila que **no
+declaraba ningún hueco**. Mientras no rigió, no había nada desprotegido, porque
+la invitación dejó de escribirla el navegador en ese mismo cambio y pasó a
+`/api/clinic/invitaciones` (Admin SDK, que no pasa por las reglas). La regla se
+mantiene al día como defensa en profundidad, para el día que alguien vuelva a
+escribir esa colección desde el cliente. Declararla igual es la norma: lo escrito
+y lo desplegado difieren, y eso se dice **siempre**, aunque la respuesta a «qué se
+rompe mientras tanto» sea «nada».
 
 Las ocho filas que hubo aquí, el 6-sep-2026, eran las 339 líneas que añadió la
 auditoría «Panel de Lujo» al fusionarse #469: la forma congelada (`hasOnly`) de

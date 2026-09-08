@@ -24,10 +24,10 @@
   },
   "trabajoLocalSinSubir": [
     "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt"
+    " M docs/ops/REGLAS-DE-FIRESTORE.md",
+    " M firestore.rules.estado.json"
   ],
-  "actualizado": "2026-09-07",
+  "actualizado": "2026-09-08",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -59,7 +59,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/account-password-email-confirmation-9xtw8g",
+  "ramaActual": "claude/acta-de-v1188",
   "derivado": {
     "regsEnElLedger": 438,
     "ultimaREG": "REG-653",
