@@ -23,26 +23,9 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    " M agent-state/MASTER_STATE.json",
-    "MM docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    "M  docs/design/SCREEN_INVENTORY.md",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  docs/ops/INDICES-DE-FIRESTORE.md",
-    "M  docs/ops/REGLAS-DE-FIRESTORE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    "M  docs/security/matriz-acceso-phi.md",
-    "M  firestore.rules",
-    "M  firestore.rules.estado.json",
-    "M  public/sw.js",
-    "M  public/version.txt",
-    "M  scripts/design/techos-de-diseno.json",
-    "M  src/__tests__/authz-rutas-declaradas.test.ts",
-    "A  src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
-    "M  src/__tests__/invitaciones-caducan-y-tienen-autor.test.ts",
-    "A  src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
   "actualizado": "2026-09-08",
   "resumenDesdeElUltimoEstado": {
@@ -84,5 +67,5 @@
     "casosDePrueba": 13026,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1188"
+  "versionEnElRepo": "nexusmed-v1189"
 }
