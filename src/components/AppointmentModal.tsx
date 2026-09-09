@@ -392,6 +392,9 @@ export function AppointmentModal({ open, onClose, appointment, defaultDate, defa
               hora: appointment.fechaHora.slice(11, 16),
               clinicId,
               tipo: appointment.tipo,
+              // Y su DURACIÓN: el rango horario del paciente se comprueba contra
+              // el hueco entero, y sin esto se daba por supuesto que dura 30 min.
+              duracion: appointment.duracion,
               /**
                * EL MÉDICO DEL HUECO — que aquí no viajaba.
                *

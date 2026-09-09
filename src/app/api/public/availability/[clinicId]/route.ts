@@ -12,7 +12,7 @@ import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { validarFechaDeAgenda, dentroDeLaVentanaPublica } from '@/lib/agenda/horizonte'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
+import { validarHorarioDia, descansosEnMinutos, pisaDescanso, iniciosPosibles } from '@/lib/availability'
 import { configParaMedico } from '@/lib/horario-medico'
 import { esFestivo } from '@/lib/availability'
 import { instanteMX, hoyISO, TZ_DEFAULT } from '@/lib/timezone'
@@ -200,7 +200,42 @@ export async function GET(
     // portal ofrecería al paciente la hora de comida del médico y la cita
     // entraría de verdad — el panel no la rechaza, sólo no la ofrece.
     const descansos = descansosEnMinutos(schedule.descansos)
-    for (let m = startMin; m + duracion <= endMin; m += interval) {
+
+    /**
+     * LAS MISMAS ANCLAS QUE EL PANEL — que aquí no llegaron.
+     *
+     * ── QUÉ FALLABA ────────────────────────────────────────────────────────
+     *
+     * REG-654 enseñó al motor del panel a recolocar la rejilla donde termina
+     * una cita o un descanso. Esta ruta tiene **su propia copia** del bucle y
+     * se quedó con la rejilla plana anclada sólo en la apertura.
+     *
+     * O sea que desde ese arreglo el consultorio y el paciente ven listas
+     * DISTINTAS del mismo día: el hueco que deja detrás una cita de duración
+     * distinta existe en el panel y no existe en el portal. Y «no hay lugar»
+     * se lee igual que «está lleno», así que el paciente se va sin saber que
+     * el hueco estaba ahí.
+     *
+     * ── LA REGLA ───────────────────────────────────────────────────────────
+     *
+     * Un hueco que existe no se esconde según quién pregunte. A los inicios
+     * del reloj se les suman los instantes donde TERMINA algo (cita o
+     * descanso) y, hacia atrás, el último arranque que cabe entero antes de
+     * cada pared —el cierre y el inicio de cada cita o descanso—. Es la misma
+     * aritmética que `lib/availability.ts`, con los mismos filtros aplicados
+     * después a las anclas y a la rejilla por igual.
+     *
+     * Los bloqueos no anclan, igual que en el panel: aquí viven en instantes
+     * absolutos y pasarlos a minutos del día es lo que allí se dejó fuera a
+     * propósito. Mantener las dos copias diciendo lo mismo importa más que
+     * ganar ese caso en una sola.
+     */
+    const paredes = [
+      ...dayAppts.map(a => ({ desde: a.start, hasta: a.end })),
+      ...descansos,
+    ]
+
+    for (const m of iniciosPosibles(startMin, endMin, duracion, interval, paredes)) {
       if (slots.length >= TECHO_ANTIDESBOCADO) {
         safeLog.warn(`[public/availability] freno anti-desbocado (${TECHO_ANTIDESBOCADO}) en ${clinicId} ${fecha} — revisar horario e intervalo`)
         break
