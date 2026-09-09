@@ -72,7 +72,7 @@ vi.mock('@/lib/whatsapp/avisar-consultorio', () => ({
   avisarAlConsultorio: async () => undefined,
   telefonoDelConsultorio: () => '',
 }))
-vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: async () => null }))
+vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: async () => null, limitarEstricto: async () => null }))
 
 let store: TiendaEnMemoria
 

@@ -76,7 +76,7 @@
     "googleapis": "^171.4.0",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.12",
+    "next": "16.3.4",
     "pdfjs-dist": "^6.2.108",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
@@ -86,10 +86,10 @@
     "zod": "^4.4.3"
   },
   "//overrides": [
-    "Correcciones de seguridad SIN tocar la version de next (16.2.12) ni ninguna mayor.",
+    "Actualizacion de seguridad 2026-09-09: Next 16.3.4 y herramientas de Next alineadas, sin salto mayor.",
     "Un override cambia la dependencia ANIDADA; el paquete padre se queda donde esta.",
     "sharp: next declara ^0.34.5 y 0.34.x arrastra 4 CVE heredadas de libvips.",
-    "  0.35.3 pide Node >=20.9 (CI usa 22) y lo unico que next le llama es concurrency(), que no cambio.",
+    "  0.35.4 corrige el aviso de libheif; pide Node >=20.9 (CI usa 22).",
     "postcss: next trae 8.4.31 y el aviso cubre <=8.5.17. Procesa NUESTRO css en el build,",
     "  asi que la exposicion real es nula, pero el salto es de parche y sale gratis.",
     "NO se toca uuid: el aviso es de v3/v5/v6 con argumento buf, y google-gax y teeny-request",
@@ -97,7 +97,7 @@
     "  mayores por debajo de firebase-admin — o sea del login y de Firestore — a cambio de nada."
   ],
   "overrides": {
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "postcss": "^8.5.25",
     "nanoid": "^3.3.17",
     "@capacitor/cli": {
@@ -106,7 +106,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",
-    "@next/bundle-analyzer": "^16.2.10",
+    "@next/bundle-analyzer": "16.3.4",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -116,7 +116,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.4",
     "firebase-tools": "15.25.1",
     "tailwindcss": "^4",
     "typescript": "^5",

@@ -16,7 +16,7 @@
  * oyen. Sin el evento, la otra vista se quedaría pintando el modo viejo.
  *
  * Semántica intacta del ThemeToggle original:
- *  - default = OSCURO (marca Ausculta); 'auto' sólo si el usuario lo eligió;
+ *  - default = CLARO (decisión del dueño); 'auto' sólo si el usuario lo eligió;
  *  - ciclo: auto → dark → light → auto;
  *  - los tres modos SE PERSISTEN, 'auto' incluido: borrarlo lo hacía
  *    indistinguible de «nunca eligió» y no sobrevivía a una recarga;

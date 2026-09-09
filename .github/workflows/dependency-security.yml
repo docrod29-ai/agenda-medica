@@ -1,0 +1,40 @@
+name: Seguridad de dependencias
+
+on:
+  schedule:
+    - cron: '30 9 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/dependency-security.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Lee el lockfile. No ejecuta scripts de paquetes ni usa secretos clínicos.
+      # Un fallo del registro también falla el job: ausencia de medida no es cero.
+      - name: Revisar dependencias de producción
+        run: npm audit --omit=dev --audit-level=high --json > dependency-audit.json
+      - name: Conservar resultado para revisión
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-${{ github.sha }}
+          path: dependency-audit.json
+          retention-days: 30
+          if-no-files-found: error

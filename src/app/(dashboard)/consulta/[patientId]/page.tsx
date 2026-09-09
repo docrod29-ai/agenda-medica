@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
+import { ConsultaWorkspace } from '@/components/consulta/ConsultaWorkspace'
+import { CONSULTA_WORKSPACE } from '@/components/consulta/consulta-workspace-textos'
+import workspaceStyles from '@/components/consulta/consulta-workspace.module.css'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
@@ -5133,7 +5136,7 @@ export default function ConsultaActivaPage() {
   const segundosVivo = voz.duracion
 
   return (
-    <div className="nx-canvas">
+    <div className={`nx-canvas ${workspaceStyles.canvas}`}>
       <button onClick={volverAtras} className="nx-acc-plana" style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
@@ -5229,6 +5232,7 @@ export default function ConsultaActivaPage() {
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>
 
+      <ConsultaWorkspace firmada={firmada} contexto={<>
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
           ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
           de fármaco. Rojo cuando hay alergias; neutro cuando no.
@@ -5686,6 +5690,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      </>} nota={<>
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12, color: 'var(--text2)' }}>
@@ -6594,8 +6599,8 @@ export default function ConsultaActivaPage() {
       {/* ── Resumen ejecutivo ── */}
       {resumen && (
         <div style={S.resumen}>
-          <Sparkles size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
+          <FileText size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.75 }}>{resumen}</span>
         </div>
       )}
 
@@ -7799,6 +7804,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      </>} asistente={<>
       {/*
         ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
         Vivía arriba, antes de Secciones narrativas/Diagnósticos/Medicamentos:
@@ -7840,6 +7846,10 @@ export default function ConsultaActivaPage() {
         </details>
       )}
 
+      {!(diagnosticos.length || medicamentos.length || resumen || Object.keys(signosNum).length) && (
+        <p className={workspaceStyles.empty}>{CONSULTA_WORKSPACE.sinCaptura}</p>
+      )}
+      </>}>
       {/*
         ── HERRAMIENTAS CLÍNICAS, DESPUÉS DE LA NOTA (V15-ITERATION16, 15-ago) ──
 
@@ -8167,6 +8177,7 @@ export default function ConsultaActivaPage() {
         </>
       )}
 
+      </ConsultaWorkspace>
       {/*
         V15-MOBILE-001 (Fase 9, §22): el cierre, al alcance del pulgar. La
         radiografía móvil midió «Firmar» a ~2,900px de scroll a 390×844 — el
@@ -8385,4 +8396,3 @@ export default function ConsultaActivaPage() {
     </div>
   )
 }
-

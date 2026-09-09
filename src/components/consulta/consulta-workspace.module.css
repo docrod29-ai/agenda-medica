@@ -1,0 +1,115 @@
+.canvas {
+  --nx-lienzo: 1720px;
+}
+
+.workspace {
+  color: var(--text);
+}
+
+.navigation {
+  display: flex;
+  gap: 4px;
+  padding-block: 8px;
+  margin-bottom: 20px;
+  border-block: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.navigation a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  transition: background 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms;
+}
+
+.navigation a span {
+  color: var(--nexus);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.navigation a:hover { background: var(--nexus-tenue); color: var(--nexus); }
+.navigation a:focus-visible { outline: 2px solid var(--nexus); outline-offset: 2px; }
+
+.grid { display: grid; gap: 28px; align-items: start; }
+.contexto, .nota, .asistente, .cierre { min-width: 0; scroll-margin-top: 20px; overflow-wrap: anywhere; }
+.contexto:focus-visible, .nota:focus-visible, .asistente:focus-visible {
+  outline: 2px solid var(--nexus);
+  outline-offset: 5px;
+}
+
+.regionHeader { padding: 4px 0 20px; }
+.eyebrow { color: var(--text3); font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+.regionHeader h2, .noteHeader h2 {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -.025em;
+  line-height: 1.3;
+}
+.regionHeader p { margin: 8px 0 0; color: var(--text2); font-size: 12px; line-height: 1.6; }
+
+.nota, .cierre {
+  padding: 24px;
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--nexus);
+  border-radius: var(--r-sm);
+}
+.noteHeader { display: flex; gap: 16px; justify-content: space-between; align-items: start; flex-wrap: wrap; padding-bottom: 24px; }
+.noteHeader h2 { font-size: 22px; }
+.documentState { color: var(--text2); font-size: 11px; line-height: 1.6; padding-top: 5px; }
+.documentState[data-signed="true"] { color: var(--green-texto, var(--green)); }
+
+/* El contexto se lee como expediente, sin encadenar tarjetas decorativas. */
+.contexto :global(.nx-ctx) {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 14px 0;
+  margin: 0;
+}
+.contexto :global(.nx-franja-alergias) { flex-wrap: wrap; }
+.contexto :global(.nx-franja-alergias) textarea { flex-basis: 100%; min-width: 0; }
+.asistente details > summary { min-height: 44px; }
+.empty { padding: 18px 0; border-block: 1px solid var(--border); color: var(--text2); font-size: 13px; line-height: 1.7; }
+
+@media (min-width: 1280px) {
+  .grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.75fr) minmax(0, 1fr); gap: 24px; }
+  .contexto { position: sticky; top: 20px; max-height: calc(100dvh - 64px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+  .asistente { position: sticky; top: 20px; max-height: calc(100dvh - 64px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+  .cierre { grid-column: 2; }
+}
+
+@media (max-width: 1279px) {
+  .navigation { position: sticky; top: 0; z-index: 12; }
+  .navigation a { flex: 1; justify-content: center; }
+  .contexto, .nota, .asistente { scroll-margin-top: 84px; }
+}
+
+@media (max-width: 600px) {
+  .nota, .cierre { padding: 16px 12px; }
+  .noteHeader { gap: 8px; padding-bottom: 20px; }
+  .noteHeader h2 { font-size: 20px; }
+  .navigation a { padding-inline: 8px; gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation a { transition: none; }
+}
+
+@media print {
+  .navigation { display: none; }
+  .grid { display: block; }
+  .contexto, .asistente { position: static; max-height: none; overflow: visible; }
+  .nota, .cierre { border: 0; padding: 0; }
+}

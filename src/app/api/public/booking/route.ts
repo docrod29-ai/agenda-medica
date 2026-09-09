@@ -20,7 +20,7 @@ import { configParaMedico } from '@/lib/horario-medico'
 // Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
 // del navegador, que se inicializa al importarse y revienta el build sin variables.
 import { pisaBloqueo } from '@/lib/time-blocks-core'
-import { limitarOResponder } from '@/lib/rate-limit'
+import { limitarEstricto } from '@/lib/rate-limit'
 import { elegirExpedienteParaCita } from '@/lib/pacientes/duplicados'
 import { VERSION_AVISO, generarAvisoPrivacidad } from '@/lib/aviso-privacidad'
 import { createHash } from 'crypto'
@@ -60,14 +60,14 @@ export async function POST(req: NextRequest) {
      * pacientes y citas 'solicitada' en masa y disparar WhatsApp a números
      * arbitrarios (spam/costo). Dos ventanas: por IP (freno general) y por
      * teléfono+clínica (evita reservas repetidas del mismo número). Es a prueba de
-     * fallos: si Firestore falla, `limitar` deja pasar (no bloquea reservas
-     * legítimas por un problema de infraestructura).
+     * fallos: si el contador no puede comprobar el cupo, responde 503 con
+     * Retry-After antes de leer expedientes, reservar o emitir avisos.
      */
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'sin-ip'
     const telClave = (paciente.telefono || '').replace(/\D/g, '').slice(-10)
-    const limIp = await limitarOResponder(`booking:ip:${ip}`, 8, 3600, 'Demasiadas solicitudes. Intenta más tarde.')
+    const limIp = await limitarEstricto(`booking:ip:${ip}`, 8, 3600, 'Demasiadas solicitudes. Intenta más tarde.')
     if (limIp) return limIp
-    const limTel = await limitarOResponder(`booking:tel:${clinicId}:${telClave}`, 4, 86400, 'Ya tienes varias solicitudes recientes. Te contactaremos pronto.')
+    const limTel = await limitarEstricto(`booking:tel:${clinicId}:${telClave}`, 4, 86400, 'Ya tienes varias solicitudes recientes. Te contactaremos pronto.')
     if (limTel) return limTel
 
     // Validaciones de forma (defensa contra abuso de endpoint público)

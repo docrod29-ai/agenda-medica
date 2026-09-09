@@ -25800,3 +25800,18 @@ Dos casos fallaron antes: cita igual y elementos reordenados. Se añade cita
 compartida por dos medicamentos. No cubre elementos omitidos, citas cambiadas,
 ni conflictos exclusivos del segundo borrador GPT.
 **Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-659 — la reserva pública se detiene si el contador de abuso falla
+
+**Origen:** auditoría de capacidad y seguridad del 9-sep-2026. La ruta pública
+usaba `limitarOResponder`, que interpreta una transacción fallida como permiso.
+Una caída del contador permitía seguir hacia expedientes, reservas y avisos.
+**Cambio:** reutilizar `limitarEstricto` para IP y teléfono; 503 con Retry-After
+cuando no se pudo contar, 429 al agotar el cupo. No cambia cupos ni horarios.
+**Prueba permanente:** `src/__tests__/reserva-publica-sin-contador.test.ts`.
+Ruta y limitador reales con infraestructura sintética: las dos caídas devolvían
+404 al alcanzar la lectura clínica antes del cambio; ahora 503 sin acceder a
+expedientes ni enviar avisos. Se conserva la continuación con cupo y el 429.
+**Qué NO cubre:** firewall del proveedor, DDoS distribuido, concurrencia real de
+Firestore, ni una auditoría integral. Cuatro casos ejecutados, tres declaraciones.
+**Estado:** pruebas dirigidas en verde; pendiente gate completo y revisión.
