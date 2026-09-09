@@ -46,6 +46,14 @@ const PROYECTO = process.env.ARNES_PROYECTO || 'demo-nexusmed-v10'
 const AUTH = process.env.ARNES_AUTH || '127.0.0.1:9099'
 const FIRESTORE = process.env.ARNES_FIRESTORE || '127.0.0.1:8080'
 
+/** La jornada del consultorio sintético, partida por la comida. */
+const JORNADA = {
+  activo: true,
+  inicio: '08:00',
+  fin: '19:00',
+  descansos: [{ inicio: '14:00', fin: '16:00' }],
+}
+
 const CORREO = 'demo@nexusmed.test'
 const CLAVE = 'demo1234'
 const CLINICA = 'consultorio-demo-v10'
@@ -433,6 +441,27 @@ async function main() {
     duracionCitaDefault: 30,
     horaInicio: '09:00',
     horaFin: '19:00',
+    /**
+     * `horario` — EL CAMPO QUE EL MOTOR LEE DE VERDAD.
+     *
+     * `horaInicio`/`horaFin` son de la pantalla de configuración. El motor de
+     * agenda —`getDaySchedule`, `getAvailableSlots`, `hasConflict` y la
+     * validación de `POST /api/appointments`— lee `horario[dia]`, y la siembra
+     * no lo escribía. Consecuencia medida arrastrando una cita en el arnés:
+     * el servidor contestaba **500 con el cuerpo vacío** y NINGUNA cita podía
+     * crearse ni moverse. Un consultorio que se ve lleno y no admite una sola
+     * cita hace que una pantalla sana parezca rota, y al revés.
+     *
+     * La jornada va PARTIDA a propósito (comida de 14 a 16): es el caso del
+     * acta del dueño —10-13 y 15-19— y el que rompió tres veces, así que el
+     * arnés tiene que enseñarlo, no evitarlo.
+     */
+    horario: {
+      lunes: JORNADA, martes: JORNADA, miercoles: JORNADA,
+      jueves: JORNADA, viernes: JORNADA,
+      sabado: { activo: false, inicio: '08:00', fin: '19:00' },
+      domingo: { activo: false, inicio: '08:00', fin: '19:00' },
+    },
   })
 
   /**

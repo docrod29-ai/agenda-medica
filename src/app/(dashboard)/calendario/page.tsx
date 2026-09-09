@@ -514,6 +514,13 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
    * cambia el minuto propuesto.
    */
   const movimiento = useRef<{ id: string; y0: number; movio: boolean } | null>(null)
+  /**
+   * «Se acaba de arrastrar»: el freno del `click` que el navegador manda
+   * DESPUÉS del `pointerup`. Vive en una `ref` porque tiene que estar puesta
+   * cuando el `click` llegue, en el mismo tick — un `useState` lo sabría un
+   * render tarde, que es exactamente demasiado tarde.
+   */
+  const acabaDeArrastrar = useRef(false)
 
   /** Un choque se DICE, con la hora concreta; no se resuelve solo. */
   const toastDeChoque = (p: MovimientoPropuesto) =>
@@ -708,7 +715,26 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                       border: `2px dashed color-mix(in srgb, ${arrastre.propuesta.choca ? 'var(--red)' : 'var(--nexus)'} 60%, transparent)`,
                     }}
                   >
-                    {arrastre.propuesta.etiqueta}
+                    {/*
+                      LA ETIQUETA VA SOBRE FONDO OPACO, y también se vio mirando:
+                      el fantasma es translúcido a propósito —hay que ver contra
+                      QUÉ se choca— y por eso su hora caía justo encima del
+                      nombre de la cita de debajo, dos textos del mismo tamaño
+                      superpuestos. La hora es el dato que el usuario está
+                      calculando de cabeza mientras mueve; el que no puede
+                      quedar ilegible es ése.
+
+                      Opaco sólo detrás del texto: el resto del bloque sigue
+                      dejando ver lo que hay debajo.
+                    */}
+                    <span
+                      style={{
+                        background: 'var(--bg)', borderRadius: 6,
+                        padding: '1px 6px', lineHeight: 1.4,
+                      }}
+                    >
+                      {arrastre.propuesta.etiqueta}
+                    </span>
                   </div>
                 )}
                 {cellAppts.map(a => {
@@ -726,8 +752,26 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                       key={a.id}
                       className="nx-agenda-bloque"
                       {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
-                      onClick={e => { e.stopPropagation(); onApptClick(a) }}
                       title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''} · ${a.estado}`}
+                      /**
+                       * `stopPropagation` en `pointerup` NO cancela el `click`.
+                       *
+                       * Se vio abriendo la pantalla, no leyéndola: al soltar un
+                       * arrastre salía el aviso de choque Y se abría «Editar
+                       * cita» encima. El navegador manda el `click` después del
+                       * `pointerup`, y detener la propagación de uno no impide
+                       * el otro — son eventos distintos, no el mismo subiendo.
+                       *
+                       * Por eso la marca: el arrastre la pone al soltar y el
+                       * `click` que viene detrás se la come. Se limpia en cada
+                       * `pointerdown`, así que si el `click` no llegara a
+                       * llegar, la marca no sobrevive al gesto siguiente.
+                       */
+                      onClick={e => {
+                        e.stopPropagation()
+                        if (acabaDeArrastrar.current) { acabaDeArrastrar.current = false; return }
+                        onApptClick(a)
+                      }}
                       /**
                        * ARRASTRAR PARA MOVER — y las flechas hacen lo mismo.
                        *
@@ -746,6 +790,9 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                         if (e.button !== 0) return
                         ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
                         movimiento.current = { id: a.id, y0: e.clientY, movio: false }
+                        // Cada gesto empieza limpio: una marca que no llegó a
+                        // consumirse no se come el clic del gesto siguiente.
+                        acabaDeArrastrar.current = false
                       }}
                       onPointerMove={e => {
                         const m = movimiento.current
@@ -760,6 +807,7 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                         if (!m || m.id !== a.id || !m.movio) return
                         // Se movió de verdad: NO se abre la cita, se suelta.
                         e.stopPropagation()
+                        acabaDeArrastrar.current = true
                         const propuesta = proponerDesdeElPuntero(a, e, ds, h)
                         setArrastre(null)
                         if (propuesta.sinCambio) return
@@ -777,7 +825,11 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                         }
                         onApptMove(a, propuesta.fechaHora)
                       }}
-                      onPointerCancel={() => { movimiento.current = null; setArrastre(null) }}
+                      onPointerCancel={() => {
+                        movimiento.current = null
+                        acabaDeArrastrar.current = false
+                        setArrastre(null)
+                      }}
                       /**
                        * SE COMPONE CON EL DE `activable`, NO LO PISA.
                        *

@@ -2,7 +2,7 @@
  "sellado": "2026-09-06",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 7960,
+ "totalCasos": 7997,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -103,6 +103,10 @@
   {
    "archivo": "src/__tests__/arco-oposicion.test.ts",
    "minCasos": 17
+  },
+  {
+   "archivo": "src/__tests__/arrastrar-una-cita-la-deja-pegada-a-la-anterior.test.ts",
+   "minCasos": 15
   },
   {
    "archivo": "src/__tests__/asr-guardian-sustituciones.test.ts",
@@ -573,6 +577,10 @@
    "minCasos": 28
   },
   {
+   "archivo": "src/__tests__/el-hueco-de-un-cuarto-de-hora-no-es-un-hueco-inutil.test.ts",
+   "minCasos": 5
+  },
+  {
    "archivo": "src/__tests__/el-impreso-no-afirma-alergias-negadas.test.ts",
    "minCasos": 7
   },
@@ -587,6 +595,10 @@
   {
    "archivo": "src/__tests__/el-interruptor-lo-derrotaba-un-200-con-basura.test.ts",
    "minCasos": 10
+  },
+  {
+   "archivo": "src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
+   "minCasos": 7
   },
   {
    "archivo": "src/__tests__/el-limite-de-palabra-no-entiende-acentos.test.ts",
@@ -695,6 +707,10 @@
   {
    "archivo": "src/__tests__/el-prompt-no-se-contradice.test.ts",
    "minCasos": 15
+  },
+  {
+   "archivo": "src/__tests__/el-raton-y-el-teclado-mueven-la-cita-al-mismo-sitio.test.ts",
+   "minCasos": 16
   },
   {
    "archivo": "src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts",
@@ -1161,6 +1177,14 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts",
+   "minCasos": 30
+  },
+  {
+   "archivo": "src/__tests__/la-jornada-no-pierde-su-ultimo-cuarto-de-hora.test.ts",
+   "minCasos": 14
+  },
+  {
    "archivo": "src/__tests__/la-lista-de-alergias-no-cabia-en-el-telefono.test.ts",
    "minCasos": 13
   },
@@ -1399,6 +1423,10 @@
   {
    "archivo": "src/__tests__/las-reglas-escritas-no-son-las-que-rigen.test.ts",
    "minCasos": 7
+  },
+  {
+   "archivo": "src/__tests__/las-tres-puertas-de-la-agenda-dicen-lo-mismo.test.ts",
+   "minCasos": 11
   },
   {
    "archivo": "src/__tests__/lista-espera-rango-horario.test.ts",
@@ -1877,6 +1905,10 @@
    "minCasos": 13
   },
   {
+   "archivo": "src/__tests__/sin-huecos-el-bot-no-cuelga-al-paciente.test.ts",
+   "minCasos": 7
+  },
+  {
    "archivo": "src/__tests__/timezone-sitios.test.ts",
    "minCasos": 8
   },
@@ -2083,6 +2115,10 @@
   {
    "archivo": "src/__tests__/un-borrador-no-llega-al-paciente.test.ts",
    "minCasos": 13
+  },
+  {
+   "archivo": "src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts",
+   "minCasos": 6
   },
   {
    "archivo": "src/__tests__/un-critico-visto-no-es-un-critico-avisado.test.ts",
@@ -2327,30 +2363,6 @@
   {
    "archivo": "src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
    "minCasos": 15
-  },
-  {
-   "archivo": "src/__tests__/el-intervalo-de-agenda-decia-cinco-y-la-agenda-iba-de-treinta.test.ts",
-   "minCasos": 7
-  },
-  {
-   "archivo": "src/__tests__/la-invitacion-pide-contrasena-y-dice-a-donde-escribio.test.ts",
-   "minCasos": 30
-  },
-  {
-   "archivo": "src/__tests__/la-jornada-no-pierde-su-ultimo-cuarto-de-hora.test.ts",
-   "minCasos": 14
-  },
-  {
-   "archivo": "src/__tests__/las-tres-puertas-de-la-agenda-dicen-lo-mismo.test.ts",
-   "minCasos": 11
-  },
-  {
-   "archivo": "src/__tests__/el-hueco-de-un-cuarto-de-hora-no-es-un-hueco-inutil.test.ts",
-   "minCasos": 5
-  },
-  {
-   "archivo": "src/__tests__/sin-huecos-el-bot-no-cuelga-al-paciente.test.ts",
-   "minCasos": 7
   }
  ]
 }

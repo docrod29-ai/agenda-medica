@@ -164,7 +164,21 @@ export async function POST(req: NextRequest) {
     const { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } = await import('@/lib/availability')
     const schedule = getDaySchedule(fecha, cfgEfectiva)
     if (!schedule) {
-      return NextResponse.json({ error: 'Ese día el consultorio no da servicio' }, { status: 409 })
+      /*
+       * SE DISTINGUE «HOY NO ABRE» DE «NO HAY HORARIO NINGUNO».
+       *
+       * Los dos acaban en `null`, y hasta ahora los dos se contaban igual: «ese
+       * día el consultorio no da servicio». A un consultorio recién abierto eso
+       * le dice que no puede agendar el miércoles, cuando lo que pasa es que no
+       * ha declarado ningún horario todavía — y entonces NINGÚN día funciona.
+       * Se manda a la pantalla que lo arregla, en vez de dejarlo probando días.
+       */
+      const sinHorario = !cfgEfectiva?.horario || Object.keys(cfgEfectiva.horario).length === 0
+      return NextResponse.json({
+        error: sinHorario
+          ? 'El consultorio todavía no tiene horario configurado: decláralo en Configuración → Horario de atención.'
+          : 'Ese día el consultorio no da servicio',
+      }, { status: 409 })
     }
     const vh = validarHorarioDia(schedule.inicio, schedule.fin)
     if (!vh.valido || start < vh.startMin || end > vh.endMin) {
