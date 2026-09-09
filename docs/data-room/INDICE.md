@@ -1,7 +1,7 @@
 # Sala de datos — NexusMED
 
 **Formato**: §N3 del charter Master Loop V7.
-**Abierto**: 6-ago-2026. **Última verificación**: 6-ago-2026
+**Abierto**: 6-ago-2026. **Última verificación**: 9-sep-2026
 
 ---
 
@@ -112,8 +112,8 @@ rotación de credenciales.
 | | |
 |---|---|
 | Registro de peligros (§18) | `docs/clinical-safety/REGISTRO-DE-PELIGROS.md` — **10 peligros**, ninguno hipotético |
-| Registro de regresiones | `docs/audit/regression-ledger.md` — **440 REG** con causa raíz |
-| Invariantes sellados | **587 archivos, 7960 casos** que no pueden encoger |
+| Registro de regresiones | `docs/audit/regression-ledger.md` — **443 REG** con causa raíz |
+| Invariantes sellados | **588 archivos, 7965 casos** que no pueden encoger |
 | Suite completa | **10 431 pruebas** en verde, en CI |
 
 ⬜ **Lo que NO hay**: estudio de validación clínica con pacientes reales,
@@ -164,10 +164,10 @@ producto.
 
 ## 8 · Historial de incidentes
 
-✅ El `regression-ledger` **es** el historial: 440 defectos con su causa raíz, su
+✅ El `regression-ledger` **es** el historial: 443 defectos con su causa raíz, su
 reparación y su prueba de regresión permanente.
 
-**Es un activo, no un pasivo.** Un comprador que ve 440 defectos documentados con
+**Es un activo, no un pasivo.** Un comprador que ve 443 defectos documentados con
 su causa raíz aprende más del rigor del equipo que uno que ve una lista vacía —
 que sólo significa que nadie los estaba buscando.
 

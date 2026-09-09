@@ -62,3 +62,6 @@ export const POR_QUE_LISTA_BLANCA =
   'Porque con lista negra cada estado nuevo del producto nace tocable por el ' +
   'paciente y hay que acordarse de prohibirlo — y quien añade un estado está ' +
   'pensando en otra cosa. Con lista blanca nace protegido.'
+
+/** Plazo decidido por el dueño: después, el cambio se solicita al consultorio. */
+export const HORAS_CAMBIO_PACIENTE = 12

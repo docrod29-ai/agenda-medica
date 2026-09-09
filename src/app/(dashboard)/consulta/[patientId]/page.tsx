@@ -2703,7 +2703,7 @@ export default function ConsultaActivaPage() {
     // Una nota firmada es inmutable. El atajo de teclado no comprobaba esto y
     // reescribía en pantalla el contenido de una nota ya firmada: lo que se veía
     // dejaba de coincidir con lo almacenado y con lo que se entregó al paciente.
-    if (firmadaRef.current) return
+    if (firmadaRef.current || descartadaRef.current) return
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
     const enVivo = opts?.enVivo === true
@@ -2767,6 +2767,11 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
+      // La respuesta puede llegar tras descartar o firmar mientras esperaba la red.
+      if (descartadaRef.current || firmadaRef.current) {
+        if (!enVivo && !descartadaRef.current) setTareaProc({ ejecutando: false })
+        return
+      }
       if (!data) { if (!enVivo) { toast(comoSeDegrada('ia_respuesta_ilegible').mensaje, 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
         if (!enVivo) {
@@ -3033,7 +3038,7 @@ export default function ConsultaActivaPage() {
         setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts, notaId: notaIdRef.current } })
       }
     } catch {
-      if (!enVivo) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
+      if (!enVivo && !descartadaRef.current) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
     } finally {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
@@ -3083,7 +3088,7 @@ export default function ConsultaActivaPage() {
      *     los medicamentos de la consulta ANTERIOR dentro de la nota nueva y
      *     vacía. Sin más aviso que un toast que sonaba a buena noticia.
      */
-    if (firmadaRef.current) return
+    if (firmadaRef.current || descartadaRef.current) return
     if ((r.notaId ?? null) !== (notaIdRef.current ?? null)) {
       setTareaProc({ ejecutando: false })   // era de otra nota: se descarta
       return
@@ -3671,6 +3676,7 @@ export default function ConsultaActivaPage() {
        * consulta.
        */
       descartadaRef.current = true
+      setTareaProc({ ejecutando: false })
       if (clinicId && idReal) {
         await deleteNota(clinicId, patientId, idReal)
       }
@@ -3697,7 +3703,7 @@ export default function ConsultaActivaPage() {
     // respaldoKey depende del episodio (internamientoActivo); si se omitía, al
     // cambiar de episodio el callback conservaba la llave VIEJA y borraba el
     // respaldo del episodio equivocado (dejando el actual vivo, y viceversa).
-  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA])
+  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA, setTareaProc])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   // La función real se guarda en un ref que se refresca en CADA render con los

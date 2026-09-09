@@ -186,3 +186,45 @@ describe('LA RUTA LO USA, Y LO DICE', () => {
     expect(POR_QUE_IMPORTA_AUNQUE_EL_SELLO_YA_LO_VEA).toMatch(/dejara de parecerlo/)
   })
 })
+
+/** REG-658: una cita textual válida no resuelve una duda de dosis.
+ * Descubierto auditando la síntesis premium; no evalúa exactitud del ASR.
+ * El sintetizador no es una confirmación del médico. */
+describe('la síntesis no resuelve las dudas del borrador', () => {
+  it('conserva revisión y conflictos aunque la cita siga siendo textual', () => {
+    const source_quote = 'prednisona cinco o cincuenta miligramos'
+    const base = {
+      extraction: { medicamentos: [{ nombre: 'prednisona', source_quote, needs_review: true, reason: 'Aclarar dosis' }] },
+      safety: { conflicts_detected: ['Dosis ambigua'], missing_critical_fields: ['dosis confirmada'] },
+    }
+    const fusion = {
+      extraction: { medicamentos: [{ nombre: 'prednisona', source_quote, needs_review: false, reason: '' }] },
+      safety: { conflicts_detected: [], missing_critical_fields: [] },
+    }
+    const r = revalidarCitas(fusion, base, source_quote)
+    expect(r.nota.extraction.medicamentos[0].needs_review).toBe(true)
+    expect(r.nota.extraction.medicamentos[0].reason).toContain('Aclarar dosis')
+    expect(r.nota.safety.conflicts_detected).toContain('Dosis ambigua')
+    expect(r.nota.safety.missing_critical_fields).toContain('dosis confirmada')
+  })
+  it('la duda acompaña a su cita cuando cambia el orden de los elementos', () => {
+    const a = { source_quote: 'prednisona cinco o cincuenta miligramos', needs_review: true, reason: 'Aclarar dosis' }
+    const b = { source_quote: 'refiere dolor abdominal', needs_review: false, reason: '' }
+    const base = { medicamentos: [a, b] }
+    const fusion = { medicamentos: [b, { ...a, needs_review: false, reason: '' }] }
+    const r = revalidarCitas(fusion, base, a.source_quote + '. ' + b.source_quote)
+    expect(r.nota.medicamentos[0].needs_review).toBe(false)
+    expect(r.nota.medicamentos[1].needs_review).toBe(true)
+  })
+})
+
+it('una frase compartida no confunde la revisión de dos medicamentos', () => {
+  const source_quote = 'losartán habitual y prednisona cinco o cincuenta miligramos'
+  const base = { medicamentos: [
+    { nombre: 'losartán', source_quote, needs_review: false },
+    { nombre: 'prednisona', source_quote, needs_review: true },
+  ] }
+  const fusion = { medicamentos: base.medicamentos.map(m => ({ ...m, needs_review: false })) }
+  const r = revalidarCitas(fusion, base, source_quote)
+  expect(r.nota.medicamentos.map(m => m.needs_review)).toEqual([false, true])
+})

@@ -25764,3 +25764,39 @@ La aritmética, que vivía suelta en **tres** sitios y ya se había desincroniza
 El golden de REG-653 «ningún hueco empieza antes de que acabe el anterior» se **revisa, no se borra**: era un proxy del rumbo de verdad —«el paso es la duración»— que sólo valía mientras la lista fuera sólo la rejilla, y el ancla del cierre lo leía como el defecto que vigila. Pasa a sellar que la rejilla avanza **exactamente** la duración y que el único inicio ajeno a ella es el ancla del cierre, que termina clavado en la hora de cerrar. Dicho así, un paso más fino no puede colarse escondido entre las anclas: sella más, no menos.
 
 **Qué NO cubre.** Ni el inicio ni el final de un **bloqueo** anclan, por la razón que REG-654 ya declaró: `TimeBlock` guarda instantes que pueden venir en absoluto o en hora de pared y pasarlos a minutos del día pide la zona del consultorio. Se deja fuera a propósito en vez de hacerlo a medias, y esa hora se pide a mano. Tampoco se toca el **paso** ni se devuelve la vida a `intervaloMinutos`: revertir REG-653 es una decisión del dueño, no de esta reparación. Sigue sin haber **arrastrar ni redimensionar** citas en el calendario —no existían antes y no se añaden aquí— y el bot sigue **sin interpretar una hora escrita en lenguaje libre** («¿a las 4:20?»): es un menú numerado, y que no invente horarios está garantizado por construcción, no por prompt.
+
+
+## REG-656 — cancelación con el mismo plazo en portal y WhatsApp
+
+**Origen:** entrevista del dueño: cambios autónomos hasta 12 horas antes. Portal
+usaba 24 h y WhatsApp 0 h sin configuración. El SÍ a cancelar y NO al
+recordatorio tampoco revalidaban el plazo al ejecutar.
+**Cambio:** constante compartida de 12 h, validación al confirmar cancelación.
+Después del plazo se conserva la cita y se remite al consultorio.
+**Prueba permanente:** `src/__tests__/cancelacion-doce-horas.test.ts`.
+Dos casos fallaron antes y pasan después. No prueba Meta ni Firestore real.
+**Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-657 — respuesta IA posterior al descarte
+
+**Origen:** auditoría tras reporte de contaminación de notas. La tarea persistía
+al descartar y la respuesta terminaba etiquetada con notaId null, recuperable en
+otra consulta del mismo paciente. No demuestra mezcla entre personas distintas.
+**Cambio:** invalidar tarea al descartar y comprobar descarte/firma tras la red,
+antes de aplicar contenido. Al firmar, finalizar también la tarea pendiente.
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Callback real con respuesta diferida: falló antes al aplicar el marcador de la
+consulta descartada. No sustituye prueba de navegación de extremo a extremo.
+**Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-658 — la fusión no resuelve una ambigüedad
+
+**Origen:** auditoría: cita válida con dosis ambigua conservada, pero síntesis
+borraba needs_review y conflictos del borrador de esta misma petición.
+**Cambio:** conservar revisión por fuente e identidad y unir conflictos/datos
+críticos faltantes; la resolución sigue correspondiendo al médico.
+**Prueba permanente:** `src/__tests__/citas-de-la-fusion.test.ts`.
+Dos casos fallaron antes: cita igual y elementos reordenados. Se añade cita
+compartida por dos medicamentos. No cubre elementos omitidos, citas cambiadas,
+ni conflictos exclusivos del segundo borrador GPT.
+**Estado:** corrección local; pendiente gate completo y publicación.

@@ -50,6 +50,7 @@ import { urgenciaDelMensaje, mensajeDeUrgencia, avisoDeUrgenciaAlConsultorio } f
 import { escalacionDelMensaje, mensajeDeEscalacion, avisoDeEscalacionAlConsultorio } from '@/lib/paciente/hay-que-escalar'
 import { citaYaAgendada, type IntentoDeCitaDelBot, type CitaEscrita } from '@/lib/whatsapp/cita-ya-agendada'
 import { sesionCaducada } from '@/lib/whatsapp/vigencia-sesion'
+import { HORAS_CAMBIO_PACIENTE } from '@/lib/portal/estados'
 import { respuestaAlRecordatorio } from '@/lib/whatsapp/respuesta-al-recordatorio'
 import { hablaDeMedicamentoOSintoma, textoDePreguntaEscalada, ORIGEN_PREGUNTA_WHATSAPP } from '@/lib/whatsapp/pregunta-clinica'
 import { textoDelEntrante, esMensajeSinTexto, textoSoloLeoTexto } from '@/lib/whatsapp/texto-del-entrante'
@@ -730,6 +731,21 @@ export async function handleMessage(from: string, body: string, clinicId: string
         // esto; el cron lo limpia, así que no puede quedarse pegada.
         const preguntaEraCancelar = estado === 'confirmando_cancelacion'
           || String(session?.datos?.cancelarSolo ?? '') === '1'
+        // Revalidar al recibir la respuesta: el plazo puede haber vencido desde
+        // que se ofreció cancelar. También cubre NO al recordatorio.
+        const quiereCancelar = preguntaEraCancelar ? esSi : esNo
+        if (tocable && quiereCancelar) {
+          const cita = { id: citaId, ...snap.data() } as CitaMinima
+          const tz = config?.zonaHoraria || TZ_DEFAULT
+          const { cancelables } = clasificarCitas([cita], Date.now(),
+            fh => instanteMX(fh.slice(0, 10), fh.slice(11, 16), tz).getTime(),
+            HORAS_CAMBIO_PACIENTE)
+          if (!cancelables.length) {
+            await send(from, mensajeBloqueada(HORAS_CAMBIO_PACIENTE, adminPhone))
+            await saveSession(clinicId, from, { estado: 'menu', datos: {} })
+            return
+          }
+        }
         if (!tocable) {
           await send(from, 'Esa cita ya no se puede cambiar por aquí. Llámanos al consultorio y te ayudamos. 🙌')
         } else if (preguntaEraCancelar) {
@@ -853,7 +869,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
    * buscar…» y no pasaba nada más hasta que volviera a escribir.
    */
   const buscarParaCancelar = async (): Promise<void> => {
-    const minHoras = Number((config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? 0)
+    const minHoras = HORAS_CAMBIO_PACIENTE
     const tz = config?.zonaHoraria || TZ_DEFAULT
     let citas: CitaMinima[] = []
     let falloLectura = false

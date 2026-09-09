@@ -138,7 +138,7 @@ trabajo interno se acabó.
 |---|---|---|
 | Trinquete de lint | **93** — sólo puede bajar | `node scripts/lint-trinquete.mjs` |
 | Casos declarados en el árbol | **13063** en 1097 archivos | `node scripts/agent-state/actualizar.mjs` |
-| Sellado clínico | **587 archivos · 7960 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
+| Sellado clínico | **588 archivos · 7965 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
 | Última reparación en el ledger | **REG-655** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |

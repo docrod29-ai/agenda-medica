@@ -102,7 +102,18 @@ export function revalidarCitas<T>(fusion: T, base: unknown, transcripcion: strin
   const anda = (nodo: unknown, gemelo: unknown): unknown => {
     if (Array.isArray(nodo)) {
       const g = Array.isArray(gemelo) ? gemelo : []
-      return nodo.map((x, i) => anda(x, g[i]))
+      return nodo.map((x, i) => {
+        // El sintetizador puede reordenar elementos. Una duda pertenece a su
+        // fuente, no al índice que ocupaba en el borrador.
+        const cita = esObj(x) && typeof x.source_quote === 'string' ? normaliza(x.source_quote) : ''
+        const candidatos = cita ? g.filter(y => esObj(y) && typeof y.source_quote === 'string' && normaliza(y.source_quote) === cita) as Obj[] : []
+        const identidad = esObj(x) ? ['nombre', 'descripcion'].find(k => typeof x[k] === 'string' && x[k]) : undefined
+        const mismos = identidad && esObj(x) ? candidatos.filter(y => y[identidad] === x[identidad]) : candidatos
+        const opciones = mismos.length ? mismos : candidatos
+        // Si la cita es compartida y no distingue el elemento, conservar duda.
+        const original = opciones.find(y => y.needs_review === true) ?? opciones[0]
+        return anda(x, original ?? g[i])
+      })
     }
     if (!esObj(nodo)) return nodo
 
@@ -139,10 +150,33 @@ export function revalidarCitas<T>(fusion: T, base: unknown, transcripcion: strin
     for (const [k, v] of Object.entries(nodo)) {
       salida[k] = anda(v, esObj(gemelo) ? (gemelo as Obj)[k] : undefined)
     }
+    // Una cita correcta prueba procedencia, no resuelve su ambigüedad.
+    // Sólo se hereda revisión de la MISMA fuente; jamás por posición de lista.
+    if (esObj(gemelo) && gemelo.needs_review === true
+      && typeof cita === 'string' && cita.trim()
+      && typeof gemelo.source_quote === 'string'
+      && normaliza(cita) === normaliza(gemelo.source_quote)) {
+      salida.needs_review = true
+      const motivos = [salida.reason, gemelo.reason].filter((v): v is string => typeof v === 'string' && !!v.trim())
+      salida.reason = [...new Set(motivos)].join(' · ')
+    }
     return salida
   }
 
-  return { nota: anda(fusion, base) as T, restaurados, descartadas, revisadas }
+  const nota = anda(fusion, base)
+  // La fusión no equivale a la resolución explícita del médico. Mantener los
+  // avisos detectados en esta misma pasada, aunque la síntesis los omita.
+  if (esObj(nota) && esObj(base) && esObj(base.safety)) {
+    const safety: Obj = esObj(nota.safety) ? { ...nota.safety } : {}
+    for (const clave of ['conflicts_detected', 'missing_critical_fields']) {
+      const anteriores = base.safety[clave]
+      if (Array.isArray(anteriores) && anteriores.length) {
+        safety[clave] = [...new Set([...(Array.isArray(safety[clave]) ? safety[clave] as unknown[] : []), ...anteriores])]
+      }
+    }
+    if (Object.keys(safety).length) nota.safety = safety
+  }
+  return { nota: nota as T, restaurados, descartadas, revisadas }
 }
 
 export const POR_QUE_NO_SE_BUSCA_LA_FRASE_PARECIDA =

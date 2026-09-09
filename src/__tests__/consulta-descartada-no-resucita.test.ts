@@ -27,7 +27,7 @@
  * —«la consulta descartada reaparecía completa […] y se recreaba sola en
  * Firestore al autoguardarse»—.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -91,5 +91,52 @@ describe('LO QUE SIGUE FUNCIONANDO', () => {
     expect(cuerpo).toContain('localStorage.removeItem(respaldoKey)')
     expect(cuerpo).toContain('borradorMem.borrar(respaldoKey)')
     expect(cuerpo).toContain('audio.descartarRecovery(')
+  })
+})
+
+/** REG-657: ejecutar el callback real con red diferida. No monta el navegador
+ * ni demuestra mezcla entre personas: verifica que descartar durante el fetch
+ * impide publicar el resumen de ese encuentro. */
+describe('una respuesta IA tardía no resucita el encuentro descartado', () => {
+  it.each(['descartar', 'firmar'])('no aplica datos tras %s durante la petición', async accion => {
+    const ts = await import('typescript')
+    const inicio = consulta.indexOf('const procesarIA = useCallback(')
+    const fuente = ts.createSourceFile('callback.tsx', consulta.slice(inicio), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+    const declaracion = fuente.statements[0] as import('typescript').VariableStatement
+    const llamada = declaracion.declarationList.declarations[0].initializer as import('typescript').CallExpression
+    const funcion = llamada.arguments[0].getText(fuente)
+    const js = ts.transpileModule('const callback = ' + funcion, {
+      compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.None },
+    }).outputText
+    let resolver!: (value: unknown) => void
+    const pendiente = new Promise(resolve => { resolver = resolve })
+    const descartadaRef = { current: false }, firmadaRef = { current: false }
+    const setResumen = vi.fn(), setTareaProc = vi.fn(), toast = vi.fn()
+    const fetchAutenticado = vi.fn(() => pendiente)
+    const conocidos: Record<string, unknown> = {
+      firmadaRef, descartadaRef,
+      voz: { transcripcion: 'Consulta sintética A' }, vivoRef: { current: false },
+      tipo: 'seguimiento', baseTranscripcionRef: { current: '' },
+      textoParaLaIA: () => 'Consulta sintética A', motorEfectivo: 'maxima',
+      patient: {}, ultimasNotasRef: { current: [] }, especialidadEfectiva: '', config: {},
+      fetchAutenticado, toast, JSON, Date, Object, Array, String,
+      comoSeDegrada: () => ({ mensaje: "Error sintético" }),
+      setResumen, setTareaProc, sanitizarProsa: (s: string) => s,
+    }
+    const scope = new Proxy(conocidos, {
+      has: () => true,
+      get: (obj, key) => key === Symbol.unscopables ? undefined : obj[String(key)] ?? vi.fn(),
+    })
+    const ejecutar = new Function('scope', 'with (scope) { ' + js + '; return callback; }')(scope)
+    const trabajo = ejecutar()
+    if (accion === 'descartar') descartadaRef.current = true
+    else firmadaRef.current = true
+    resolver({ json: async () => ({ ok: true, resumenEjecutivo: 'MARCADOR_ENCUENTRO_DESCARTADO' }) })
+    await trabajo
+    expect(fetchAutenticado).toHaveBeenCalledOnce()
+    expect(toast).not.toHaveBeenCalled()
+    if (accion === 'firmar') expect(setTareaProc).toHaveBeenLastCalledWith({ ejecutando: false })
+    expect(setResumen).not.toHaveBeenCalled()
+    expect(setTareaProc.mock.calls.some(([v]) => v?.resultado)).toBe(false)
   })
 })
