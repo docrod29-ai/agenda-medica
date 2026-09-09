@@ -3529,6 +3529,8 @@ export default function ConsultaActivaPage() {
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
+      // REG-664: pudo descartarse mientras esperaba otro autoguardado.
+      if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
         const nota = construirNota('borrador')
@@ -3654,13 +3656,17 @@ export default function ConsultaActivaPage() {
       // notaIdRef y NO el estado: si un autoguardado acaba de crear la nota, el
       // estado todavía no se re-renderizó y se saltaba el borrado, dejando una
       // nota huérfana en el expediente. firmar() ya usaba la ref por esto mismo.
-      const idReal = notaIdRef.current ?? notaId
       /**
        * Se marca ANTES de borrar, no después: entre el borrado y la navegación
        * cabe un autoguardado de la cadena, y ése es justo el que resucitaría la
        * consulta.
        */
       descartadaRef.current = true
+      // Una creación en vuelo puede obtener su id después de pulsar descartar.
+      await cadenaGuardadoRef.current
+      // El finally del guardado anterior pudo liberar el indicador.
+      setGuardando(true)
+      const idReal = notaIdRef.current ?? notaId
       setTareaProc({ ejecutando: false })
       if (clinicId && idReal) {
         await deleteNota(clinicId, patientId, idReal)
@@ -4639,6 +4645,7 @@ export default function ConsultaActivaPage() {
         setNotaId(nuevo)
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
+      firmadaRef.current = true
       setFirmada(true)
       /**
        * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — LA URL TIENE
@@ -4960,7 +4967,7 @@ export default function ConsultaActivaPage() {
   // el cambio pedido. Guarda un snapshot para poder deshacer.
   const corregirConIA = async () => {
     const instr = instruccionCorr.trim()
-    if (!instr || corrigiendo || firmada) return
+    if (!instr || corrigiendo || firmada || firmadaRef.current || descartadaRef.current) return
     setChatCorr(c => [...c, { rol: 'user', texto: instr }])
     setInstruccionCorr('')
     setCorrigiendo(true)
@@ -4985,6 +4992,8 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({ nota, instruccion: instr, contexto: { edad: patient?.edad, sexo: patient?.sexo } }),
       })
       const data = await res.json().catch(() => null)
+      // REG-663: el cierre pudo ocurrir durante fetch o durante la lectura del cuerpo.
+      if (firmadaRef.current || descartadaRef.current) return
       if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
       // Aplicar la nota corregida.
       if (typeof data.resumenEjecutivo === 'string') setResumen(sanitizarProsa(data.resumenEjecutivo))
@@ -5030,11 +5039,12 @@ export default function ConsultaActivaPage() {
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
       if (aviso) setChatCorr(c => [...c, { rol: 'ia', texto: `⚠ ${aviso}` }])
     } catch {
+      if (firmadaRef.current || descartadaRef.current) return
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
     } finally { setCorrigiendo(false) }
   }
   const deshacerCorreccion = () => {
-    if (!snapshotUndo) return
+    if (!snapshotUndo || firmadaRef.current || descartadaRef.current) return
     setResumen(snapshotUndo.resumen); setSecciones(snapshotUndo.secciones)
     setDiagnosticos(snapshotUndo.diagnosticos); setMedicamentos(snapshotUndo.medicamentos); setSignos(snapshotUndo.signos)
     setSnapshotUndo(null)

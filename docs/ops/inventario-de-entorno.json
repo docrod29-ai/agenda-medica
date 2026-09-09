@@ -1,6 +1,6 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
-  "generado": "2026-09-06",
+  "generado": "2026-09-09",
   "total": 130,
   "variables": [
     {
@@ -515,6 +515,7 @@
       "defectoLiteral": null,
       "defectoDe": null,
       "archivos": [
+        "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
         "src/app/api/cron/asientos/route.ts",
         "src/app/api/cron/limpiar-audio/route.ts",
         "src/app/api/cron/reminders/route.ts",

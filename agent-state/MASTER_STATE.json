@@ -23,16 +23,25 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
+    "M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/design/capturas/v15-estado-de-accion/pendientes--desktop.png",
+    " M docs/ops/inventario-de-entorno.json",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/demo-sandbox.test.ts",
-    " M src/app/demo/interactivo/page.tsx",
+    " M src/__tests__/consulta-descartada-no-resucita.test.ts",
+    " M src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/api/cron/reminders/route.ts",
+    " M src/app/api/whatsapp/webhook/route.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/demo-sandbox.ts"
+    " M src/lib/whatsapp/ofrecer-hueco.ts"
   ],
-  "actualizado": "2026-09-08",
+  "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -66,10 +75,10 @@
   ],
   "ramaActual": "codex/ausculta-revision-visual",
   "derivado": {
-    "regsEnElLedger": 446,
-    "ultimaREG": "REG-661",
+    "regsEnElLedger": 449,
+    "ultimaREG": "REG-664",
     "archivosDePrueba": 1100,
-    "casosDePrueba": 13087,
+    "casosDePrueba": 13093,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1191"

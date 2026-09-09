@@ -1525,7 +1525,13 @@ export async function handleMessage(from: string, body: string, clinicId: string
        * tener médico cuenta como ocupada para TODOS — tapaba el hueco a los demás.
        * Una cita que existe, que nadie ve, y que estorba.
        */
-      const duracion = 30
+      // REG-662: el intervalo que se ofreció también gobierna el solape y la
+      // cita escrita. Las sesiones anteriores sin duración conservan 30 min.
+      const duracion = Number(datos.slotDuracion ?? 30)
+      if (!Number.isFinite(duracion) || duracion <= 0) {
+        await send(from, 'No pudimos verificar la duración de este horario. Contacte al consultorio para confirmar la cita.')
+        return
+      }
       const now = new Date().toISOString()
       // El médico del HUECO liberado (guardado en la sesión por waitlist-notify), no
       // el primer doctor activo. Antes se agendaba con el médico equivocado → la cita

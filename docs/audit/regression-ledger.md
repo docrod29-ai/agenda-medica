@@ -25873,3 +25873,58 @@ con guardián de fidelidad reforzado. Antes: 1 falla / 5 pasan. Después: 6 pasa
 
 **Qué NO cubre:** IA, voz real, expediente privado, firma de producción,
 recomendaciones de otros módulos de la demo ni validación móvil.
+
+## REG-662 — la oferta de espera pierde duración y médico al reservar o reenviar
+
+**Descubrimiento:** auditoría del flujo real ofrecer → WhatsApp → aceptación,
+9-sep-2026, con Firestore y proveedor en memoria. Una oferta de 45 minutos se
+reservaba como 30 y permitía invadir una cita a los 30 minutos. La reconstrucción
+de sesión por el cron omitía médico y duración. Además, desactivar los avisos
+periódicos detenía la bandeja de reintentos completa.
+
+**Arreglo:** transportar duración en la sesión y su metadato de reintento;
+utilizarla en la comprobación transaccional de solape y en la cita. Una duración
+inválida bloquea la reserva; sesiones antiguas sin el campo conservan 30 minutos.
+El cron conserva médico, duración y fecha de contacto, y procesa reintentos
+independientemente de los interruptores de recordatorios.
+
+**Prueba permanente:** `src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts`.
+Antes: 4 casos de duración fallaban; el caso adicional de reintento también
+reprodujo la detención del envío. Después: 21 casos pasan, con intervalos
+sintéticos de 15, 45 y 90 minutos, solape y reenvío hasta aceptación.
+
+**Qué NO cubre:** proveedor real, entrega externa, carga ni distribución a todos
+los compatibles. El límite vigente de tres ofertas por llamada sigue pendiente.
+
+## REG-663 — una corrección IA tardía modifica el encuentro cerrado
+
+**Descubrimiento:** auditoría del callback `corregirConIA`, reproducido con
+respuesta diferida. Sólo miraba el estado capturado antes de esperar la red.
+
+**Arreglo:** comprobar las referencias síncronas al iniciar, al recibir el cuerpo
+y al gestionar errores; impedir deshacer sobre un encuentro cerrado. La firma
+marca su referencia al confirmar la escritura, antes del siguiente render.
+
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Dos casos fallaban antes: respuesta tras firmar y tras descartar. Ambos pasan;
+el caso de consulta abierta sigue aplicando la corrección. Archivo: 14 casos.
+
+**Qué NO cubre:** mezcla entre pacientes, exactitud del modelo, red real ni
+navegación privada. No se modifica la política de firma.
+
+## REG-664 — un autoguardado pendiente recrea una consulta descartada
+
+**Descubrimiento:** auditoría de la cadena de guardados. Una tarea en cola no
+revalidaba descarte al ejecutarse; descartar leía el id antes de que terminara
+una creación pendiente.
+
+**Arreglo:** verificar cierre dentro de la cola, marcar descarte antes de
+esperar y leer el id después de terminar los guardados. Restaurar el indicador
+de operación tras la espera para mantener bloqueados los controles al borrar.
+
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Dos casos fallaban antes; después verifican que la cola no crea y que el descarte
+borra el id recién recibido. Los 14 casos del archivo pasan.
+
+**Qué NO cubre:** borrado rechazado, sesiones simultáneas en otros dispositivos
+ni recuperación de una escritura cuya respuesta de red se perdió.

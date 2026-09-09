@@ -145,7 +145,8 @@ export async function GET(req: NextRequest) {
          * la Ciudad de México, con 2 h de desfase.
          */
         const minMx = ahoraMinutosDelDia(tzClinica)
-        if (!config.recordatorio24h && !config.recordatorioMismoDia && !config.resenaAutomatica) continue
+        // REG-662: la bandeja de reintentos también contiene ofertas de espera.
+        // Desactivar recordatorios no debe detener esos envíos pendientes.
 
         // Config de plantillas HSM de la clínica (whatsapp.plantillas) para la
         // decisión texto vs. plantilla fuera de la ventana de 24 h (WA-1).
@@ -446,7 +447,7 @@ export async function GET(req: NextRequest) {
             // `esperando_lista` (el handler inline la crea, pero el drenado no): sin
             // ella el "SÍ" del paciente cae al menú y el hueco se pierde.
             const sesion = resultado === 'enviado' && e.clave === 'listaEspera'
-              ? (e.meta?.sesionListaEspera as { telefono?: string; nombre?: string; slotFecha?: string; slotHora?: string; tipo?: string; waitlistId?: string; pacienteId?: string } | undefined)
+              ? (e.meta?.sesionListaEspera as { telefono?: string; nombre?: string; slotFecha?: string; slotHora?: string; slotDuracion?: string; medicoId?: string; tipo?: string; waitlistId?: string; pacienteId?: string } | undefined)
               : undefined
             if (sesion?.telefono) {
               const nowIso = now.toISOString()
@@ -455,13 +456,14 @@ export async function GET(req: NextRequest) {
                 estado: 'esperando_lista',
                 datos: {
                   nombre: sesion.nombre || '', slotFecha: sesion.slotFecha || '', slotHora: sesion.slotHora || '',
+                  slotDuracion: sesion.slotDuracion ?? '30', medicoId: sesion.medicoId || '',
                   tipo: sesion.tipo || 'seguimiento', waitlistId: sesion.waitlistId || '', pacienteId: sesion.pacienteId || '',
                 },
                 lastMessageAt: nowIso, createdAt: nowIso,
               }, { merge: true }).catch(() => {})
               if (sesion.waitlistId) {
                 await adminDb.collection('clinics').doc(clinicId).collection('waitlist').doc(sesion.waitlistId)
-                  .update({ estado: 'contactado' }).catch(() => {})
+                  .update({ estado: 'contactado', contactadoEn: nowIso }).catch(() => {})
               }
             }
             await resolverEntrada(clinicId, e.id) // resuelto o inalcanzable por config → sacar de la cola

@@ -234,3 +234,36 @@ captura explícita y sigue abierto. No se promete preservación absoluta de edic
 - Prioridad siguiente: consulta privada de tres áreas y agenda, con los tokens
   existentes, capturas de escritorio/tableta/teléfono y datos sintéticos.
   Sin fusión ni publicación manual a producción. No se activan tareas periódicas.
+
+### Correcciones verificables de agenda y cierre de consulta — REG-662 a REG-664
+
+- Oferta de lista de espera: duración y médico sobreviven al envío inmediato,
+  al reintento y a la aceptación. El solape usa el intervalo ofrecido. El cron
+  ya no detiene la bandeja cuando están apagados los recordatorios periódicos.
+- Corrección manual de IA: una respuesta tardía no cambia el encuentro firmado
+  o descartado. Deshacer también respeta el cierre.
+- Descarte: la cola no recrea la nota y una creación en vuelo termina antes de
+  decidir qué id eliminar. Los controles siguen ocupados durante el borrado.
+- Reproducción: cuatro fallos de duración, uno de reintento y cuatro de cierre
+  se observaron antes del arreglo. Después pasan 35 casos dirigidos; revisión
+  independiente del cierre incorporada. Lint: 93, sin deuda nueva.
+- Los resultados finales de suite general, compilación y publicación quedan en
+  PR #478. El primer build compiló pero agotó heap en TypeScript; el segundo
+  usa NODE_OPTIONS=--max-old-space-size=8192 sólo en esta ejecución.
+- Product Design está disponible y sus guías ya fueron consultadas. Este lote
+  es de integridad de datos; no se presenta como rediseño visual terminado.
+- No se volvió a pedir al dueño entrar en el navegador: el relevo manual de la
+  sesión falló. Sigue pendiente la validación del flujo privado con una cuenta
+  sintética. No se accedió a pacientes reales ni se cambiaron secretos.
+- Pendiente del alcance solicitado: ofrecer el hueco a todos los compatibles
+  (actualmente tres por llamada), diseño privado validado en tres tamaños,
+  carga representativa de 100000 usuarios, operación/recuperación real y auditoría
+  de seguridad completa. No hay garantía de invulnerabilidad ni de cero fallos.
+- Se mantiene la PR en borrador. Sin fusión a main ni despliegue a producción.
+
+Validación final del lote: 1099 archivos y 14527 casos pasan; un archivo/caso
+preexistente omitido. Los cuatro fallos iniciales de documentación derivada se
+corrigieron y se repitió la suite completa. Build exit 0 con 8 GB de heap y los
+placeholders sintéticos de Firebase declarados en ci.yml; sin credenciales reales.
+Trinquete de diseño sin deuda nueva; diff sin errores de formato. Estos gates
+no acreditan capacidad de 100000 usuarios ni prueban la interfaz autenticada.
