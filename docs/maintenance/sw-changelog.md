@@ -3,6 +3,58 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1191 — el RCE sin autenticar de Next, y las dos `high` que lo acompañaban
+
+**3 archivos · 0 código de producto · 0 pantallas nuevas · `firestore.rules` NO
+cambia · `firestore.indexes.json` NO cambia.**
+
+### Qué encontró la compuerta
+
+`clinical-safety` y `verificar` se pusieron en rojo sobre `main` —no sobre una
+rama— con `la-cifra-de-seguridad-no-se-pudre`. `npm audit --omit=dev`, que es la
+rama que se sirve a los PACIENTES y no las herramientas de desarrollo, decía:
+
+    { total: 14, critical: 1, high: 2 }
+
+mientras `docs/seguridad/ESTADO-DEPENDENCIAS.md` seguía prometiendo cero `high` y
+cero `critical`. El documento no estaba viejo en el sentido inofensivo: la
+realidad había empeorado y él no se había enterado.
+
+| Severidad | Paquete | Aviso |
+|---|---|---|
+| CRITICAL | `next` 16.2.12 | Ejecución remota de código **sin autenticar** (API de optimización de imágenes) |
+| HIGH | `sharp` 0.35.3 | libheif — GHSA-g89c-p67h-r497, GHSA-2jg2-4ch7-h545 |
+| HIGH | `@xmldom/xmldom` 0.9.10 | Inyección de fragmento XML vía `EntityReference.nodeName` |
+
+### Qué NO se hizo
+
+El error del test sugiere `node scripts/seguridad/auditar.mjs`, y correrlo de
+primeras habría puesto una de las dos aserciones en verde. **No se hizo así.** La
+otra aserción —«CERO high y CERO critical en lo que se sirve a los pacientes»—
+mide la realidad, no el documento, y habría seguido roja. Con un RCE sin
+autenticar, actualizar la cifra sin tocar la causa es el «verde que no dice nada».
+El documento se regeneró AL FINAL, cuando ya era cierto.
+
+### Qué cambia
+
+`next` 16.2.12 → **16.3.4** (parche dentro del mismo major, no un salto mayor).
+
+Las otras dos no las arreglaba el bump porque estaban **fijadas por `overrides`**
+en `package.json`: `sharp` en `^0.35.3` y `@xmldom/xmldom` heredado por
+`@capacitor/cli` → `plist`. Los pines suben a `^0.35.4` y `^0.9.12`. Un override
+que fija una versión vulnerable no es una excepción: es la vulnerabilidad
+declarada como política, y por eso había que tocarlo a mano.
+
+Rama de producción después: **11 · 0 high · 0 critical**. Las que quedan son
+moderate y ya estaban declaradas.
+
+### Lo que esto NO demuestra
+
+Que las 3 `high` del árbol COMPLETO desaparezcan: siguen ahí y siguen viviendo en
+herramientas de desarrollo, que no se sirven. Y que la pantalla se vea bien con
+el framework nuevo: se comprobó que compila (168 páginas) y que las 14 473
+pruebas pasan, no se abrió un navegador.
+
 ## v1190 — la jornada deja de perder su último cuarto de hora
 
 **8 archivos de producto · 4 goldens nuevos · 1 golden revisado · 0 pantallas
