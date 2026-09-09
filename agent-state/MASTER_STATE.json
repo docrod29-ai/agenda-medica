@@ -23,19 +23,16 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
-    " M docs/audit/regression-ledger.md",
-    " M src/__tests__/consultorio-diagnostico-cie-anti-inflacion.test.ts",
-    " M src/__tests__/los-diagnosticos-no-se-acumulan.test.ts",
-    " M src/__tests__/que-va-en-la-receta.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    "M docs/audit/regression-ledger.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/demo-sandbox.test.ts",
+    " M src/app/demo/interactivo/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/fusionar-diagnosticos.ts",
-    " M src/lib/expediente/que-va-en-la-receta.ts",
-    "?? src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts"
+    " M src/lib/demo-sandbox.ts"
   ],
-  "actualizado": "2026-09-09",
+  "actualizado": "2026-09-08",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -67,10 +64,10 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "codex/ausculta-consulta-agenda",
+  "ramaActual": "codex/ausculta-revision-visual",
   "derivado": {
-    "regsEnElLedger": 445,
-    "ultimaREG": "REG-660",
+    "regsEnElLedger": 446,
+    "ultimaREG": "REG-661",
     "archivosDePrueba": 1100,
     "casosDePrueba": 13087,
     "lint": "ver scripts/lint-trinquete.mjs"

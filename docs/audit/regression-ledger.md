@@ -25850,3 +25850,26 @@ médico sí conserva su marca de autoridad.
 
 **Estado:** reparación y pruebas dirigidas completas; gates generales y resultado
 del commit publicado se registran en el PR #478.
+
+
+## REG-661 — la demo añade datos ausentes del dictado
+
+**Descubrimiento:** revisión en navegador de la vista previa de PR #478,
+commit 0b3c51e, el 9-sep-2026. Al recorrer cita → dictado → nota, el caso de
+HTA añadía disnea negada y posología no dictada. La revisión independiente
+confirmó el mismo problema en el segundo guion y estudios comunes inventados.
+
+**Causa:** transcripción, nota y receta preescritas por separado, sin control de
+fidelidad. No es evidencia de una alucinación del proveedor: la demo no llama IA.
+
+**Arreglo:** conservar dictados; retirar negaciones, hallazgos, clasificaciones,
+esquemas y conductas no mencionados; conservar incertidumbre diagnóstica;
+marcar prescripción por confirmar con el médico. Sin estudios dictados se
+muestra ese estado. Los documentos son borradores no emitidos y el QR sólo una
+simulación, sin presentar el contenido como vigente.
+
+**Prueba permanente:** `src/__tests__/demo-sandbox.test.ts`, 6 casos existentes
+con guardián de fidelidad reforzado. Antes: 1 falla / 5 pasan. Después: 6 pasan.
+
+**Qué NO cubre:** IA, voz real, expediente privado, firma de producción,
+recomendaciones de otros módulos de la demo ni validación móvil.

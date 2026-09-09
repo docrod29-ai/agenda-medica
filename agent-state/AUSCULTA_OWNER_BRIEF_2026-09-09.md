@@ -206,3 +206,31 @@ Límites pendientes: procedencia tras remontar, navegación real y contaminació
 entre personas. Un medicamento editado que coincida con una salida IA posterior
 puede volver a atribuirse a IA y retirarse en otro pase: requiere identidad de
 captura explícita y sigue abierto. No se promete preservación absoluta de ediciones.
+
+
+### Revisión de navegador y REG-661 — 9 septiembre 2026
+
+- Acceso Vercel recuperado. Se revisó la vista previa exacta de PR478 (0b3c51e),
+  no la vista más reciente de la rama concurrente de agenda de Claude.
+- Navegador: portada, demo, cita ficticia, dictado simulado, nota y login. La
+  consulta privada requiere sesión de Ausculta con datos sintéticos; no se
+  accedió a pacientes reales. El acceso a Vercel no autentica en Firebase.
+- REG-661: la demo preescrita inventaba negaciones, posología y estudios.
+  Se conservan dictados, se retiran añadidos de ambos casos y se muestran los
+  faltantes. Receta/orden son borradores no emitidos; QR es simulación explícita.
+- Revisión independiente de los dos archivos de producto completada. Test
+  reforzado: antes 1 falla/5 pasan; después 6/6. Lint 93, sin deuda nueva;
+  trinquete de diseño al mismo techo. Compilación inicial exit 0. Recompilación
+  tras ajuste menor de texto/estilos: caché Turbopack falló, se apartó sólo esa
+  caché generada; siguiente intento bloqueado por acceso a fonts.googleapis.com.
+  No se cambian fuentes ni configuración de seguridad para sortearlo.
+- Suite general ejecutada; resultados finales y revalidación de derivados se
+  registran en la PR. No se declara verde antes de comprobarlo. La revisión
+  visual de la corrección publicada sigue pendiente en este checkpoint.
+- El dueño pide aprovechar los complementos de diseño mostrados y conectó
+  Product Design. Se confirma instalado/habilitado. Figma figura instalado.
+  En este punto las acciones/instrucciones de Product Design y herramientas de
+  Figma aún no se exponen al agente. No se afirma haber creado un diseño allí.
+- Prioridad siguiente: consulta privada de tres áreas y agenda, con los tokens
+  existentes, capturas de escritorio/tableta/teléfono y datos sintéticos.
+  Sin fusión ni publicación manual a producción. No se activan tareas periódicas.

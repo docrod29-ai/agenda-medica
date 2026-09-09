@@ -91,7 +91,7 @@
 | `/arquitectura` | publica | — | 131 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 83 | 1 | — | ✅ | — |
 | `/demo` | publica | — | 510 | 4 | — | ✅ | — |
-| `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
+| `/demo/interactivo` | publica | ✅ | 766 | 2 | — | ✅ | — |
 | `/demo/razonamiento` | publica | ✅ | 158 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 94 | 0 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
