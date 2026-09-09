@@ -25767,7 +25767,7 @@ El golden de REG-653 «ningún hueco empieza antes de que acabe el anterior» se
 
 ---
 
-## REG-656 — Arrastrar una cita para moverla, y lo que sólo se vio abriendo el navegador
+## REG-662 — Arrastrar una cita para moverla, y lo que sólo se vio abriendo el navegador
 
 **Área**: Agenda / experiencia del médico (P2) · **Hallazgo(s) de la auditoría**: acta de agenda del dueño, mover una cita · **Estado**: CLOSED
 
@@ -25795,7 +25795,7 @@ El teclado va desde el primer minuto, no «después»: flechas ±5 min, Shift ±
 
 ---
 
-## REG-657 — Un consultorio sin horario devolvía 500 con el cuerpo vacío, y ninguna cita podía crearse
+## REG-663 — Un consultorio sin horario devolvía 500 con el cuerpo vacío, y ninguna cita podía crearse
 
 **Área**: Agenda / servidor (P1) · **Hallazgo(s) de la auditoría**: arnés visual del arrastre · **Estado**: CLOSED
 

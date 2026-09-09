@@ -1098,7 +1098,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * motor, caso por caso, en vez de por dónde había ido el arreglo anterior.
      */
     /**
-     * 656: la cuarta vuelta de la misma zona, y la primera que se cierra
+     * 662: la cuarta vuelta de la misma zona, y la primera que se cierra
      * MIRANDO la pantalla en vez de leyéndola. Mover una cita eran cuatro
      * clics con otro paciente enfrente; se hizo arrastrable, y el arrastre
      * traía dentro un defecto que ningún diff enseña: `stopPropagation` sobre
@@ -1108,7 +1108,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro —14 510 pruebas en verde—, intolerable por fuera, que es la forma
      * exacta de esta familia. Se cazó levantando el arnés visual y arrastrando.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 656],
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 662],
   },
   {
     clave: 'perdida',
@@ -1220,7 +1220,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * del otro lado no haya nadie que pueda decir que sí.
      */
     /**
-     * 657 es esta familia en su forma más pobre: el sistema no culpó a otra
+     * 663 es esta familia en su forma más pobre: el sistema no culpó a otra
      * cosa, no dijo NADA. Un `config` sin `horario` hacía lanzar a
      * `getDaySchedule`, y la llamada vive fuera de todo `try`: 500 con el
      * cuerpo vacío. La pantalla enseña el mensaje del servidor y, al no haber
@@ -1231,7 +1231,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * distinga «no hay horario» de «ese día no se abre», que son dos cosas
      * distintas y mandan a sitios distintos.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 657],
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663],
   },
   {
     clave: 'decision_del_dueno',

@@ -23,20 +23,8 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M AGENTS.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/ops/inventario-de-entorno.json",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M package.json",
-    " M scripts/design/sembrar-emulador.mjs",
-    " M src/app/(dashboard)/calendario/page.tsx",
-    " M src/app/api/appointments/route.ts",
-    " M src/lib/availability.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
-    "?? src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts"
+    "M docs/audit/regression-ledger.md",
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -73,7 +61,7 @@
   "ramaActual": "claude/ausculta-scheduling-audit-ev7hua",
   "derivado": {
     "regsEnElLedger": 442,
-    "ultimaREG": "REG-657",
+    "ultimaREG": "REG-663",
     "archivosDePrueba": 1100,
     "casosDePrueba": 13100,
     "lint": "ver scripts/lint-trinquete.mjs"
