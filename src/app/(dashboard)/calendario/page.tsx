@@ -788,6 +788,31 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                        */
                       onPointerDown={e => {
                         if (e.button !== 0) return
+                        /**
+                         * CON EL DEDO NO SE ARRASTRA — y es una decisión, no un olvido.
+                         *
+                         * Medido en Chromium con un teléfono emulado: sin
+                         * `touch-action: none` el navegador se queda con el
+                         * desplazamiento vertical a los tres `pointermove` y manda
+                         * `pointercancel`. El gesto MUERE a medias: ni fantasma, ni
+                         * movimiento, ni aviso. Arrastrar una cita en el teléfono no
+                         * hacía nada, en silencio, que es la peor de las tres.
+                         *
+                         * Y la salida fácil —poner `touch-action: none` en el bloque—
+                         * se paga cara: el bloque deja de poder desplazar la rejilla,
+                         * así que en un teléfono de 393 px, donde las citas cubren
+                         * casi toda la columna del día, el médico se queda sin poder
+                         * bajar por su propia agenda con el dedo encima de ellas.
+                         *
+                         * Así que el arrastre se queda en ratón y lápiz, donde está
+                         * medido, y en táctil la cita se toca y se mueve por el modal
+                         * —que funciona en todas partes y es lo que se usa en el
+                         * teléfono—. Habilitarlo con el dedo pide un gesto propio
+                         * (mantener pulsado antes de arrastrar) y esa es una decisión
+                         * de diseño del dueño, no un efecto colateral de una línea de
+                         * CSS. Queda dicho en REG-662.
+                         */
+                        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
                         ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
                         movimiento.current = { id: a.id, y0: e.clientY, movio: false }
                         // Cada gesto empieza limpio: una marca que no llegó a

@@ -34,11 +34,19 @@
  *    se da servicio» son cosas distintas y se dicen distinto: la primera manda
  *    a la pantalla que lo arregla; la segunda, a otro día.
  *
+ * ── LA SEGUNDA VUELTA: EL TRAMO ENTERO, NO SÓLO ESTA EXCEPCIÓN ──────────────
+ *
+ * Arreglar `getDaySchedule` cierra la excepción que se midió. No cierra la
+ * FORMA del defecto: el tramo que valida día, horario, descansos y bloqueos
+ * seguía fuera de todo `try`, así que la siguiente excepción desconocida
+ * volvería a salir como 500 sin cuerpo. Ahora va dentro de un `try` que
+ * responde 500 **con motivo** y deja rastro con `safeLog`.
+ *
+ * El `catch` no responde 409 a propósito: un 409 afirmaría que se comprobó el
+ * horario y la cita no cabía, y eso sería mentira — no se pudo comprobar.
+ *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
- * · El resto del tramo sin `try` de la ruta: cualquier OTRA excepción entre la
- *   validación de campos y la transacción sigue saliendo como 500 sin cuerpo.
- *   Se deja anotado; cerrarlo es cambiar la forma de la ruta, no este defecto.
  * · La pantalla: que el mensaje del servidor se pinte lo comprueba el arnés
  *   `arrastrar-no-abre-la-cita`, en un navegador.
  * · No opina sobre qué horario debería tener un consultorio nuevo. Ausencia de
@@ -121,6 +129,49 @@ describe('El motor no lanza cuando falta el horario', () => {
       horario: { miercoles: { activo: true, inicio: '10:00', fin: '19:00' } },
     } as unknown as ClinicConfig
     expect(getDaySchedule(MIERCOLES, conHorario)).toMatchObject({ inicio: '10:00', fin: '19:00' })
+  })
+})
+
+describe('Una excepción desconocida tampoco sale muda', () => {
+  it('si falla la lectura de los bloqueos, la respuesta trae motivo y NO se escribe la cita', async () => {
+    // Se rompe una lectura que está DENTRO del tramo validador y que nada tiene
+    // que ver con el horario: es el caso «la próxima excepción, la que no
+    // conocemos». Sin el `try` esto sale como 500 con el cuerpo vacío.
+    store.poner(`clinics/${CLINICA}/config/main`, {
+      zonaHoraria: 'America/Mexico_City', diasFestivos: [], duraciones: {},
+      horario: { miercoles: { activo: true, inicio: '10:00', fin: '19:00' } },
+    })
+    const db = (tienda.actual as { db: { collection: (r: string) => unknown } }).db
+    const original = db.collection
+    db.collection = (ruta: string) => {
+      const col = original.call(db, ruta) as { get?: () => unknown }
+      if (ruta === 'clinics') {
+        const doc = (col as unknown as { doc: (id: string) => unknown }).doc.bind(col)
+        ;(col as unknown as { doc: (id: string) => unknown }).doc = (id: string) => {
+          const d = doc(id) as { collection: (n: string) => unknown }
+          const sub = d.collection.bind(d)
+          d.collection = (n: string) => {
+            const c = sub(n) as { get: () => Promise<unknown> }
+            if (n === 'time_blocks') return { ...c, get: async () => { throw new Error('lectura caída') } }
+            return c
+          }
+          return d
+        }
+      }
+      return col
+    }
+    try {
+      const res = await altaPanel({ clinicId: CLINICA, appointment: cita('11:00') })
+      expect(res.status).toBe(500)
+      const j = await res.json() as { error?: string }
+      // Lo que fallaba: `j` era `{}` y la pantalla caía en su frase de reserva.
+      expect(j.error).toBeTruthy()
+      expect(j.error).toMatch(/horario/i)
+      // Y no se agenda a ciegas: no haber podido validar no es haber validado.
+      expect(store.cuantos(`clinics/${CLINICA}/appointments`)).toBe(0)
+    } finally {
+      db.collection = original
+    }
   })
 })
 

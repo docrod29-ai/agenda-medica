@@ -30,17 +30,25 @@
  *     clic y abre la cita. Es lo que separa «no abre tras arrastrar» de «ya no
  *     abre nunca», que sería un defecto peor que el original.
  *
+ *  5. CON EL DEDO NO se arrastra, y la cita NO se mueve sola. Medido con un
+ *     teléfono emulado: sin `touch-action: none` el navegador se queda con el
+ *     desplazamiento a los tres `pointermove` y manda `pointercancel`, así que
+ *     el gesto moría a medias —ni fantasma, ni movimiento, ni aviso—. Ahora el
+ *     arrastre se declara de ratón y lápiz; en táctil se toca y se abre la cita,
+ *     que es lo que se usa en el teléfono.
+ *
  * QUÉ NO CUBRE
  * ────────────
- * · **Sólo Chromium.** No hay WebKit en este entorno: esto no prueba iPhone ni
- *   el gesto táctil real, que tiene su propio retardo de clic.
+ * · **Sólo Chromium**, también en el caso táctil: es un teléfono EMULADO, no un
+ *   iPhone. Prueba que el gesto no se queda a medias y que tocar sigue abriendo
+ *   la cita; no prueba Safari de iOS ni su retardo de clic.
  * · Sólo la vista de SEMANA. La de día y la de mes no arrastran hoy.
  * · No juzga a qué hora cae la cita: eso es aritmética y la sellan los goldens
  *   `arrastrar-una-cita-la-deja-pegada-a-la-anterior` y
  *   `el-raton-y-el-teclado-mueven-la-cita-al-mismo-sitio`.
  * · Deja la agenda sintética movida. Se resiembra antes de la siguiente medición.
  */
-import { chromium } from 'playwright'
+import { chromium, devices } from 'playwright'
 
 const CHROME = process.env.CHROME ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
 const BASE = process.env.BASE ?? 'http://localhost:3300'
@@ -124,6 +132,65 @@ await p.waitForTimeout(1500)
 await arrastrar(0, 2)
 caso(await hayDialogo(), 'un temblor de 2 px sigue siendo un clic y abre la cita')
 await cerrarSiAbierto()
+
+// ── 5 · con el dedo: ni se arrastra a medias, ni deja de abrirse ────────────
+{
+  const movil = await nav.newContext({ ...devices['Pixel 5'] })
+  const t = await movil.newPage()
+  await t.goto(BASE + '/login')
+  await t.fill('input[type=email]', 'demo@nexusmed.test')
+  await t.fill('input[type=password]', 'demo1234')
+  await t.click('button[type=submit]')
+  await t.waitForURL(/dashboard|citas|calendario/, { timeout: 30000 })
+  try { await t.getByRole('button', { name: 'Saltar', exact: true }).first().tap({ timeout: 6000 }) } catch { /* visto */ }
+  await t.goto(BASE + '/calendario')
+  try { await t.locator('button:visible', { hasText: /^Semana$/ }).first().tap({ timeout: 5000 }) } catch { /* ya está */ }
+  await t.waitForSelector('.nx-agenda-bloque', { timeout: 30000 })
+  await t.waitForTimeout(1500)
+
+  /*
+   * SE VIGILA CON UN OBSERVADOR, NO CON UNA FOTO.
+   *
+   * Mirar el fantasma DESPUÉS del gesto no distingue nada: el navegador acaba
+   * mandando `pointercancel` de todas formas y para entonces ya se ha borrado.
+   * Lo que separa el antes del después es que llegara a APARECER — un parpadeo
+   * de fantasma en tres `pointermove` y luego nada, que es el gesto muriéndose
+   * a medias. Comprobado a mano: sin el candado, `visto` sale `true`.
+   */
+  await t.evaluate(() => {
+    window.__vistoElFantasma = false
+    new MutationObserver(() => {
+      if ([...document.querySelectorAll('[aria-live="polite"]')]
+        .some(e => (e.textContent || '').includes('–'))) window.__vistoElFantasma = true
+    }).observe(document.body, { childList: true, subtree: true })
+  })
+  const antesTactil = await t.locator('.nx-agenda-bloque').first().getAttribute('title')
+  const c = await t.locator('.nx-agenda-bloque').first().boundingBox()
+  const x = Math.round(c.x + c.width / 2), y = Math.round(c.y + c.height / 2)
+  const cdp = await movil.newCDPSession(t)
+  const dedo = (tipo, yy) => cdp.send('Input.dispatchTouchEvent', {
+    type: tipo, touchPoints: tipo === 'touchEnd' ? [] : [{ x, y: yy }],
+  })
+  await dedo('touchStart', y)
+  for (const dy of [6, 14, 26, 40, 55, 70]) { await dedo('touchMove', y + dy); await t.waitForTimeout(60) }
+  await dedo('touchEnd', y + 70)
+  await t.waitForTimeout(2500)
+  const fantasmaTactil = await t.evaluate(() => window.__vistoElFantasma)
+  const despuesTactil = await t.locator('.nx-agenda-bloque').first().getAttribute('title')
+
+  caso(!fantasmaTactil, 'con el dedo NO se empieza un arrastre: el fantasma no llega a aparecer ni un instante')
+  caso(antesTactil === despuesTactil, `y la cita NO se mueve sola (${(antesTactil || '').slice(0, 34)})`)
+
+  // Y lo que sí tiene que seguir funcionando en el teléfono: tocar abre la cita.
+  await t.locator('.nx-agenda-bloque').first().tap()
+  await t.waitForTimeout(2000)
+  const abre = await t.evaluate(() => {
+    const d = document.querySelector('[role="dialog"][aria-modal="true"]')
+    return !!d && /Editar cita/.test(d.textContent || '')
+  })
+  caso(abre, 'tocar una cita en el teléfono SIGUE abriéndola')
+  await movil.close()
+}
 
 await nav.close()
 console.log(fallos.length === 0
