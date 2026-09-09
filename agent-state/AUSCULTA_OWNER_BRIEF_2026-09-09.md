@@ -32,6 +32,10 @@ anteriores. No implica que estas capacidades estén implementadas o verificadas.
 - Espera: avisar a todos los compatibles; primer confirmado obtiene reserva atómica.
 - Portal: documentos liberados, subir estudios, información preconsulta y mensajes.
 - Mensajes administrativos a recepción; clínicos al médico.
+- Capacidad confirmada en la respuesta «Las dos»: 100.000 cuentas registradas
+  y 100.000 usuarios activos simultáneos como objetivos independientes. No es
+  capacidad demostrada. Pacientes totales frente a pacientes por clínica, mezcla
+  de roles, duración de la carga, disponibilidad y presupuesto siguen pendientes.
 
 ## Primer checkpoint técnico
 
@@ -92,9 +96,11 @@ Continuación del 9-sep-2026. El dueño prioriza identidad visual, interacción,
 resistencia a ataques y caídas, capacidad de más de 100.000 usuarios y más de
 10.000 pacientes, auditorías y mantenimiento sostenible. El adjunto webarchive
 contiene una petición de escalabilidad y facilidad de mantener la base de código.
-No especifica concurrencia, pacientes por clínica, presupuesto ni disponibilidad.
-Se usa provisionalmente 100.000 cuentas registradas y 10.000 pacientes por clínica;
-no se presenta como decisión confirmada ni como capacidad medida.
+En ese checkpoint aún no se había precisado concurrencia, pacientes por clínica,
+presupuesto ni disponibilidad. Se usaron provisionalmente 100.000 cuentas
+registradas y 10.000 pacientes por clínica. La confirmación posterior de ambas
+cifras de usuarios sustituye el supuesto de concurrencia; el volumen por clínica
+sigue sin confirmar. Ninguna cifra se presenta como capacidad medida.
 
 Cambios de este lote, que sustituyen los pendientes de dependencias y la primera
 implementación del diseño mencionados en el checkpoint anterior:
@@ -138,8 +144,8 @@ Prioridades pendientes al retomar:
    verificar acceso entre médicos de la misma clínica y autorización al compartir.
 3. Acotar notificaciones a hoy/mañana con limpieza al cambiar de clínica y día;
    comprobar respaldo con receptor lento, cancelación y memoria acotada.
-4. Precisar concurrencia, volumen por clínica, objetivos de disponibilidad,
-   recuperación y coste; ensayo distribuido de carga y restauración.
+4. Preparar ensayo distribuido de 100.000 usuarios activos simultáneos; precisar
+   mezcla de roles, volumen por clínica, disponibilidad, recuperación y coste.
 5. Completar el resto de decisiones de agenda, portal, voz y continuidad ya
    registradas arriba. No se declara que este lote cubra toda la entrevista.
 
@@ -164,3 +170,21 @@ previo a esta integración.
   exige iniciar sesión en Vercel; no se accedió a la consulta ni se eligió un
   proveedor de acceso en nombre del dueño. Sigue pendiente QA visual con datos
   sintéticos en una sesión de prueba accesible.
+
+### Confirmación posterior — registrados y simultáneos
+
+El dueño responde «Las dos» a la pregunta sobre 100.000 cuentas registradas o
+100.000 usuarios simultáneos. Se confirman ambos objetivos. La concurrencia
+debe contar personas distintas realizando operaciones durante la ventana del
+ensayo, sin multiplicarlas por pestañas, dispositivos o conexiones inactivas.
+
+El escenario canónico de 100.000 registrados deriva 3.861 sesiones concurrentes
+mediante supuestos; no verifica el nuevo objetivo de 100.000 usuarios activos.
+Se conserva como escenario histórico y se especifica el ensayo adicional en
+`docs/maintenance/AUSCULTA-2026-09-09.md`, separado de voz e IA y de volumen.
+El arnés local está acotado a 400 sesiones; no se ejecuta carga masiva contra
+producción ni se modifica esa cota para aparentar cobertura.
+
+La integración de Vercel devolvió 403 al consultar la configuración del proyecto.
+Plan, cuotas y capacidad contratada siguen sin verificar. Esta actualización
+registra requisitos y criterios; no ejecuta ensayos ni demuestra nueva capacidad.
