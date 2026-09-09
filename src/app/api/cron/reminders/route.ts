@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
          * la Ciudad de México, con 2 h de desfase.
          */
         const minMx = ahoraMinutosDelDia(tzClinica)
-        // REG-662: la bandeja de reintentos también contiene ofertas de espera.
+        // REG-665: la bandeja de reintentos también contiene ofertas de espera.
         // Desactivar recordatorios no debe detener esos envíos pendientes.
 
         // Config de plantillas HSM de la clínica (whatsapp.plantillas) para la

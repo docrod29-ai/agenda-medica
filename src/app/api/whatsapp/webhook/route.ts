@@ -1525,7 +1525,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
        * tener médico cuenta como ocupada para TODOS — tapaba el hueco a los demás.
        * Una cita que existe, que nadie ve, y que estorba.
        */
-      // REG-662: el intervalo que se ofreció también gobierna el solape y la
+      // REG-665: el intervalo que se ofreció también gobierna el solape y la
       // cita escrita. Las sesiones anteriores sin duración conservan 30 min.
       const duracion = Number(datos.slotDuracion ?? 30)
       if (!Number.isFinite(duracion) || duracion <= 0) {

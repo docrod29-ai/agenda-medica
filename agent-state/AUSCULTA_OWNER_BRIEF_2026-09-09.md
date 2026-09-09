@@ -235,7 +235,7 @@ captura explícita y sigue abierto. No se promete preservación absoluta de edic
   existentes, capturas de escritorio/tableta/teléfono y datos sintéticos.
   Sin fusión ni publicación manual a producción. No se activan tareas periódicas.
 
-### Correcciones verificables de agenda y cierre de consulta — REG-662 a REG-664
+### Correcciones verificables de agenda y cierre de consulta — REG-665 a REG-667
 
 - Oferta de lista de espera: duración y médico sobreviven al envío inmediato,
   al reintento y a la aceptación. El solape usa el intervalo ofrecido. El cron
@@ -267,3 +267,8 @@ corrigieron y se repitió la suite completa. Build exit 0 con 8 GB de heap y los
 placeholders sintéticos de Firebase declarados en ci.yml; sin credenciales reales.
 Trinquete de diseño sin deuda nueva; diff sin errores de formato. Estos gates
 no acreditan capacidad de 100000 usuarios ni prueban la interfaz autenticada.
+
+Coordinación de auditoría: al publicar se comprobó que la rama independiente
+claude/ausculta-scheduling-audit-ev7hua ya había registrado REG-662 y REG-663.
+Este lote queda renumerado REG-665 a REG-667; no modifica ni fusiona aquella
+rama. Cambio de referencias únicamente, sin alteración del comportamiento probado.

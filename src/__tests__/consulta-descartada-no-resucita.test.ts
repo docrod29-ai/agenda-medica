@@ -141,7 +141,7 @@ describe('una respuesta IA tardía no resucita el encuentro descartado', () => {
   })
 })
 
-/** REG-663: auditoría de la corrección manual de IA. El callback capturaba
+/** REG-666: auditoría de la corrección manual de IA. El callback capturaba
  * `firmada` antes de esperar la red y aceptaba respuestas después del cierre.
  * Ejecutamos su cuerpo real con promesas controladas; no acredita aislamiento
  * entre pacientes ni sustituye la prueba de navegador autenticado. */
@@ -161,7 +161,7 @@ async function callbackReal(nombre: string, conocidos: Record<string, unknown>) 
   return new Function('scope', 'with (scope) { ' + js + '; return callback; }')(scope)
 }
 
-describe('REG-663: corregir con IA respeta el cierre del encuentro', () => {
+describe('REG-666: corregir con IA respeta el cierre del encuentro', () => {
   it.each(['abierta', 'firmada', 'descartada'])('respuesta con consulta %s', async estado => {
     let resolver!: (value: unknown) => void
     const pendiente = new Promise(resolve => { resolver = resolve })
@@ -184,10 +184,10 @@ describe('REG-663: corregir con IA respeta el cierre del encuentro', () => {
   })
 })
 
-/** REG-664: el guardado ya encolado debe volver a comprobar el descarte
+/** REG-667: el guardado ya encolado debe volver a comprobar el descarte
  * cuando le toca escribir. Una creación en vuelo debe terminar antes de
  * decidir qué documento borrar. Se usan documentos y promesas sintéticos. */
-describe('REG-664: descartar con autoguardado pendiente', () => {
+describe('REG-667: descartar con autoguardado pendiente', () => {
   it('un guardado en cola no crea la nota después de descartarla', async () => {
     let liberar!: () => void
     const cadenaGuardadoRef = { current: new Promise<void>(resolve => { liberar = resolve }) }

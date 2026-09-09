@@ -26,20 +26,14 @@
     "M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
     " M agent-state/MASTER_STATE.json",
     " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
     " M docs/design/capturas/v15-estado-de-accion/pendientes--desktop.png",
-    " M docs/ops/inventario-de-entorno.json",
     " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M src/__tests__/consulta-descartada-no-resucita.test.ts",
     " M src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/app/api/cron/reminders/route.ts",
     " M src/app/api/whatsapp/webhook/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/whatsapp/ofrecer-hueco.ts"
+    " M src/lib/calidad/familias-de-defecto.ts"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -76,7 +70,7 @@
   "ramaActual": "codex/ausculta-revision-visual",
   "derivado": {
     "regsEnElLedger": 449,
-    "ultimaREG": "REG-664",
+    "ultimaREG": "REG-667",
     "archivosDePrueba": 1100,
     "casosDePrueba": 13093,
     "lint": "ver scripts/lint-trinquete.mjs"

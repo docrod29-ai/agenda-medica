@@ -25874,7 +25874,7 @@ con guardián de fidelidad reforzado. Antes: 1 falla / 5 pasan. Después: 6 pasa
 **Qué NO cubre:** IA, voz real, expediente privado, firma de producción,
 recomendaciones de otros módulos de la demo ni validación móvil.
 
-## REG-662 — la oferta de espera pierde duración y médico al reservar o reenviar
+## REG-665 — la oferta de espera pierde duración y médico al reservar o reenviar
 
 **Descubrimiento:** auditoría del flujo real ofrecer → WhatsApp → aceptación,
 9-sep-2026, con Firestore y proveedor en memoria. Una oferta de 45 minutos se
@@ -25896,7 +25896,7 @@ sintéticos de 15, 45 y 90 minutos, solape y reenvío hasta aceptación.
 **Qué NO cubre:** proveedor real, entrega externa, carga ni distribución a todos
 los compatibles. El límite vigente de tres ofertas por llamada sigue pendiente.
 
-## REG-663 — una corrección IA tardía modifica el encuentro cerrado
+## REG-666 — una corrección IA tardía modifica el encuentro cerrado
 
 **Descubrimiento:** auditoría del callback `corregirConIA`, reproducido con
 respuesta diferida. Sólo miraba el estado capturado antes de esperar la red.
@@ -25912,7 +25912,7 @@ el caso de consulta abierta sigue aplicando la corrección. Archivo: 14 casos.
 **Qué NO cubre:** mezcla entre pacientes, exactitud del modelo, red real ni
 navegación privada. No se modifica la política de firma.
 
-## REG-664 — un autoguardado pendiente recrea una consulta descartada
+## REG-667 — un autoguardado pendiente recrea una consulta descartada
 
 **Descubrimiento:** auditoría de la cadena de guardados. Una tarea en cola no
 revalidaba descarte al ejecutarse; descartar leía el id antes de que terminara

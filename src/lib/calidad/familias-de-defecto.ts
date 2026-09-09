@@ -1163,7 +1163,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 662],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665],
   },
   {
     clave: 'tarde',
@@ -1172,7 +1172,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El aviso es correcto y aparece DESPUÉS del momento en que habría servido ' +
       '— casi siempre después de firmar. Un aviso tras la firma no es una ' +
       'protección: es un registro de que no la hubo.',
-    regs: [173, 190, 663, 664],
+    regs: [173, 190, 666, 667],
   },
   {
     clave: 'mensaje_miente',

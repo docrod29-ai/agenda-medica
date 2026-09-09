@@ -137,7 +137,7 @@ describe('lista de espera · la promoción es determinista', () => {
 })
 
 describe('lista de espera · un «SÍ» y una sola cita', () => {
-  // REG-662: el filtro usaba la duración, pero la aceptación siempre escribía
+  // REG-665: el filtro usaba la duración, pero la aceptación siempre escribía
   // 30 min. Ejecutamos oferta y webhook reales; no valida Meta ni reglas reales.
   it.each([15, 45, 90])('conserva los %i minutos ofrecidos al aceptar', async duracion => {
     ventanaAbierta(CLINICA, ANA)

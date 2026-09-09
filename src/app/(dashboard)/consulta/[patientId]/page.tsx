@@ -3529,7 +3529,7 @@ export default function ConsultaActivaPage() {
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
-      // REG-664: pudo descartarse mientras esperaba otro autoguardado.
+      // REG-667: pudo descartarse mientras esperaba otro autoguardado.
       if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
@@ -4992,7 +4992,7 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({ nota, instruccion: instr, contexto: { edad: patient?.edad, sexo: patient?.sexo } }),
       })
       const data = await res.json().catch(() => null)
-      // REG-663: el cierre pudo ocurrir durante fetch o durante la lectura del cuerpo.
+      // REG-666: el cierre pudo ocurrir durante fetch o durante la lectura del cuerpo.
       if (firmadaRef.current || descartadaRef.current) return
       if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
       // Aplicar la nota corregida.
