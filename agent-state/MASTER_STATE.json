@@ -23,26 +23,13 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M AGENTS.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/design/VISUAL_LANGUAGE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/seguridad/ESTADO-DEPENDENCIAS.md",
-    " M package-lock.json",
-    " M package.json",
-    " M scripts/design/techos-de-diseno.json",
-    " M scripts/programa/tablero-derivado.mjs",
-    " M src/__tests__/el-tema-automatico-sobrevive-a-una-recarga.test.ts",
-    " M src/__tests__/las-tres-puertas-de-la-agenda-dicen-lo-mismo.test.ts",
-    " M src/__tests__/v15-rtc12-el-lienzo-de-pagina.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/api/public/booking/route.ts",
-    " M src/hooks/useTema.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    "M  .github/workflows/deploy-production.yml",
+    " M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
+    "M  agent-state/MASTER_STATE.json",
+    "M  docs/maintenance/sw-changelog.md",
+    "M  package.json",
+    "M  public/sw.js",
+    "M  public/version.txt"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -84,5 +71,5 @@
     "casosDePrueba": 13075,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1190"
+  "versionEnElRepo": "nexusmed-v1191"
 }

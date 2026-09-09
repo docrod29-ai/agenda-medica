@@ -145,3 +145,22 @@ Prioridades pendientes al retomar:
 
 El trabajo sigue en el borrador PR #478. Sin fusión a main ni despliegue manual
 a producción. La integración del repositorio puede generar vistas previas del PR.
+
+### Integración del avance concurrente de main
+
+Al comprobar CI se detectó que main había avanzado hasta `17bff1c` (PR #477 y
+#479, v1191) durante el trabajo. Se integra ese main en la rama del PR #478,
+resolviendo conflictos de paquete y estado generado. Se conserva el override
+de xmldom añadido allí y su versión de SW/pin de despliegue; se mantiene Next
+16.3.4 exacto y sus herramientas alineadas. Todas las versiones de dependencias
+que cambió ese main coinciden con las ya instaladas y probadas en este lote.
+No se ejecuta el workflow de producción. Los resultados sobre la combinación
+se registran en el cuerpo del PR; la verificación anterior corresponde al árbol
+previo a esta integración.
+
+- Revalidación de integración: 289 pruebas en 16 archivos pasan (versiones,
+  despliegue, documentación y dependencias).
+- La vista previa de `b211903` terminó con estado Vercel success. Al abrirla,
+  exige iniciar sesión en Vercel; no se accedió a la consulta ni se eligió un
+  proveedor de acceso en nombre del dueño. Sigue pendiente QA visual con datos
+  sintéticos en una sesión de prueba accesible.
