@@ -188,3 +188,21 @@ producción ni se modifica esa cota para aparentar cobertura.
 La integración de Vercel devolvió 403 al consultar la configuración del proyecto.
 Plan, cuotas y capacidad contratada siguen sin verificar. Esta actualización
 registra requisitos y criterios; no ejecuta ensayos ni demuestra nueva capacidad.
+
+## Tercer checkpoint — retirada explícita de listas de IA
+
+REG-660 concreta el pendiente de regeneración vacía: primer plano y recuperación
+procesan [] explícito y capturan la procedencia previa antes de encolar el estado.
+Las refs guardan la salida canónica, y los motores comparan todo su contenido
+para preservar dosis, estado, CIE y decisiones editados. Omisión, lote malformado
+y vacío de parser degradado conservan lo previo. Reproyección explícita sin cambios.
+
+Reproducción antes/después: 18/24 casos fallaron inicialmente; 8 casos de datos
+inválidos también fallaron antes de su guarda. Los 34 casos nuevos y los 108 del
+lote dirigido pasan. Los gates generales y el commit publicado se registran en
+el PR #478. El cambio no modifica diseño, infraestructura ni política clínica.
+
+Límites pendientes: procedencia tras remontar, navegación real y contaminación
+entre personas. Un medicamento editado que coincida con una salida IA posterior
+puede volver a atribuirse a IA y retirarse en otro pase: requiere identidad de
+captura explícita y sigue abierto. No se promete preservación absoluta de ediciones.

@@ -62,6 +62,7 @@
  */
 import type { Medicamento } from '@/types/expediente'
 import { estaVigente } from './ordenes-medicamento'
+import { ordenEstable } from './integrity'
 
 /** De dónde sale este renglón, una vez resuelto. */
 export type DeDondeSale = 'ya_lo_toma' | 'se_prescribe_hoy' | 'no_se_sabe'
@@ -204,7 +205,7 @@ export interface FusionDeMedicamentos {
   /** Lo que la IA acaba de producir. */
   nuevos: readonly Medicamento[]
   /**
-   * Lo que la IA produjo en la pasada ANTERIOR.
+   * Lote anterior tras la frontera canónica: normalizado y deduplicado.
    *
    * Es lo único que distingue lo suyo de lo que escribió el médico —y por tanto
    * lo único que hace seguro sustituir en vez de acumular.
@@ -245,12 +246,10 @@ export function fusionarMedicamentos(p: FusionDeMedicamentos): Medicamento[] {
   const nuevos = (p.nuevos ?? [])
     .filter(m => m?.nombre?.trim())
     .map(sinIntencionAutomaticaNoEsReceta)
-  const anteriores = p.deLaIaAnterior ?? []
-
-  // 1 · Lo del médico: todo lo previo que la IA no había puesto.
-  const delMedico = anteriores.length
-    ? previos.filter(m => !anteriores.some(a => esElMismoFarmaco(a, m)))
-    : previos
+  // REG-660: el nombre no demuestra que la dosis o el estado sigan siendo los
+  // de la IA. Sólo se retira un renglón cuyo contenido completo sigue intacto.
+  const anteriores = new Set((p.deLaIaAnterior ?? []).map(m => JSON.stringify(ordenEstable(m))))
+  const delMedico = previos.filter(m => !anteriores.has(JSON.stringify(ordenEstable(m))))
 
   // 2 · Lo del médico primero: ante un empate, manda lo suyo.
   const out: Medicamento[] = []

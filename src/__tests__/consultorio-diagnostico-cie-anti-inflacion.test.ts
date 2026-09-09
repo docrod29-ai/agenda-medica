@@ -61,11 +61,14 @@ describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
         dx(i % 3 ? 'Uretritis no gonocócica' : 'Uretritis no gonocócica persistente', 'N34.1'),
       ]
       lista = fusionarDiagnosticos({ previos: lista, nuevos, deLaIaAnterior: previaDeLaIa })
-      previaDeLaIa = nuevos
+      // REG-660: el snapshot es lo que la frontera dejó visible, no el CIE
+      // crudo que ya retiró. Igual que los dos caminos reales de consulta.
+      previaDeLaIa = fusionarDiagnosticos({ previos: [], nuevos })
     }
 
     expect(lista).toHaveLength(2)
     expect(lista.every(d => d.codigoCIE10 === undefined)).toBe(true)
+    expect(fusionarDiagnosticos({ previos: lista, nuevos: [], deLaIaAnterior: previaDeLaIa })).toEqual([])
   })
 
   it('la transformación de sugerencia conserva contenido clínico, pero no autoridad que nadie dio', () => {

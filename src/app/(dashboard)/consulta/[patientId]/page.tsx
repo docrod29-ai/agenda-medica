@@ -530,10 +530,11 @@ export default function ConsultaActivaPage() {
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
   const autoProcRef = useRef(false)
   /**
-   * LO QUE LA IA PUSO EN LA PASADA ANTERIOR.
+   * LO QUE LA FRONTERA CANÓNICA DEJÓ DEL LOTE IA ANTERIOR (REG-660).
    *
    * Es lo único que permite distinguir sus diagnósticos de los que escribió el
-   * médico — y por tanto lo único que hace seguro SUSTITUIR en vez de acumular.
+   * médico — y por tanto lo que permite SUSTITUIR sin borrar sus ediciones.
+   * Guarda la salida normalizada/deduplicada, nunca la propuesta cruda.
    *
    * Sin esto, el pase en vivo (cada 15 s, ~40 por consulta) sumaba una tanda
    * entera cada vez, con la IA redactando distinto en cada pasada. Así se
@@ -2797,8 +2798,8 @@ export default function ConsultaActivaPage() {
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
-      // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
-      // que la IA realmente devolvió; NUNCA se borra lo que ya había. Solo al
+      // REGLA ANTI-PÉRDIDA: sólo se sustituye lo que la IA devolvió explícitamente.
+      // Una lista vacía retira lo automático intacto, no las ediciones médicas. Al
       // RE-PROYECTAR a otra modalidad (tipoOverride) se parte de plantilla limpia.
       const esPreop = tipoActivo === 'valoracion_preoperatoria'
 
@@ -2897,53 +2898,34 @@ export default function ConsultaActivaPage() {
       // Queda anotado qué dejó la IA, para que el próximo pase sepa qué es suyo.
       seccionesDeLaIaRef.current = { ...seccionesDeLaIaRef.current, ...loQueEscribeLaIa }
 
-      const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
-      if (tipoOverride) {
-        // GP6: re-proyección cruza la frontera canónica; sugerir no confirma ni codifica.
-        setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
-        dxDeLaIaRef.current = nuevosDx
-      } else if (nuevosDx.length > 0) {
-        /**
-         * FUSIÓN CON PROCEDENCIA — no acumula, y sigue sin borrar lo del médico.
-         *
-         * La versión anterior concatenaba y sólo descartaba el repetido si el
-         * texto era IDÉNTICO letra por letra. Con el pase en vivo disparando
-         * cada 15 s y la IA redactando distinto cada vez, una consulta acababa
-         * con 19 diagnósticos y tres redacciones del mismo código.
-         *
-         * Ahora se sustituye SÓLO lo que la IA puso en su pasada anterior, se
-         * conserva siempre lo que escribió el médico, y se deduplica por CIE-10
-         * cuando lo hay — que es para lo que existe el código.
-         */
-        setDiagnosticos(prev => fusionarDiagnosticos({
-          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+      const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => typeof d?.descripcion === 'string' && d.descripcion.trim()) : []
+      const dxValidos = Array.isArray(data.diagnosticos) && nuevosDx.length === data.diagnosticos.length
+      if (tipoOverride || (dxValidos && (!data.fallbackLocal || nuevosDx.length > 0))) {
+        // REG-660: [] es una retirada explícita; omisión/fallo local no lo son.
+        // Capturar ANTES del setter: React puede ejecutarlo tras avanzar la ref.
+        const dxAnteriores = dxDeLaIaRef.current
+        const dxDeEstePase = fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] })
+        if (tipoOverride) setDiagnosticos(dxDeEstePase)
+        else setDiagnosticos(prev => fusionarDiagnosticos({
+          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxAnteriores,
         }))
-        dxDeLaIaRef.current = nuevosDx
+        // La procedencia recuerda lo que realmente entró por GP6, sin CIE
+        // automático ni definitivo y con los duplicados resueltos.
+        dxDeLaIaRef.current = dxDeEstePase
       }
 
-      const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
-      if (tipoOverride) {
-        // GP6/GP5: re-proyectar no convierte extracción automática en prescripción.
-        setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
-        medDeLaIaRef.current = nuevosMed
-      } else if (nuevosMed.length > 0) {
-        /**
-         * FUSIÓN CON PROCEDENCIA — la lista deja de acumular.
-         *
-         * Antes hacía `[...previos, ...nuevos]` y sólo descartaba el repetido si
-         * el nombre coincidía letra por letra. Con el pase en vivo corriendo
-         * cada 15 s, lo que se dictó al recabar ANTECEDENTES en el minuto dos
-         * («toma metformina y losartán») se quedaba en la lista para siempre —
-         * y esa lista es la que se imprime en la receta.
-         *
-         * Es el mismo arreglo que ya tenían los diagnósticos, y que a los
-         * medicamentos nunca se les aplicó: se sustituye SÓLO lo que la IA puso
-         * en su pasada anterior y se conserva siempre lo que escribió el médico.
-         */
-        setMedicamentos(prev => fusionarMedicamentos({
-          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+      const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => typeof m?.nombre === 'string' && m.nombre.trim()) : []
+      const medValidos = Array.isArray(data.medicamentos) && nuevosMed.length === data.medicamentos.length
+      if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
+        const medAnteriores = medDeLaIaRef.current
+        const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
+        if (tipoOverride) setMedicamentos(medDeEstePase)
+        else setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
         }))
-        medDeLaIaRef.current = nuevosMed
+        // GP5 también normaliza estado y combina duplicados; el lote crudo no
+        // permite reconocer después ese renglón compuesto como automático.
+        medDeLaIaRef.current = medDeEstePase
       }
 
       if (data.signosVitales) {
@@ -3114,28 +3096,28 @@ export default function ConsultaActivaPage() {
         return v ? { ...s, value: sanitizarProsa(v) } : s
       })
     })
-    const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (tipoOverride) {
-      setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
-      dxDeLaIaRef.current = nuevosDx
-    } else if (nuevosDx.length > 0) {
-      // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
-      setDiagnosticos(prev => fusionarDiagnosticos({
-        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+    const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => typeof d?.descripcion === 'string' && d.descripcion.trim()) : []
+    const dxValidos = Array.isArray(data.diagnosticos) && nuevosDx.length === data.diagnosticos.length
+    if (tipoOverride || (dxValidos && (!data.fallbackLocal || nuevosDx.length > 0))) {
+      // Misma frontera y mismo snapshot que en primer plano (REG-660).
+      const dxAnteriores = dxDeLaIaRef.current
+      const dxDeEstePase = fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] })
+      if (tipoOverride) setDiagnosticos(dxDeEstePase)
+      else setDiagnosticos(prev => fusionarDiagnosticos({
+        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxAnteriores,
       }))
-      dxDeLaIaRef.current = nuevosDx
+      dxDeLaIaRef.current = dxDeEstePase
     }
-    const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) {
-      setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
-      medDeLaIaRef.current = nuevosMed
-    } else if (nuevosMed.length > 0) {
-      // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
-      // se conserva lo del médico. Ver `fusionarMedicamentos`.
-      setMedicamentos(prev => fusionarMedicamentos({
-        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+    const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => typeof m?.nombre === 'string' && m.nombre.trim()) : []
+    const medValidos = Array.isArray(data.medicamentos) && nuevosMed.length === data.medicamentos.length
+    if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
+      const medAnteriores = medDeLaIaRef.current
+      const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
+      if (tipoOverride) setMedicamentos(medDeEstePase)
+      else setMedicamentos(prev => fusionarMedicamentos({
+        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
       }))
-      medDeLaIaRef.current = nuevosMed
+      medDeLaIaRef.current = medDeEstePase
     }
     if (data.signosVitales) {
       const sv = data.signosVitales

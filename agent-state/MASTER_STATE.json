@@ -23,13 +23,17 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    " M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
-    "M  agent-state/MASTER_STATE.json",
-    "M  docs/maintenance/sw-changelog.md",
-    "M  package.json",
-    "M  public/sw.js",
-    "M  public/version.txt"
+    "M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
+    " M docs/audit/regression-ledger.md",
+    " M src/__tests__/consultorio-diagnostico-cie-anti-inflacion.test.ts",
+    " M src/__tests__/los-diagnosticos-no-se-acumulan.test.ts",
+    " M src/__tests__/que-va-en-la-receta.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/fusionar-diagnosticos.ts",
+    " M src/lib/expediente/que-va-en-la-receta.ts",
+    "?? src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -65,10 +69,10 @@
   ],
   "ramaActual": "codex/ausculta-consulta-agenda",
   "derivado": {
-    "regsEnElLedger": 444,
-    "ultimaREG": "REG-659",
-    "archivosDePrueba": 1099,
-    "casosDePrueba": 13075,
+    "regsEnElLedger": 445,
+    "ultimaREG": "REG-660",
+    "archivosDePrueba": 1100,
+    "casosDePrueba": 13087,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1191"

@@ -25815,3 +25815,38 @@ expedientes ni enviar avisos. Se conserva la continuación con cupo y el 429.
 **Qué NO cubre:** firewall del proveedor, DDoS distribuido, concurrencia real de
 Firestore, ni una auditoría integral. Cuatro casos ejecutados, tres declaraciones.
 **Estado:** pruebas dirigidas en verde; pendiente gate completo y revisión.
+
+## REG-660 — regenerar no conserva listas retiradas ni borra ediciones por identidad
+
+**Origen:** continuación de la auditoría de consulta del dueño, 9-sep-2026.
+Primer plano y recuperación ignoraban arrays vacíos con `length > 0`. Sus
+actualizadores leían refs después de adelantarlas al resultado nuevo. Los motores
+atribuían al lote IA cualquier diagnóstico equivalente o fármaco del mismo nombre,
+aunque el médico hubiera cambiado dosis, CIE, tipo o estado.
+
+**Cambio:** procesar [] explícito, conservar campos omitidos, lotes con nombres
+inválidos y vacíos del parser degradado. Capturar el lote previo antes del setter;
+guardar el lote normalizado y deduplicado por las fronteras canónicas. Comparar
+contenido completo mediante `ordenEstable`, preservando cambios y la autoridad
+`tipoOrigen: medico`. Se mantiene la reproyección explícita, GP5 y GP6.
+
+**Prueba permanente:** `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`.
+Ejecuta ambos bloques reales con motores reales y setters diferidos. Reproducción
+inicial: 18 fallos de 24 casos antes del arreglo. Los 8 casos adicionales de
+entradas inválidas fallaron antes de añadir su guarda. Resultado dirigido final:
+34 casos del golden y 108 casos en 7 archivos pasan. Datos y dosis son marcadores
+sintéticos, no criterios clínicos.
+
+Los guardianes de 40 pasadas recuerdan ahora la salida canónica anterior; el de
+receta comprueba esa referencia en lugar del lote crudo. No se retiran casos ni
+se debilita la prohibición de confirmación/codificación automática.
+
+**Qué NO cubre:** navegación real, persistencia de procedencia tras remontar,
+contaminación entre pacientes, fidelidad de prosa ni proveedor. Un medicamento
+editado que coincida exactamente con un lote IA posterior puede volver a resultar
+indistinguible y ser retirado en otro pase; falta identidad de captura explícita.
+No se afirma preservación absoluta de ese caso. El diagnóstico marcado por el
+médico sí conserva su marca de autoridad.
+
+**Estado:** reparación y pruebas dirigidas completas; gates generales y resultado
+del commit publicado se registran en el PR #478.

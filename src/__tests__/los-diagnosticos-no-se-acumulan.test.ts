@@ -96,7 +96,7 @@ describe('los diagnósticos no se acumulan', () => {
           dx('Diabetes mellitus tipo 2', 'E11'),
         ]
         lista = fusionarDiagnosticos({ previos: lista, nuevos, deLaIaAnterior: previaDeLaIa })
-        previaDeLaIa = nuevos
+        previaDeLaIa = fusionarDiagnosticos({ previos: [], nuevos })
       }
       expect(lista).toHaveLength(3)
     })
