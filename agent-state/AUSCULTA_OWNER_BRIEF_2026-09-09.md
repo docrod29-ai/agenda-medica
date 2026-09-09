@@ -73,3 +73,15 @@ No hay una auditoría completa, evaluación comparativa ni promesa de calidad 10
   prerender falló por API key Firebase ausente. Reintento con valores sintéticos,
   sin credenciales reales. Resultado final se registra al terminar.
 - No se ha ejecutado QA de navegador del lote. No listo para producción.
+
+### Resultado final de este lote
+
+- Build con configuración sintética: completado, exit 0.
+- Revalidación final: 111 pruebas pasan en 8 archivos (incluye documentos
+  derivados y clasificación de los nuevos REG).
+- El gate global sigue pendiente por los otros fallos descritos; no se repitió
+  la suite entera después de actualizar la documentación.
+- Código y decisiones publicados como borrador PR #478:
+  https://github.com/docrod29-ai/agenda-medica/pull/478
+- Sin despliegue ni fusión. Siguiente prioridad: dependencias de seguridad y
+  reproducción de regeneración vacía, antes del rediseño integral.
