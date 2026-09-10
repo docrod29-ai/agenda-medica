@@ -15,10 +15,12 @@ test.beforeEach(async ({ context, baseURL }) => {
   expect(['localhost', '127.0.0.1']).toContain(target.hostname)
   expect(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID).toBe('demo-nexusmed-v10')
   // Impide que un cambio del arnés termine llamando Firebase/IA/telemetría real.
-  await context.route('**/*', route => {
-    const url = new URL(route.request().url())
-    return ['localhost', '127.0.0.1'].includes(url.hostname) ? route.continue() : route.abort()
-  })
+  // No interceptar los streams locales de Firestore: WebKit debe consumirlos
+  // directamente, igual que la aplicación. Sólo se intercepta lo prohibido.
+  await context.route(
+    url => !['localhost', '127.0.0.1'].includes(url.hostname),
+    route => route.abort(),
+  )
 })
 
 async function sinDesborde(page: Page) {
@@ -27,6 +29,15 @@ async function sinDesborde(page: Page) {
     contenido: document.documentElement.scrollWidth,
   }))
   expect.soft(medida.contenido, `La página se sale ${medida.contenido - medida.ancho}px`).toBeLessThanOrEqual(medida.ancho + 1)
+}
+
+async function contenidoListo(page: Page, ruta: string) {
+  // El contenedor aparece antes que los datos: capturarlo entonces sólo
+  // demostraría que existe un spinner, no que la agenda/identidad se cargaron.
+  if (ruta === '/dashboard') await expect(page.locator('.hoy .cita-fila').first()).toBeVisible({ timeout: 30_000 })
+  if (ruta === '/calendario') await expect(page.locator('.nx-agenda-bloque').first()).toBeVisible({ timeout: 30_000 })
+  if (ruta === '/consulta/pac-001') await expect(page.locator('h1.nx-vt-paciente')).toHaveText('Rosalía Mendieta Cuevas', { timeout: 30_000 })
+  await page.evaluate(() => document.fonts.ready)
 }
 
 async function entrar(page: Page) {
@@ -58,11 +69,11 @@ for (const tema of ['light', 'dark']) {
       await expect(page.locator('html')).toHaveAttribute('data-theme', tema)
       const movimiento = await page.locator('.nx-puerta-columna').evaluate(el => getComputedStyle(el).animationName)
       expect(movimiento).toBe('none')
-      await info.attach(`acceso-${tema}`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+      await info.attach(`acceso-${tema}`, { body: await page.screenshot({ fullPage: true, animations: 'disabled' }), contentType: 'image/png' })
       if (info.project.name === 'iphone-safari') {
         await page.setViewportSize({ width: 320, height: 740 })
         await sinDesborde(page)
-        await info.attach(`acceso-320-${tema}`, { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
+        await info.attach(`acceso-320-${tema}`, { body: await page.screenshot({ fullPage: true, animations: 'disabled' }), contentType: 'image/png' })
       }
     })
 
@@ -78,12 +89,13 @@ for (const tema of ['light', 'dark']) {
       ]) {
         await page.goto(ruta)
         await expect(page.locator(selector).first()).toBeVisible({ timeout: 30_000 })
+        await contenidoListo(page, ruta)
         await sinDesborde(page)
-        await info.attach(`${ruta.replaceAll('/', '-')}-${tema}`, { body: await page.screenshot(), contentType: 'image/png' })
+        await info.attach(`${ruta.replaceAll('/', '-')}-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
         if (info.project.name === 'iphone-safari') {
           await page.setViewportSize({ width: 320, height: 740 })
           await sinDesborde(page)
-          await info.attach(`${ruta.replaceAll('/', '-')}-320-${tema}`, { body: await page.screenshot(), contentType: 'image/png' })
+          await info.attach(`${ruta.replaceAll('/', '-')}-320-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
           await page.setViewportSize({ width: 390, height: 844 })
         }
       }
@@ -116,3 +128,39 @@ for (const tema of ['light', 'dark']) {
     })
   })
 }
+
+test('cambiar de paciente conserva cada borrador en su propio expediente', async ({ page, browserName }) => {
+  // Una sola ejecución con escritura para no enfrentar dos sesiones artificiales
+  // sobre los mismos pacientes sembrados. El resto de esta matriz sólo lee.
+  test.skip(browserName !== 'chromium', 'La matriz visual ya cubre ambos motores')
+  test.setTimeout(120_000)
+  await entrar(page)
+  await page.goto('/consulta/pac-001')
+  const campo = page.locator('#consulta-nota textarea[aria-label]').first()
+  await expect(campo).toBeEditable()
+  const etiqueta = await campo.getAttribute('aria-label')
+  expect(etiqueta).toBeTruthy()
+  const textoA = 'QA sintética: contenido exclusivo del primer expediente.'
+  const textoB = 'QA sintética: contenido exclusivo del segundo expediente.'
+  await campo.fill(textoA)
+
+  async function abrirDesdeDirectorio(nombre: string, id: string) {
+    // Navegación real dentro de la app: conserva los proveedores en memoria.
+    // page.goto entre pacientes recargaría todo y ocultaría una contaminación.
+    await page.locator('a[href="/pacientes"]:visible').first().click()
+    await page.getByRole('button', { name: `Abrir el expediente de ${nombre}`, exact: true }).first().click()
+    await expect(page).toHaveURL(new RegExp(`/expediente/${id}$`))
+    await page.getByRole('button', { name: 'Nueva consulta', exact: true }).click()
+    await expect(page).toHaveURL(new RegExp(`/consulta/${id}$`))
+    return page.locator('#consulta-nota').getByRole('textbox', { name: etiqueta!, exact: true })
+  }
+
+  const campoB = await abrirDesdeDirectorio('Aurelio Barquín Salcedo', 'pac-002')
+  await expect(campoB).toBeEditable()
+  await expect(campoB).not.toHaveValue(textoA)
+  await campoB.fill(textoB)
+
+  const regresoA = await abrirDesdeDirectorio('Rosalía Mendieta Cuevas', 'pac-001')
+  await expect(regresoA).toHaveValue(textoA)
+  await expect(regresoA).not.toHaveValue(textoB)
+})
