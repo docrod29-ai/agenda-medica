@@ -39,6 +39,10 @@
 .navigation a:focus-visible { outline: 2px solid var(--nexus); outline-offset: 2px; }
 
 .grid { display: grid; gap: 28px; align-items: start; }
+/* La nota es un contenedor de tamaño: lo que hay dentro se adapta a SU ancho,
+   no al de la ventana. En tres columnas la nota mide ~600 px aunque la ventana
+   tenga 1440. */
+.nota { container-type: inline-size; }
 .contexto, .nota, .asistente, .cierre { min-width: 0; scroll-margin-top: 20px; overflow-wrap: anywhere; }
 .contexto:focus-visible, .nota:focus-visible, .asistente:focus-visible {
   outline: 2px solid var(--nexus);
@@ -83,8 +87,19 @@
 .asistente details > summary { min-height: 44px; }
 .empty { padding: 18px 0; border-block: 1px solid var(--border); color: var(--text2); font-size: 13px; line-height: 1.7; }
 
-@media (min-width: 1280px) {
-  .grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.75fr) minmax(0, 1fr); gap: 24px; }
+/* ── Laptop (1280–1439): DOS columnas. Con el lateral de la app (224 px), tres
+   columnas aquí dejaban el resumen en ~190 px —«ya no» se salía y se cortaba—
+   y el asistente en ~220. El resumen va arriba de la nota, en su columna; el
+   asistente sigue al lado y fijo. (Relevo del PR #478.) */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .grid { grid-template-columns: minmax(0, 2fr) minmax(min(280px, 100%), .9fr); gap: 24px; }
+  .contexto, .nota, .cierre { grid-column: 1; }
+  .asistente { grid-column: 2; grid-row: 1 / span 3; position: sticky; top: 20px; max-height: calc(100dvh - 64px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+}
+
+/* ── Escritorio ancho (≥1440): TRES columnas, resumen · nota · asistente. */
+@media (min-width: 1440px) {
+  .grid { grid-template-columns: minmax(min(220px, 100%), .75fr) minmax(0, 2fr) minmax(min(280px, 100%), .95fr); gap: 24px; }
   .contexto { position: sticky; top: 20px; max-height: calc(100dvh - 64px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
   .asistente { position: sticky; top: 20px; max-height: calc(100dvh - 64px); overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
   .cierre { grid-column: 2; }
@@ -112,4 +127,16 @@
   .grid { display: block; }
   .contexto, .asistente { position: static; max-height: none; overflow: visible; }
   .nota, .cierre { border: 0; padding: 0; }
+}
+
+/* ── Las filas de medicamento en una columna estrecha (relevo PR #478) ──────
+   Con menos de ~720 px de nota, cinco campos más el bote no caben en una línea
+   y la cabecera de columnas dejaba de alinearse con lo que nombraba. Se apaga
+   la cabecera —cada campo lleva su aria-label— y el nombre del fármaco ocupa
+   su propia línea; dosis, vía, frecuencia, duración y quitar van debajo. */
+@container (max-width: 720px) {
+  /* `!important` porque las filas llevan `display`/`flex` en línea (S.row): sin
+     él, el estilo en línea gana y la regla no se ve. */
+  .nota :global(.nx-med-cabecera) { display: none !important; }
+  .nota :global(.nx-med-fila) > input:first-child { flex-basis: 100% !important; }
 }

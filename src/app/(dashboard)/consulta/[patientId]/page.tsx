@@ -7657,7 +7657,7 @@ export default function ConsultaActivaPage() {
           anuncia el lector. La fila no cambia de forma.
         */}
         {filasDeReceta.length > 0 && (
-          <div aria-hidden="true" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
+          <div aria-hidden="true" className="nx-med-cabecera" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
             <span style={{ flex: 2, minWidth: 120 }}>Medicamento</span>
             <span style={{ flex: 1, minWidth: 70 }}>Dosis</span>
             <span style={{ flex: 1, minWidth: 92 }}>Vía</span>
@@ -7666,7 +7666,7 @@ export default function ConsultaActivaPage() {
           </div>
         )}
         {filasDeReceta.map(({ m, i }) => (
-          <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
+          <div key={i} className="nx-med-fila" style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
               aria-label={`Medicamento ${i + 1}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
@@ -7828,7 +7828,56 @@ export default function ConsultaActivaPage() {
       {!(diagnosticos.length || medicamentos.length || resumen || Object.keys(signosNum).length) && (
         <p className={workspaceStyles.empty}>{CONSULTA_WORKSPACE.sinCaptura}</p>
       )}
-      </>}>
+
+      {/*
+        ── EL CHAT DE CORRECCIÓN Y LAS HERRAMIENTAS VIVEN EN EL ASISTENTE ──────
+        (relevo del PR #478, 10-sep-2026). Con tres áreas en escritorio, la
+        columna del asistente quedaba vacía debajo de dos tarjetas mientras
+        estos dos bloques —que son apoyo, no nota— seguían dentro de la
+        columna de la nota. Se mudan aquí; en teléfono y tableta el orden del
+        documento no cambia: siguen detrás de la nota y delante de firmar.
+      */}
+      {/* ── Chat de corrección por IA ── */}
+      {!firmada && (
+        <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+            <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
+            Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
+          </div>
+          {chatCorr.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
+              {chatCorr.map((m, i) => (
+                <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                  {m.texto}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Envuelve: en la columna del asistente (~300 px) el botón se salía del recuadro. */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              value={instruccionCorr}
+              onChange={e => setInstruccionCorr(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
+              placeholder="Escribe la corrección…"
+              aria-label="Corrección para la nota"
+              disabled={corrigiendo}
+              style={{ flex: '1 1 160px', minWidth: 0, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
+            />
+            {snapshotUndo && (
+              <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                ↩ Deshacer
+              </button>
+            )}
+            <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/*
         ── HERRAMIENTAS CLÍNICAS, DESPUÉS DE LA NOTA (V15-ITERATION16, 15-ago) ──
 
@@ -7957,50 +8006,11 @@ export default function ConsultaActivaPage() {
         const idsVisibles = new Set(visibles.map(h => h.id))
         return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
       })()} />
+      </>}>
 
       {/* ── Validación + Acciones ── */}
       {!firmada && (
         <>
-          {/* ── Chat de corrección por IA ── */}
-          {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
-                Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
-              </div>
-              {chatCorr.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
-                  {chatCorr.map((m, i) => (
-                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
-                      {m.texto}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  value={instruccionCorr}
-                  onChange={e => setInstruccionCorr(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
-                  placeholder="Escribe la corrección…"
-                  aria-label="Corrección para la nota"
-                  disabled={corrigiendo}
-                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
-                />
-                {snapshotUndo && (
-                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-                    ↩ Deshacer
-                  </button>
-                )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {validacion.errores.length > 0 && (
             <div style={S.valBox('error')}>
               {validacion.errores.map((e, i) => <div key={i} style={{ display: 'flex', gap: 6 }}><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} /> {e}</div>)}
