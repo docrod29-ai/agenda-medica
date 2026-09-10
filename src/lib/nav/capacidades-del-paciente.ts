@@ -19,19 +19,31 @@
  * ── QUÉ CAMBIA ───────────────────────────────────────────────────────────────
  *
  * Las dos capacidades dejan de ser destinos del índice admin y pasan a vivir
- * donde está la pregunta clínica: **en el expediente del paciente**, dentro de
- * la barra de `Herramientas` que ya existía. La consulta (`/consulta/[id]`) ya
- * las tenía así desde antes — embebía `AntibiogramaTool` y abría el consultor
- * con `?paciente=` — de modo que esto no inventa un patrón: **termina de
- * aplicar el que el encuentro ya usaba** y que el expediente no había recibido.
+ * donde está la pregunta clínica. La consulta (`/consulta/[id]`) ya las tenía
+ * así desde antes — embebe `AntibiogramaTool` y abre el consultor con
+ * `?paciente=` — de modo que esto no inventa un patrón.
+ *
+ * ── DÓNDE VIVE LA PUERTA HOY (D-046, 10-sep-2026) ────────────────────────────
+ *
+ * RTC-09 las cableó también en el EXPEDIENTE, dentro de su barra de
+ * `Herramientas`. El dueño quitó esa barra: el expediente se queda con lo que
+ * es expediente —la historia y la fotografía seriada— y las herramientas de
+ * trabajo se usan donde se trabaja, en el encuentro.
+ *
+ * Así que la puerta es hoy `/consulta/[patientId]`, y ES ahí donde se consume
+ * esta declaración. El principio de RTC-09 no se toca —la IA sigue siendo
+ * contextual, nunca un módulo del índice administrativo—: lo que cambia es
+ * cuál de las dos pantallas del paciente la ofrece.
  *
  * ── POR QUÉ UNA SOLA DECLARACIÓN ─────────────────────────────────────────────
  *
  * Porque el guardián de alcanzabilidad (`v15-flow-rail-cableado`) tiene que
  * poder responder «¿sigue existiendo una puerta a /consultor?» LEYENDO el
  * código, no confiando en una lista escrita a mano en la prueba. Si mañana
- * alguien borra la fila del expediente, la ruta se queda huérfana y el guardián
- * lo dice. Ésta es la lección de «el dato tiene que LLEGAR» aplicada a la
+ * alguien borra el cableado de la consulta, la ruta se queda huérfana y el
+ * guardián lo dice. Por eso al mudarse la puerta se mudó también el consumo:
+ * una declaración que nadie consume es una lista que promete una puerta que ya
+ * no existe, y eso es peor que no tenerla. Ésta es la lección de «el dato tiene que LLEGAR» aplicada a la
  * navegación: la puerta se declara UNA vez y se mide desde el otro lado.
  *
  * ── LO QUE ESTE MÓDULO NO HACE ───────────────────────────────────────────────
@@ -57,7 +69,7 @@ export interface CapacidadDelPaciente {
   ruta: string
   /**
    * Cómo se llega LLEVANDO al paciente, o `null` cuando la capacidad se embebe
-   * en el expediente y no se navega a ninguna parte.
+   * en la propia pantalla y no se navega a ninguna parte.
    *
    * La distinción es real y no cosmética: el consultor razona sobre el caso y
    * por eso necesita el paciente en la URL (su página ya lee `?paciente=` desde
@@ -84,11 +96,11 @@ export const CAPACIDADES_DEL_PACIENTE: readonly CapacidadDelPaciente[] = [
   },
 ]
 
-/** Las rutas que estas capacidades mantienen alcanzables desde el paciente. */
+/** Las rutas que estas capacidades mantienen alcanzables desde el encuentro. */
 export const RUTAS_DE_CAPACIDADES: readonly string[] =
   CAPACIDADES_DEL_PACIENTE.map(c => c.ruta)
 
 export const POR_QUE_CONTEXTUAL =
   'Una capacidad de IA en un menú administrativo obliga al médico a acordarse ' +
   'de que existe, salir del paciente y volver a decir de quién hablaba. En el ' +
-  'expediente la capacidad ya sabe de quién se trata (§3.2).'
+  'consulta la capacidad ya sabe de quién se trata (§3.2).'

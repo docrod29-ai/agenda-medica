@@ -36,14 +36,23 @@
  *    grupos enlaza `/consultor` ni `/antibiograma`.
  * 2. Las dos capacidades se declaran UNA vez, en
  *    `@/lib/nav/capacidades-del-paciente`, con la ruta que sustituyen.
- * 3. El expediente CONSUME esa declaración (no una copia): si la fila
+ * 3. La CONSULTA consume esa declaración (no una copia): si el cableado
  *    desaparece, las rutas se quedan sin puerta y esto se pone rojo. Es la
  *    regla «escrito y sin conectar» aplicada a una reforma de navegación.
+ *
+ *    Vivía en el EXPEDIENTE hasta D-046 (10-sep-2026): el dueño quitó de ahí
+ *    la barra de herramientas —el expediente se queda con lo que es
+ *    expediente, la historia y la fotografía seriada— y las dos capacidades
+ *    se quedaron donde el encuentro ya las tenía. El principio de RTC-09 no
+ *    se movió: siguen siendo contextuales y siguen sin estar en el índice
+ *    administrativo; cambió cuál de las dos pantallas del paciente las
+ *    ofrece. Lo que NO se puede aflojar es el consumo: una declaración que
+ *    nadie consume promete una puerta que ya no existe.
  * 4. El consultor se abre LLEVANDO al paciente (`?paciente=`) — que es lo que
  *    lo hace contextual y no un módulo con otro sitio de entrada.
  *
  * Probado al revés: devolviendo el grupo «Clínico» con sus dos filas de IA
- * fallan los casos 1-3; quitando el `CAPACIDADES_DEL_PACIENTE` del expediente
+ * fallan los casos 1-3; quitando el `CAPACIDADES_DEL_PACIENTE` de la consulta
  * falla el caso 5; quitando `?paciente=` de la declaración falla el caso 6.
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
@@ -65,6 +74,7 @@ const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
 const OPERACIONES = leer('src/app/(dashboard)/operaciones/page.tsx')
 const EXPEDIENTE = leer('src/app/(dashboard)/expediente/[patientId]/page.tsx')
+const CONSULTA = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 
 /** Los `href` declarados dentro del arreglo GRUPOS de /operaciones. */
 const hrefsDeOperaciones = (): string[] => {
@@ -125,12 +135,21 @@ describe('RTC-09 — la capacidad vive en el paciente y LLEGA', () => {
     expect(RUTAS_DE_CAPACIDADES).toContain('/antibiograma')
   })
 
-  it('5 · el expediente CONSUME la declaración (no una copia suelta)', () => {
+  it('5 · la CONSULTA consume la declaración (no una copia suelta)', () => {
     // «Escrito y sin conectar» es la familia de defecto más cara del ledger:
     // un módulo declarado que nadie renderiza deja las rutas sin puerta y la
     // prueba de alcanzabilidad pasando en verde por el motivo equivocado.
-    expect(EXPEDIENTE).toContain("from '@/lib/nav/capacidades-del-paciente'")
-    expect(EXPEDIENTE).toMatch(/CAPACIDADES_DEL_PACIENTE\.map\(/)
+    expect(CONSULTA).toContain("from '@/lib/nav/capacidades-del-paciente'")
+    expect(CONSULTA).toMatch(/CAPACIDADES_DEL_PACIENTE\.find\(/)
+  })
+
+  it('5b · D-046 — y el expediente ya NO las ofrece, ni por su nombre', () => {
+    // Al revés del caso 5: si alguien devolviera la barra de herramientas al
+    // expediente sin decirlo, la decisión del dueño se desharía en silencio y
+    // habría DOS puertas a lo mismo en las dos pantallas del paciente.
+    expect(EXPEDIENTE).not.toContain('capacidades-del-paciente')
+    expect(EXPEDIENTE).not.toContain('AntibiogramaTool')
+    expect(EXPEDIENTE).not.toContain('PanelLaboratorios')
   })
 
   it('6 · el consultor se abre LLEVANDO al paciente', () => {
@@ -139,11 +158,11 @@ describe('RTC-09 — la capacidad vive en el paciente y LLEGA', () => {
     expect(consultor.conPaciente!('abc123')).toBe('/consultor?paciente=abc123')
   })
 
-  it('7 · el antibiograma se USA en el expediente en vez de mandar a otra pantalla', () => {
+  it('7 · el antibiograma se USA en la consulta en vez de mandar a otra pantalla', () => {
     const anti = CAPACIDADES_DEL_PACIENTE.find(c => c.id === 'antibiograma')!
     expect(anti.conPaciente).toBeNull()
-    // Y el embebido existe de verdad: mismo componente que ya usa la consulta.
-    expect(EXPEDIENTE).toContain("import('@/app/(dashboard)/antibiograma/page')")
-    expect(EXPEDIENTE).toContain('m.AntibiogramaTool')
+    // Y el embebido existe de verdad, donde ahora vive la puerta.
+    expect(CONSULTA).toContain("import('@/app/(dashboard)/antibiograma/page')")
+    expect(CONSULTA).toContain('m.AntibiogramaTool')
   })
 })

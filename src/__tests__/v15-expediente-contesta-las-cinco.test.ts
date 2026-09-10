@@ -113,16 +113,25 @@ describe('§29 · el expediente contesta las cinco preguntas de continuidad', ()
     expect(PAGE).toContain("alAbrirPendientes={() => router.push('/pendientes')}")
   })
 
-  it('6 · lo clínico va ANTES de las utilidades — identidad → estado → pendientes → historia', () => {
-    const anclas = ['<PatientAnchor', '<ResumenPaciente', 'id="spine-pendientes"', 'id="spine-encuentros"']
+  it('6 · lo clínico va ANTES de las utilidades — identidad → historia → pendientes (D-046)', () => {
+    /*
+     * El orden entre los bloques CLÍNICOS lo cambió el dueño el 10-sep-2026:
+     * la historia sube por delante del estado y de los pendientes porque en un
+     * teléfono la primera consulta —y su fecha— empezaba a 1 199 px. Lo que
+     * este caso sigue vigilando, y no se afloja, es lo que encontró el equipo
+     * rojo: nada de utilidades por delante de lo clínico.
+     */
+    const anclas = ['<PatientAnchor', '<ResumenPaciente', 'id="spine-encuentros"', 'id="spine-pendientes"']
     const posiciones = anclas.map(a => {
       const i = PAGE.indexOf(a)
       expect(i, `no se encontró ${a}`).toBeGreaterThan(-1)
       return i
     })
     expect(posiciones).toEqual([...posiciones].sort((a, b) => a - b))
-    // Y el catálogo de herramientas queda DESPUÉS de la historia, no delante.
-    expect(PAGE.indexOf('<Herramientas')).toBeGreaterThan(PAGE.indexOf('id="spine-encuentros"'))
+    // Y la fotografía —lo único que quedó en el sitio del catálogo— sigue
+    // DESPUÉS de la historia y de los pendientes, no delante.
+    expect(PAGE.indexOf('id="spine-fotos"')).toBeGreaterThan(PAGE.indexOf('id="spine-encuentros"'))
+    expect(PAGE.indexOf('id="spine-fotos"')).toBeGreaterThan(PAGE.indexOf('id="spine-pendientes"'))
   })
 
   it('7 · el expediente NO cierra pendientes: inspecciona y continúa', () => {

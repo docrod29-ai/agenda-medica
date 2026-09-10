@@ -31,8 +31,19 @@
  *
  * ── LA REGLA QUE LO HACE SEGURO ─────────────────────────────────────────────
  *
- * 1. El orden de la página dice lo que la pantalla ES:
- *    identidad → estado → pendientes → historia → utilidades → documentos.
+ * 1. El orden de la página dice lo que la pantalla ES. Hasta D-046 fue
+ *    `identidad → estado → pendientes → historia → utilidades → documentos`;
+ *    hoy es `identidad → HISTORIA → estado → pendientes → fotografía →
+ *    documentos`, y el cambio salió de otra medición, no de una opinión:
+ *    en un iPhone (viewport de 664 px) la primera consulta empezaba a
+ *    **1 199 px** —casi dos pantallas— y con ella su fecha. La pregunta que
+ *    el médico le hace a un expediente antes que ninguna otra es «¿de qué
+ *    lo he atendido y cuándo?». Tras el cambio, 785 px.
+ *
+ *    Lo que RTC-10 encontró NO se deshace y por eso se sigue midiendo: las
+ *    cajas-módulo no vuelven por delante del paciente, las tarjetas vacías
+ *    no vuelven, y los documentos siguen siendo lo último. Lo que cambió es
+ *    cuál de los bloques CLÍNICOS va primero entre ellos.
  * 2. Una tarjeta sin contenido no se pinta como tarjeta. Pero **no desaparece
  *    el hecho**: se degrada a una línea que habla del REGISTRO («este
  *    expediente todavía no tiene … registrados»), nunca del paciente —
@@ -99,24 +110,33 @@ const ESTADO_CLINICO = 'id="spine-problemas"'
 const PENDIENTES = 'id="spine-pendientes"'
 const HISTORIA = 'id="spine-encuentros"'
 const CONTACTO = '<DatosPaciente'
-const HERRAMIENTAS = '<Herramientas items={['
+/* D-046 — la barra de herramientas del expediente ya no existe: la
+   fotografía seriada se quedó como sección propia y las tres herramientas
+   de trabajo viven en el encuentro. Se mide la sección que la sustituye. */
+const FOTOS = 'id="spine-fotos"'
 const DOCUMENTOS = 'Documentos y exportación'
 
 describe('RTC-10 — el orden de la página dice lo que la pantalla es', () => {
-  it('1 · el estado clínico y los pendientes van ANTES de la historia', () => {
+  it('1 · D-046 — la HISTORIA va primero, y el estado y los pendientes justo detrás', () => {
     for (const marca of [RESUMEN_PACIENTE, ESTADO_CLINICO, PENDIENTES, HISTORIA]) {
       expect(pos(marca), `falta el marcador ${marca}`).toBeGreaterThan(0)
     }
-    expect(pos(ESTADO_CLINICO)).toBeGreaterThan(pos(RESUMEN_PACIENTE))
-    expect(pos(ESTADO_CLINICO)).toBeLessThan(pos(HISTORIA))
-    expect(pos(PENDIENTES)).toBeLessThan(pos(HISTORIA))
+    // Lo que NO cambia: nada clínico se cuela por delante de la identidad.
+    expect(pos(HISTORIA)).toBeGreaterThan(pos(RESUMEN_PACIENTE))
+    // Lo que cambió: la historia por delante del estado y de los pendientes.
+    expect(pos(HISTORIA)).toBeLessThan(pos(ESTADO_CLINICO))
+    expect(pos(HISTORIA)).toBeLessThan(pos(PENDIENTES))
+    // Y los pendientes NO se van al fondo: siguen por encima de las utilidades.
+    expect(pos(PENDIENTES)).toBeLessThan(pos(CONTACTO))
+    expect(pos(PENDIENTES)).toBeLessThan(pos(FOTOS))
   })
 
-  it('2 · las cajas-módulo (contacto, herramientas) van DESPUÉS de la historia', () => {
-    // Eran las dos que el equipo rojo encontró apiladas por delante del
-    // paciente. Siguen enteras: cambiaron de sitio, no de conducta.
+  it('2 · las cajas-módulo (contacto, fotografía) siguen DESPUÉS de lo clínico', () => {
+    // El hallazgo de RTC-10 en pie: eran las que estaban apiladas por delante
+    // del paciente. Cambiaron de sitio, no de conducta, y no vuelven.
     expect(pos(CONTACTO)).toBeGreaterThan(pos(HISTORIA))
-    expect(pos(HERRAMIENTAS)).toBeGreaterThan(pos(HISTORIA))
+    expect(pos(FOTOS)).toBeGreaterThan(pos(HISTORIA))
+    expect(pos(FOTOS)).toBeGreaterThan(pos(ESTADO_CLINICO))
   })
 
   it('3 · los documentos y la exportación son lo último', () => {
@@ -151,7 +171,7 @@ describe('RTC-10 — una tarjeta vacía no es información', () => {
 
   it('6 · el riel del Clinical Spine sigue el orden VISUAL de la página', () => {
     const spine = EXPEDIENTE.slice(EXPEDIENTE.indexOf('const spineItems'), EXPEDIENTE.indexOf('return ('))
-    const orden = ['problemas', 'pendientes', 'encuentros', 'internamientos', 'herramientas']
+    const orden = ['encuentros', 'internamientos', 'problemas', 'pendientes', 'fotos']
       .map(id => spine.indexOf(`id: '${id}'`))
     expect(orden.every(i => i > 0), 'falta algún ítem del riel').toBe(true)
     expect(orden, 'el riel anuncia un orden distinto del documento').toEqual([...orden].sort((a, b) => a - b))
