@@ -141,7 +141,7 @@ export default function GeneradorRecetaPage() {
   // que se dispensa. Reactivo a cada cambio de medicamento. Antes solo se
   // chequeaba en la consulta; aquí se podía agregar un fármaco peligroso sin alerta.
   //
-  // D-046 (dueño, 5-sep-2026): una alergia crítica o una interacción mayor
+  // D-033 (dueño, 5-sep-2026): una alergia crítica o una interacción mayor
   // AVISA y no bloquea imprimir ni firmar. Bloquear cambiaría el acto clínico;
   // la decisión de recetar a pesar del aviso es del médico y queda a la vista.
   const alertasAlergia = useMemo(() => {

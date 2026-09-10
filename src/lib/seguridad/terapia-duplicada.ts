@@ -38,7 +38,7 @@
  * - No suma dosis por kilo ni renglones sin frecuencia legible: el aviso de
  *   duplicado sale igual, sin la cifra.
  * - No bloquea. Es un aviso de nivel «revisa», como el resto de la revisión de
- *   dosis (decisión del dueño del 5-ago; D-046 lo confirma para las alertas).
+ *   dosis (decisión del dueño del 5-ago; D-033 lo confirma para las alertas).
  *
  * Módulo PURO.
  */
