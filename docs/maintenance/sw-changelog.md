@@ -3922,6 +3922,40 @@ de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
 
+## v1195 — 10-sep-2026
+
+**PR #478 · consulta de tres áreas, agenda segura y dependencias** — el lote de
+Codex, relevado y terminado por Claude con autorización del dueño.
+
+- **La consulta en tres áreas.** En escritorio ancho (≥1440) resumen del
+  paciente, nota y asistente clínico se ven a la vez; en laptop (1280–1439)
+  el resumen va sobre la nota y el asistente fijo al lado; en tableta y
+  teléfono se apilan con navegación por secciones. Tema claro por defecto,
+  respetando la preferencia oscura o automática ya elegida. El chat de
+  corrección y el catálogo de herramientas viven en el asistente.
+- **Mirado antes de salir.** Con el arnés visual (emulador, consultorio
+  sintético, Chromium) aparecieron cuatro defectos que ninguna prueba veía:
+  botones partidos letra por letra, filas de medicamento que no cabían, el
+  resumen cortado a 1280 y el asistente vacío. Los cuatro arreglados, con
+  guardián sellado (`el-rediseno-de-tres-areas-cabe`).
+- **REG-659** — la reserva pública responde 503 con reintento si falla el
+  contador de abuso, antes de escribir nada.
+- **REG-656/657/658** — cancelación con el mismo plazo de 12 h en portal y
+  WhatsApp; una respuesta tardía de la IA no entra a una nota firmada o
+  descartada; las dudas sobreviven al fusionar borradores.
+- **REG-660** — regenerar la nota no borra lo que el médico editó: el lote
+  de la IA se compara por contenido completo. Reconciliado con D-051: confirmar
+  el código CIE-10 sugerido es la edición humana que protege el renglón.
+- **REG-661** — la demo pública se mantiene fiel al dictado.
+- **REG-665/666/667** — la lista de espera conserva duración y médico; una
+  corrección IA tardía no toca un encuentro cerrado; un autoguardado pendiente
+  no recrea una consulta descartada.
+- Auditoría diaria de dependencias (workflow) y Next 16.3.4 / sharp / xmldom.
+
+Lo que este lote NO acredita, dicho por Codex y sostenido aquí: la mezcla
+entre pacientes no está confirmada como resuelta, el objetivo de carga no está
+medido, y varias decisiones de agenda y portal siguen sin implementar.
+
 ## v1194 — 10-sep-2026
 
 **REG-664 · D-047 a D-052** — la nota que el médico pidió.
