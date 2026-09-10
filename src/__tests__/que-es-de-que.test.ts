@@ -129,7 +129,7 @@ describe('las razones quedan escritas', () => {
   })
 })
 
-describe('el motor existe y está probado; la pantalla ya no lo monta (D-047)', () => {
+describe('el motor existe y está probado; la pantalla ya no lo monta (D-048)', () => {
   const page = readFileSync(
     join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
   const mod = readFileSync(
@@ -137,7 +137,7 @@ describe('el motor existe y está probado; la pantalla ya no lo monta (D-047)', 
   const comp = readFileSync(
     join(process.cwd(), 'src/components/PlanPorProblema.tsx'), 'utf8')
 
-  it('la consulta NO lo monta: el dueño no quiere ver de dónde salió (D-047, 10-sep-2026)', () => {
+  it('la consulta NO lo monta: el dueño no quiere ver de dónde salió (D-048, 10-sep-2026)', () => {
     /**
      * Hasta el 10-sep-2026 este caso exigía que la consulta importara y
      * montara `<PlanPorProblema>`. El dueño, con la pantalla llena, pidió lo

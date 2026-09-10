@@ -141,7 +141,7 @@ describe('el médico elige intención clínica, nunca una marca (#345)', () => {
     }
   })
 
-  it('la consulta ya no tiene selector de nivel: el médico no elige (D-046)', () => {
+  it('la consulta ya no tiene selector de nivel: el médico no elige (D-047)', () => {
     /**
      * Board #296 decía «el médico no elige modelos ni niveles» y el selector
      * seguía en la consulta. El 10-sep-2026 el dueño lo retiró. Sin catálogo

@@ -75,7 +75,7 @@ describe('LO QUE ESCRIBE LA IA NO CUENTA COMO DECLARACIÓN', () => {
 
 describe('EL AVISO DE DOSIS LA RESPETA', () => {
   it('lo declarado desconocido no avisa', () => {
-    // D-048: se mira la receta de hoy. D-051: ya no hay compuerta en firmar();
+    // D-049: se mira la receta de hoy. D-052: ya no hay compuerta en firmar();
     // el único sitio que juzga la dosis es el aviso, y es el que se comprueba.
     const i = consulta.indexOf('const dosisIncompletas')
     expect(i).toBeGreaterThan(0)
@@ -89,7 +89,7 @@ describe('EL AVISO DE DOSIS LA RESPETA', () => {
   })
 
   it('pero el aviso sigue en pie para los huecos de verdad', () => {
-    // Avisa en vez de bloquear (D-051), y sigue mirando el motor de dosis.
+    // Avisa en vez de bloquear (D-052), y sigue mirando el motor de dosis.
     expect(NIVEL.dosis_incompleta).toBe('revisa')
     expect(consulta).toContain('revisarUnidadDosis(m.nombre, m.dosis)')
   })

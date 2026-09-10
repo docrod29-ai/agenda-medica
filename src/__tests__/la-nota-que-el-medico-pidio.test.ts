@@ -1,5 +1,5 @@
 /**
- * LA NOTA QUE EL MÉDICO PIDIÓ — D-046 · D-047 · D-048 · D-049 (10-sep-2026).
+ * LA NOTA QUE EL MÉDICO PIDIÓ — D-047 · D-048 · D-049 · D-050 (10-sep-2026).
  *
  * ── CÓMO SE DESCUBRIÓ ────────────────────────────────────────────────────────
  *
@@ -22,14 +22,14 @@
  * ── LA CAUSA RAÍZ, QUE ES UNA POR PUNTO ─────────────────────────────────────
  *
  * · Diagnósticos: la regla 7-bis del prompt pide de tres a seis. Un prompt es
- *   una petición; no había tope determinista. (D-049)
+ *   una petición; no había tope determinista. (D-050)
  * · Medicamentos: `loQueSeReceta` ya existía y ya decidía qué baja al PAPEL,
  *   pero la LISTA de la pantalla y la COMPUERTA de dosis miraban `medicamentos`
  *   entero. Y la regla 19 del prompt prohíbe las filas «no especificado»; el
- *   modelo la ignora y nada lo paraba. (D-048)
+ *   modelo la ignora y nada lo paraba. (D-049)
  * · Nivel de IA: Board #296 ya decía que el médico no elige; el selector seguía
- *   montado y la petición mandaba `motor`. (D-046)
- * · Procedencia: «Qué es de qué» se montaba siempre que hubiera dos grupos. (D-047)
+ *   montado y la petición mandaba `motor`. (D-047)
+ * · Procedencia: «Qué es de qué» se montaba siempre que hubiera dos grupos. (D-048)
  *
  * ── LA REGLA ────────────────────────────────────────────────────────────────
  *
@@ -69,7 +69,7 @@ const med = (nombre: string, extra: Partial<Medicamento> = {}): Medicamento =>
 const dx = (descripcion: string, tipo: Diagnostico['tipo'] = 'presuntivo'): Diagnostico =>
   ({ descripcion, tipo, estado: 'activo' })
 
-describe('D-048 · un renglón que no nombra un fármaco no es un medicamento', () => {
+describe('D-049 · un renglón que no nombra un fármaco no es un medicamento', () => {
   it.each([
     'Medicamento no especificado',
     'Medicamento previo (nombre no precisado)',
@@ -112,7 +112,7 @@ describe('D-048 · un renglón que no nombra un fármaco no es un medicamento', 
   })
 })
 
-describe('D-048 · la lista es la receta de hoy; lo demás es una línea', () => {
+describe('D-049 · la lista es la receta de hoy; lo demás es una línea', () => {
   const lista: Medicamento[] = [
     med('Telmisartán', { procedenciaClinica: 'ya_lo_toma', speaker: 'paciente' }),          // lo toma
     med('Ceftriaxona', { speaker: 'paciente', estado: 'borrador' }),                        // se lo dio un urólogo
@@ -151,13 +151,13 @@ describe('D-048 · la lista es la receta de hoy; lo demás es una línea', () =>
   })
 })
 
-describe('D-048 · la compuerta de dosis mira la MISMA puerta que el papel', () => {
+describe('D-049 · la compuerta de dosis mira la MISMA puerta que el papel', () => {
   it('el aviso antes de firmar itera la receta de hoy, no la lista entera', () => {
     const i = PAGE.indexOf('const dosisIncompletas')
     expect(PAGE.slice(i, i + 400)).toContain('return loQueSeReceta(medicamentos)')
   })
 
-  it('y ya no hay una segunda compuerta en firmar() mirando otra lista (D-051)', () => {
+  it('y ya no hay una segunda compuerta en firmar() mirando otra lista (D-052)', () => {
     expect(PAGE).not.toContain('const dosisMal = medicamentos')
     expect(PAGE).not.toContain('const dosisMal = ')
   })
@@ -181,7 +181,7 @@ describe('D-048 · la compuerta de dosis mira la MISMA puerta que el papel', () 
   })
 })
 
-describe('D-049 · como máximo seis diagnósticos sugeridos por pasada', () => {
+describe('D-050 · como máximo seis diagnósticos sugeridos por pasada', () => {
   // Once descripciones DISTINTAS: la fusión deduplica por palabras, y «Diagnóstico 1…11»
   // se leería como uno solo (los números no cuentan como palabra).
   const NOMBRES = ['Uretritis no gonocócica', 'Hipertensión arterial sistémica', 'Prostatitis crónica',
@@ -224,7 +224,7 @@ describe('D-049 · como máximo seis diagnósticos sugeridos por pasada', () => 
   })
 })
 
-describe('D-051 · la dosis que falta AVISA, no bloquea (segunda vuelta, 10-sep-2026)', () => {
+describe('D-052 · la dosis que falta AVISA, no bloquea (segunda vuelta, 10-sep-2026)', () => {
   /**
    * El dueño, sobre mi resumen «la compuerta de dosis sigue bloqueando lo que
    * sí se receta hoy, como usted decidió el 5 de agosto»: «arregla esto».
@@ -254,7 +254,7 @@ describe('D-051 · la dosis que falta AVISA, no bloquea (segunda vuelta, 10-sep-
     const i = PAGE.indexOf('const entradaDeBloqueo = {')
     expect(PAGE.slice(i, i + 400)).not.toContain('dosisIncompletas')
     expect(PAGE).not.toContain('No se puede firmar. ')
-    expect(PAGE).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051')
+    expect(PAGE).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-052')
   })
 
   it('EL DATO SIGUE LLEGANDO: el aviso se sigue construyendo y se sella al firmar', () => {
@@ -269,7 +269,7 @@ describe('D-051 · la dosis que falta AVISA, no bloquea (segunda vuelta, 10-sep-
   })
 })
 
-describe('D-050 · la sugerencia trae el código CIE-10; el médico sólo lo confirma', () => {
+describe('D-051 · la sugerencia trae el código CIE-10; el médico sólo lo confirma', () => {
   const ia = (descripcion: string, codigoCIE10: string, tipo: Diagnostico['tipo'] = 'presuntivo'): Diagnostico =>
     ({ descripcion, codigoCIE10, tipo, estado: 'activo' })
 
@@ -335,7 +335,7 @@ describe('D-050 · la sugerencia trae el código CIE-10; el médico sólo lo con
   })
 })
 
-describe('D-046 · el médico no elige nivel de IA', () => {
+describe('D-047 · el médico no elige nivel de IA', () => {
   it('no hay selector ni catálogo en la consulta', () => {
     expect(PAGE).not.toContain('Nivel de IA para esta nota')
     expect(PAGE).not.toContain('const MOTORES_UI')
@@ -355,7 +355,7 @@ describe('D-046 · el médico no elige nivel de IA', () => {
   })
 })
 
-describe('D-047 · «Qué es de qué» ya no se monta en la consulta', () => {
+describe('D-048 · «Qué es de qué» ya no se monta en la consulta', () => {
   it('ni import ni JSX', () => {
     expect(PAGE).not.toContain("from '@/components/PlanPorProblema'")
     expect(PAGE).not.toContain('<PlanPorProblema')

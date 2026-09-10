@@ -141,7 +141,7 @@ describe('nadie firma sin nombre — REG-336', () => {
        * Configuración. Puesto el último, el único motivo que el médico no podía
        * encontrar solo era también el único que el mensaje nunca le enseñaba.
        */
-      // Desde D-051 la dosis ya no es motivo de bloqueo: quedan dos orígenes.
+      // Desde D-052 la dosis ya no es motivo de bloqueo: quedan dos orígenes.
       expect(m.map(x => x.origen)).toEqual(['atribucion', 'nom004'])
     })
   })

@@ -85,7 +85,7 @@ describe('esquema de encabezados del lienzo de consulta (heading-order muere)', 
 
   it('freeze funcional: la consulta sigue montando la hoja y el panel de entidades', () => {
     // Protege contra un «arreglo» que resolviera el esquema quitando piezas.
-    // «Qué es de qué» ya no se monta por decisión del dueño (D-047, 10-sep-2026),
+    // «Qué es de qué» ya no se monta por decisión del dueño (D-048, 10-sep-2026),
     // no por el esquema de encabezados: su h2/h3 se sigue vigilando arriba.
     expect(CONSULTA).toContain('<HojaParaElPaciente')
     expect(CONSULTA).not.toContain('<PlanPorProblema')

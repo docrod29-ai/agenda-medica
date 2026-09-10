@@ -12,7 +12,7 @@ const dx = (
 ): Diagnostico => ({ descripcion, codigoCIE10, tipo, estado: 'activo' })
 
 describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
-  it('un diagnóstico automático no se vuelve definitivo, y su CIE entra como SUGERIDO (D-050)', () => {
+  it('un diagnóstico automático no se vuelve definitivo, y su CIE entra como SUGERIDO (D-051)', () => {
     /**
      * Hasta el 10-sep-2026 el código se borraba aquí. El dueño pidió que la
      * sugerencia traiga el código y él sólo lo confirme: el código se queda,

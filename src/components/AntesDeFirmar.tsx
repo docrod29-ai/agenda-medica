@@ -129,7 +129,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
               <span style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                 <span style={chip(R)}>BLOQUEA</span>
                 <strong style={{ color: 'var(--text)' }}>
-                  {/* Desde D-051 lo que bloquea es NOM-004 y la atribución, no la dosis: el título no presume. */}
+                  {/* Desde D-052 lo que bloquea es NOM-004 y la atribución, no la dosis: el título no presume. */}
                   {bloqueos.length === 1
                     ? bloqueos[0].texto
                     : `${bloqueos.length} cosas impiden firmar.`}
@@ -159,7 +159,7 @@ export function AntesDeFirmar({ avisos, extraidos, soloLectura, onIr, onRevisado
             <span style={{ flex: 1, minWidth: 0, color: 'var(--text2)' }}>
               <span style={{ ...chip(A), marginRight: 7 }}>REVISA</span>
               {a.texto}
-              {/* La dosis que falta vive aquí desde D-051: se corrige, no se descarta, y el botón lleva al renglón. */}
+              {/* La dosis que falta vive aquí desde D-052: se corrige, no se descarta, y el botón lleva al renglón. */}
               {!soloLectura && !a.descartable && onIr && a.ancla && (
                 <button onClick={() => onIr(a.ancla!)} style={botonTexto}>Ir a corregir</button>
               )}

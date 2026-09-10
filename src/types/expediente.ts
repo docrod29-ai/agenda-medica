@@ -79,7 +79,7 @@ export interface Diagnostico {
    */
   tipoOrigen?: OrigenDelTipoDeDiagnostico
   /**
-   * QUIÉN PUSO EL CÓDIGO CIE-10 (D-050, 10-sep-2026).
+   * QUIÉN PUSO EL CÓDIGO CIE-10 (D-051, 10-sep-2026).
    *
    * Hasta hoy el código que traía la IA se BORRABA al entrar a la nota (GP6:
    * sugerir no codifica). El dueño pidió lo contrario: «que la sugerencia

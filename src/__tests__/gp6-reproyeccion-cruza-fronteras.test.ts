@@ -5,7 +5,7 @@ import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos, loQueSeReceta } from '@/lib/expediente/que-va-en-la-receta'
 
 describe('GP6: re-proyección y recuperación cruzan las fronteras clínicas', () => {
-  it('IA definitiva/CIE entra no confirmada: presuntivo, con el CIE marcado como sugerido (D-050)', () => {
+  it('IA definitiva/CIE entra no confirmada: presuntivo, con el CIE marcado como sugerido (D-051)', () => {
     const [d] = fusionarDiagnosticos({ previos: [], deLaIaAnterior: [], nuevos: [
       { descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', estado: 'activo', codigoCIE10: 'J18.9' },
     ] })

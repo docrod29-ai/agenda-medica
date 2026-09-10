@@ -57,7 +57,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('const dosisIncompletas')
   })
 
-  it('y lo enseña, a la vista y sin plegarse — desde D-051 avisa, no bloquea', () => {
+  it('y lo enseña, a la vista y sin plegarse — desde D-052 avisa, no bloquea', () => {
     /**
      * El título cambió el 5-ago-2026 con la decisión del médico dueño («que
      * bloquee la firma si falta la dosis»): un aviso que bloquea tiene que
@@ -77,7 +77,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * puede vigilar.
      */
     /**
-     * ── 10-sep-2026 (D-051): AVISA, NO BLOQUEA ────────────────────────────
+     * ── 10-sep-2026 (D-052): AVISA, NO BLOQUEA ────────────────────────────
      * El mismo médico dueño que el 5-ago pidió bloquear, con la pantalla llena
      * de bloqueos, pidió lo contrario. El aviso queda en `revisa`, entre los
      * que no se pliegan, con la frase entera («Falta la dosis de X»).
@@ -145,7 +145,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     const [bloqueo] = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'la receta no lleva cantidad' }],
     })
-    // Avisa (D-051), pero no se descarta: una dosis que falta se escribe.
+    // Avisa (D-052), pero no se descarta: una dosis que falta se escribe.
     expect(bloqueo.nivel).toBe('revisa')
     expect(bloqueo.descartable).toBe(false)
     expect(barra).toContain('a.descartable && onRevisado')
@@ -166,7 +166,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('marcarRevisado(tipo, clave)')
   })
 
-  it('la falta de DOSIS ya NO bloquea la firma — decisión del médico dueño (D-051)', () => {
+  it('la falta de DOSIS ya NO bloquea la firma — decisión del médico dueño (D-052)', () => {
     /**
      * 5-ago-2026, textual: «que bloquee la firma si falta la dosis». La tomó él
      * con el dato delante. 10-sep-2026, él mismo, con nueve bloqueos en pantalla:
@@ -175,7 +175,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      */
     expect(consulta).not.toContain("x.aviso?.codigo === 'dosis_sin_cifra'")
     expect(consulta).not.toContain('No se puede firmar. ')
-    expect(consulta).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051')
+    expect(consulta).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-052')
   })
 
   it('pero la falta de UNIDAD sólo avisa', () => {

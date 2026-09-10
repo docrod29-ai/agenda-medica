@@ -117,7 +117,7 @@ describe('el redactor de avisos no filtra: avisa de lo que le llega', () => {
   it('el aviso sale igual, venga de donde venga', () => {
     /**
      * Qué bloquea lo decidió el médico dueño el 5-ago con el dato delante, y
-     * el 10-sep-2026 lo acotó él mismo (D-048): a `construirAvisos` sólo llega
+     * el 10-sep-2026 lo acotó él mismo (D-049): a `construirAvisos` sólo llega
      * la RECETA DE HOY (`loQueSeReceta`), así que «ya lo toma» ya no la
      * alcanza en la consulta. Este redactor no filtra por su cuenta: si algo
      * le llega, bloquea. La selección vive aguas arriba, en una sola puerta
@@ -125,7 +125,7 @@ describe('el redactor de avisos no filtra: avisa de lo que le llega', () => {
      */
     const a = construirAvisos({ dosisIncompletas: [{ med: 'a', mensaje: 'm', procedencia: 'ya_lo_toma' }] })
     const b = construirAvisos({ dosisIncompletas: [{ med: 'b', mensaje: 'm', procedencia: 'se_prescribe_hoy' }] })
-    // `revisa` desde D-051 (10-sep-2026): avisa, no bloquea. Los dos igual.
+    // `revisa` desde D-052 (10-sep-2026): avisa, no bloquea. Los dos igual.
     expect(a[0].nivel).toBe('revisa')
     expect(b[0].nivel).toBe('revisa')
     expect(a[0].descartable).toBe(false)

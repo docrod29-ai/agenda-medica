@@ -1116,7 +1116,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * vez `no_conectado`: `loQueSeReceta` ya decidía qué baja al papel y ni la
      * lista ni la compuerta de firma lo miraban. Se clasifica aquí porque lo
      * que el dueño midió fue el estorbo, y la reparación se hizo con cuatro
-     * decisiones suyas (D-046 a D-049).
+     * decisiones suyas (D-047 a D-050).
      */
     regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 662, 664],
   },

@@ -289,7 +289,7 @@ const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPa
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 /**
- * NIVEL DE IA DE LA NOTA — el médico NO elige (D-046, 10-sep-2026).
+ * NIVEL DE IA DE LA NOTA — el médico NO elige (D-047, 10-sep-2026).
  *
  * Aquí vivía `MOTORES_UI`, el catálogo del selector ⚡/⭐/💎. El Board #296 ya
  * decía que «el médico no elige modelos ni niveles» y el dueño lo repitió con
@@ -1190,7 +1190,7 @@ export default function ConsultaActivaPage() {
   const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
 
   /**
-   * LA LISTA DE MEDICAMENTOS ES LA RECETA DE HOY (D-048, 10-sep-2026).
+   * LA LISTA DE MEDICAMENTOS ES LA RECETA DE HOY (D-049, 10-sep-2026).
    *
    * Las filas editables son EXACTAMENTE lo que `loQueSeReceta` deja bajar al
    * papel: una sola puerta para la pantalla, la compuerta de dosis y la
@@ -1204,7 +1204,7 @@ export default function ConsultaActivaPage() {
   const soloMencionados = loQueSoloSeMenciono(medicamentos)
 
   /**
-   * LOS CÓDIGOS QUE SUGIRIÓ LA IA Y NADIE CONFIRMÓ (D-050). Se avisan antes de
+   * LOS CÓDIGOS QUE SUGIRIÓ LA IA Y NADIE CONFIRMÓ (D-051). Se avisan antes de
    * firmar y, si siguen sin confirmar al estampar la firma, se quitan.
    */
   const codigosSinConfirmar = diagnosticos
@@ -1421,7 +1421,7 @@ export default function ConsultaActivaPage() {
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
   // El nivel que usó la última nota, tal como lo devolvió el servidor. El médico
-  // no lo elige (D-046): se persiste para procedencia, no para un menú.
+  // no lo elige (D-047): se persiste para procedencia, no para un menú.
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
   const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
@@ -1714,7 +1714,7 @@ export default function ConsultaActivaPage() {
    * decisión del médico dueño, y está en su cola.
    */
   const dosisIncompletas = useMemo(() => {
-    // Sólo la RECETA DE HOY (D-048): lo referido, lo suspendido y lo que la IA
+    // Sólo la RECETA DE HOY (D-049): lo referido, lo suspendido y lo que la IA
     // extrajo sin intención no sale en el papel — y por eso no bloquea la firma.
     return loQueSeReceta(medicamentos)
       .filter(m => m.nombre?.trim())
@@ -2608,7 +2608,7 @@ export default function ConsultaActivaPage() {
           diagnosticos: dxDelCuadro,
           medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
-          // Sin `motor`: el servidor aplica el nivel del plan (D-046).
+          // Sin `motor`: el servidor aplica el nivel del plan (D-047).
           resumen: resumenTexto.slice(0, 2000),
           /**
            * La creatinina viaja CON SU VIGENCIA (REG-375) porque el motor de
@@ -2761,7 +2761,7 @@ export default function ConsultaActivaPage() {
           // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
           // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
           rapido: enVivo || preliminar,
-          // Sin `motor`: el servidor aplica el nivel del plan (D-046). El médico no elige.
+          // Sin `motor`: el servidor aplica el nivel del plan (D-047). El médico no elige.
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -3379,7 +3379,7 @@ export default function ConsultaActivaPage() {
        * puede cambiar.
        */
       medicamentos: medicamentos.map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })),
-      // D-050: un código que nadie confirmó no lleva firma. El borrador lo conserva para confirmarlo.
+      // D-051: un código que nadie confirmó no lleva firma. El borrador lo conserva para confirmarlo.
       diagnosticos: estado === 'firmada' ? sinCodigosSinConfirmar(diagnosticos) : diagnosticos,
       /**
        * NO SE INVENTA LO QUE NADIE DIJO.
@@ -4499,7 +4499,7 @@ export default function ConsultaActivaPage() {
     }
 
     /**
-     * ── LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051, 10-sep-2026) ────────────
+     * ── LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-052, 10-sep-2026) ────────────
      *
      * Aquí vivía la compuerta del 5-ago («que bloquee la firma si falta la
      * dosis»): un `return` con toast. El dueño la cambió el 10-sep con la
@@ -5038,7 +5038,7 @@ export default function ConsultaActivaPage() {
    */
   const entradaDeBloqueo = {
     erroresNOM004: validacion?.errores,
-    // La dosis ya no está aquí (D-051): avisa en `construirAvisos`, no apaga el botón.
+    // La dosis ya no está aquí (D-052): avisa en `construirAvisos`, no apaga el botón.
     sinQuienFirma: !identidadFirma.nombre.trim(),
   }
   const bloqueosDeFirma = motivosParaNoFirmar(entradaDeBloqueo)
@@ -6253,7 +6253,7 @@ export default function ConsultaActivaPage() {
           )}
 
           {/* Aquí estaba el MENÚ DE IA (⚡ Rápida · ⭐ Estándar · 💎 Máxima).
-              Retirado por decisión del dueño (D-046): el médico no elige nivel.
+              Retirado por decisión del dueño (D-047): el médico no elige nivel.
               El aviso de créditos del plan sigue más abajo, donde ya estaba. */}
 
           {/* Material de origen (dictado) — FUENTE, no forma parte de la nota.
@@ -6990,7 +6990,7 @@ export default function ConsultaActivaPage() {
       {/*
         Aquí se montaba «Qué es de qué» (REG-243, `PlanPorProblema`): el plan
         atado al problema con la frase del dictado que lo prueba. Retirado de
-        esta pantalla por decisión del dueño (D-047, 10-sep-2026): «ya no quiero
+        esta pantalla por decisión del dueño (D-048, 10-sep-2026): «ya no quiero
         ver de dónde lo sacaste». El motor `plan-por-problema` sigue probado y
         la procedencia por frase (REG-213/250) sigue en la nota.
       */}
@@ -7528,7 +7528,7 @@ export default function ConsultaActivaPage() {
                 <Cie10Autocomplete
                   value={d.descripcion}
                   onChange={(descripcion, codigoCIE10) => {
-                    // Elegir del catálogo es del médico (D-050): el código nace confirmado.
+                    // Elegir del catálogo es del médico (D-051): el código nace confirmado.
                     setDiagnosticos(prev => prev.map((x, j) =>
                       j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10, codigoOrigen: 'medico' as const } : {}) } : x
                     ))
@@ -7543,12 +7543,12 @@ export default function ConsultaActivaPage() {
               placeholder="CIE-10"
               aria-label={`Código CIE-10${d.descripcion ? ` de ${d.descripcion}` : ''}${codigoSinConfirmar(d) ? ' (sugerido por la IA, sin confirmar)' : ''}`}
               title={codigoSinConfirmar(d) ? 'Lo sugirió la IA. Confírmalo o corrígelo; si no, la nota se firma sin él.' : undefined}
-              // Teclearlo es del médico (D-050): el código pasa a ser suyo.
+              // Teclearlo es del médico (D-051): el código pasa a ser suyo.
               onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase(), codigoOrigen: 'medico' } : x))}
               style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase', ...(codigoSinConfirmar(d) ? { borderColor: 'var(--amber)', borderStyle: 'dashed' } : {}) }}
             />
             {/*
-              ── EL CÓDIGO SUGERIDO SE CONFIRMA CON UN GESTO (D-050) ──────────
+              ── EL CÓDIGO SUGERIDO SE CONFIRMA CON UN GESTO (D-051) ──────────
               La IA trae el código; el médico sólo lo confirma. Mientras no lo
               haga, el campo se ve punteado en ámbar y la nota se firma sin él.
             */}
@@ -7716,7 +7716,7 @@ export default function ConsultaActivaPage() {
           </div>
         ))}
         {/*
-          LO QUE SÓLO SE MENCIONÓ (D-048). Una línea, no filas: no lleva dosis
+          LO QUE SÓLO SE MENCIONÓ (D-049). Una línea, no filas: no lleva dosis
           porque no se receta. «Recetar hoy» es el gesto explícito del médico
           —lo sube a la lista con su atribución— y desde ahí se puede quitar.
         */}

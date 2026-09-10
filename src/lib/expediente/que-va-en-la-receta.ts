@@ -177,7 +177,7 @@ export function medicamentosDeLaReceta<
 }
 
 /**
- * ── EL RENGLÓN QUE NO NOMBRA NINGÚN FÁRMACO (10-sep-2026, D-048) ────────────
+ * ── EL RENGLÓN QUE NO NOMBRA NINGÚN FÁRMACO (10-sep-2026, D-049) ────────────
  *
  * El médico dueño, probando en su iPhone: la lista de medicamentos traía
  * «Medicamento no especificado», «Medicamento previo (nombre no precisado)»,
@@ -209,7 +209,7 @@ export function esNombreSinPrecisar(nombre: unknown): boolean {
 }
 
 /**
- * ── LO QUE SÓLO SE MENCIONÓ (10-sep-2026, D-048) ────────────────────────────
+ * ── LO QUE SÓLO SE MENCIONÓ (10-sep-2026, D-049) ────────────────────────────
  *
  * El complemento exacto de `loQueSeReceta` entre los renglones con nombre: lo
  * que el paciente refirió, lo que la IA extrajo sin intención declarada, lo

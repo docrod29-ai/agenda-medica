@@ -86,7 +86,7 @@ function elMejor(a: Diagnostico, b: Diagnostico): Diagnostico {
  */
 export function comoSugerenciaNoConfirmada(d: Diagnostico): Diagnostico {
   /**
-   * ── EL CÓDIGO SE QUEDA, MARCADO COMO SUGERIDO (D-050, 10-sep-2026) ─────────
+   * ── EL CÓDIGO SE QUEDA, MARCADO COMO SUGERIDO (D-051, 10-sep-2026) ─────────
    *
    * Aquí se hacía `codigoCIE10: undefined`: la IA sugería el diagnóstico y el
    * médico tenía que buscar el código a mano en cada fila. Con once filas en
@@ -141,7 +141,7 @@ function deduplicarLoteIa(nuevos: readonly Diagnostico[]): Diagnostico[] {
 }
 
 /**
- * ── UNA CONSULTA NO TERMINA CON DOCE DIAGNÓSTICOS (10-sep-2026, D-049) ──────
+ * ── UNA CONSULTA NO TERMINA CON DOCE DIAGNÓSTICOS (10-sep-2026, D-050) ──────
  *
  * El médico dueño, con la pantalla llena de filas: «no infieres ningún dx; sí
  * quiero que lo hagas, pero no mil». La regla 7-bis del prompt pide de TRES A

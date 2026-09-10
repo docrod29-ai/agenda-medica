@@ -35,7 +35,7 @@ export interface MotivoDeBloqueo {
    * De dónde sale: NOM-004 o la atribución de la firma.
    *
    * Hasta el 10-sep-2026 había un tercer origen, `dosis`. La falta de dosis
-   * AVISA y ya no bloquea (D-051): vive en `avisos-consulta` como `revisa`.
+   * AVISA y ya no bloquea (D-052): vive en `avisos-consulta` como `revisa`.
    */
   origen: 'nom004' | 'atribucion'
   /** El texto que ya redacta cada motor. No se parafrasea. */
@@ -143,7 +143,7 @@ export const NO_CAMBIA_LA_POLITICA =
   'firmar hoy. Lo que cambia es que se dice en un sitio y ANTES de pulsar.'
 
 export const LA_DOSIS_YA_NO_BLOQUEA =
-  'Decisión del médico dueño del 10-sep-2026 (D-051): la falta de dosis en la ' +
+  'Decisión del médico dueño del 10-sep-2026 (D-052): la falta de dosis en la ' +
   'receta de hoy se avisa en rojo, a la vista y sin descartar, pero no apaga ' +
   'Firmar. Sustituye a la del 5-ago (bloquear), tomada con la pantalla llena de ' +
   'bloqueos que no eran recetas suyas.'
