@@ -155,11 +155,18 @@ describe.each(['primer plano', 'recuperación'] as const)('regeneración en %s',
     expect(h.estado).toEqual(decisiones)
   })
 
-  it('introducir el mismo CIE propuesto por IA cuenta como una edición humana', () => {
+  it('confirmar el CIE propuesto por IA cuenta como una edición humana (D-051)', () => {
+    /**
+     * Hasta el 10-sep-2026 el CIE de la IA se borraba en la frontera y este
+     * caso lo «reintroducía» a mano. Con D-051 el código entra marcado como
+     * sugerido (`codigoOrigen:'extraccion'`) y la edición humana es CONFIRMARLO:
+     * el renglón deja de ser idéntico al lote de la IA y una corrección vacía
+     * ya no puede retirarlo.
+     */
     const h = crearArnes(via)
     h.aplicar(inicial); h.renderizar()
-    expect(h.estado.diagnosticos[0].codigoCIE10).toBeUndefined()
-    h.estado.diagnosticos[0] = { ...h.estado.diagnosticos[0], codigoCIE10: inicial.diagnosticos[0].codigoCIE10 }
+    expect(h.estado.diagnosticos[0]).toMatchObject({ codigoCIE10: 'SINTETICO-A', codigoOrigen: 'extraccion' })
+    h.estado.diagnosticos[0] = { ...h.estado.diagnosticos[0], codigoOrigen: 'medico' }
     const codificado = structuredClone(h.estado.diagnosticos)
     h.aplicar(vacio); h.renderizar()
     expect(h.estado.diagnosticos).toEqual(codificado)
@@ -214,7 +221,8 @@ describe.each(['primer plano', 'recuperación'] as const)('regeneración en %s',
     h.aplicar({ diagnosticos: [dx('Hallazgo sintético beta', { tipo: 'definitivo', codigoCIE10: 'SINTETICO-B' })], medicamentos: [med('Fármaco sintético beta')] }, true)
     h.renderizar()
     expect(h.estado.diagnosticos).toHaveLength(1)
-    expect(h.estado.diagnosticos[0]).toMatchObject({ tipo: 'presuntivo', codigoCIE10: undefined })
+    // D-051: el CIE sobrevive a la frontera, pero como sugerido; la certeza sigue bajando a presuntivo.
+    expect(h.estado.diagnosticos[0]).toMatchObject({ tipo: 'presuntivo', codigoCIE10: 'SINTETICO-B', codigoOrigen: 'extraccion' })
     expect(h.estado.medicamentos).toHaveLength(1)
     expect(h.estado.medicamentos[0].estado).toBe('borrador')
     h.aplicar(vacio, true); h.renderizar()

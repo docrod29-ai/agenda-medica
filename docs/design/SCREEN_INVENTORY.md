@@ -49,7 +49,7 @@
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2902 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 8370 | 8 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 8378 | 8 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 409 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 278 | 1 | — | ✅ | — |
@@ -91,7 +91,7 @@
 | `/arquitectura` | publica | — | 131 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 83 | 1 | — | ✅ | — |
 | `/demo` | publica | — | 510 | 4 | — | ✅ | — |
-| `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
+| `/demo/interactivo` | publica | ✅ | 766 | 2 | — | ✅ | — |
 | `/demo/razonamiento` | publica | ✅ | 158 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 94 | 0 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |
