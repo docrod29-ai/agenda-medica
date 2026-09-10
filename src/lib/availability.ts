@@ -217,7 +217,27 @@ export function iniciosPosibles(
 export function getDaySchedule(fecha: string, config: ClinicConfig) {
   const d = new Date(fecha + 'T12:00:00')
   const dayKey = DAY_KEYS[d.getDay()]
-  const schedule = config.horario[dayKey as keyof typeof config.horario]
+  /*
+   * `config?.horario?.` — UN CONSULTORIO SIN HORARIO NO PUEDE TUMBAR LA AGENDA.
+   *
+   * Sin las interrogaciones, un `config` sin `horario` lanzaba
+   * `Cannot read properties of undefined`. Da igual lo raro que parezca ese
+   * documento: esta función la llama `POST /api/appointments`, FUERA de todo
+   * `try`, así que la excepción salía como **500 con el cuerpo vacío** — y el
+   * cuerpo vacío es lo peor de todo, porque la pantalla enseña el mensaje del
+   * servidor y, al no haber ninguno, cae en «No se pudo mover la cita»: un no
+   * sin motivo, que no dice ni qué arreglar.
+   *
+   * Se vio arrastrando una cita en el arnés visual. El consultorio sembrado no
+   * escribe `horario` —igual que un consultorio recién abierto que todavía no
+   * lo ha configurado— y NINGUNA cita podía crearse ni moverse por el panel.
+   *
+   * Devolver `null` es lo correcto y no un apaño: sin horario declarado no hay
+   * día de servicio que afirmar, y ese `null` ya tiene su camino en cada
+   * llamador. Quien necesite distinguir «hoy no abre» de «no hay horario» mira
+   * `config.horario`, que es el dato, en vez de adivinarlo por una excepción.
+   */
+  const schedule = config?.horario?.[dayKey as keyof typeof config.horario]
   if (!schedule?.activo) return null
   if (esFestivo(fecha, config.diasFestivos)) return null
   return schedule

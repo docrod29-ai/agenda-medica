@@ -1,6 +1,6 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
-  "generado": "2026-09-06",
+  "generado": "2026-09-09",
   "total": 130,
   "variables": [
     {
@@ -189,8 +189,9 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "http://localhost:3300",
-      "defectoDe": "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
+      "defectoDe": "scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
       "archivos": [
+        "scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
         "scripts/carril-excelencia/el-calendario-abre-en-el-hoy-del-consultorio.mjs",
         "scripts/carril-excelencia/el-consultorio-recien-abierto.mjs",
         "scripts/carril-excelencia/el-control-acusa-el-puntero.mjs",
@@ -409,8 +410,9 @@
       "deLaPlataforma": false,
       "ambito": "scripts",
       "defectoLiteral": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
-      "defectoDe": "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
+      "defectoDe": "scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
       "archivos": [
+        "scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
         "scripts/carril-excelencia/el-dia-de-un-medico.mjs",
         "scripts/carril-excelencia/el-telefono-medido-en-el-navegador.mjs",
         "scripts/carril-excelencia/la-confirmacion-no-se-dispara-sola.mjs",

@@ -25764,3 +25764,59 @@ La aritmética, que vivía suelta en **tres** sitios y ya se había desincroniza
 El golden de REG-653 «ningún hueco empieza antes de que acabe el anterior» se **revisa, no se borra**: era un proxy del rumbo de verdad —«el paso es la duración»— que sólo valía mientras la lista fuera sólo la rejilla, y el ancla del cierre lo leía como el defecto que vigila. Pasa a sellar que la rejilla avanza **exactamente** la duración y que el único inicio ajeno a ella es el ancla del cierre, que termina clavado en la hora de cerrar. Dicho así, un paso más fino no puede colarse escondido entre las anclas: sella más, no menos.
 
 **Qué NO cubre.** Ni el inicio ni el final de un **bloqueo** anclan, por la razón que REG-654 ya declaró: `TimeBlock` guarda instantes que pueden venir en absoluto o en hora de pared y pasarlos a minutos del día pide la zona del consultorio. Se deja fuera a propósito en vez de hacerlo a medias, y esa hora se pide a mano. Tampoco se toca el **paso** ni se devuelve la vida a `intervaloMinutos`: revertir REG-653 es una decisión del dueño, no de esta reparación. Sigue sin haber **arrastrar ni redimensionar** citas en el calendario —no existían antes y no se añaden aquí— y el bot sigue **sin interpretar una hora escrita en lenguaje libre** («¿a las 4:20?»): es un menú numerado, y que no invente horarios está garantizado por construcción, no por prompt.
+
+---
+
+## REG-662 — Arrastrar una cita para moverla, y lo que sólo se vio abriendo el navegador
+
+**Área**: Agenda / experiencia del médico (P2) · **Hallazgo(s) de la auditoría**: acta de agenda del dueño, mover una cita · **Estado**: CLOSED
+
+**Qué faltaba.** Mover una cita eran cuatro clics: abrir el modal, cambiar la hora, confirmar, cerrar. En la agenda del día es lo que más se hace —el paciente llama y hay que correrle la cita media hora— y se hace con otro paciente enfrente. La rejilla del calendario no arrastraba.
+
+**Por qué no basta con «soltar donde cayó el dedo».** Un puntero suelto produce horas absurdas (16:07, 16:23), y la salida fácil —redondear a la media hora— traiciona exactamente lo que REG-653, REG-654 y REG-655 arreglaron: que una consulta pueda empezar cuando termina la anterior. Arrastrar con rejilla gruesa volvería a fabricar los huecos artificiales que costó tres reparaciones quitar. La regla queda en dos pasos: se redondea al paso menudo (5 min) y luego se **imanta a las aristas** —donde termina otra cita, o donde ésta acabaría clavada contra la siguiente— si están a menos de 10 minutos. Las aristas son **las mismas** que las de `iniciosPosibles`: si el motor ofreciera unas horas y el arrastre imantara a otras, arrastrar crearía citas en horas que la lista no ofrece.
+
+El teclado va desde el primer minuto, no «después»: flechas ±5 min, Shift ±60, misma aritmética y **mismo guardián** (`hasConflict`, con la cita excluida), y el fantasma con `aria-live` para quien no ve el bloque moverse. Lo único que los separa es el imán, y por una razón dicha: el teclado ya es preciso.
+
+**Los dos defectos que sólo aparecieron al MIRARLO.** El código decía lo correcto y las 14 510 pruebas estaban en verde. Al abrir el arnés visual con emulador y arrastrar de verdad:
+
+1. **Soltar abría el formulario de la cita encima.** El `pointerup` llama a `e.stopPropagation()` y no abre nada — pero `stopPropagation` sobre `pointerup` **no cancela el `click`**: el navegador lo manda después, como evento aparte. Se veían las dos cosas a la vez: el aviso «Ahí no cabe (09:00 – 09:30)» y «Editar cita» abierto encima, con «Guardar cambios» y una hora que el médico no eligió. Es justo el momento en que se guarda algo sin querer.
+
+2. **La etiqueta del fantasma era ilegible sobre una cita.** El fantasma es translúcido a propósito —hay que ver contra qué se choca— y su hora caía encima del nombre del paciente de debajo, dos textos del mismo tamaño superpuestos. La hora es el dato que el usuario está calculando de cabeza mientras mueve.
+
+**Cómo se descubrió.** Levantando el arnés visual (emulador de Firebase + consultorio sintético + Chromium) y recorriendo el gesto, según `.claude/rules/design-system.md`: «no se aprueba una interfaz leyendo el código». Ninguno de los dos defectos es visible en un `git diff` que se ve bien.
+
+**Reproducción que fallaba.** `scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs` (`npm run arnes:arrastre`) falla en «arrastrar y soltar NO abre Editar cita» sin la marca `acabaDeArrastrar`, y **sólo** en ese caso: comprobado reinyectando el defecto. Su cuarto caso es el reverso —un temblor de 2 px sigue siendo un clic y abre la cita—, que es lo que separa «no abre tras arrastrar» de «ya no abre nunca», un defecto peor que el original.
+
+**Prueba permanente (sellada).** `src/__tests__/arrastrar-una-cita-la-deja-pegada-a-la-anterior.test.ts` y `src/__tests__/el-raton-y-el-teclado-mueven-la-cita-al-mismo-sitio.test.ts` sellan la aritmética y la paridad ratón/teclado; el guardián de navegador vive en `scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs` porque el defecto es de orden de eventos del DOM y no existe fuera de un navegador.
+
+**Estado**: reparado. La marca `acabaDeArrastrar` se pone al soltar un gesto que de verdad movió, se la come el `click` que viene detrás, y se limpia en cada `pointerdown` — así una marca que no llegara a consumirse no se come el clic del gesto siguiente. La etiqueta del fantasma va sobre fondo opaco, sólo detrás del texto: el resto del bloque sigue dejando ver lo que hay debajo.
+
+**3. Con el dedo, el gesto se moría a medias, en silencio.** Medido después, con un teléfono emulado en Chromium: sin `touch-action: none` el navegador se queda con el desplazamiento vertical a los tres `pointermove` y manda `pointercancel`. El fantasma **parpadeaba** y desaparecía; no había movimiento, ni aviso, ni nada. Arrastrar una cita en el teléfono no hacía absolutamente nada, sin decirlo.
+
+La salida fácil —`touch-action: none` en el bloque— se paga cara: el bloque deja de poder desplazar la rejilla, y en un teléfono de 393 px, donde las citas cubren casi toda la columna del día, el médico se queda sin poder bajar por su agenda con el dedo encima de ellas. Así que **el arrastre se declara de ratón y lápiz**, donde está medido, y en táctil la cita se toca y se mueve por el modal —que funciona en todas partes y es lo que se usa en el teléfono—. Habilitarlo con el dedo pide un gesto propio (mantener pulsado antes de arrastrar) y **esa es una decisión de diseño del dueño**, no un efecto colateral de una línea de CSS.
+
+**Qué NO cubre.** **Redimensionar** (cambiar la duración arrastrando el borde) no se toca. Sólo la vista de **semana**: la de día y la de mes no arrastran. El caso táctil se mide en un teléfono **emulado en Chromium**: prueba que el gesto no se queda a medias y que tocar sigue abriendo la cita; **no** prueba Safari de iOS ni su retardo de clic. Y el arrastre no cruza de día: mueve dentro de su columna.
+
+---
+
+## REG-663 — Un consultorio sin horario devolvía 500 con el cuerpo vacío, y ninguna cita podía crearse
+
+**Área**: Agenda / servidor (P1) · **Hallazgo(s) de la auditoría**: arnés visual del arrastre · **Estado**: CLOSED
+
+**Qué fallaba.** `getDaySchedule` leía `config.horario[dia]` sin comprobar que `horario` existiera. Un documento de configuración sin ese campo —un consultorio recién abierto que aún no ha declarado su horario— hacía lanzar `TypeError: Cannot read properties of undefined (reading 'miercoles')`.
+
+Y esa llamada vive en `POST /api/appointments` **fuera de todo `try`**: la excepción salía como **500 con el cuerpo vacío**. El vacío es lo peor del defecto: la pantalla enseña el mensaje del servidor y, al no haber ninguno, cae en su frase de reserva —«No se pudo mover la cita»—, un no sin motivo, que no dice ni qué arreglar.
+
+**El alcance no era el arrastre.** Era **toda alta y toda reprogramación por el panel**. Un consultorio en ese estado no podía crear ni mover una sola cita, y lo único que veía era un error sin causa.
+
+**Cómo se descubrió.** Arrastrando una cita en el arnés visual y mirando la **respuesta** de la petición en vez del código: `POST /api/appointments → 500`, cuerpo vacío. Es la regla `.claude/rules/el-dato-tiene-que-llegar.md` aplicada a una frontera que se daba por buena. El consultorio sintético del arnés escribía `horaInicio`/`horaFin` —los campos de la pantalla de configuración— y **no** `horario`, que es el que lee el motor: la siembra misma era un caso de «escrito y sin conectar», y por eso nadie había pisado este camino.
+
+**Reproducción que fallaba.** `src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts` falla en 3 casos sin la guarda de `getDaySchedule` (con la excepción exacta) y en 1 sin el mensaje distinguido. Comprobado anulando cada arreglo por separado.
+
+**Prueba permanente (sellada).** `src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts`
+
+**Estado**: reparado. `getDaySchedule` devuelve `null` en vez de lanzar: sin horario declarado no hay día de servicio que afirmar, y ese `null` ya tenía camino en cada llamador. La ruta distingue además las dos situaciones que antes se contaban igual: «el consultorio todavía no tiene horario configurado» manda a la pantalla que lo arregla; «ese día el consultorio no da servicio» manda a otro día. Y la siembra del arnés escribe ya un `horario` de verdad, partido por la comida (14-16), que es el caso del acta del dueño y el que rompió tres veces.
+
+**Y la FORMA del defecto, no sólo esta excepción.** Arreglar `getDaySchedule` cierra la excepción que se midió; no cierra que el tramo entero —configuración, documento del médico, horario, descansos, bloqueos— siguiera fuera de todo `try`, listo para que la siguiente excepción desconocida volviera a salir muda. Ese tramo va ahora dentro de un `try` que responde **500 con motivo** y deja rastro con `safeLog` (que sanea PHI). El `catch` **no** responde 409 a propósito: un 409 afirmaría que se comprobó el horario y la cita no cabía, y sería mentira — no se pudo comprobar. Y no sigue adelante: escribir la cita sin haber podido validar el horario es justo lo que esas cien líneas existen para impedir. El caso que lo sella rompe la lectura de los **bloqueos**, que nada tiene que ver con el horario: es «la próxima excepción, la que no conocemos».
+
+**Qué NO cubre.** No se rellena un horario por defecto a un consultorio nuevo: ausencia de dato no es dato de ausencia — se dice que falta, no se inventa. Y el `catch` cubre el tramo de validación, no la transacción de escritura, que ya tenía el suyo con sus propios códigos.

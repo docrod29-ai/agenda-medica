@@ -1097,7 +1097,18 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * el conjunto de casos; se cerró corriendo el acta del dueño entera contra el
      * motor, caso por caso, en vez de por dónde había ido el arreglo anterior.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655],
+    /**
+     * 662: la cuarta vuelta de la misma zona, y la primera que se cierra
+     * MIRANDO la pantalla en vez de leyéndola. Mover una cita eran cuatro
+     * clics con otro paciente enfrente; se hizo arrastrable, y el arrastre
+     * traía dentro un defecto que ningún diff enseña: `stopPropagation` sobre
+     * `pointerup` no cancela el `click` que el navegador manda detrás, así que
+     * al soltar salían a la vez el aviso de choque y el formulario de la cita,
+     * con «Guardar cambios» y una hora que el médico no eligió. Correcto por
+     * dentro —14 510 pruebas en verde—, intolerable por fuera, que es la forma
+     * exacta de esta familia. Se cazó levantando el arnés visual y arrastrando.
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 662],
   },
   {
     clave: 'perdida',
@@ -1208,7 +1219,19 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * CORRECTA. Una configuración se revisa leyéndola, y leyéndola no se ve que
      * del otro lado no haya nadie que pueda decir que sí.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634],
+    /**
+     * 663 es esta familia en su forma más pobre: el sistema no culpó a otra
+     * cosa, no dijo NADA. Un `config` sin `horario` hacía lanzar a
+     * `getDaySchedule`, y la llamada vive fuera de todo `try`: 500 con el
+     * cuerpo vacío. La pantalla enseña el mensaje del servidor y, al no haber
+     * ninguno, cae en su frase de reserva —«No se pudo mover la cita»—, que
+     * apunta al gesto en vez de a la causa. Un consultorio recién abierto no
+     * podía crear NI UNA cita y lo único que veía era eso. El arreglo no es
+     * mejorar la frase: es que el dato que falta devuelva `null` y que la ruta
+     * distinga «no hay horario» de «ese día no se abre», que son dos cosas
+     * distintas y mandan a sitios distintos.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663],
   },
   {
     clave: 'decision_del_dueno',

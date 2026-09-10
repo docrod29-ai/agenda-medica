@@ -23,11 +23,7 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M  .github/workflows/deploy-production.yml",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/seguridad/ESTADO-DEPENDENCIAS.md",
-    " M package-lock.json",
-    " M package.json",
+    "M docs/maintenance/sw-changelog.md",
     " M public/sw.js",
     " M public/version.txt"
   ],
@@ -65,11 +61,11 @@
   ],
   "ramaActual": "claude/ausculta-scheduling-audit-ev7hua",
   "derivado": {
-    "regsEnElLedger": 440,
-    "ultimaREG": "REG-655",
-    "archivosDePrueba": 1097,
-    "casosDePrueba": 13063,
+    "regsEnElLedger": 442,
+    "ultimaREG": "REG-663",
+    "archivosDePrueba": 1100,
+    "casosDePrueba": 13101,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1191"
+  "versionEnElRepo": "nexusmed-v1192"
 }
