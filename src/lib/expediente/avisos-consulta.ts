@@ -50,6 +50,8 @@ export type NivelAviso = 'bloquea' | 'revisa' | 'contexto'
 /** De qué motor viene cada aviso. Añadir uno OBLIGA a declarar su nivel. */
 export type OrigenAviso =
   | 'dosis_incompleta'
+  /** Un código CIE-10 que propuso el modelo y nadie confirmó (D-051). */
+  | 'cie_sugerido'
   | 'alergia_medicamento'
   | 'contradiccion_negacion'
   | 'desajuste_temporal'
@@ -118,8 +120,19 @@ export type OrigenAviso =
  * puede degradar un riesgo, así que tiene que ser el sitio donde más se mira.
  */
 export const NIVEL: Readonly<Record<OrigenAviso, NivelAviso>> = {
-  /** Es literalmente la razón por la que `firmar()` no deja pulsar (REG-174/175). */
-  dosis_incompleta:       'bloquea',
+  /**
+   * AVISA, NO BLOQUEA — decisión del médico dueño, 10-sep-2026 (D-052).
+   *
+   * El 5-ago decidió que bloqueara (REG-174/175) y el 10-sep, con la pantalla
+   * llena de bloqueos, lo cambió: la falta de dosis en lo que se receta hoy se
+   * AVISA en rojo, no se pliega y no se descarta —se corrige—, pero la firma
+   * es un acto del médico y no se le apaga el botón por un campo. Misma forma
+   * que D-033 (alergia) y D-038 (tipo dictado). La receta lo vuelve a avisar
+   * al imprimir. Sólo cuenta la receta de hoy (D-049).
+   */
+  dosis_incompleta:       'revisa',
+  /** Se confirma o se corrige antes de firmar; si no, el código no se firma. */
+  cie_sugerido:           'revisa',
   /** Secciones obligatorias, cédula, diagnóstico: es lo que apaga el botón. */
   requisito_nom004:       'bloquea',
   /** Lo más grave de la pantalla — y NO bloquea: esa decisión es del médico dueño. */
@@ -221,6 +234,12 @@ export const NO_SE_PLIEGAN: readonly OrigenAviso[] = [
    *   alérgico, y sale impreso en la receta igual de rápido.
    */
   'dosis_peligrosa',
+  /**
+   * · **Dosis incompleta** pasa aquí el 10-sep-2026 (D-052): dejó de bloquear,
+   *   y lo que ya no apaga el botón tiene que quedar a la vista, o la receta
+   *   sale sin cantidad sin que nadie lo haya leído.
+   */
+  'dosis_incompleta',
 ]
 
 export interface AvisoConsulta {
@@ -278,6 +297,8 @@ export interface EntradaAvisos {
   /** Cuántos fármacos y problemas se comprobaron. Sin ninguno no hay nada que matizar. */
   cuantoSeComprobo?: { farmacos: number; problemas: number }
   dosisIncompletas?: readonly { med: string; mensaje: string; procedencia?: 'ya_lo_toma' | 'se_prescribe_hoy' }[]
+  /** Códigos CIE-10 propuestos por el modelo que el médico no ha confirmado (D-051). */
+  codigosSinConfirmar?: readonly { descripcion: string; codigo: string }[]
   alergiaMedicamento?: readonly { mensaje: string; severidad: string }[]
   contradicciones?: readonly { condicion: string; mensaje: string }[]
   desajustes?: readonly { condicion: string; mensaje: string }[]
@@ -444,7 +465,8 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
       id: `dosis:${d.med}`,
       origen: 'dosis_incompleta',
       nivel: nivelDe('dosis_incompleta'),
-      texto: d.med,
+      /** Desde D-052 ya no es un renglón de BLOQUEA con título propio: la frase tiene que bastar sola. */
+      texto: `Falta la dosis de ${d.med}`,
       /**
        * ── EL AVISO DICE DE CUÁL DE LOS DOS SE TRATA (REG-183) ─────────────
        *
@@ -462,7 +484,19 @@ export function construirAvisos(e: EntradaAvisos): AvisoConsulta[] {
           ? `${d.mensaje} (se prescribe en esta consulta)`
           : d.mensaje,
       ancla: { seccion: 'medicamentos', nombre: d.med },
-      /** Nunca descartable: el aviso se iría y la firma seguiría sin dejarse pulsar. */
+      /** No se descarta: una dosis que falta se escribe, no se da por revisada. */
+      descartable: false,
+    })
+  }
+
+  for (const c of e.codigosSinConfirmar ?? []) {
+    out.push({
+      id: `cie:${c.codigo}:${c.descripcion}`,
+      origen: 'cie_sugerido',
+      nivel: nivelDe('cie_sugerido'),
+      texto: `Código ${c.codigo} de «${c.descripcion}»: lo sugirió la IA. Confírmalo o corrígelo; si no, la nota se firma sin él.`,
+      ancla: { seccion: 'diagnosticos', nombre: c.descripcion },
+      /** Se confirma o se corrige; «ya lo revisé» no es ninguna de las dos. */
       descartable: false,
     })
   }

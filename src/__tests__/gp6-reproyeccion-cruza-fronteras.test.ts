@@ -5,12 +5,13 @@ import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos, loQueSeReceta } from '@/lib/expediente/que-va-en-la-receta'
 
 describe('GP6: re-proyección y recuperación cruzan las fronteras clínicas', () => {
-  it('IA definitiva/CIE entra no confirmada y sin CIE', () => {
+  it('IA definitiva/CIE entra no confirmada: presuntivo, con el CIE marcado como sugerido (D-051)', () => {
     const [d] = fusionarDiagnosticos({ previos: [], deLaIaAnterior: [], nuevos: [
       { descripcion: 'Neumonía adquirida en comunidad', tipo: 'definitivo', estado: 'activo', codigoCIE10: 'J18.9' },
     ] })
     expect(d.tipo).toBe('presuntivo')
-    expect(d.codigoCIE10).toBeUndefined()
+    expect(d.codigoCIE10).toBe('J18.9')
+    expect(d.codigoOrigen).toBe('extraccion')
   })
   it('medicamento IA sin intención explícita no cruza a receta', () => {
     const meds = fusionarMedicamentos({ previos: [], deLaIaAnterior: [], nuevos: [

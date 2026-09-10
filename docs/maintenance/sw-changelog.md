@@ -3922,6 +3922,40 @@ de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
 
+## v1194 — 10-sep-2026
+
+**REG-664 · D-047 a D-052** — la nota que el médico pidió.
+
+El dueño, probando una consulta real en su iPhone, mandó cinco capturas: once
+diagnósticos sin código, nueve medicamentos sin dosis bloqueando la firma —tres
+de ellos la misma frase «acabo de terminar un medicamento» convertida en tres
+filas—, el selector de nivel de IA que el Board #296 ya prohibía, y «Qué es de
+qué» con la cita del dictado bajo cada fármaco. «No es nada amigable, súper
+confuso; nomás quiero que hagas la nota y sugerencias de tratamiento,
+diagnóstico y abordaje.»
+
+- **La lista de medicamentos es la receta de hoy** (D-049). Sus filas, la
+  compuerta de dosis y el impreso usan la misma puerta, `loQueSeReceta`. Lo que
+  el paciente refirió, lo que la IA extrajo sin intención y lo suspendido van en
+  una línea aparte, «Mencionados en la consulta, fuera de la receta», con
+  «Recetar hoy» y «Quitar». Un renglón que no nombra un fármaco («Medicamento no
+  especificado», «nombre no precisado») ya no entra desde el lote de la IA.
+- **Seis diagnósticos como máximo por pasada de la IA** (D-050): diferenciales
+  salen primero, orden del modelo conservado, lo del médico no se acota.
+- **La sugerencia trae su código CIE-10** (D-051): entra marcado como sugerido,
+  punteado en ámbar con un botón «Confirmar»; teclearlo o elegirlo del catálogo
+  lo vuelve del médico. Lo que nadie confirmó se avisa antes de firmar y se quita
+  al firmar: la descripción se firma, el código no.
+- **La dosis que falta avisa y no bloquea** (D-052). Sustituye a la decisión del
+  5-ago. Rojo, sin plegarse, sin «ya lo revisé», con «Ir a corregir», sellado con
+  la firma. Lo único que apaga Firmar es NOM-004 y el nombre de quien firma.
+- **Fuera el selector ⚡/⭐/💎** (D-047): el servidor aplica el nivel del plan.
+- **Fuera «Qué es de qué»** (D-048): la procedencia por frase sigue en la nota.
+
+Lo que cuesta, dicho: una receta ya puede firmarse sin cantidad, y el aviso rojo
+es lo único que lo impide; y un código sugerido equivocado que el médico
+confirme sin mirar es suyo — el gesto existe para eso.
+
 ## v1193 — 10-sep-2026
 
 **D-046** — el expediente del paciente se queda con lo que ES expediente.

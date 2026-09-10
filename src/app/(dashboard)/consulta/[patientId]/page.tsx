@@ -61,7 +61,7 @@ import {
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
-import { MOTORES, type ClaveMotor } from '@/lib/planes-ia'
+import type { ClaveMotor } from '@/lib/planes-ia'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -79,7 +79,6 @@ import { SelloProcedencia } from '@/components/SelloProcedencia'
 import { DeDondeSalioEsto } from '@/components/DeDondeSalioEsto'
 import { HojaParaElPaciente } from '@/components/HojaParaElPaciente'
 import { EntregarAlPaciente } from '@/components/EntregarAlPaciente'
-import { PlanPorProblema } from '@/components/PlanPorProblema'
 import { ComoCerrarLaConsulta } from '@/components/ComoCerrarLaConsulta'
 import { CierreAlPulgar, cierreAlPulgarVisible } from '@/components/CierreAlPulgar'
 import { queFaltaParaCerrar, aDondeIrDirecto } from '@/lib/expediente/que-falta-para-cerrar'
@@ -191,8 +190,8 @@ import {
 } from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { comoSeDegrada } from '@/lib/expediente/que-sobrevive-a-un-fallo'
-import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
-import { fusionarMedicamentos } from '@/lib/expediente/que-va-en-la-receta'
+import { fusionarDiagnosticos, codigoSinConfirmar, conCodigoConfirmado, sinCodigosSinConfirmar } from '@/lib/expediente/fusionar-diagnosticos'
+import { fusionarMedicamentos, loQueSeReceta, loQueSoloSeMenciono, comoRecetaDeHoy } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
 import { EmpezarAGrabar } from '@/components/EmpezarAGrabar'
 import { huellaRevisable, estadoDeRevision, COMO_SE_DICE, type ContenidoRevisable } from '@/lib/expediente/lo-que-se-reviso'
@@ -291,27 +290,14 @@ const NerPanel = dynamic(() => import('@/components/NerPanel').then(m => m.NerPa
 const TIPOS: TipoNota[] = ['primera_vez', 'seguimiento', 'historia_clinica', 'valoracion_preoperatoria', 'valoracion_inmuno', 'alta_consulta', 'ingreso', 'evolucion', 'evolucion_uci', 'egreso', 'nota_postoperatoria', 'nota_anestesia', 'consentimiento']
 
 /**
- * NIVEL DE IA DE LA NOTA — lo que el médico elige es el CASO, no el modelo.
+ * NIVEL DE IA DE LA NOTA — el médico NO elige (D-047, 10-sep-2026).
  *
- * Esta lista estaba escrita a mano con la marca del proveedor en `desc`
- * ('Haiku · seguimiento simple', 'Opus + GPT-5 · caso complejo'). Eran dos
- * defectos en el mismo renglón: pedía al médico decidir cómputo por marca —lo
- * que el Board #296 prohíbe— y era un SEGUNDO catálogo al lado de `MOTORES`,
- * libre de discrepar de los créditos que la ruta cobra de verdad.
- *
- * Ahora se DERIVA de `MOTORES`: la intención clínica sale de `usoRecomendado` y
- * los créditos de la misma fuente que cobra `/api/expediente/procesar`. El
- * proveedor real queda donde toca —procedencia y auditoría— y el contrato con el
- * médico es «qué caso tengo enfrente».
+ * Aquí vivía `MOTORES_UI`, el catálogo del selector ⚡/⭐/💎. El Board #296 ya
+ * decía que «el médico no elige modelos ni niveles» y el dueño lo repitió con
+ * la pantalla delante: «el nivel te había dicho que no tiene que escoger». La
+ * petición ya no manda `motor`: el servidor aplica el nivel del plan
+ * (`motorPorDefecto`) y la nota guarda el que se usó (`motorUsado`).
  */
-const MOTORES_UI: { clave: ClaveMotor; emoji: string; nombre: string; creditos: number; desc: string }[] =
-  (['rapida', 'estandar', 'maxima'] as const).map(k => ({
-    clave: k,
-    emoji: MOTORES[k].emoji,
-    nombre: MOTORES[k].nombre,
-    creditos: MOTORES[k].creditos,
-    desc: MOTORES[k].usoRecomendado,
-  }))
 
 // Especialidades con plantilla de enfoque (deben contener la clave que detecta
 // guiaEspecialidad en prompts.ts: cardiolog, pediatr, ginec, interna, urgenc…).
@@ -1205,6 +1191,28 @@ export default function ConsultaActivaPage() {
   const dxDelCuadro = problemasDelCuadro(diagnosticos, problemas)
 
   /**
+   * LA LISTA DE MEDICAMENTOS ES LA RECETA DE HOY (D-049, 10-sep-2026).
+   *
+   * Las filas editables son EXACTAMENTE lo que `loQueSeReceta` deja bajar al
+   * papel: una sola puerta para la pantalla, la compuerta de dosis y la
+   * receta. Lo demás con nombre —lo que refirió el paciente, lo que la IA
+   * extrajo sin intención, lo suspendido— se enseña en una línea aparte, sin
+   * campos de dosis y sin bloquear nada. Sigue en `medicamentos`: de la lista
+   * entera cuelgan alergias, interacciones y reconciliación.
+   */
+  const enRecetaDeHoy = new Set(loQueSeReceta(medicamentos))
+  const filasDeReceta = medicamentos.map((m, i) => ({ m, i })).filter(({ m }) => enRecetaDeHoy.has(m))
+  const soloMencionados = loQueSoloSeMenciono(medicamentos)
+
+  /**
+   * LOS CÓDIGOS QUE SUGIRIÓ LA IA Y NADIE CONFIRMÓ (D-051). Se avisan antes de
+   * firmar y, si siguen sin confirmar al estampar la firma, se quitan.
+   */
+  const codigosSinConfirmar = diagnosticos
+    .filter(d => d.descripcion.trim() && codigoSinConfirmar(d))
+    .map(d => ({ descripcion: d.descripcion, codigo: String(d.codigoCIE10) }))
+
+  /**
    * LO QUE LA COMPUERTA DE ALERGIAS NO ESTÁ MIRANDO (WS-10).
    *
    * En el cuerpo y no en un `useMemo`, por la misma razón que las dos líneas de
@@ -1413,13 +1421,11 @@ export default function ConsultaActivaPage() {
   const [verificacion, setVerificacion] = useState<{ modelo: string; hallazgos: Hallazgo[]; huella: string } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [planActual, setPlanActual] = useState<'pro' | 'premium' | null>(null)
-  // Menú de IA: motor elegido por el médico para esta nota. null = default del plan
-  // (Pro → 💎 Máxima, Clínica → ⭐ Estándar). El motor que usó la última nota.
-  const [motorSel, setMotorSel] = useState<ClaveMotor | null>(null)
+  // El nivel que usó la última nota, tal como lo devolvió el servidor. El médico
+  // no lo elige (D-047): se persiste para procedencia, no para un menú.
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
   const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
-  const motorEfectivo: ClaveMotor = motorSel ?? (planActual === 'premium' ? 'maxima' : 'estandar')
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
@@ -1709,7 +1715,9 @@ export default function ConsultaActivaPage() {
    * decisión del médico dueño, y está en su cola.
    */
   const dosisIncompletas = useMemo(() => {
-    return medicamentos
+    // Sólo la RECETA DE HOY (D-049): lo referido, lo suspendido y lo que la IA
+    // extrajo sin intención no sale en el papel — y por eso no bloquea la firma.
+    return loQueSeReceta(medicamentos)
       .filter(m => m.nombre?.trim())
       // Ver `esDosisDeclaradaDesconocida`: una respuesta no es un aviso pendiente.
       .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
@@ -2601,7 +2609,7 @@ export default function ConsultaActivaPage() {
           diagnosticos: dxDelCuadro,
           medicamentos: medsDelCuadro,
           motivo: motivo.slice(0, 400),
-          motor: motorEfectivo,   // Rápida→Haiku, Estándar→Sonnet, Máxima→Opus (el análisis respeta tu elección)
+          // Sin `motor`: el servidor aplica el nivel del plan (D-047).
           resumen: resumenTexto.slice(0, 2000),
           /**
            * La creatinina viaja CON SU VIGENCIA (REG-375) porque el motor de
@@ -2635,7 +2643,7 @@ export default function ConsultaActivaPage() {
       }
     } catch (e) { console.error('[evidencia] excepción', e); toast(comoSeDegrada('evidencia_red', { dijo: String(e).slice(0, 60) }).mensaje, 'error') }
     finally { setAnalizandoEv(false) }
-  }, [diagnosticos, medicamentos, resumen, secciones, motorEfectivo, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
+  }, [diagnosticos, medicamentos, resumen, secciones, patient?.edad, patient?.sexo, patient?.alergias, labsDeLaConsulta.labs.creatinina, vigenciaRenal.vigente, toast])
 
   // Genera un ANÁLISIS clínico basado en evidencia de ESTE paciente (razonando
   // con PubMed vía el Consultor) y lo AGREGA a la nota como una sección de texto
@@ -2754,7 +2762,7 @@ export default function ConsultaActivaPage() {
           // completo (Opus + razonamiento, ~40s) y el médico igual esperaba
           // mirando la pantalla — el propósito de la nota "instantánea" se perdía.
           rapido: enVivo || preliminar,
-          motor: (enVivo || preliminar) ? undefined : motorEfectivo,  // menú de IA: ⚡/⭐/💎 (o default del plan)
+          // Sin `motor`: el servidor aplica el nivel del plan (D-047). El médico no elige.
           contexto: {
             // Sin nombre: no aporta nada a estructurar la nota e identifica al
             // titular ante un tercero en el extranjero. Ver buildUserPrompt.
@@ -3039,7 +3047,7 @@ export default function ConsultaActivaPage() {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
     }
-  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc, motorEfectivo])
+  }, [voz.transcripcion, audio.utterances, rolesHablante, tipo, patient, toast, especialidadEfectiva, verificarNota, setTareaProc])
 
   // Comprar recarga de créditos (Stripe pago único). Al pagar, el webhook suma los
   // créditos al mes en curso (agregarCreditosExtra) y vuelve la IA máxima.
@@ -3358,7 +3366,6 @@ export default function ConsultaActivaPage() {
       resumenEjecutivo: resumen,
       secciones,
       signosVitales: signosNum,
-      diagnosticos,
       /**
        * LA VÍA SE CORRIGE AQUÍ, NO EN EL PAPEL.
        *
@@ -3373,6 +3380,8 @@ export default function ConsultaActivaPage() {
        * puede cambiar.
        */
       medicamentos: medicamentos.map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })),
+      // D-051: un código que nadie confirmó no lleva firma. El borrador lo conserva para confirmarlo.
+      diagnosticos: estado === 'firmada' ? sinCodigosSinConfirmar(diagnosticos) : diagnosticos,
       /**
        * NO SE INVENTA LO QUE NADIE DIJO.
        *
@@ -4304,6 +4313,7 @@ export default function ConsultaActivaPage() {
   const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
     discrepanciasDeLado,
     dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+    codigosSinConfirmar,
     contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
     desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
     antecedentesDeFamiliar,
@@ -4490,58 +4500,14 @@ export default function ConsultaActivaPage() {
     }
 
     /**
-     * ── SIN DOSIS NO SE FIRMA — DECISIÓN DEL MÉDICO DUEÑO (5-ago-2026) ───────
+     * ── LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-052, 10-sep-2026) ────────────
      *
-     * Textual: «que bloquee la firma si falta la dosis».
-     *
-     * La tomó él, y con el dato delante: en sus notas ya firmadas había **4
-     * medicamentos sin dosis de 28**. Hasta v1057 sólo se avisaba, y el aviso ni
-     * siquiera llegaba a tiempo — vivía en la pantalla de la receta, o sea
-     * después de firmar, cuando la nota ya es inmutable.
-     *
-     * Un medicamento sin cantidad no se puede surtir: quien lo despacha no sabe
-     * cuánto dar. Y una vez firmada, la nota sólo se corrige con adenda.
-     *
-     * ── QUÉ BLOQUEA, EXACTAMENTE ────────────────────────────────────────────
-     *
-     * Los dos casos, por decisión suya en dos pasos:
-     *
-     *  · **Falta la cantidad** (`dosis_sin_cifra`) — 5-ago, primera decisión.
-     *    Quien surta la receta no sabe cuánto dispensar.
-     *  · **Cantidad sin unidad** (`dosis_sin_unidad`) — 5-ago, ampliación:
-     *    «bloquea también si falta la unidad». «Levotiroxina 100» son 100 mcg en
-     *    la vida real y 100 mg en el papel: **mil veces la dosis**, y en el papel
-     *    no queda rastro de cuál se quiso decir.
-     *
-     * El segundo es, si acaso, más peligroso que el primero: una receta sin
-     * cantidad no se despacha —alguien pregunta—, pero una con la cifra sin
-     * unidad **sí se despacha**, con la unidad que suponga quien la lea.
-     *
-     * Un renglón a medio escribir no cuenta: sin nombre no hay medicamento.
+     * Aquí vivía la compuerta del 5-ago («que bloquee la firma si falta la
+     * dosis»): un `return` con toast. El dueño la cambió el 10-sep con la
+     * pantalla llena de bloqueos: el aviso sigue —rojo, a la vista, sin
+     * descartar, y sellado en `iaAuditoria.avisosAlFirmar` con esta firma— y
+     * la receta lo vuelve a avisar al imprimir. Firmar es un acto del médico.
      */
-    const dosisMal = medicamentos
-      .filter(m => m.nombre?.trim())
-      /**
-       * Lo DECLARADO desconocido no bloquea: es una respuesta, no un hueco.
-       * Y sólo cuenta la frase canónica que pone el botón — «No especificada»,
-       * que es lo que escribe la IA cuando no captó nada, sigue bloqueando.
-       */
-      .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
-      .map(m => ({ nombre: m.nombre.trim(), aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
-      .filter(x => x.aviso?.codigo === 'dosis_sin_cifra' || x.aviso?.codigo === 'dosis_sin_unidad')
-    if (dosisMal.length) {
-      /**
-       * Se enseña el mensaje del motor, que ya explica el riesgo concreto de
-       * cada caso — no uno genérico que valga para los dos y no diga ninguno.
-       */
-      toast(
-        dosisMal.length === 1
-          ? `No se puede firmar. ${dosisMal[0].aviso!.mensaje}`
-          : `No se puede firmar: ${dosisMal.length} medicamentos con la dosis incompleta (${dosisMal.slice(0, 3).map(x => x.nombre).join(', ')}${dosisMal.length > 3 ? '…' : ''}). Cada uno necesita cantidad Y unidad.`,
-        'error',
-      )
-      return
-    }
     /**
      * LA COMPUERTA MIRA LA CÉDULA EFECTIVA, NO LA DEL CONSULTORIO.
      *
@@ -5073,7 +5039,7 @@ export default function ConsultaActivaPage() {
    */
   const entradaDeBloqueo = {
     erroresNOM004: validacion?.errores,
-    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+    // La dosis ya no está aquí (D-052): avisa en `construirAvisos`, no apaga el botón.
     sinQuienFirma: !identidadFirma.nombre.trim(),
   }
   const bloqueosDeFirma = motivosParaNoFirmar(entradaDeBloqueo)
@@ -6287,48 +6253,9 @@ export default function ConsultaActivaPage() {
             </>
           )}
 
-          {/* ── MENÚ DE IA: motor por nota + medidor de créditos ──
-              §8.5 «nonessential admin disappears»: `!voz.grabando` sólo
-              cubría la ruta de Web Speech. Con el grabador de audio
-              (diarización/Whisper), `voz.transcripcion` se llena en vivo
-              desde `audio.transcripcionParcial` (línea ~531) mientras
-              `voz.grabando` sigue en false, así que este menú SÍ aparecía
-              con el mismo peso durante la grabación real. `grabandoAhora()`
-              (ya definido más arriba, mismo criterio que usa el resto de la
-              página para "activo" — incluye pausado) cubre las dos rutas. */}
-          {voz.transcripcion.trim() && !grabandoAhora() && (
-            <div style={{ marginTop: 12, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>Nivel de IA para esta nota</span>
-                {usoIA && (
-                  <span style={{ fontSize: 11.5, color: usoIA.alerta === 'excedido' ? 'var(--amber)' : 'var(--text3)', fontVariantNumeric: 'tabular-nums' }}>
-                    {Math.max(0, usoIA.limite - usoIA.usadas)} de {usoIA.limite} créditos restantes
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {MOTORES_UI.map(m => {
-                  const on = motorEfectivo === m.clave
-                  return (
-                    <button key={m.clave} onClick={() => setMotorSel(m.clave)}
-                      style={{
-                        flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', borderRadius: 10, padding: '9px 11px',
-                        border: '1px solid ' + (on ? 'var(--teal)' : 'var(--border)'),
-                        background: on ? 'rgba(13,148,136,0.08)' : 'var(--s1)', color: 'var(--text)',
-                      }}>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{m.emoji} {m.nombre} <span style={{ fontWeight: 600, color: 'var(--text3)', fontSize: 11 }}>· {m.creditos} cr</span></div>
-                      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>{m.desc}</div>
-                    </button>
-                  )
-                })}
-              </div>
-              {motorUsado && (
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 8 }}>
-                  Última nota generada con {MOTORES_UI.find(m => m.clave === motorUsado)?.emoji} <b>{MOTORES_UI.find(m => m.clave === motorUsado)?.nombre}</b>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Aquí estaba el MENÚ DE IA (⚡ Rápida · ⭐ Estándar · 💎 Máxima).
+              Retirado por decisión del dueño (D-047): el médico no elige nivel.
+              El aviso de créditos del plan sigue más abajo, donde ya estaba. */}
 
           {/* Material de origen (dictado) — FUENTE, no forma parte de la nota.
               Mientras graba se ve en vivo; ya estructurada queda colapsada. */}
@@ -6832,6 +6759,7 @@ export default function ConsultaActivaPage() {
         const avisos = construirAvisos({
     discrepanciasDeLado,
           dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+          codigosSinConfirmar,
           alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
           contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
@@ -7071,16 +6999,12 @@ export default function ConsultaActivaPage() {
       )}
 
       {/*
-        QUÉ ES DE QUÉ (REG-243) — el plan atado al problema que lo motivó, y
-        atado SÓLO donde él lo dijo. Lo que no consta se ve sin asignar: un
-        hueco visible es información, un vínculo inventado es un error que se
-        lee como un acierto.
+        Aquí se montaba «Qué es de qué» (REG-243, `PlanPorProblema`): el plan
+        atado al problema con la frase del dictado que lo prueba. Retirado de
+        esta pantalla por decisión del dueño (D-048, 10-sep-2026): «ya no quiero
+        ver de dónde lo sacaste». El motor `plan-por-problema` sigue probado y
+        la procedencia por frase (REG-213/250) sigue en la nota.
       */}
-      <PlanPorProblema
-        diagnosticos={diagnosticos.map(d => d.descripcion)}
-        medicamentos={medicamentos}
-        dictado={voz.transcripcion}
-      />
 
       {/*
         LO QUE SE LLEVA EL PACIENTE (REG-242) — Suki y Nabla lo tienen y aquí no
@@ -7615,8 +7539,9 @@ export default function ConsultaActivaPage() {
                 <Cie10Autocomplete
                   value={d.descripcion}
                   onChange={(descripcion, codigoCIE10) => {
+                    // Elegir del catálogo es del médico (D-051): el código nace confirmado.
                     setDiagnosticos(prev => prev.map((x, j) =>
-                      j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10 } : {}) } : x
+                      j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10, codigoOrigen: 'medico' as const } : {}) } : x
                     ))
                   }}
                   placeholder="Faringitis, J02, hipertensión…"
@@ -7627,9 +7552,26 @@ export default function ConsultaActivaPage() {
               value={d.codigoCIE10 ?? ''}
               disabled={firmada}
               placeholder="CIE-10"
-              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
-              style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
+              aria-label={`Código CIE-10${d.descripcion ? ` de ${d.descripcion}` : ''}${codigoSinConfirmar(d) ? ' (sugerido por la IA, sin confirmar)' : ''}`}
+              title={codigoSinConfirmar(d) ? 'Lo sugirió la IA. Confírmalo o corrígelo; si no, la nota se firma sin él.' : undefined}
+              // Teclearlo es del médico (D-051): el código pasa a ser suyo.
+              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase(), codigoOrigen: 'medico' } : x))}
+              style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase', ...(codigoSinConfirmar(d) ? { borderColor: 'var(--amber)', borderStyle: 'dashed' } : {}) }}
             />
+            {/*
+              ── EL CÓDIGO SUGERIDO SE CONFIRMA CON UN GESTO (D-051) ──────────
+              La IA trae el código; el médico sólo lo confirma. Mientras no lo
+              haga, el campo se ve punteado en ámbar y la nota se firma sin él.
+            */}
+            {!firmada && codigoSinConfirmar(d) && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                style={{ padding: '0 10px', flex: '0 0 auto' }}
+                onClick={() => setDiagnosticos(prev => prev.map((x, j) => j === i ? conCodigoConfirmado(x) : x))}
+                aria-label={`Confirmar el código ${d.codigoCIE10}${d.descripcion ? ` de ${d.descripcion}` : ''}`}
+              >Confirmar {d.codigoCIE10}</button>
+            )}
             {/*
               ── EL MÉDICO ELIGE EL TIPO DE SU DIAGNÓSTICO (WS-10, REG-407) ──
 
@@ -7683,6 +7625,12 @@ export default function ConsultaActivaPage() {
             dictado o la plantilla, no tú. Revísalo antes de firmar: sólo cuenta como tuyo si lo eliges.
           </div>
         )}
+        {!firmada && codigosSinConfirmar.length > 0 && (
+          <div className="nx-meta" style={{ marginTop: 6 }}>
+            El código CIE-10 de {codigosSinConfirmar.length === 1 ? 'un diagnóstico lo sugirió' : `${codigosSinConfirmar.length} diagnósticos lo sugirió`} la IA.
+            Confírmalo o corrígelo: lo que no confirmes no se firma con código.
+          </div>
+        )}
         {!firmada && (
           <button onClick={() => setDiagnosticos(prev => [...prev, { descripcion: '', tipo: 'presuntivo', estado: 'activo', tipoOrigen: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar diagnóstico
@@ -7705,7 +7653,7 @@ export default function ConsultaActivaPage() {
           cada fila: eso sería ruido) y `aria-label` por campo, que es lo que
           anuncia el lector. La fila no cambia de forma.
         */}
-        {medicamentos.length > 0 && (
+        {filasDeReceta.length > 0 && (
           <div aria-hidden="true" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
             <span style={{ flex: 2, minWidth: 120 }}>Medicamento</span>
             <span style={{ flex: 1, minWidth: 70 }}>Dosis</span>
@@ -7714,7 +7662,7 @@ export default function ConsultaActivaPage() {
             <span style={{ flex: 1, minWidth: 80 }}>Duración</span>
           </div>
         )}
-        {medicamentos.map((m, i) => (
+        {filasDeReceta.map(({ m, i }) => (
           <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
               aria-label={`Medicamento ${i + 1}`}
@@ -7778,6 +7726,34 @@ export default function ConsultaActivaPage() {
             )}
           </div>
         ))}
+        {/*
+          LO QUE SÓLO SE MENCIONÓ (D-049). Una línea, no filas: no lleva dosis
+          porque no se receta. «Recetar hoy» es el gesto explícito del médico
+          —lo sube a la lista con su atribución— y desde ahí se puede quitar.
+        */}
+        {soloMencionados.length > 0 && (
+          <div className="nx-meta" style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+            <span>Mencionados en la consulta, fuera de la receta:</span>
+            {soloMencionados.map(m => {
+              const i = medicamentos.indexOf(m)
+              return (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, border: '1px solid var(--border)', borderRadius: 8, padding: '0 2px 0 8px', color: 'var(--text2)' }}>
+                  {m.nombre}
+                  {!firmada && (
+                    <>
+                      <button type="button" className="btn btn-sm btn-ghost" style={{ padding: '0 8px' }}
+                        onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? comoRecetaDeHoy(x) : x))}
+                        aria-label={`Recetar hoy: ${m.nombre}`}>Recetar hoy</button>
+                      <button type="button" className="btn btn-sm btn-ghost" style={{ padding: '0 8px' }}
+                        onClick={() => setMedicamentos(prev => prev.filter((_, j) => j !== i))}
+                        aria-label={`Quitar de la nota: ${m.nombre}`}><Trash2 size={13} /></button>
+                    </>
+                  )}
+                </span>
+              )
+            })}
+          </div>
+        )}
         {!firmada && (
           <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar medicamento

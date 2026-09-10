@@ -31,8 +31,13 @@
  */
 
 export interface MotivoDeBloqueo {
-  /** De dónde sale: NOM-004, la compuerta de dosis, o la atribución de la firma. */
-  origen: 'nom004' | 'dosis' | 'atribucion'
+  /**
+   * De dónde sale: NOM-004 o la atribución de la firma.
+   *
+   * Hasta el 10-sep-2026 había un tercer origen, `dosis`. La falta de dosis
+   * AVISA y ya no bloquea (D-052): vive en `avisos-consulta` como `revisa`.
+   */
+  origen: 'nom004' | 'atribucion'
   /** El texto que ya redacta cada motor. No se parafrasea. */
   texto: string
 }
@@ -40,8 +45,6 @@ export interface MotivoDeBloqueo {
 export interface EntradaBloqueo {
   /** `validarNOM004(...).errores` — secciones obligatorias, cédula, diagnóstico. */
   erroresNOM004?: readonly string[]
-  /** Los medicamentos con la dosis incompleta, con el mensaje de su motor. */
-  dosisIncompletas?: readonly { nombre: string; mensaje: string }[]
   /**
    * NO SE SABE A QUIÉN ATRIBUIR LA FIRMA — REG-336.
    *
@@ -96,10 +99,6 @@ export function motivosParaNoFirmar(e: EntradaBloqueo): MotivoDeBloqueo[] {
     const texto = String(t ?? '').trim()
     if (texto) out.push({ origen: 'nom004', texto })
   }
-  for (const d of e.dosisIncompletas ?? []) {
-    const texto = String(d?.mensaje ?? '').trim()
-    if (texto) out.push({ origen: 'dosis', texto })
-  }
   return out
 }
 
@@ -142,3 +141,9 @@ export const POR_QUE_LA_ATRIBUCION_BLOQUEA =
 export const NO_CAMBIA_LA_POLITICA =
   'Ni una condición se añade ni se quita: lo que impedía firmar ayer impide ' +
   'firmar hoy. Lo que cambia es que se dice en un sitio y ANTES de pulsar.'
+
+export const LA_DOSIS_YA_NO_BLOQUEA =
+  'Decisión del médico dueño del 10-sep-2026 (D-052): la falta de dosis en la ' +
+  'receta de hoy se avisa en rojo, a la vista y sin descartar, pero no apaga ' +
+  'Firmar. Sustituye a la del 5-ago (bloquear), tomada con la pantalla llena de ' +
+  'bloqueos que no eran recetas suyas.'

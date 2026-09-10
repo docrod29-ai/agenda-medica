@@ -59,13 +59,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-scheduling-audit-ev7hua",
+  "ramaActual": "claude/clinical-note-simplification-kl71ne",
   "derivado": {
-    "regsEnElLedger": 442,
-    "ultimaREG": "REG-663",
-    "archivosDePrueba": 1100,
-    "casosDePrueba": 13102,
+    "regsEnElLedger": 443,
+    "ultimaREG": "REG-664",
+    "archivosDePrueba": 1101,
+    "casosDePrueba": 13140,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1193"
+  "versionEnElRepo": "nexusmed-v1194"
 }
