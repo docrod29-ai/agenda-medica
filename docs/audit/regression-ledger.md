@@ -25820,3 +25820,44 @@ Y esa llamada vive en `POST /api/appointments` **fuera de todo `try`**: la excep
 **Y la FORMA del defecto, no sólo esta excepción.** Arreglar `getDaySchedule` cierra la excepción que se midió; no cierra que el tramo entero —configuración, documento del médico, horario, descansos, bloqueos— siguiera fuera de todo `try`, listo para que la siguiente excepción desconocida volviera a salir muda. Ese tramo va ahora dentro de un `try` que responde **500 con motivo** y deja rastro con `safeLog` (que sanea PHI). El `catch` **no** responde 409 a propósito: un 409 afirmaría que se comprobó el horario y la cita no cabía, y sería mentira — no se pudo comprobar. Y no sigue adelante: escribir la cita sin haber podido validar el horario es justo lo que esas cien líneas existen para impedir. El caso que lo sella rompe la lectura de los **bloqueos**, que nada tiene que ver con el horario: es «la próxima excepción, la que no conocemos».
 
 **Qué NO cubre.** No se rellena un horario por defecto a un consultorio nuevo: ausencia de dato no es dato de ausencia — se dice que falta, no se inventa. Y el `catch` cubre el tramo de validación, no la transacción de escritura, que ya tenía el suyo con sus propios códigos.
+
+---
+
+## D-046 — El expediente se queda con lo que es expediente: la historia primero y la fotografía como serie
+
+**Área**: Expediente del paciente / experiencia del médico · **Tipo**: decisión del dueño, no defecto · **Fecha**: 10-sep-2026 · **Estado**: APLICADA
+
+**Qué pidió el dueño.** Mirando el expediente de un paciente en su iPhone: quitar la tarjeta de «Herramientas clínicas» para que sea fácil ver las consultas del paciente y sus fechas, y dejar «un expediente de las fotos clínicas para poder irlas comparando».
+
+**Lo que se midió antes de tocar nada.** El arnés visual, en un iPhone 13 (viewport de 664 px), sobre el consultorio sintético:
+
+| y (px) | Sección |
+|---|---|
+| 154 | identidad + alergias + «Nueva consulta» |
+| 690 | Diagnósticos y medicamentos |
+| 835 | Pendientes |
+| **1 199** | **la primera consulta, con su fecha** |
+| 1 461 | Herramientas clínicas |
+| 1 756 | Documentos |
+
+Dos cosas que la medición cambió respecto de lo que parecía en la captura:
+
+1. **Las herramientas no tapaban las consultas**: iban *debajo* de ellas. En la captura del dueño parecen estar arriba porque ese paciente no tiene ninguna nota firmada —tiene una consulta sin cerrar—, así que la historia se colapsa y la tarjeta sube hasta el CTA.
+2. Lo que de verdad escondía la historia era su **posición**: la primera consulta empezaba a 1 199 px, casi dos pantallas de desplazamiento.
+
+**Qué se decidió, con la pregunta puesta al dueño.** De las cuatro filas de la tarjeta, sólo una es *expediente* —material que se acumula y se compara con el tiempo—: la fotografía seriada. Las otras tres son herramientas de trabajo. Se le planteó explícitamente si **Laboratorios** debía quedarse en el expediente (la tendencia por analito también es material longitudinal, y fuera de un encuentro no habría otro sitio para verla) y decidió que **no**: las tres se van y viven en `/consulta/[patientId]`, donde ya estaban.
+
+**Lo que cuesta, dicho para que nadie lo descubra en la consulta**: para mirar la tendencia de un analito hay que abrir un encuentro; ver un laboratorio no siempre es atender. Queda declarado aquí y en el código, no escondido.
+
+**Qué se cambió.**
+
+- La barra de `Herramientas` del expediente se sustituye por una sección propia, **Fotografía clínica**, desplegada (una serie que hay que abrir para saber si existe es una serie que no se compara). `FotosClinicas modo="completo"` ya trae la serie agrupada por región, el antes/después y los días de evolución: no se construye nada nuevo.
+- **La historia sube** por delante del estado clínico y de los pendientes. Medido después: la primera consulta pasa de **1 199 px a 785 px**.
+- El riel del Clinical Spine **se reordena con ella**, y su fila «Laboratorios y fotografía» pasa a «Fotografía clínica». Sin esto la fila apuntaba a `spine-herramientas`, un ancla que ya no existe: llevaba a ninguna parte y encima ofrecía por su nombre algo que la pantalla ya no tiene. Lo cazó `v15-clinical-spine-cableado`, y se vio antes en el navegador leyendo el texto que quedaba en el riel.
+- `CAPACIDADES_DEL_PACIENTE` **se muda con la puerta**: la consumía el expediente y ahora la consume la consulta. Una declaración que nadie consume promete una puerta que ya no existe, que es exactamente lo que esa declaración vino a impedir. `modulos-sin-conectar` lo cazó en la misma corrida.
+
+**Qué NO se deshace de RTC-09 y RTC-10.** RTC-09 sacó las capacidades de IA del índice administrativo por ser feature-first: siguen fuera, y siguen siendo contextuales — cambió cuál de las dos pantallas del paciente las ofrece, no el principio. De RTC-10 se conserva todo lo que encontró el equipo rojo: ninguna caja-módulo por delante de lo clínico, ninguna tarjeta vacía, los documentos al final. Lo único que cambió es **cuál de los bloques clínicos va primero entre ellos**, y por una medición.
+
+**Guardianes.** `v15-rtc10-primer-viewport-clinico` (orden nuevo, con los invariantes de RTC-10 intactos), `v15-expediente-contesta-las-cinco` §6, `v15-clinical-spine-cableado` (anclas del riel), `v15-rtc09-ia-contextual` (§5 la consulta consume la declaración; §5b **al revés** — el expediente ya no las ofrece ni por su nombre, para que nadie devuelva la barra en silencio y queden dos puertas a lo mismo).
+
+**Qué NO cubre.** La primera consulta sigue **fuera del primer pliegue** en un teléfono (785 px sobre 664): entre ella y la cabecera quedan la identidad, la caja de alergias y el CTA de «Nueva consulta», y recortar eso es otra decisión. Y esto no toca la vista de escritorio más allá del mismo reordenamiento.

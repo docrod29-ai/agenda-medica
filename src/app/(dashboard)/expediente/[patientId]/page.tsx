@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import dynamic from 'next/dynamic'
 import { fetchAutenticado } from '@/lib/auth-client'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -19,11 +18,10 @@ import {
   ArrowLeft, Mic, FileText, Loader2, CheckCircle2,
   Clock, ChevronDown, ChevronUp, Plus, Printer, Trash2, Send, Pill, ClipboardList, Pencil, Upload,
   Stethoscope, Activity, LogIn, LogOut, UserPlus, ClipboardCheck, ShieldPlus, type LucideIcon,
-  Camera, FlaskConical, Link2Off, Sparkles, Bug, ExternalLink, AlertTriangle,
+  Link2Off, AlertTriangle,
 } from 'lucide-react'
 import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
-import { PanelLaboratorios } from '@/components/laboratorio/PanelLaboratorios'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { PatientAnchor } from '@/components/expediente/PatientAnchor'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
@@ -31,8 +29,6 @@ import { ProcedenciaDeLaNota } from '@/components/expediente/ProcedenciaDeLaNota
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
 import { logAudit } from '@/lib/expediente/audit-log'
 import { describirVacioDeUnaLista, contar } from '@/lib/ui/vacio-de-una-lista'
-import { Herramientas } from '@/components/Herramientas'
-import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
 import { ExpedienteVacio } from '@/components/brand/EmptyArt'
 import { InternamientosDelPaciente } from '@/components/InternamientosDelPaciente'
 import { CabosSueltosDelPaciente } from '@/components/CabosSueltosDelPaciente'
@@ -291,17 +287,30 @@ export default function ExpedientePage() {
    * es peor que no tenerlo (§7).
    */
   const spineItems: ClinicalSpineItem[] = [
+    /*
+     * D-046 — EL RIEL VUELVE A SEGUIR EL ORDEN VISUAL.
+     *
+     * Al subir la historia por encima del estado y los pendientes, un riel que
+     * siguiera anunciando «Diagnósticos» primero mandaría al médico hacia abajo
+     * para volver a subir. Es la misma razón que dejó escrita RTC-10, aplicada
+     * al orden nuevo: un índice que miente sobre su propio documento es peor
+     * que no tenerlo.
+     *
+     * Y «Laboratorios y fotografía» se queda en FOTOGRAFÍA: su ancla era
+     * `spine-herramientas`, que ya no existe, así que la fila llevaba a ninguna
+     * parte y encima ofrecía por su nombre algo que esta pantalla ya no tiene.
+     */
+    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
+    ...(internamientosPaciente && internamientosPaciente.length > 0
+      ? [{ id: 'internamientos', label: 'Ingresos', count: internamientosPaciente.length }]
+      : []),
     ...(problemas.length > 0 || vigentes.length > 0
       ? [{ id: 'problemas', label: 'Diagnósticos y medicamentos', detail: `${problemas.length} dx · ${vigentes.length} fármaco${vigentes.length === 1 ? '' : 's'}` }]
       : []),
     ...(pendientesPaciente && pendientesPaciente.lista.length > 0
       ? [{ id: 'pendientes', label: 'Pendientes', count: pendientesPaciente.lista.length }]
       : []),
-    { id: 'encuentros', label: 'Encuentros', count: loading ? undefined : notas.length },
-    ...(internamientosPaciente && internamientosPaciente.length > 0
-      ? [{ id: 'internamientos', label: 'Ingresos', count: internamientosPaciente.length }]
-      : []),
-    ...(clinicId && patientId ? [{ id: 'herramientas', label: 'Laboratorios y fotografía' }] : []),
+    ...(clinicId && patientId ? [{ id: 'fotos', label: 'Fotografía clínica' }] : []),
   ]
 
   return (
@@ -499,53 +508,22 @@ export default function ExpedientePage() {
         </div>
       )}
 
-      {(problemas.length > 0 || vigentes.length > 0) && (
-        <div id="spine-problemas" style={{
-          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
-          background: 'var(--s2)', border: '1px solid var(--border)',
-          borderRadius: 11, padding: '10px 13px',
-        }}>
-          <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
-          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
-            <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
-            <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
-              De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
-              {/* REG-579 — `proyeccionRecortada` se calculaba y no se pintaba en
-                  ningún sitio. La línea de arriba afirma sobre el expediente
-                  ENTERO; sobre una ventana es falsa y el médico no puede saberlo
-                  mirando la pantalla. */}
-              {avisoDeHistorialRecortado(proyeccionRecortada) && (
-                <> {avisoDeHistorialRecortado(proyeccionRecortada)}</>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* LA HISTORIA VA PRIMERO — decisión del dueño (D-046, 10-sep-2026).
+          ──────────────────────────────────────────────────────────────────────
+          RTC-10 había fijado el orden «identidad → estado → pendientes →
+          historia», y la razón que dejó escrita sigue siendo buena: un cabo
+          suelto es lo único de esta pantalla que exige una decisión HOY, y la
+          historia espera.
 
-      {/*
-        LO QUE QUEDÓ PENDIENTE DE ESTE PACIENTE (REG-266).
+          Lo que cambió es una medición, no una opinión: en un iPhone (viewport
+          de 664 px) la primera consulta empezaba a **1 199 px** — casi dos
+          pantallas de desplazamiento— y con ella su fecha. La pregunta que el
+          médico le hace a un expediente antes que ninguna otra es «¿de qué lo he
+          atendido y cuándo?», y esa respuesta no puede estar a dos scrolls.
 
-        `tareasDePaciente()` decía en su comentario «para su expediente» y el
-        expediente no las enseñaba: la función NO tenía un solo llamador.
-
-        Va lo PRIMERO de la pantalla, encima incluso de los ingresos: un cabo
-        suelto es lo único de aquí que exige una decisión hoy. Lo demás es
-        historia, y la historia espera.
-      */}
-      {clinicId && (
-        <div id="spine-pendientes">
-          <CabosSueltosDelPaciente
-            clinicId={clinicId}
-            patientId={patientId}
-            cargar={tareasDePaciente}
-            alAbrirPendientes={() => router.push('/pendientes')}
-            onResumen={setPendientesPaciente}
-          />
-        </div>
-      )}
-
-
+          Así que la historia sube justo detrás de la identidad y las alergias.
+          Los problemas vigentes y los cabos sueltos NO se quitan: bajan un
+          escalón, y siguen por encima de todo lo demás. */}
       {/* Historia clínica — ancla del Clinical Spine ("Encuentros"). */}
       <div id="spine-encuentros" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '4px 0 12px' }}>
         Historia clínica
@@ -689,6 +667,54 @@ export default function ExpedientePage() {
           ))}
         </div>
       )}
+
+      {(problemas.length > 0 || vigentes.length > 0) && (
+        <div id="spine-problemas" style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16,
+          background: 'var(--s2)', border: '1px solid var(--border)',
+          borderRadius: 11, padding: '10px 13px',
+        }}>
+          <Stethoscope size={16} style={{ color: 'var(--text3)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, minWidth: 0 }}>
+            <div><strong style={{ color: 'var(--text)' }}>Problemas:</strong> {resumenProblemas(problemas)}</div>
+            <div><strong style={{ color: 'var(--text)' }}>Toma:</strong> {resumenVigentes(vigentes)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+              De lo último que se dijo de cada uno en sus notas <b>firmadas</b>.
+              {/* REG-579 — `proyeccionRecortada` se calculaba y no se pintaba en
+                  ningún sitio. La línea de arriba afirma sobre el expediente
+                  ENTERO; sobre una ventana es falsa y el médico no puede saberlo
+                  mirando la pantalla. */}
+              {avisoDeHistorialRecortado(proyeccionRecortada) && (
+                <> {avisoDeHistorialRecortado(proyeccionRecortada)}</>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*
+        LO QUE QUEDÓ PENDIENTE DE ESTE PACIENTE (REG-266).
+
+        `tareasDePaciente()` decía en su comentario «para su expediente» y el
+        expediente no las enseñaba: la función NO tenía un solo llamador.
+
+        Va lo PRIMERO de la pantalla, encima incluso de los ingresos: un cabo
+        suelto es lo único de aquí que exige una decisión hoy. Lo demás es
+        historia, y la historia espera.
+      */}
+      {clinicId && (
+        <div id="spine-pendientes">
+          <CabosSueltosDelPaciente
+            clinicId={clinicId}
+            patientId={patientId}
+            cargar={tareasDePaciente}
+            alAbrirPendientes={() => router.push('/pendientes')}
+            onResumen={setPendientesPaciente}
+          />
+        </div>
+      )}
+
+
       {/* Datos del paciente (contacto) — plegado, para editar cuando haga falta. */}
       <DatosPaciente
         patient={patient}
@@ -749,41 +775,27 @@ export default function ExpedientePage() {
         }}
       />
 
-      {/* Herramientas del expediente en UN SOLO bloque (antes eran dos cajas
-          separadas, cada una con su encabezado "Herramientas clínicas" — se veían
-          duplicadas). Laboratorios y la fotografía seriada, ambas plegadas.
+      {/* EXPEDIENTE DE FOTOGRAFÍA CLÍNICA — para comparar, no para lanzar.
+          ──────────────────────────────────────────────────────────────────────
+          Aquí había una tarjeta de «Herramientas clínicas» con cuatro filas
+          plegadas: laboratorios, fotografía, consultor de evidencia y
+          antibiograma. Decisión del dueño (D-046, 10-sep-2026): de las cuatro,
+          la única que es EXPEDIENTE —material que se acumula y se compara a lo
+          largo del tiempo— es la fotografía. Las otras tres son herramientas de
+          trabajo y viven donde se hace la pregunta: dentro de la consulta.
 
-          RTC-09: aquí entran también las dos capacidades que estaban como
-          páginas-módulo en el índice ADMINISTRATIVO (§3.2: la IA es contextual,
-          nunca un módulo feature-first). El encuentro ya las tenía así —embebe
-          `AntibiogramaTool` y abre el consultor con `?paciente=`—; el expediente
-          no las había recibido. Las declara `@/lib/nav/capacidades-del-paciente`
-          UNA vez, y de ahí las lee el guardián de alcanzabilidad. */}
+          Qué se pierde, dicho para que nadie lo descubra en la consulta: fuera
+          de un encuentro abierto ya NO se puede mirar la tendencia de un
+          analito. Se planteó dejar Laboratorios aquí por eso y el dueño decidió
+          que no. Está en `/consulta/[patientId]`, entero.
+
+          La fotografía deja de estar plegada: una serie que hay que desplegar
+          para saber si existe es una serie que no se compara. */}
       {clinicId && patientId && (
-        <div id="spine-herramientas">
-          <Herramientas items={[
-            {
-              id: 'laboratorios', nombre: 'Laboratorios', color: 'var(--teal)', icono: <FlaskConical size={14} />,
-              para: 'Adjunta PDF o foto → la IA los interpreta → gráficas de tendencia por analito',
-              contenido: <PanelLaboratorios clinicId={clinicId} patientId={patientId} />,
-            },
-            {
-              id: 'fotos', nombre: 'Fotografía clínica seriada', color: 'var(--teal)', icono: <Camera size={14} />,
-              para: 'Serie por región · comparación antes/después con días de evolución',
-              contenido: <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />,
-            },
-            ...CAPACIDADES_DEL_PACIENTE.map(cap => ({
-              id: cap.id,
-              nombre: cap.nombre,
-              color: 'var(--teal)',
-              icono: cap.id === 'consultor' ? <Sparkles size={14} /> : <Bug size={14} />,
-              para: cap.para,
-              contenido: cap.conPaciente
-                ? <CapacidadQueLleva href={cap.conPaciente(patientId)} nombre={cap.nombre} paciente={patient?.nombre ?? ''} />
-                : <AntibiogramaDelPaciente />,
-            })),
-          ]} />
-        </div>
+        <section id="spine-fotos" style={{ marginTop: 24 }} aria-label="Fotografía clínica del paciente">
+          <h2 className="t-overline" style={{ margin: '0 0 10px' }}>Fotografía clínica</h2>
+          <FotosClinicas embebido modo="completo" clinicId={clinicId} patientId={patientId} />
+        </section>
       )}
 
       {/* La valoración del inmunocomprometido vive ahora como TIPO DE NOTA en la
@@ -951,47 +963,14 @@ export default function ExpedientePage() {
 
 /** Tarjeta colapsable con los datos de contacto del paciente (unificación
  *  de Pacientes + Expedientes en una sola pantalla). */
-/**
- * RTC-09 — la capacidad que SE LLEVA al paciente.
- *
- * El consultor razona sobre el caso, así que necesita saber de quién se habla:
- * su página lee `?paciente=` desde antes (no es una ruta inventada aquí). Se
- * abre en pestaña nueva por la misma razón que en la consulta: la pregunta se
- * hace CON el expediente delante, no en vez de él.
+/*
+ * RTC-09 vivía aquí con dos ayudantes —`CapacidadQueLleva` (abría el consultor
+ * con `?paciente=`) y `AntibiogramaDelPaciente` (embebía la herramienta)— que
+ * sólo servían a las filas de la tarjeta de herramientas. D-046 se llevó la
+ * tarjeta al encuentro, así que se van con ella en vez de quedarse escritas y
+ * sin conectar. El patrón NO se pierde: `/consulta/[patientId]` hace las dos
+ * cosas, y de ahí las lee ahora el guardián de alcanzabilidad.
  */
-function CapacidadQueLleva({ href, nombre, paciente }: { href: string; nombre: string; paciente: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>
-      {/* La voz del sistema (t-body), no un tamaño a mano: 13px estaba fuera
-          de la escala y el trinquete de diseño lo cazó en la misma corrida. */}
-      <p className="t-body" style={{ margin: 0, color: 'var(--text2)' }}>
-        {paciente
-          ? <>Se abre con <strong style={{ color: 'var(--text)' }}>{paciente}</strong> ya cargado como contexto: no hay que volver a decir de quién se trata.</>
-          : <>Se abre con este paciente ya cargado como contexto.</>}
-      </p>
-      <button
-        type="button"
-        className="btn btn-secondary btn-sm"
-        onClick={() => window.open(href, '_blank', 'noopener')}
-      >
-        <ExternalLink size={13} /> Abrir {nombre.toLowerCase()}
-      </button>
-    </div>
-  )
-}
-
-/**
- * RTC-09 — la capacidad que NO se navega: se USA aquí.
- *
- * El antibiograma interpreta un panel S/I/R que el médico teclea en el momento;
- * mandarlo a otra pantalla era justo el viaje que §3.2 quiere borrar. La
- * consulta ya lo embebía así — este import perezoso es el MISMO patrón, y su
- * chunk sólo se descarga cuando la fila se abre.
- */
-const AntibiogramaDelPaciente = dynamic(
-  () => import('@/app/(dashboard)/antibiograma/page').then(m => m.AntibiogramaTool),
-  { ssr: false, loading: () => <Spinner /> },
-)
 
 function DatosPaciente({ patient, onEditar, onRevocar }: { patient: Patient | null; onEditar: () => void; onRevocar: (motivo: string) => void }) {
   const [abierto, setAbierto] = useState(false)

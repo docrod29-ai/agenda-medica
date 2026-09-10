@@ -27,7 +27,7 @@
     " M public/sw.js",
     " M public/version.txt"
   ],
-  "actualizado": "2026-09-09",
+  "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -64,8 +64,8 @@
     "regsEnElLedger": 442,
     "ultimaREG": "REG-663",
     "archivosDePrueba": 1100,
-    "casosDePrueba": 13101,
+    "casosDePrueba": 13102,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1192"
+  "versionEnElRepo": "nexusmed-v1193"
 }
