@@ -19,6 +19,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { estadoInicialDeCita } from '@/lib/agenda/estado-inicial-de-cita'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { safeLog } from '@/lib/security/sanitize'
 import { createHmac, timingSafeEqual } from 'node:crypto'
@@ -1340,11 +1341,15 @@ export async function handleMessage(from: string, body: string, clinicId: string
           tx.set(diaRef, { ultimaReserva: now }, { merge: true })  // write: invalida la tx concurrente
           const nref = apptsCol.doc()
           nuevoFolio = nref.id
+          // Quién confirma (D-054): el médico si tiene preferencia, si no el consultorio.
+          const nacimientoBot = estadoInicialDeCita(config, doctor, now)
           tx.set(nref, {
             pacienteId: pacienteIdBot, pacienteNombre: datos.nombre, pacienteTelefono: from,
             ...(expedienteBot.porConfirmar ? { expedientePorConfirmar: expedienteBot.porConfirmar } : {}),
             fechaHora, duracion, tipo: datos.tipo as AppointmentType, motivo: '',
-            estado: 'solicitada', origen: 'WhatsApp', medicoNombre,
+            estado: nacimientoBot.estado,
+            ...(nacimientoBot.fechaConfirmacion ? { fechaConfirmacion: nacimientoBot.fechaConfirmacion } : {}),
+            origen: 'WhatsApp', medicoNombre,
             medicoId: doctorId || '', doctorId: doctorId || '',
             // Sin lugar físico si es videoconsulta: el portal imprime
             // «Teleconsulta · {lugar}» y sería enseñarle el consultorio a quien
@@ -1607,7 +1612,9 @@ export async function handleMessage(from: string, body: string, clinicId: string
             fechaHora: `${slotFecha} ${slotHora}`,
             duracion,
             tipo: (datos.tipo || 'seguimiento') as AppointmentType,
-            estado: 'solicitada',
+            // D-054. El médico del hueco sólo se conoce por id: si es el mismo que
+            // atiende este chat se usa su preferencia; si no, la del consultorio.
+            estado: estadoInicialDeCita(config, doctor?.id === medicoIdBot ? doctor : null, now).estado,
             origen: 'WhatsApp',
             medicoNombre: doctor?.nombre || config?.nombreMedico || 'Dr.',
             medicoId: medicoIdBot,     // ← faltaba: sin esto la cita es invisible

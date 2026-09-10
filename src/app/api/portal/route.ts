@@ -38,7 +38,7 @@ import {
 import { urgenciaDelMensaje } from '@/lib/paciente/urgencia'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
-import { tareaDeUnaPregunta, idDeTareaDePregunta } from '@/lib/tareas-clinicas/de-una-pregunta'
+import { tareaDeUnaPregunta, idDeTareaDePregunta, tareaDeUnaSolicitudAdministrativa, ORIGEN_SOLICITUD_DE_CAMBIO } from '@/lib/tareas-clinicas/de-una-pregunta'
 import type { Patient } from '@/types'
 
 /**
@@ -100,6 +100,28 @@ function horasHasta(fechaHora: string, tz: string): number {
   const t = instanteMX(s.slice(0, 10), s.slice(11, 16), tz).getTime()
   return (t - Date.now()) / 3_600_000
 }
+
+/**
+ * CADA CITA DICE SI TODAVÍA SE PUEDE CAMBIAR EN LÍNEA — D-055.
+ *
+ * La regla de las 12 h se aplicaba SÓLO al actuar: el paciente veía Reagendar y
+ * Cancelar, tocaba, y entonces se enteraba de que ya no podía. Ahora el servidor
+ * —que es quien conoce la zona del consultorio— lo dice al listar, y la pantalla
+ * ofrece lo que sí procede: pedir el cambio al consultorio.
+ */
+function conVentanaDeCambio<T extends { fechaHora: string }>(citas: T[], zonaHoraria?: string | null) {
+  const tz = zonaHoraria || TZ_DEFAULT
+  return citas
+    .sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
+    .map(c => ({ ...c, cambioEnLinea: horasHasta(c.fechaHora, tz) >= HORAS_CAMBIO_PACIENTE }))
+}
+
+/** Lo que el portal le contesta en el acto a quien pide un cambio dentro de las 12 h. */
+const RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO =
+  'Tu consultorio recibió tu solicitud. Te contesta por aquí o por teléfono; mientras tanto tu cita sigue como estaba.'
+
+/** Lo que se añade a una respuesta administrativa: recepción también la ve (D-056). */
+const AVISO_LO_VE_RECEPCION = 'Tu consultorio también lo verá y te contesta por aquí.'
 
 
 
@@ -473,7 +495,7 @@ export async function POST(req: NextRequest) {
       if (limiteClinico) return limiteClinico
     }
 
-    if (body.action === 'preguntar') {
+    if (body.action === 'preguntar' || body.action === 'solicitar-cambio') {
       const limitePregunta = await limitarEstricto(`portal:pregunta:${clinicId}:${patientId}`, PREGUNTAS_POR_VENTANA, 600,
         'Has enviado varias preguntas seguidas. Espera unos minutos; tu consultorio ya tiene las anteriores.')
       if (limitePregunta) return limitePregunta
@@ -533,7 +555,7 @@ export async function POST(req: NextRequest) {
           // hora de pared: sin la zona del consultorio lo hacía con -06:00 fijo.
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
-          citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
+          citas: conVentanaDeCambio(citas, config?.zonaHoraria),
         })
       }
 
@@ -689,7 +711,7 @@ export async function POST(req: NextRequest) {
           minHoras: HORAS_CAMBIO_PACIENTE,
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
-          citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
+          citas: conVentanaDeCambio(citas, config?.zonaHoraria),
           documentos,
           alergias,
           alergiasLeidas: pacienteLeido,
@@ -714,6 +736,76 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      /**
+       * PEDIR EL CAMBIO AL CONSULTORIO — D-055.
+       *
+       * Dentro de las 12 h el portal ya no mueve ni cancela la cita; hasta hoy
+       * la respuesta era «llama al consultorio», y el teléfono no es un
+       * producto. La solicitud queda escrita como pregunta administrativa del
+       * paciente (así él la ve en su historial y ve cuándo la atendieron) y
+       * abre una tarea de RECEPCIÓN con la cita colgada. La cita NO se toca:
+       * quien decide es el consultorio.
+       */
+      case 'solicitar-cambio': {
+        const cita = await citaDelPaciente(body.citaId)
+        if (cita instanceof NextResponse) return cita
+        if (!puedeTocarDesdeElPortal(cita, { permiteCobrada: true })) {
+          return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
+        }
+        const textoSolicitud = String(body.texto ?? '').trim().slice(0, TOPE_TEXTO_PREGUNTA)
+        const config = await leerConfig(clinicId)
+        const ahora = Date.now()
+        const registro = {
+          texto: `Cambio de cita del ${cita.fechaHora}: ${textoSolicitud || '(sin motivo)'}`,
+          clase: 'ADMINISTRATIVE_ACTION',
+          motivo: null,
+          respuesta: RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO,
+          procedencia: null,
+          respondida: false,
+          escalada: true,
+          atendidaEn: null as number | null,
+          creadaEn: ahora,
+          origen: ORIGEN_SOLICITUD_DE_CAMBIO,
+          citaId: cita.id,
+        }
+        const refSolicitud = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('preguntas_paciente')
+          .add(registro)
+        const tareaSolicitud = tareaDeUnaSolicitudAdministrativa({
+          clinicId,
+          patientId,
+          patientNombre: paciente?.nombre ?? undefined,
+          preguntaId: refSolicitud.id,
+          texto: textoSolicitud,
+          ahoraIso: new Date(ahora).toISOString(),
+          citaId: cita.id,
+          asunto: 'cambio_de_cita',
+        })
+        await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('tareas_clinicas').doc(idDeTareaDePregunta(refSolicitud.id))
+          .set(tareaSolicitud, { merge: true })
+        const telSolicitud = telefonoDelConsultorio(config)
+        if (telSolicitud) {
+          await avisarAlConsultorio(
+            clinicId,
+            telSolicitud,
+            [
+              '📅 *Un paciente pide cambiar su cita (faltan menos de 12 h)*',
+              '',
+              `👤 ${String(paciente?.nombre ?? '').trim() || 'Paciente'}`,
+              `🕐 Cita: ${cita.fechaHora}`,
+              '',
+              'El portal ya no lo deja moverla. Está en Pendientes, para recepción.',
+            ].join('\n'),
+            ORIGEN_SOLICITUD_DE_CAMBIO,
+          )
+        }
+        return NextResponse.json({ ok: true, id: refSolicitud.id, texto: RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO })
+      }
+
       case 'cancelar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
@@ -723,7 +815,7 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
-          return NextResponse.json({ error: `Cancelación en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
+          return NextResponse.json({ error: `Faltan menos de ${minHoras} h para tu cita: pide el cambio al consultorio desde aquí.` }, { status: 422 })
         }
         await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id).update({
           estado: 'cancelada',
@@ -853,7 +945,7 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
-          return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
+          return NextResponse.json({ error: `Faltan menos de ${minHoras} h para tu cita: pide el cambio al consultorio desde aquí.` }, { status: 422 })
         }
         /**
          * REAGENDAR PASA POR LA MISMA PUERTA QUE AGENDAR.
@@ -1235,6 +1327,13 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const telConsultorio = telefonoDelConsultorio(config)
         const r = clasificarPregunta(texto, { plan, telefonoConsultorio: telConsultorio })
+        /**
+         * LO ADMINISTRATIVO VA A RECEPCIÓN — D-056. El clasificador sigue puro
+         * (contesta lo que puede en el acto); lo que cambia es que la pregunta
+         * además llega a alguien: tarea de recepción y aviso al consultorio.
+         */
+        const paraRecepcion = r.clase === 'ADMINISTRATIVE_ACTION'
+        const respuestaAlPaciente = paraRecepcion ? `${r.texto} ${AVISO_LO_VE_RECEPCION}` : r.texto
 
         /**
          * SE GUARDA ANTES DE CONTESTAR, Y CON LISTA BLANCA.
@@ -1262,10 +1361,10 @@ export async function POST(req: NextRequest) {
            * se le dijo. Guardarla cuesta una cadena; no guardarla cuesta la
            * única prueba de lo que este canal contestó.
            */
-          respuesta: r.texto,
+          respuesta: respuestaAlPaciente,
           procedencia: r.procedencia,
           respondida: r.clase === 'ANSWER_FROM_APPROVED_PLAN',
-          escalada: r.avisarAlConsultorio,
+          escalada: r.avisarAlConsultorio || paraRecepcion,
           /** Nadie del consultorio la ha leído todavía. Lo cierra el médico. */
           atendidaEn: null as number | null,
           creadaEn: Date.now(),
@@ -1335,7 +1434,23 @@ export async function POST(req: NextRequest) {
          * dicho). Sin teléfono no se intenta nada, y desde REG-521 eso ya no
          * significa que nadie se entere.
          */
-        if ((r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED') && telConsultorio) {
+        if (paraRecepcion) {
+          const tareaRecepcion = tareaDeUnaSolicitudAdministrativa({
+            clinicId,
+            patientId,
+            patientNombre: paciente?.nombre ?? undefined,
+            preguntaId: ref.id,
+            texto,
+            ahoraIso: new Date().toISOString(),
+            asunto: 'administrativa',
+          })
+          await adminDb
+            .collection('clinics').doc(clinicId)
+            .collection('tareas_clinicas').doc(idDeTareaDePregunta(ref.id))
+            .set(tareaRecepcion, { merge: true })
+        }
+
+        if ((r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED' || paraRecepcion) && telConsultorio) {
           await avisarAlConsultorio(
             clinicId,
             telConsultorio,
@@ -1360,9 +1475,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           id: ref.id,
           clase: r.clase,
-          texto: r.texto,
+          texto: respuestaAlPaciente,
           procedencia: r.procedencia,
-          escalada: r.avisarAlConsultorio,
+          escalada: r.avisarAlConsultorio || paraRecepcion,
         })
       }
 

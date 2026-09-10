@@ -17,6 +17,7 @@ import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avis
 import { adminDb } from '@/lib/firebase-admin'
 import { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } from '@/lib/availability'
 import { configParaMedico } from '@/lib/horario-medico'
+import { estadoInicialDeCita, loQueSeLeDiceAlConsultorio, loQueSeLeDiceAlPaciente } from '@/lib/agenda/estado-inicial-de-cita'
 // Del NÚCLEO PURO: esta ruta corre en el SERVIDOR y `time-blocks` arrastra el SDK
 // del navegador, que se inicializa al importarse y revienta el build sin variables.
 import { pisaBloqueo } from '@/lib/time-blocks-core'
@@ -121,9 +122,11 @@ export async function POST(req: NextRequest) {
     // Sin esto, el portal rechazaba o permitía días según el horario de la clínica,
     // incoherente con lo que el médico realmente atiende.
     let cfg = cfgBase
+    let medicoDoc: Record<string, unknown> | undefined
     if (medicoId) {
       const docSnap = await clinicRef.collection('doctors').doc(medicoId).get()
-      cfg = configParaMedico(cfgBase as unknown as import('@/types').ClinicConfig, docSnap.data()) as unknown as typeof cfgBase
+      medicoDoc = docSnap.data()
+      cfg = configParaMedico(cfgBase as unknown as import('@/types').ClinicConfig, medicoDoc) as unknown as typeof cfgBase
     }
     const duracion = Number((cfg.duraciones ?? {})[tipo] ?? 30)
 
@@ -302,6 +305,8 @@ export async function POST(req: NextRequest) {
     // transacción → cierra la carrera check-then-write si dos pacientes reservan el
     // mismo hueco al mismo tiempo.
     const now = new Date().toISOString()
+    // Quién confirma (D-054): el médico si tiene preferencia, si no el consultorio; ausente → manual.
+    const nacimiento = estadoInicialDeCita(cfgBase, medicoDoc, now)
     const apptsCol = clinicRef.collection('appointments')
     const [h, m] = hora.split(':').map(Number)
     const start = h * 60 + m
@@ -377,7 +382,8 @@ export async function POST(req: NextRequest) {
           duracion,
           tipo,
           motivo: paciente.motivo?.trim() ?? '',
-          estado: 'solicitada',
+          estado: nacimiento.estado,
+          ...(nacimiento.fechaConfirmacion ? { fechaConfirmacion: nacimiento.fechaConfirmacion } : {}),
           origen: 'Portal',
           medicoId: medicoId ?? '',
           doctorId: medicoId ?? '',
@@ -431,7 +437,7 @@ export async function POST(req: NextRequest) {
     // Notificación WhatsApp al paciente (si el bot está conectado en la clínica)
     try {
       const { sendWhatsApp } = await import('@/lib/whatsapp-send')
-      const msg = `¡Hola ${paciente.nombre.split(' ')[0]}! 👋\n\nRecibimos tu solicitud de cita en ${cfg.nombreClinica ?? 'el consultorio'}:\n\n📅 ${fecha} · 🕐 ${hora} h\n\nTe contactaremos para confirmar. Gracias.`
+      const msg = `¡Hola ${paciente.nombre.split(' ')[0]}! 👋\n\nRecibimos tu solicitud de cita en ${cfg.nombreClinica ?? 'el consultorio'}:\n\n📅 ${fecha} · 🕐 ${hora} h\n\n${loQueSeLeDiceAlPaciente(nacimiento.modo)}`
       /**
        * La confirmación del portal público iba con `.catch(() => {})`: si no
        * salía, el paciente reservaba y no recibía nada, y el consultorio no
@@ -463,12 +469,12 @@ export async function POST(req: NextRequest) {
         `📅 ${fecha} · 🕐 ${hora} h`,
         `📋 ${tipo}`,
         ``,
-        `Está en *solicitada*: confírmala desde la agenda.`,
+        loQueSeLeDiceAlConsultorio(nacimiento.modo),
       ].join('\n'),
       'alta-portal',
     )
 
-    return NextResponse.json({ ok: true, citaId, fecha, hora, duracion })
+    return NextResponse.json({ ok: true, citaId, fecha, hora, duracion, estado: nacimiento.estado })
   } catch (err) {
     /**
      * AL PÚBLICO NO SE LE SIRVE EL ERROR CRUDO.

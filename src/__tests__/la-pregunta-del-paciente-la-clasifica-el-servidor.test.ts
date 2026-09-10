@@ -278,11 +278,11 @@ describe('ESTOS GUARDIANES SE CAEN CON LA RUTA ROTA', () => {
 
   it('CAE si el motivo se le devuelve al paciente', () => {
     // Se muta la RESPUESTA, no el documento que se guarda: los dos llevan
-    // `escalada: r.avisarAlConsultorio,` y `replace` toca el primero, que es el
-    // documento — donde el motivo SÍ debe estar.
+    // `escalada: r.avisarAlConsultorio || paraRecepcion,` (D-056) y `replace`
+    // toca el primero, que es el documento — donde el motivo SÍ debe estar.
     const roto = accion('preguntar').replace(
-      'escalada: r.avisarAlConsultorio,\n        })',
-      'escalada: r.avisarAlConsultorio,\n          motivo: r.motivo,\n        })',
+      'escalada: r.avisarAlConsultorio || paraRecepcion,\n        })',
+      'escalada: r.avisarAlConsultorio || paraRecepcion,\n          motivo: r.motivo,\n        })',
     )
     const respuesta = /return NextResponse\.json\(\{\n\s+id: ref\.id,[\s\S]*?\}\)/.exec(roto)?.[0] ?? ''
     expect(respuesta).toContain('motivo')

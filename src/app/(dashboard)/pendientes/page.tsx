@@ -54,8 +54,7 @@ import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tarea
 import {
   ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, preguntasAlCerrar,
   COMO_SE_AVISO_ETIQUETA,
-  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente, type ComoSeAviso,
-} from '@/lib/tareas-clinicas/modelo'
+  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente, type ComoSeAviso, ETIQUETA_AREA } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import {
   leerPerdidos, perdidosDe, olvidar, LLAVE as LLAVE_PERDIDOS, type Perdido,
@@ -189,6 +188,7 @@ function Tarjeta({ t, cita, ahora, porQueId, onAbrirPorQue, onMover, onAgendar, 
             )}
             {t.patientNombre && !t.patientId && <span className="nx-ident">{t.patientNombre}</span>}
             <span className="nx-estado">{ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}</span>
+            {t.area === 'recepcion' && <span className="nx-estado">{ETIQUETA_AREA.recepcion}</span>}
           </div>
           <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
         </div>
@@ -313,6 +313,7 @@ function TarjetaCerrada({ t, porQueId, onAbrirPorQue, onIrAlExpediente }: {
           <span className="nx-estado" style={{ ['--estado-tono' as string]: 'var(--green)' }}>
             {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
           </span>
+          {t.area === 'recepcion' && <span className="nx-estado">{ETIQUETA_AREA.recepcion}</span>}
         </div>
         <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
       </div>

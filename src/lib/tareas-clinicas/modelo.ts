@@ -134,6 +134,14 @@ export type TipoTarea =
 
 export type Prioridad = 'critica' | 'alta' | 'normal'
 
+/** Quién atiende la tarea. Ver `TareaClinica.area`. */
+export type AreaDeTarea = 'medico' | 'recepcion'
+
+export const ETIQUETA_AREA: Record<AreaDeTarea, string> = {
+  medico: 'Médico',
+  recepcion: 'Recepción',
+}
+
 /**
  * LA ESCALERA DE URGENCIA — una sola tabla, y el número que Firestore puede
  * ordenar (P1-14).
@@ -272,6 +280,16 @@ export interface TareaClinica {
    * saber», nunca como «no hay cita». Ver `lo-que-el-calendario-dice.ts`.
    */
   citaId?: string
+  /**
+   * A QUIÉN LE TOCA — D-055 y D-056.
+   *
+   * Los mensajes administrativos del paciente (cambiar una cita dentro de las
+   * 12 h, precio, dirección, horario) van a RECEPCIÓN; los clínicos, al médico.
+   * Antes todo caía en el mismo montón o, peor, lo administrativo no llegaba a
+   * nadie. Ausente en las tareas anteriores a este campo: se lee como «del
+   * médico», que es lo que eran.
+   */
+  area?: AreaDeTarea
   tipo: TipoTarea
   titulo: string
   detalle?: string

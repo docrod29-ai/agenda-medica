@@ -1,4 +1,5 @@
 'use client'
+import { modoDeConfirmacion, MODOS_DE_CONFIRMACION, ETIQUETA_MODO_DE_CONFIRMACION, type ModoDeConfirmacion } from '@/lib/agenda/estado-inicial-de-cita'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { ClinicConfig, DEFAULT_CONFIG, AppointmentType, APPOINTMENT_TYPE_CONFIG } from '@/types'
 import { saveConfig, saveConfigPartial, updateDoctor } from '@/lib/firestore'
@@ -2444,6 +2445,8 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
   const { toast } = useToast()
   const [enabled, setEnabled] = useState(config?.publicBookingEnabled !== false)
   const [note, setNote] = useState(config?.publicBookingNote ?? '')
+  // Quién confirma las citas que pide el paciente (D-054). Ausente → manual.
+  const [confirmacion, setConfirmacion] = useState<ModoDeConfirmacion>(modoDeConfirmacion(config))
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -2457,6 +2460,7 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     if (portalInitRef.current || !config) return
     setEnabled(config.publicBookingEnabled !== false)
     setNote(config.publicBookingNote ?? '')
+    setConfirmacion(modoDeConfirmacion(config))
     portalInitRef.current = true
   }, [config])
 
@@ -2487,7 +2491,7 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
     if (!clinicId || !config) return
     setSaving(true)
     try {
-      await saveConfig(clinicId, { ...config, publicBookingEnabled: enabled, publicBookingNote: note })
+      await saveConfig(clinicId, { ...config, publicBookingEnabled: enabled, publicBookingNote: note, confirmacionDeCitas: confirmacion })
       toast('Portal actualizado', 'success')
     } catch (e) {
       toast(noSePudo('guardar el portal de reservas', e), 'error')
@@ -2528,6 +2532,26 @@ function PortalTab({ clinicId, clinicNombre }: { clinicId: string | null; clinic
             </span>
           </label>
         </div>
+      </div>
+
+      {/* Quién confirma (D-054): aplica al portal público, al bot de WhatsApp y a la lista de espera. */}
+      <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 14 }}>
+        <label htmlFor="cfg-confirmacion-citas" style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+          Quién confirma las citas que pide el paciente
+        </label>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.5 }}>
+          Aplica a las citas que entran por el link público, por WhatsApp y por la lista de espera.
+          Con confirmación manual nacen «solicitadas» y alguien del consultorio las confirma desde la agenda.
+        </div>
+        <select
+          id="cfg-confirmacion-citas"
+          value={confirmacion}
+          onChange={e => setConfirmacion(e.target.value === 'directa' ? 'directa' : 'manual')}
+          className="input"
+          style={{ width: '100%' }}
+        >
+          {MODOS_DE_CONFIRMACION.map(m => <option key={m} value={m}>{ETIQUETA_MODO_DE_CONFIRMACION[m]}</option>)}
+        </select>
       </div>
 
       {/* Link público + QR */}
