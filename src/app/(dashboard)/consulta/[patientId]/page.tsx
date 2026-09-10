@@ -190,7 +190,7 @@ import {
 } from '@/lib/expediente/alergias-longitudinales'
 import { medicacionDelCuadro, problemasDelCuadro } from '@/lib/expediente/cuadro-completo'
 import { comoSeDegrada } from '@/lib/expediente/que-sobrevive-a-un-fallo'
-import { fusionarDiagnosticos } from '@/lib/expediente/fusionar-diagnosticos'
+import { fusionarDiagnosticos, codigoSinConfirmar, conCodigoConfirmado, sinCodigosSinConfirmar } from '@/lib/expediente/fusionar-diagnosticos'
 import { fusionarMedicamentos, loQueSeReceta, loQueSoloSeMenciono, comoRecetaDeHoy } from '@/lib/expediente/que-va-en-la-receta'
 import { esMonologo, esDictado } from '@/lib/asr/un-solo-hablante'
 import { EmpezarAGrabar } from '@/components/EmpezarAGrabar'
@@ -1202,6 +1202,14 @@ export default function ConsultaActivaPage() {
   const enRecetaDeHoy = new Set(loQueSeReceta(medicamentos))
   const filasDeReceta = medicamentos.map((m, i) => ({ m, i })).filter(({ m }) => enRecetaDeHoy.has(m))
   const soloMencionados = loQueSoloSeMenciono(medicamentos)
+
+  /**
+   * LOS CÓDIGOS QUE SUGIRIÓ LA IA Y NADIE CONFIRMÓ (D-050). Se avisan antes de
+   * firmar y, si siguen sin confirmar al estampar la firma, se quitan.
+   */
+  const codigosSinConfirmar = diagnosticos
+    .filter(d => d.descripcion.trim() && codigoSinConfirmar(d))
+    .map(d => ({ descripcion: d.descripcion, codigo: String(d.codigoCIE10) }))
 
   /**
    * LO QUE LA COMPUERTA DE ALERGIAS NO ESTÁ MIRANDO (WS-10).
@@ -3357,7 +3365,6 @@ export default function ConsultaActivaPage() {
       resumenEjecutivo: resumen,
       secciones,
       signosVitales: signosNum,
-      diagnosticos,
       /**
        * LA VÍA SE CORRIGE AQUÍ, NO EN EL PAPEL.
        *
@@ -3372,6 +3379,8 @@ export default function ConsultaActivaPage() {
        * puede cambiar.
        */
       medicamentos: medicamentos.map(m => ({ ...m, via: corregirViaParenteral(m.nombre, m.via) as Medicamento['via'] })),
+      // D-050: un código que nadie confirmó no lleva firma. El borrador lo conserva para confirmarlo.
+      diagnosticos: estado === 'firmada' ? sinCodigosSinConfirmar(diagnosticos) : diagnosticos,
       /**
        * NO SE INVENTA LO QUE NADIE DIJO.
        *
@@ -4303,6 +4312,7 @@ export default function ConsultaActivaPage() {
   const avisosParaFirmar = useMemo(() => alFirmar(construirAvisos({
     discrepanciasDeLado,
     dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+    codigosSinConfirmar,
     contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
     desajustes: desajustesNota.map(d => ({ condicion: d.condicion, mensaje: avisoDeDesajuste(d) })),
     antecedentesDeFamiliar,
@@ -4489,62 +4499,14 @@ export default function ConsultaActivaPage() {
     }
 
     /**
-     * ── SIN DOSIS NO SE FIRMA — DECISIÓN DEL MÉDICO DUEÑO (5-ago-2026) ───────
+     * ── LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051, 10-sep-2026) ────────────
      *
-     * Textual: «que bloquee la firma si falta la dosis».
-     *
-     * La tomó él, y con el dato delante: en sus notas ya firmadas había **4
-     * medicamentos sin dosis de 28**. Hasta v1057 sólo se avisaba, y el aviso ni
-     * siquiera llegaba a tiempo — vivía en la pantalla de la receta, o sea
-     * después de firmar, cuando la nota ya es inmutable.
-     *
-     * Un medicamento sin cantidad no se puede surtir: quien lo despacha no sabe
-     * cuánto dar. Y una vez firmada, la nota sólo se corrige con adenda.
-     *
-     * ── QUÉ BLOQUEA, EXACTAMENTE ────────────────────────────────────────────
-     *
-     * Los dos casos, por decisión suya en dos pasos:
-     *
-     *  · **Falta la cantidad** (`dosis_sin_cifra`) — 5-ago, primera decisión.
-     *    Quien surta la receta no sabe cuánto dispensar.
-     *  · **Cantidad sin unidad** (`dosis_sin_unidad`) — 5-ago, ampliación:
-     *    «bloquea también si falta la unidad». «Levotiroxina 100» son 100 mcg en
-     *    la vida real y 100 mg en el papel: **mil veces la dosis**, y en el papel
-     *    no queda rastro de cuál se quiso decir.
-     *
-     * El segundo es, si acaso, más peligroso que el primero: una receta sin
-     * cantidad no se despacha —alguien pregunta—, pero una con la cifra sin
-     * unidad **sí se despacha**, con la unidad que suponga quien la lea.
-     *
-     * Un renglón a medio escribir no cuenta: sin nombre no hay medicamento.
-     *
-     * Y sólo cuenta lo que baja al papel (D-048, 10-sep-2026): la misma puerta
-     * que la receta, `loQueSeReceta`. Lo que el paciente refirió sin saber la
-     * dosis es un hallazgo de la nota, no una receta a medias.
+     * Aquí vivía la compuerta del 5-ago («que bloquee la firma si falta la
+     * dosis»): un `return` con toast. El dueño la cambió el 10-sep con la
+     * pantalla llena de bloqueos: el aviso sigue —rojo, a la vista, sin
+     * descartar, y sellado en `iaAuditoria.avisosAlFirmar` con esta firma— y
+     * la receta lo vuelve a avisar al imprimir. Firmar es un acto del médico.
      */
-    const dosisMal = loQueSeReceta(medicamentos)
-      .filter(m => m.nombre?.trim())
-      /**
-       * Lo DECLARADO desconocido no bloquea: es una respuesta, no un hueco.
-       * Y sólo cuenta la frase canónica que pone el botón — «No especificada»,
-       * que es lo que escribe la IA cuando no captó nada, sigue bloqueando.
-       */
-      .filter(m => !esDosisDeclaradaDesconocida(m.dosis))
-      .map(m => ({ nombre: m.nombre.trim(), aviso: revisarUnidadDosis(m.nombre, m.dosis) }))
-      .filter(x => x.aviso?.codigo === 'dosis_sin_cifra' || x.aviso?.codigo === 'dosis_sin_unidad')
-    if (dosisMal.length) {
-      /**
-       * Se enseña el mensaje del motor, que ya explica el riesgo concreto de
-       * cada caso — no uno genérico que valga para los dos y no diga ninguno.
-       */
-      toast(
-        dosisMal.length === 1
-          ? `No se puede firmar. ${dosisMal[0].aviso!.mensaje}`
-          : `No se puede firmar: ${dosisMal.length} medicamentos con la dosis incompleta (${dosisMal.slice(0, 3).map(x => x.nombre).join(', ')}${dosisMal.length > 3 ? '…' : ''}). Cada uno necesita cantidad Y unidad.`,
-        'error',
-      )
-      return
-    }
     /**
      * LA COMPUERTA MIRA LA CÉDULA EFECTIVA, NO LA DEL CONSULTORIO.
      *
@@ -5076,7 +5038,7 @@ export default function ConsultaActivaPage() {
    */
   const entradaDeBloqueo = {
     erroresNOM004: validacion?.errores,
-    dosisIncompletas: dosisIncompletas.map(d => ({ nombre: d.med, mensaje: d.aviso.mensaje })),
+    // La dosis ya no está aquí (D-051): avisa en `construirAvisos`, no apaga el botón.
     sinQuienFirma: !identidadFirma.nombre.trim(),
   }
   const bloqueosDeFirma = motivosParaNoFirmar(entradaDeBloqueo)
@@ -6786,6 +6748,7 @@ export default function ConsultaActivaPage() {
         const avisos = construirAvisos({
     discrepanciasDeLado,
           dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia })),
+          codigosSinConfirmar,
           alergiaMedicamento: validarAlergiasVsMedicamentos(alergiasPaciente, medicamentos)
             .map(a => ({ mensaje: `[${a.severidad.toUpperCase()}] ${a.mensaje}`, severidad: a.severidad })),
           contradicciones: contradiccionesNota.map(c => ({ condicion: c.condicion, mensaje: avisoDeContradiccion(c) })),
@@ -7565,8 +7528,9 @@ export default function ConsultaActivaPage() {
                 <Cie10Autocomplete
                   value={d.descripcion}
                   onChange={(descripcion, codigoCIE10) => {
+                    // Elegir del catálogo es del médico (D-050): el código nace confirmado.
                     setDiagnosticos(prev => prev.map((x, j) =>
-                      j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10 } : {}) } : x
+                      j === i ? { ...x, descripcion, ...(codigoCIE10 ? { codigoCIE10, codigoOrigen: 'medico' as const } : {}) } : x
                     ))
                   }}
                   placeholder="Faringitis, J02, hipertensión…"
@@ -7577,9 +7541,26 @@ export default function ConsultaActivaPage() {
               value={d.codigoCIE10 ?? ''}
               disabled={firmada}
               placeholder="CIE-10"
-              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase() } : x))}
-              style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase' }}
+              aria-label={`Código CIE-10${d.descripcion ? ` de ${d.descripcion}` : ''}${codigoSinConfirmar(d) ? ' (sugerido por la IA, sin confirmar)' : ''}`}
+              title={codigoSinConfirmar(d) ? 'Lo sugirió la IA. Confírmalo o corrígelo; si no, la nota se firma sin él.' : undefined}
+              // Teclearlo es del médico (D-050): el código pasa a ser suyo.
+              onChange={e => setDiagnosticos(prev => prev.map((x, j) => j === i ? { ...x, codigoCIE10: e.target.value.toUpperCase(), codigoOrigen: 'medico' } : x))}
+              style={{ ...S.input, flex: 1, fontFamily: 'monospace', textTransform: 'uppercase', ...(codigoSinConfirmar(d) ? { borderColor: 'var(--amber)', borderStyle: 'dashed' } : {}) }}
             />
+            {/*
+              ── EL CÓDIGO SUGERIDO SE CONFIRMA CON UN GESTO (D-050) ──────────
+              La IA trae el código; el médico sólo lo confirma. Mientras no lo
+              haga, el campo se ve punteado en ámbar y la nota se firma sin él.
+            */}
+            {!firmada && codigoSinConfirmar(d) && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                style={{ padding: '0 10px', flex: '0 0 auto' }}
+                onClick={() => setDiagnosticos(prev => prev.map((x, j) => j === i ? conCodigoConfirmado(x) : x))}
+                aria-label={`Confirmar el código ${d.codigoCIE10}${d.descripcion ? ` de ${d.descripcion}` : ''}`}
+              >Confirmar {d.codigoCIE10}</button>
+            )}
             {/*
               ── EL MÉDICO ELIGE EL TIPO DE SU DIAGNÓSTICO (WS-10, REG-407) ──
 
@@ -7631,6 +7612,12 @@ export default function ConsultaActivaPage() {
           <div className="nx-meta" style={{ marginTop: 6 }}>
             El tipo de {diagnosticos.filter(d => d.descripcion.trim() && d.tipoOrigen !== 'medico').length === 1 ? 'un diagnóstico lo puso' : 'algunos diagnósticos lo puso'} el
             dictado o la plantilla, no tú. Revísalo antes de firmar: sólo cuenta como tuyo si lo eliges.
+          </div>
+        )}
+        {!firmada && codigosSinConfirmar.length > 0 && (
+          <div className="nx-meta" style={{ marginTop: 6 }}>
+            El código CIE-10 de {codigosSinConfirmar.length === 1 ? 'un diagnóstico lo sugirió' : `${codigosSinConfirmar.length} diagnósticos lo sugirió`} la IA.
+            Confírmalo o corrígelo: lo que no confirmes no se firma con código.
           </div>
         )}
         {!firmada && (

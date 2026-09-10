@@ -78,6 +78,25 @@ export interface Diagnostico {
    * las notas viejas conservan su objeto y siguen verificando.
    */
   tipoOrigen?: OrigenDelTipoDeDiagnostico
+  /**
+   * QUIÉN PUSO EL CÓDIGO CIE-10 (D-050, 10-sep-2026).
+   *
+   * Hasta hoy el código que traía la IA se BORRABA al entrar a la nota (GP6:
+   * sugerir no codifica). El dueño pidió lo contrario: «que la sugerencia
+   * traiga el código y yo sólo lo confirme». Así que el código se conserva y
+   * este campo dice si lo confirmó una persona.
+   *
+   *   · `medico`      — lo eligió, lo tecleó o lo confirmó el médico.
+   *   · `extraccion`  — lo propuso el modelo y nadie lo ha confirmado.
+   *   · ausente       — notas anteriores y códigos tecleados antes de este
+   *                     campo: siempre fueron de una persona, porque el de la
+   *                     IA no sobrevivía a la fusión.
+   *
+   * Un código `extraccion` se ve en la pantalla para confirmarlo y NO se firma:
+   * `sinCodigosSinConfirmar` lo quita al estampar la firma, con aviso previo.
+   * Va dentro de `Diagnostico`, que el sello v3 cubre entero.
+   */
+  codigoOrigen?: 'medico' | 'extraccion'
 }
 
 /**

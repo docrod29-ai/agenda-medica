@@ -27,7 +27,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { revisarUnidadDosis } from '@/lib/seguridad/dosis'
-import { NIVEL, construirAvisos } from '@/lib/expediente/avisos-consulta'
+import { NIVEL, NO_SE_PLIEGAN, construirAvisos } from '@/lib/expediente/avisos-consulta'
 
 const consulta = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 const barra = readFileSync(join(process.cwd(), 'src', 'components', 'AntesDeFirmar.tsx'), 'utf8')
@@ -57,7 +57,7 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('const dosisIncompletas')
   })
 
-  it('y lo enseña, diciendo que bloquea', () => {
+  it('y lo enseña, a la vista y sin plegarse — desde D-051 avisa, no bloquea', () => {
     /**
      * El título cambió el 5-ago-2026 con la decisión del médico dueño («que
      * bloquee la firma si falta la dosis»): un aviso que bloquea tiene que
@@ -76,9 +76,16 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
      * módulo puro `avisos-consulta.ts`, que es justamente el sitio donde se
      * puede vigilar.
      */
-    expect(NIVEL.dosis_incompleta).toBe('bloquea')
-    expect(barra).toContain('BLOQUEA')
-    expect(barra).toContain('Falta la dosis de')
+    /**
+     * ── 10-sep-2026 (D-051): AVISA, NO BLOQUEA ────────────────────────────
+     * El mismo médico dueño que el 5-ago pidió bloquear, con la pantalla llena
+     * de bloqueos, pidió lo contrario. El aviso queda en `revisa`, entre los
+     * que no se pliegan, con la frase entera («Falta la dosis de X»).
+     */
+    expect(NIVEL.dosis_incompleta).toBe('revisa')
+    expect(NO_SE_PLIEGAN).toContain('dosis_incompleta')
+    const [a] = construirAvisos({ dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'la receta no lleva cantidad' }] })
+    expect(a.texto).toBe('Falta la dosis de levotiroxina')
     expect(consulta).toContain('construirAvisos(')
   })
 
@@ -138,7 +145,8 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     const [bloqueo] = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'la receta no lleva cantidad' }],
     })
-    expect(bloqueo.nivel).toBe('bloquea')
+    // Avisa (D-051), pero no se descarta: una dosis que falta se escribe.
+    expect(bloqueo.nivel).toBe('revisa')
     expect(bloqueo.descartable).toBe(false)
     expect(barra).toContain('a.descartable && onRevisado')
   })
@@ -158,13 +166,16 @@ describe('AHORA SE VE ANTES DE FIRMAR', () => {
     expect(consulta).toContain('marcarRevisado(tipo, clave)')
   })
 
-  it('la falta de DOSIS bloquea la firma — decisión del médico dueño', () => {
+  it('la falta de DOSIS ya NO bloquea la firma — decisión del médico dueño (D-051)', () => {
     /**
-     * 5-ago-2026, textual: «que bloquee la firma si falta la dosis». La tomó él,
-     * con el dato delante: 4 medicamentos sin dosis de 28 en notas ya firmadas.
+     * 5-ago-2026, textual: «que bloquee la firma si falta la dosis». La tomó él
+     * con el dato delante. 10-sep-2026, él mismo, con nueve bloqueos en pantalla:
+     * que avise y no bloquee. La compuerta con `return` de `firmar()` se fue;
+     * el aviso viaja sellado con la firma (`avisosAlFirmar`).
      */
-    expect(consulta).toContain("x.aviso?.codigo === 'dosis_sin_cifra'")
-    expect(consulta).toContain('No se puede firmar.')
+    expect(consulta).not.toContain("x.aviso?.codigo === 'dosis_sin_cifra'")
+    expect(consulta).not.toContain('No se puede firmar. ')
+    expect(consulta).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051')
   })
 
   it('pero la falta de UNIDAD sólo avisa', () => {

@@ -54,7 +54,12 @@ import type { Diagnostico, Medicamento } from '@/types/expediente'
 import {
   fusionarMedicamentos, loQueSeReceta, loQueSoloSeMenciono, comoRecetaDeHoy, esNombreSinPrecisar,
 } from '@/lib/expediente/que-va-en-la-receta'
-import { fusionarDiagnosticos, acotarLoteIa, TOPE_DE_SUGERENCIAS_IA } from '@/lib/expediente/fusionar-diagnosticos'
+import {
+  fusionarDiagnosticos, acotarLoteIa, TOPE_DE_SUGERENCIAS_IA,
+  comoSugerenciaNoConfirmada, codigoSinConfirmar, conCodigoConfirmado, sinCodigosSinConfirmar,
+} from '@/lib/expediente/fusionar-diagnosticos'
+import { construirAvisos, NIVEL, NO_SE_PLIEGAN } from '@/lib/expediente/avisos-consulta'
+import { motivosParaNoFirmar, sePuedeFirmar } from '@/lib/expediente/por-que-no-se-firma'
 
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 const PAGE = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
@@ -152,9 +157,9 @@ describe('D-048 · la compuerta de dosis mira la MISMA puerta que el papel', () 
     expect(PAGE.slice(i, i + 400)).toContain('return loQueSeReceta(medicamentos)')
   })
 
-  it('el bloqueo al pulsar Firmar también', () => {
-    expect(PAGE).toContain('const dosisMal = loQueSeReceta(medicamentos)')
+  it('y ya no hay una segunda compuerta en firmar() mirando otra lista (D-051)', () => {
     expect(PAGE).not.toContain('const dosisMal = medicamentos')
+    expect(PAGE).not.toContain('const dosisMal = ')
   })
 
   it('las filas editables son la receta de hoy, y los mencionados van en su línea', () => {
@@ -216,6 +221,117 @@ describe('D-049 · como máximo seis diagnósticos sugeridos por pasada', () => 
   it('seis o menos pasan íntegros', () => {
     expect(acotarLoteIa(once.slice(0, 6))).toHaveLength(6)
     expect(acotarLoteIa([])).toEqual([])
+  })
+})
+
+describe('D-051 · la dosis que falta AVISA, no bloquea (segunda vuelta, 10-sep-2026)', () => {
+  /**
+   * El dueño, sobre mi resumen «la compuerta de dosis sigue bloqueando lo que
+   * sí se receta hoy, como usted decidió el 5 de agosto»: «arregla esto».
+   * Misma forma que D-033 (alergia) y D-038 (tipo dictado): rojo, a la vista,
+   * sin descartar, sellado con la firma — y el botón de Firmar encendido.
+   */
+  it('el nivel es «revisa», no se pliega y no se descarta', () => {
+    expect(NIVEL.dosis_incompleta).toBe('revisa')
+    expect(NO_SE_PLIEGAN).toContain('dosis_incompleta')
+    const [a] = construirAvisos({ dosisIncompletas: [{ med: 'Doxiciclina', mensaje: 'la receta no lleva cantidad' }] })
+    expect(a.nivel).toBe('revisa')
+    expect(a.descartable).toBe(false)
+    expect(a.texto).toBe('Falta la dosis de Doxiciclina')
+  })
+
+  it('la compuerta de firma ya no conoce la dosis: sólo NOM-004 y la atribución', () => {
+    // Falla si alguien devuelve el campo a `EntradaBloqueo`.
+    const m = motivosParaNoFirmar({ erroresNOM004: [], sinQuienFirma: false })
+    expect(m).toEqual([])
+    expect(sePuedeFirmar({})).toBe(true)
+    const src = leer('src/lib/expediente/por-que-no-se-firma.ts')
+    expect(src).not.toContain('dosisIncompletas?:')
+    expect(src).not.toMatch(/origen: 'nom004' \| 'dosis'/)
+  })
+
+  it('la pantalla no le pasa la dosis a la compuerta ni tiene el return de firmar()', () => {
+    const i = PAGE.indexOf('const entradaDeBloqueo = {')
+    expect(PAGE.slice(i, i + 400)).not.toContain('dosisIncompletas')
+    expect(PAGE).not.toContain('No se puede firmar. ')
+    expect(PAGE).toContain('LA DOSIS QUE FALTA AVISA, NO BLOQUEA (D-051')
+  })
+
+  it('EL DATO SIGUE LLEGANDO: el aviso se sigue construyendo y se sella al firmar', () => {
+    expect(PAGE).toContain('dosisIncompletas: dosisIncompletas.map(d => ({ med: d.med, mensaje: d.aviso.mensaje, procedencia: d.procedencia }))')
+    expect(PAGE).toContain("conAvisosSellados(construirNota('firmada'), avisosParaFirmar)")
+  })
+
+  it('el panel ya no titula todo bloqueo como «falta la dosis»', () => {
+    const panel = leer('src/components/AntesDeFirmar.tsx')
+    expect(panel).not.toContain('Falta la dosis de ${bloqueos')
+    expect(panel).toContain('cosas impiden firmar')
+  })
+})
+
+describe('D-050 · la sugerencia trae el código CIE-10; el médico sólo lo confirma', () => {
+  const ia = (descripcion: string, codigoCIE10: string, tipo: Diagnostico['tipo'] = 'presuntivo'): Diagnostico =>
+    ({ descripcion, codigoCIE10, tipo, estado: 'activo' })
+
+  it('EL CASO: el código de la IA ya no se borra al entrar; entra marcado como sugerido', () => {
+    // Falla con el `codigoCIE10: undefined` que había en `comoSugerenciaNoConfirmada`.
+    const [d] = fusionarDiagnosticos({ previos: [], deLaIaAnterior: [], nuevos: [ia('Uretritis no gonocócica', 'n34.1')] })
+    expect(d.codigoCIE10).toBe('N34.1')
+    expect(d.codigoOrigen).toBe('extraccion')
+    expect(codigoSinConfirmar(d)).toBe(true)
+  })
+
+  it('sin código no se inventa el origen', () => {
+    const s = comoSugerenciaNoConfirmada(ia('Cefalea', ''))
+    expect(s.codigoCIE10).toBeUndefined()
+    expect('codigoOrigen' in s).toBe(false)
+    expect(codigoSinConfirmar(s)).toBe(false)
+  })
+
+  it('confirmar es un gesto del médico: el código pasa a ser suyo', () => {
+    const c = conCodigoConfirmado(comoSugerenciaNoConfirmada(ia('Uretritis no gonocócica', 'N34.1')))
+    expect(c.codigoOrigen).toBe('medico')
+    expect(codigoSinConfirmar(c)).toBe(false)
+  })
+
+  it('un código tecleado o elegido del catálogo nunca es «sugerido»', () => {
+    expect(codigoSinConfirmar({ codigoCIE10: 'J02.9', codigoOrigen: 'medico' })).toBe(false)
+    // Notas anteriores: sin origen, el código era de una persona (el de la IA no sobrevivía).
+    expect(codigoSinConfirmar({ codigoCIE10: 'J02.9' })).toBe(false)
+  })
+
+  it('lo que nadie confirmó NO se firma con código; la descripción se queda', () => {
+    const lista = [
+      comoSugerenciaNoConfirmada(ia('Uretritis no gonocócica', 'N34.1')),
+      { ...ia('Hipertensión arterial', 'I10'), codigoOrigen: 'medico' as const },
+      ia('Dislipidemia', 'E78.5'),
+    ]
+    const firmada = sinCodigosSinConfirmar(lista)
+    expect(firmada.map(d => d.descripcion)).toEqual(['Uretritis no gonocócica', 'Hipertensión arterial', 'Dislipidemia'])
+    expect(firmada.map(d => d.codigoCIE10)).toEqual([undefined, 'I10', 'E78.5'])
+    expect('codigoOrigen' in firmada[0]).toBe(false)
+  })
+
+  it('el que sí se confirmó, se firma con su código', () => {
+    const lista = [conCodigoConfirmado(comoSugerenciaNoConfirmada(ia('Uretritis no gonocócica', 'N34.1')))]
+    expect(sinCodigosSinConfirmar(lista)[0].codigoCIE10).toBe('N34.1')
+  })
+
+  it('antes de firmar se avisa, en «revisa», sin descartar: se confirma o se corrige', () => {
+    expect(NIVEL.cie_sugerido).toBe('revisa')
+    const [a] = construirAvisos({ codigosSinConfirmar: [{ descripcion: 'Uretritis no gonocócica', codigo: 'N34.1' }] })
+    expect(a.origen).toBe('cie_sugerido')
+    expect(a.descartable).toBe(false)
+    expect(a.texto).toContain('N34.1')
+    expect(a.ancla?.seccion).toBe('diagnosticos')
+  })
+
+  it('ESTÁ CONECTADO: la pantalla enseña el botón de confirmar, marca lo tecleado como del médico y firma sin lo no confirmado', () => {
+    expect(PAGE).toContain('conCodigoConfirmado(x)')
+    expect(PAGE).toContain("codigoCIE10: e.target.value.toUpperCase(), codigoOrigen: 'medico'")
+    expect(PAGE).toContain("codigoCIE10, codigoOrigen: 'medico' as const")
+    expect(PAGE).toContain("diagnosticos: estado === 'firmada' ? sinCodigosSinConfirmar(diagnosticos) : diagnosticos")
+    expect(PAGE).toContain('codigosSinConfirmar,')
   })
 })
 

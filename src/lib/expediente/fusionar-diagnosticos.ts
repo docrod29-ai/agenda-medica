@@ -85,11 +85,48 @@ function elMejor(a: Diagnostico, b: Diagnostico): Diagnostico {
  * certeza (`definitivo`) y la codificación CIE.
  */
 export function comoSugerenciaNoConfirmada(d: Diagnostico): Diagnostico {
+  /**
+   * ── EL CÓDIGO SE QUEDA, MARCADO COMO SUGERIDO (D-050, 10-sep-2026) ─────────
+   *
+   * Aquí se hacía `codigoCIE10: undefined`: la IA sugería el diagnóstico y el
+   * médico tenía que buscar el código a mano en cada fila. Con once filas en
+   * pantalla, el dueño lo dijo así: «que la sugerencia traiga el código y yo
+   * sólo lo confirme». El código viaja con `codigoOrigen:'extraccion'`; la
+   * pantalla lo enseña con su botón de confirmar, y al firmar lo que nadie
+   * confirmó se cae (`sinCodigosSinConfirmar`). La certeza sigue igual: un
+   * `definitivo` del modelo entra como `presuntivo`.
+   */
+  const codigo = String(d.codigoCIE10 ?? '').trim().toUpperCase()
   return {
     ...d,
-    codigoCIE10: undefined,
+    codigoCIE10: codigo || undefined,
+    ...(codigo ? { codigoOrigen: 'extraccion' as const } : {}),
     tipo: d.tipo === 'definitivo' ? 'presuntivo' : d.tipo,
   }
+}
+
+/** ¿Este código lo propuso el modelo y nadie lo confirmó? */
+export function codigoSinConfirmar(d: Pick<Diagnostico, 'codigoCIE10' | 'codigoOrigen'>): boolean {
+  return !!String(d?.codigoCIE10 ?? '').trim() && d?.codigoOrigen === 'extraccion'
+}
+
+/** El gesto del médico: el código pasa a ser suyo. */
+export function conCodigoConfirmado(d: Diagnostico): Diagnostico {
+  return { ...d, codigoOrigen: 'medico' }
+}
+
+/**
+ * Lo que se FIRMA. Un código que nadie confirmó no lleva cédula profesional:
+ * se quita al estampar la firma —con aviso antes, no en silencio— y la
+ * descripción se queda, que sí la revisó el médico al dejarla en la lista.
+ */
+export function sinCodigosSinConfirmar(dxs: readonly Diagnostico[]): Diagnostico[] {
+  return (dxs ?? []).map(d => {
+    if (!codigoSinConfirmar(d)) return d
+    const { codigoCIE10: _c, codigoOrigen: _o, ...resto } = d
+    void _c; void _o
+    return resto
+  })
 }
 
 /** Deduplica el lote automático mientras todavía conserva el CIE propuesto. */

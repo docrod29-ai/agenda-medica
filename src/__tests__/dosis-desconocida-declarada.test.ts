@@ -30,6 +30,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DOSIS_DESCONOCIDA, esDosisDeclaradaDesconocida } from '@/lib/seguridad/dosis-desconocida'
+import { NIVEL } from '@/lib/expediente/avisos-consulta'
 
 const consulta = readFileSync(join(process.cwd(), 'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
 
@@ -72,11 +73,13 @@ describe('LO QUE ESCRIBE LA IA NO CUENTA COMO DECLARACIÓN', () => {
   })
 })
 
-describe('LA COMPUERTA DE FIRMA LA RESPETA', () => {
-  it('lo declarado desconocido no bloquea', () => {
-    // D-048: la compuerta mira la receta de hoy, no la lista entera.
-    const i = consulta.indexOf('const dosisMal = loQueSeReceta(medicamentos)')
-    expect(consulta.slice(i, i + 700)).toContain('!esDosisDeclaradaDesconocida(m.dosis)')
+describe('EL AVISO DE DOSIS LA RESPETA', () => {
+  it('lo declarado desconocido no avisa', () => {
+    // D-048: se mira la receta de hoy. D-051: ya no hay compuerta en firmar();
+    // el único sitio que juzga la dosis es el aviso, y es el que se comprueba.
+    const i = consulta.indexOf('const dosisIncompletas')
+    expect(i).toBeGreaterThan(0)
+    expect(consulta.slice(i, i + 900)).toContain('!esDosisDeclaradaDesconocida(m.dosis)')
   })
 
   it('y tampoco aparece como aviso pendiente', () => {
@@ -85,9 +88,10 @@ describe('LA COMPUERTA DE FIRMA LA RESPETA', () => {
     expect(consulta.slice(i, i + 900)).toContain('!esDosisDeclaradaDesconocida(m.dosis)')
   })
 
-  it('pero la compuerta sigue en pie para los huecos de verdad', () => {
-    expect(consulta).toContain("x.aviso?.codigo === 'dosis_sin_cifra'")
-    expect(consulta).toContain("x.aviso?.codigo === 'dosis_sin_unidad'")
+  it('pero el aviso sigue en pie para los huecos de verdad', () => {
+    // Avisa en vez de bloquear (D-051), y sigue mirando el motor de dosis.
+    expect(NIVEL.dosis_incompleta).toBe('revisa')
+    expect(consulta).toContain('revisarUnidadDosis(m.nombre, m.dosis)')
   })
 })
 
