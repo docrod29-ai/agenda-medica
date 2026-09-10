@@ -233,7 +233,8 @@ describe('LA COLECCIÓN NUEVA ESTÁ DECLARADA EN LOS TRES SITIOS', () => {
     const bloque = /match \/preguntas_paciente\/\{docId\} \{[\s\S]*?\}/.exec(reglas)?.[0] ?? ''
     expect(bloque, 'la colección no está en las reglas').not.toBe('')
     expect(bloque).toContain('allow write: if false')
-    expect(bloque).toContain('isMedico(clinicId)')
+    // D-057: la lee el médico DEL paciente (isMedico + titular/compartido/admin).
+    expect(bloque).toContain('esMedicoDelPaciente(clinicId, docId)')
   })
 
   it('la matriz de acceso, como CLÍNICO y escrito por el servidor', () => {

@@ -1,4 +1,5 @@
 'use client'
+import { puedeVerExpediente, TEXTO_SIN_ACCESO } from '@/lib/authz/alcance-del-paciente'
 import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
 import { ConsultaWorkspace } from '@/components/consulta/ConsultaWorkspace'
 import { CONSULTA_WORKSPACE } from '@/components/consulta/consulta-workspace-textos'
@@ -415,7 +416,7 @@ export default function ConsultaActivaPage() {
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
   const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
   // si te vas mientras procesa, la petición sigue y su resultado se aplica al
@@ -2269,7 +2270,20 @@ export default function ConsultaActivaPage() {
      * hacía bien; esta pantalla se había quedado atrás.
      */
     getPatient(clinicId, patientId)
-      .then(p => { setPatient(conLaEdadAlDia(p)); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? '' })
+      .then(p => {
+        /**
+         * D-057: si este paciente es de OTRO médico, la consulta no se abre:
+         * las reglas negarían cada lectura y escritura y la pantalla se
+         * llenaría de errores sueltos. Se manda al expediente, que enseña
+         * quién es el titular y cómo pedirle acceso.
+         */
+        if (p && role && !puedeVerExpediente(p, auth.currentUser?.uid, role)) {
+          toast(TEXTO_SIN_ACCESO.de_otro_medico, 'info')
+          router.replace(`/expediente/${patientId}`)
+          return
+        }
+        setPatient(conLaEdadAlDia(p)); setPacienteError(!p); alergiasAlAbrir.current = p?.alergias ?? ''
+      })
       .catch((e: unknown) => { console.error('cargar paciente:', e); setPacienteError(true) })
     /**
      * Los paneles de laboratorio, para que los motores los vean (REG-368). Es
@@ -2423,7 +2437,7 @@ export default function ConsultaActivaPage() {
         )
       })
       .catch(e => console.error('medicación vigente:', e))   // degrada sin romper la nota
-  }, [clinicId, patientId])
+  }, [clinicId, patientId, role])
 
   /**
    * LO APRENDIDO POR EL CONSULTORIO — que es donde de verdad sirve.

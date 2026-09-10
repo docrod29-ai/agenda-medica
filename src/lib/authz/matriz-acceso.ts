@@ -52,11 +52,13 @@ export type ClasePHI =
  */
 export type Guarda =
   | 'isMember' | 'isMedico' | 'isClinicoHospital' | 'isLabStaff' | 'isAdmin'
+  /** D-057: médico titular, médico con el que se compartió, o admin. Sólo bajo `patients/{docId}`. */
+  | 'esMedicoDelPaciente'
   | 'servidor' | 'publico'
 
 /** Guardas que DEBEN existir como función en firestore.rules (las otras dos no lo son). */
 export const GUARDAS_EN_REGLAS: readonly Guarda[] = [
-  'isMember', 'isMedico', 'isClinicoHospital', 'isLabStaff', 'isAdmin',
+  'isMember', 'isMedico', 'isClinicoHospital', 'isLabStaff', 'isAdmin', 'esMedicoDelPaciente',
 ]
 
 /**
@@ -70,6 +72,8 @@ const ROLES_POR_GUARDA: Record<Guarda, readonly Rol[]> = {
   // isMember = pertenecer a la clínica: CUALQUIER rol la satisface.
   isMember: ROLES,
   isMedico: ['medico', 'admin'],
+  // Los mismos roles que isMedico, acotados además al paciente: titular, compartido o admin.
+  esMedicoDelPaciente: ['medico', 'admin'],
   isClinicoHospital: ['medico', 'admin', 'enfermeria', 'farmacia', 'laboratorio'],
   isLabStaff: ['medico', 'admin', 'laboratorio'],
   isAdmin: ['admin'],
@@ -130,64 +134,71 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/notas/{notaId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'Expediente clínico electrónico. Secreto médico (NOM-004). Las notas firmadas son inmutables (NOM-024).',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/notas/{notaId}/versions/{versionId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'Trazabilidad de cambios del borrador (NOM-024 Art. 6.4). Inmutables una vez creadas.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/notas/{notaId}/adendas/{adendaId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'Corrección a una nota ya firmada sin alterar el original (NOM-004). Se agregan, nunca se editan ni se borran.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/paquetes_visita/{docId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
     guardaEscritura: 'servidor',
     porQue: 'El paquete de la visita: lo que el paciente puede LEER de su consulta, compuesto de material ya firmado (V9 PATIENT-COMPANION-001). Lo escribe el servidor y nadie más: liberar un paquete es un acto de aprobación clínica, y si el navegador pudiera escribirlo, cualquiera con el token del portal podría poner `estado: RELEASED` sobre un borrador. El paciente NO lo lee directo de Firestore — lo sirve /api/portal tras comprobar `visibleParaElPaciente`, igual que el resto de su superficie.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/preguntas_paciente/{docId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
     guardaEscritura: 'servidor',
     porQue: 'Lo que el paciente preguntó por el portal, con la clase del §2 de patient-facing-ai que le puso el servidor (V9 PATIENT-AI-001). Lo escribe el servidor y nadie más, y la razón es la CLASE: si el navegador pudiera escribir aquí, quien tuviera el token del portal podría guardar su pregunta ya marcada ANSWER_FROM_APPROVED_PLAN y fabricarse la constancia de que el sistema le contestó algo que nunca le contestó. Clasificar exige ver el plan liberado, y eso sólo lo ve el servidor. Es secreto médico —el texto de la pregunta habla de síntomas y medicamentos—, así que la lectura es isMedico, no isMember. El paciente ve su propio historial por /api/portal, filtrado por su patientId.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/formularios_previos/{docId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
     guardaEscritura: 'servidor',
     porQue: 'Lo que el paciente cuenta antes de la consulta (P-019): motivo, medicamentos, alergias y antecedentes. Es secreto médico, así que lo lee quien lee las notas — NO recepción ni facturación. Lo escribe /api/portal tras validar el token: el enlace del paciente no es sesión de Firebase, y si él pudiera escribir directo podría hacerlo sobre el expediente de otro paciente de la misma clínica.',
   },
   {
+    ruta: 'clinics/{clinicId}/patients/{docId}/estudios_aportados/{docId}',
+    clase: 'clinico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'servidor',
+    porQue: 'El estudio (PDF o foto) que el paciente subió desde el portal (D-058): nombre, tipo, tamaño y ruta del objeto. Es secreto médico. Lo escribe /api/portal tras comprobar en Storage que el objeto existe bajo la carpeta de ESE paciente; el navegador nunca. Lo lee el médico del paciente para abrirlo (URL firmada por el servidor) y convertirlo en panel o marcarlo revisado.',
+  },
+  {
     ruta: 'clinics/{clinicId}/patients/{docId}/laboratorios/{labId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'Valores de laboratorio del paciente. Mismo secreto médico que las notas.',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/fotos/{fotoId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'Fotografía clínica seriada. Dato personal sensible; se permite borrar (una toma sin consentimiento debe poder eliminarse).',
   },
   {
     ruta: 'clinics/{clinicId}/patients/{docId}/clinico/{clinicoId}',
     clase: 'clinico',
-    guardaLectura: 'isMedico',
-    guardaEscritura: 'isMedico',
+    guardaLectura: 'esMedicoDelPaciente',
+    guardaEscritura: 'esMedicoDelPaciente',
     porQue: 'E0-06: alergias, antecedentes y valoración del inmunocomprometido. Viven FUERA del documento del paciente porque Firestore no autoriza por campo — mientras sean campos de `patients/{id}` (que es `isMember`), recepción los lee y ninguna regla puede impedirlo.',
   },
   {
@@ -251,7 +262,7 @@ export const MATRIZ_ACCESO: readonly RecursoAcceso[] = [
     clase: 'clinico',
     guardaLectura: 'isMedico',
     guardaEscritura: 'isMedico',
-    porQue: 'Los cabos sueltos de la consulta: estudios pedidos, resultados por revisar, seguimientos. El título de una tarea es «Perfil tiroideo» junto al nombre del paciente — información clínica, así que la asistente no entra, igual que en las notas. No se borran: la constancia de que algo se dejó de hacer es justo lo que hace falta si un día se revisa el caso.',
+    porQue: 'Los cabos sueltos de la consulta: estudios pedidos, resultados por revisar, seguimientos. El título de una tarea es «Perfil tiroideo» junto al nombre del paciente — información clínica, así que la asistente no entra, igual que en las notas. EXCEPCIÓN D-056/D-057, escrita en la regla: recepción lee y mueve SÓLO las tareas con `area == \'recepcion\'` (cambio de cita, mensajes administrativos), consultando con ese filtro; la guarda declarada es la del contenido clínico, que sigue siendo del médico. No se borran: la constancia de que algo se dejó de hacer es justo lo que hace falta si un día se revisa el caso.',
   },
   {
     ruta: 'clinics/{clinicId}/whatsapp_no_entregados/{envioId}',

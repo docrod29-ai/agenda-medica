@@ -314,6 +314,14 @@ export interface Patient {
    * valiendo hasta que alguien revoque.
    */
   portalTokenVersion?: number
+  /**
+   * DE QUIÉN ES EL PACIENTE — D-057. Uid del médico titular; ausente en los
+   * pacientes anteriores a la decisión (se ven como siempre hasta asignarlos).
+   * `compartidoCon`: uids a los que el titular abrió el expediente. Ver
+   * `lib/authz/alcance-del-paciente.ts`.
+   */
+  medicoTitularUid?: string
+  compartidoCon?: string[]
   noShowCount: number
   cancelacionCount: number
   // === Cumplimiento NOM-024 + LFPDPPP ===

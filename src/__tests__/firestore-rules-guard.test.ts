@@ -182,9 +182,15 @@ describe('firestore.rules — invariantes de seguridad', () => {
    * `patients/{docId}` (que es `isMember`), recepción lo lee y ninguna regla lo
    * impide. Aquí se fija el bloque nuevo y, sobre todo, lo que NO debe cambiar.
    */
-  it('E0-06: el resumen clínico del paciente solo lo lee personal médico', () => {
+  /**
+   * D-057 (10-sep-2026): la guarda de las subcolecciones clínicas pasa de
+   * `isMedico(clinicId)` a `esMedicoDelPaciente(clinicId, docId)`, que es
+   * `isMedico` Y ADEMÁS titular/compartido/admin. Es más estrecha, no más
+   * ancha: la aceptación E0-06 (recepción no lee contenido clínico) se conserva.
+   */
+  it('E0-06: el resumen clínico del paciente solo lo lee personal médico (y desde D-057, sólo el de ese paciente)', () => {
     expect(sinComentarios).toMatch(
-      /match \/clinico\/\{clinicoId\}\s*\{\s*allow read: if isMedico\(clinicId\);/,
+      /match \/clinico\/\{clinicoId\}\s*\{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/,
     )
   })
 
@@ -201,10 +207,12 @@ describe('firestore.rules — invariantes de seguridad', () => {
     expect(sinComentarios).toMatch(/match \/patients\/\{docId\}\s*\{\s*allow read: if isMember\(clinicId\);/)
   })
 
-  it('E0-06 REGRESIÓN: notas, laboratorios y fotos siguen bajo isMedico', () => {
-    expect(sinComentarios).toMatch(/match \/notas\/\{notaId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
-    expect(sinComentarios).toMatch(/match \/laboratorios\/\{labId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
-    expect(sinComentarios).toMatch(/match \/fotos\/\{fotoId\}\s*\{\s*allow read, create, update, delete: if isMedico\(clinicId\);/)
+  it('E0-06 REGRESIÓN: notas, laboratorios y fotos siguen bajo médico — y desde D-057 bajo el médico DEL paciente', () => {
+    expect(sinComentarios).toMatch(/match \/notas\/\{notaId\}\s*\{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/)
+    expect(sinComentarios).toMatch(/match \/laboratorios\/\{labId\}\s*\{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/)
+    expect(sinComentarios).toMatch(/match \/fotos\/\{fotoId\}\s*\{\s*allow read, create, update, delete: if esMedicoDelPaciente\(clinicId, docId\);/)
+    // Y la guarda nueva es isMedico MÁS el alcance, nunca isMedico a secas ni isMember.
+    expect(sinComentarios).toMatch(/function esMedicoDelPaciente\(clinicId, patientId\) \{\s*return isMedico\(clinicId\) && \(/)
   })
 
   it('NINGÚN write/update/delete es públicamente abierto (if true)', () => {

@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { bundlePaciente } from '@/lib/fhir/recursos'
 import type { Patient, ClinicConfig } from '@/types'
 import type { NotaMedica } from '@/types/expediente'
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pati
     return NextResponse.json({ error: 'clinicId y patientId requeridos' }, { status: 400 })
   }
 
-  const acc = await verificarCapacidad(req, clinicId, 'clinico.escribir')
+  const acc = await verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')
   if (!acc.ok) return acc.response
 
   try {

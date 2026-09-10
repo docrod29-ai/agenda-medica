@@ -26,7 +26,8 @@ function cuerpoAgregarAdenda(): string {
 
 describe('GP10 — el documento firmado sigue siendo la verdad inmutable', () => {
   it('Firestore continúa rechazando la edición directa de una nota firmada', () => {
-    expect(reglas).toContain("allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'")
+    // D-057 (10-sep-2026): la guarda pasó a `esMedicoDelPaciente`, que es isMedico Y el alcance del paciente.
+    expect(reglas).toContain("allow update: if esMedicoDelPaciente(clinicId, docId) && resource.data.estado != 'firmada'")
   })
 
   it('una adenda tampoco puede editarse ni borrarse después de creada', () => {

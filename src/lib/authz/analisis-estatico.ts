@@ -34,6 +34,8 @@ export const GUARDIAS = [
   'verificarMiembro',
   'verificarMedico',
   'verificarCapacidad',
+  /** D-057: capacidad Y alcance del paciente (titular/compartido/admin). */
+  'verificarCapacidadSobrePaciente',
   'verificarModuloIA',
   'verificarModuloYCapacidad',
   'verificarSuperadmin',
@@ -59,6 +61,8 @@ const POSICIONES_VOCABULARIO: Readonly<Record<Guardia, readonly number[]>> = {
   verificarMedico: [],
   /** `verificarCapacidad(req, clinicId, capacidad)` */
   verificarCapacidad: [2],
+  /** `verificarCapacidadSobrePaciente(req, clinicId, patientId, capacidad)` */
+  verificarCapacidadSobrePaciente: [3],
   /** `verificarModuloIA(req, modulo)` */
   verificarModuloIA: [1],
   /** `verificarModuloYCapacidad(req, modulo, capacidad)` */

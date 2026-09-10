@@ -1628,10 +1628,57 @@ function BotFAQTab({ doctors }: { doctors: Doctor[] }) {
 
 import { createDoctor, deleteDoctor } from '@/lib/firestore'
 
+/**
+ * ASIGNAR TITULARES DESDE LA AGENDA — D-057.
+ *
+ * Sólo el admin lo ve. Primero SIMULA (cuenta sin escribir) y enseña cuántos
+ * quedarían asignados, cuántos no tienen cita y cuántos tienen un médico sin
+ * sesión; después escribe. Lo que no se puede deducir no se adivina: queda
+ * dicho y se asigna a mano desde cada expediente («Hacerme titular»).
+ */
+function AsignarTitulares({ clinicId }: { clinicId: string | null }) {
+  const { toast } = useToast()
+  const [ocupado, setOcupado] = useState(false)
+  const [previa, setPrevia] = useState<{ revisados: number; yaTenian: number; asignados: number; sinCita: number; medicoSinUid: number; truncado: boolean; simulado: boolean } | null>(null)
+  const correr = async (simular: boolean) => {
+    if (!clinicId) return
+    setOcupado(true)
+    try {
+      const res = await fetchAutenticado('/api/pacientes/asignar-titulares', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clinicId, simular }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) { toast(data?.error || 'No se pudo asignar.', 'error'); return }
+      setPrevia(data)
+      if (!simular) toast(`Titular asignado a ${data.asignados} paciente(s).`, 'success')
+    } catch { toast('Sin conexión', 'error') } finally { setOcupado(false) }
+  }
+  return (
+    <div style={{ padding: 16, background: 'var(--s)', border: '1px solid var(--border)', borderRadius: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Quién es el médico de cada paciente</div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5, marginBottom: 10 }}>
+        Cada médico ve sólo sus pacientes. Los que ya existían no tienen médico titular y los ve todo el equipo médico hasta que se asignen.
+        Esto les pone como titular al médico de su última cita; los que no tienen cita se asignan a mano desde su expediente.
+      </div>
+      {previa && (
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text2)' }}>
+          {previa.simulado ? 'Si se corre: ' : 'Hecho: '}
+          <b>{previa.asignados}</b> con titular desde su última cita · {previa.yaTenian} ya lo tenían · {previa.sinCita} sin cita · {previa.medicoSinUid} con médico sin sesión
+          {previa.truncado ? ' · hay más de 500: vuelve a correrlo' : ''}.
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => correr(true)} disabled={ocupado || !clinicId} className="btn btn-secondary btn-sm">Ver qué pasaría</button>
+        <button type="button" onClick={() => correr(false)} disabled={ocupado || !clinicId || !previa?.simulado} className="btn btn-primary btn-sm">Asignar titulares</button>
+      </div>
+    </div>
+  )
+}
+
 function MedicosTab() {
   const { doctors, loading } = useDoctors()
   const { config } = useConfig()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const { toast, confirm } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -1671,6 +1718,8 @@ function MedicosTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* D-057: los pacientes de antes de la decisión no tienen médico titular. */}
+      {role === 'admin' && <AsignarTitulares clinicId={clinicId} />}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>
           {doctors.length} {doctors.length === 1 ? 'médico registrado' : 'médicos registrados'} · sin límite

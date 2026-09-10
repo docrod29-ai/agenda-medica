@@ -264,10 +264,20 @@ const VIVOS: EstadoTarea[] = ['solicitada', 'aceptada', 'en_curso', 'agendada', 
  * · **No hace el backfill.** Ese es un script, y correrlo contra datos vivos es
  *   del dueño.
  */
-export async function tareasVivas(clinicId: string, tope = 200): Promise<WorklistVivo> {
+export async function tareasVivas(
+  clinicId: string,
+  tope = 200,
+  /**
+   * D-057: recepción sólo puede LEER tareas con `area == 'recepcion'`, y en modo
+   * `list` Firestore exige que la consulta lo diga (si no, `permission-denied`
+   * para toda la lista). El médico no pasa nada y ve todo.
+   */
+  alcance: { soloRecepcion?: boolean } = {},
+): Promise<WorklistVivo> {
   if (!clinicId) {
     return { tareas: [], truncada: false, tope, ordenadaPorUrgencia: true, migracionPendiente: false }
   }
+  const deArea = alcance.soloRecepcion ? [where('area', '==', 'recepcion')] : []
 
   /**
    * Se piden `tope + 1` para SABER si se quedó corto. El extra no se devuelve:
@@ -277,6 +287,8 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<Worklis
    */
   const porUrgencia = () => getDocs(query(
     COL(clinicId),
+    /* EL ORDEN: `tareas_clinicas(area, estado, pesoUrgencia, creadaEn)` cuando hay área. */
+    ...deArea,
     /* `agendada` es VIVA (REG-404): la cita existe y el paciente no ha venido.
        Dejarla fuera de esta consulta la haría desaparecer del worklist, que es
        justo lo que pasaba cuando agendar equivalía a cerrar. */
@@ -294,6 +306,7 @@ export async function tareasVivas(clinicId: string, tope = 200): Promise<Worklis
      nadie. Es la red. */
   const porAntiguedad = () => getDocs(query(
     COL(clinicId),
+    ...deArea,
     where('estado', 'in', VIVOS),
     orderBy('creadaEn', 'asc'),
     limit(tope + 1),

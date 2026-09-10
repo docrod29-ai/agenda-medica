@@ -86,3 +86,52 @@ del JSON de carga.
 
 Con eso se puede ejecutar y entregar el informe con commit, región, reglas,
 índices y métricas. Sin eso, «100 k» sigue siendo un objetivo, no una medida.
+
+## 4 · Segunda vuelta (tarde): D-057 y D-058 implementadas, y el segundo objetivo de carga modelado
+
+El dueño contestó las preguntas de la mañana. Con eso:
+
+### D-057 · cada médico ve sus pacientes
+
+- **Modelo**: `Patient.medicoTitularUid` + `Patient.compartidoCon[]`. Regla única
+  en `lib/authz/alcance-del-paciente.ts`: titular, compartido o admin. **Sin
+  titular = paciente anterior a la decisión: se ve como siempre** hasta que
+  alguien lo asigne (ausencia de dato no es dato de ausencia; esconder el
+  consultorio entero el día del despliegue sería el fallo caro).
+- **Reglas**: `esMedicoDelPaciente(clinicId, docId)` en TODAS las subcolecciones
+  clínicas del paciente (notas, versiones, adendas, paquetes, preguntas,
+  formularios, laboratorios, fotos, clínico, estudios aportados). La ficha sigue
+  `isMember`: recepción agenda con ella. Titular y compartidos sólo los cambia el
+  titular o el admin; al nacer, sólo quien da de alta.
+- **Servidor**: `verificarCapacidadSobrePaciente` (módulo propio, para que el
+  guardián de identidad sólo lo vea en las rutas que abren expediente) en FHIR,
+  exportar, paquete de visita, pregunta atendida y telesalud.
+- **Recepción**: lee y mueve sólo tareas `area == 'recepcion'`; el worklist
+  consulta con ese filtro; índice nuevo `tareas_clinicas(area, estado,
+  pesoUrgencia, creadaEn)` — **pendiente de desplegar**.
+- **Pantalla**: `CompartirExpediente` en el expediente (compartir/revocar con
+  bitácora; otro médico ve la ficha y PIDE acceso → tarea a nombre del titular);
+  la consulta de un paciente ajeno redirige al expediente; el directorio y la
+  paleta filtran a los propios para el rol `medico`.
+- **Los de antes**: `/api/pacientes/asignar-titulares` (admin; simula primero)
+  asigna desde la última cita; lo que no se puede deducir se cuenta y se dice.
+- **No hay acceso de emergencia**: no se decidió y no se inventa.
+
+### D-058 · el paciente sube estudios
+
+Ver la fila del registro: valores recomendados, token personalizado en app
+aparte, `storage.rules` sólo `create` bajo su carpeta, registro y tarea por el
+servidor, URL firmada para el médico, lectura con la IA desde el bucket.
+**`storage.rules` se despliega ahora con el botón de producción** (paso nuevo
+en `deploy-production.yml`).
+
+### Ensayo de carga · 100 000 activos
+
+`scripts/escala/escenario-de-activos.mjs`: la mezcla de roles declarada
+(médicos 8 %, recepción 4 %, pacientes 88 %, con base), una sesión por persona,
+caudal/escrituras/IA por rol, y lo que falta fuera con nombre. Para 100 000:
+1 519 pet/s sostenidas, 283 escrituras/s, 13 llamadas de IA/s, 816 000
+documentos residentes; no cabe aquí por concurrencia ni volumen. El corte local
+(400 sesiones: 32 médicos, 16 recepción, 352 pacientes) está etiquetado como
+humo del generador, no evidencia. Lo que sigue necesitando del dueño no cambia:
+proyecto de ensayo, presupuesto, plan de Vercel.

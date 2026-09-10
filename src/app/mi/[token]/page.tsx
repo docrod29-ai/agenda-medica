@@ -15,6 +15,7 @@ import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import { TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'
 import ViaDeUrgencia from '@/components/portal/ViaDeUrgencia'
+import { SubirEstudio } from '@/components/portal/SubirEstudio'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -1346,6 +1347,8 @@ export default function MiPortalPage() {
           })}
         </>)}
         {destino === 'documentos' && (<>
+        {/* D-058: subir estudios. Sólo con alcance clínico: es escribir en el expediente. */}
+        {sesion.alcance === 'clinico' && <SubirEstudio api={API} token={token} />}
         {/* Mis recetas — enlace sin alcance clínico (E0-06) */}
         {docsBloqueados && (
           <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--text3)' }}>

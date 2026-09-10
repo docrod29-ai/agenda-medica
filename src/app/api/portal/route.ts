@@ -39,6 +39,11 @@ import { urgenciaDelMensaje } from '@/lib/paciente/urgencia'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { tareaDeUnaPregunta, idDeTareaDePregunta, tareaDeUnaSolicitudAdministrativa, ORIGEN_SOLICITUD_DE_CAMBIO } from '@/lib/tareas-clinicas/de-una-pregunta'
+import { tareaDeUnEstudioAportado, idDeTareaDeEstudio } from '@/lib/tareas-clinicas/de-un-estudio'
+import {
+  rechazoDelEnvio, rechazoDeArchivo, rutaDeEstudio, esRutaDeEstudioDe, idDeRuta, uidDelPortal, nombreLimpio, esDelMes,
+  TEXTO_RECHAZO, TEXTO_ESTADO, type EstudioAportado, type EstadoDeRevision, type ArchivoCandidato,
+} from '@/lib/portal/estudios-aportados'
 import type { Patient } from '@/types'
 
 /**
@@ -70,7 +75,7 @@ const ACCIONES_QUE_MUEVEN = new Set([
 ])
 
 /** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
-const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas', 'inicio', 'compartir-documento'])
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas', 'inicio', 'compartir-documento', 'credencial-estudio', 'registrar-estudio', 'estudios'])
 
 /**
  * PREGUNTAR TIENE SU PROPIO FRENO, Y NO ES EL DE LA AGENDA.
@@ -191,6 +196,39 @@ async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {
   return snap.exists ? (snap.data() as ClinicConfig) : null
 }
 
+/* ── Estudios que sube el paciente (D-058) ─────────────────────────────────── */
+
+const BUCKET_ESTUDIOS = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
+const TEXTO_SIN_ALCANCE_ESTUDIOS = 'Pide a tu médico el acceso para poder subir estudios por aquí.'
+
+async function leerEstudios(clinicId: string, patientId: string): Promise<EstudioAportado[]> {
+  const snap = await adminDb
+    .collection('clinics').doc(clinicId)
+    .collection('patients').doc(patientId)
+    .collection('estudios_aportados')
+    .get()
+  return snap.docs
+    .map(d => ({ id: d.id, ...(d.data() as Omit<EstudioAportado, 'id'>) }))
+    .filter(e => !e.retiradoEn)
+    .sort((a, b) => String(b.subidoEn).localeCompare(String(a.subidoEn)))
+}
+
+/** «Revisado» vive en la tarea (misma doctrina que el laboratorio). */
+async function estadoDeRevision(clinicId: string, estudioId: string): Promise<EstadoDeRevision> {
+  const t = await adminDb.collection('clinics').doc(clinicId).collection('tareas_clinicas').doc(idDeTareaDeEstudio(estudioId)).get()
+  const estado = t.exists ? String(t.data()?.estado ?? '') : ''
+  return estado === 'completada' || estado === 'cerrada' ? 'revisado' : 'sin_revisar'
+}
+
+function archivosDelCuerpo(v: unknown): ArchivoCandidato[] {
+  if (!Array.isArray(v)) return []
+  return v.slice(0, 20).map(a => ({
+    nombre: nombreLimpio(String((a as { nombre?: unknown })?.nombre ?? '')),
+    contentType: String((a as { contentType?: unknown })?.contentType ?? '').toLowerCase(),
+    bytes: Number((a as { bytes?: unknown })?.bytes ?? 0),
+  }))
+}
+
 /**
  * LOS BLOQUEOS DEL CONSULTORIO, QUE ESTA RUTA IGNORABA.
  *
@@ -278,6 +316,10 @@ export async function POST(req: NextRequest) {
     respuestas?: unknown
     /** La pregunta del paciente (V9 PATIENT-AI-001). Se recorta y se clasifica en el servidor. */
     texto?: string
+    /** D-058: los archivos que el paciente quiere subir, y el que acaba de subir. */
+    archivos?: unknown
+    ruta?: string
+    nombre?: string
     /** Compartir UN documento (PP-005): la nota firmada que el paciente eligió. */
     documentoId?: string
     /** Cuidador autorizado (§8): a quién autoriza el paciente, y a quién revoca. */
@@ -746,6 +788,104 @@ export async function POST(req: NextRequest) {
        * abre una tarea de RECEPCIÓN con la cita colgada. La cita NO se toca:
        * quien decide es el consultorio.
        */
+      /**
+       * SUBIR ESTUDIOS — D-058, en dos pasos y los dos por aquí.
+       *
+       * 1. `credencial-estudio`: se validan tipo, tamaño, cantidad y cuota
+       *    mensual ANTES de mover un byte; se acuña un token personalizado
+       *    (uid del portal, nunca miembro del consultorio) y se le dan al
+       *    navegador las rutas exactas bajo SU carpeta. Las reglas de Storage
+       *    vuelven a comprobar tipo, tamaño y carpeta con ese token.
+       * 2. `registrar-estudio`: cuando el objeto ya está en el bucket, se
+       *    comprueba que existe bajo la carpeta de ESTE paciente, se registra
+       *    en `estudios_aportados` con id derivado de la ruta (reintentar no
+       *    duplica), se abre la tarea de revisión a nombre del titular y se
+       *    avisa al consultorio sin PHI. Nada de esto lo escribe el navegador.
+       */
+      case 'credencial-estudio': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const archivos = archivosDelCuerpo(body.archivos)
+        if (!archivos.length) return NextResponse.json({ error: 'Elige al menos un archivo.' }, { status: 400 })
+        const ahoraIso = new Date().toISOString()
+        const previos = await leerEstudios(clinicId, patientId)
+        const esteMes = previos.filter(e => esDelMes(String(e.subidoEn), ahoraIso)).length
+        const rechazo = rechazoDelEnvio(archivos, esteMes)
+        if (rechazo) return NextResponse.json({ error: TEXTO_RECHAZO[rechazo], motivo: rechazo }, { status: 422 })
+        const uid = uidDelPortal(clinicId, patientId)
+        const token = await admin.auth().createCustomToken(uid, { portal: true, clinicId, patientId })
+        const rutas = archivos.map(a => {
+          const id = adminDb.collection('clinics').doc().id
+          return { id, nombre: a.nombre, ruta: rutaDeEstudio(clinicId, patientId, id, a.contentType) }
+        })
+        return NextResponse.json({ ok: true, token, rutas })
+      }
+
+      case 'registrar-estudio': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const ruta = String(body.ruta ?? '')
+        if (!esRutaDeEstudioDe(ruta, clinicId, patientId)) {
+          return NextResponse.json({ error: 'Esa ruta no es de tu expediente.' }, { status: 400 })
+        }
+        const id = idDeRuta(ruta)!
+        const objeto = admin.storage().bucket(BUCKET_ESTUDIOS).file(ruta)
+        const [existe] = await objeto.exists()
+        if (!existe) return NextResponse.json({ error: 'El archivo no llegó completo. Vuelve a intentarlo.' }, { status: 404 })
+        const [meta] = await objeto.getMetadata()
+        const contentType = String(meta.contentType ?? '').toLowerCase()
+        const bytes = Number(meta.size ?? 0)
+        const rechazo = rechazoDeArchivo({ nombre: '', contentType, bytes })
+        if (rechazo) return NextResponse.json({ error: TEXTO_RECHAZO[rechazo], motivo: rechazo }, { status: 422 })
+        const ahoraIso = new Date().toISOString()
+        const previos = await leerEstudios(clinicId, patientId)
+        const yaRegistrado = previos.find(e => e.id === id)
+        if (!yaRegistrado && previos.filter(e => esDelMes(String(e.subidoEn), ahoraIso)).length >= 12) {
+          return NextResponse.json({ error: TEXTO_RECHAZO.cuota_mensual, motivo: 'cuota_mensual' }, { status: 422 })
+        }
+        const registro: Omit<EstudioAportado, 'id'> = {
+          clinicId, patientId, ruta,
+          nombre: nombreLimpio(String(body.nombre ?? '')),
+          contentType, bytes,
+          subidoEn: yaRegistrado?.subidoEn ?? ahoraIso,
+          origen: 'paciente',
+          cuidadorId: cuidadorId ?? null,
+        }
+        const base = adminDb.collection('clinics').doc(clinicId)
+        await base.collection('patients').doc(patientId).collection('estudios_aportados').doc(id).set(registro, { merge: true })
+        const titular = (paciente as unknown as { medicoTitularUid?: string } | null)?.medicoTitularUid
+        const tarea = tareaDeUnEstudioAportado({
+          clinicId, patientId, patientNombre: paciente?.nombre ?? undefined,
+          estudioId: id, nombreArchivo: registro.nombre, contentType, ahoraIso,
+          ownerUid: titular || undefined,
+        })
+        await base.collection('tareas_clinicas').doc(idDeTareaDeEstudio(id)).set(tarea, { merge: true })
+        await base.collection('audit_log').add({
+          evento: 'estudio_aportado_paciente', clinicId, patientId, timestamp: ahoraIso,
+          meta: { id, contentType, bytes, cuidadorId: cuidadorId ?? null },
+        }).catch(() => { /* la bitácora no bloquea el registro */ })
+        if (!yaRegistrado) {
+          const config = await leerConfig(clinicId)
+          const tel = telefonoDelConsultorio(config)
+          if (tel) {
+            await avisarAlConsultorio(clinicId, tel, [
+              '📎 *Un paciente subió un estudio por el portal*',
+              '',
+              'Está en Pendientes, sin revisar. El archivo no viaja por aquí: es dato de salud.',
+            ].join('\n'), 'portal:estudio')
+          }
+        }
+        return NextResponse.json({ ok: true, id, estado: 'sin_revisar', texto: TEXTO_ESTADO.sin_revisar })
+      }
+
+      case 'estudios': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const lista = await leerEstudios(clinicId, patientId)
+        const estudios = await Promise.all(lista.map(async e => {
+          const estado = await estadoDeRevision(clinicId, e.id!)
+          return { id: e.id, nombre: e.nombre, contentType: e.contentType, bytes: e.bytes, subidoEn: e.subidoEn, estado, texto: TEXTO_ESTADO[estado] }
+        }))
+        return NextResponse.json({ ok: true, estudios })
+      }
+
       case 'solicitar-cambio': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita

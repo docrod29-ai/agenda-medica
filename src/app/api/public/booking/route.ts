@@ -275,6 +275,8 @@ export async function POST(req: NextRequest) {
       const newP = await clinicRef.collection('patients').add({
         nombre: paciente.nombre.trim(),
         telefono: tel,
+        // D-057: el paciente que trae la cita nace del médico de esa cita.
+        ...(typeof medicoDoc?.uid === 'string' && medicoDoc.uid ? { medicoTitularUid: medicoDoc.uid } : {}),
         /**
          * EL CONSENTIMIENTO VA EN EL EXPEDIENTE, NO SÓLO EN LA CITA.
          *

@@ -13,7 +13,7 @@
  * pertenezca a la clínica (no emitir tokens para patientId arbitrarios).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { adminDb } from '@/lib/firebase-admin'
 import { crearTokenPaciente } from '@/lib/patient-token'
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const { clinicId, patientId } = body
   if (!clinicId || !patientId) return NextResponse.json({ error: 'clinicId y patientId requeridos' }, { status: 400 })
 
-  const acc = await verificarCapacidad(req, clinicId, 'clinico.escribir')
+  const acc = await verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')
   if (!acc.ok) return acc.response
 
   // El paciente debe existir en ESTA clínica (no emitir tokens para ids arbitrarios).

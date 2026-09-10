@@ -330,7 +330,9 @@ function TarjetaCerrada({ t, porQueId, onAbrirPorQue, onIrAlExpediente }: {
 
 export default function PendientesPage() {
   const { toast } = useToast()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
+  // D-057: recepción sólo ve (y sólo puede leer) las tareas de su área.
+  const soloRecepcion = role !== null && role !== 'medico' && role !== 'admin'
   const router = useRouter()
   const [tareas, setTareas] = useState<TareaClinica[]>([])
   const [cargando, setCargando] = useState(true)
@@ -463,7 +465,7 @@ export default function PendientesPage() {
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
-    tareasVivas(clinicId)
+    tareasVivas(clinicId, 200, { soloRecepcion })
       .then(w => {
         if (!vivo) return
         setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0)
@@ -497,7 +499,7 @@ export default function PendientesPage() {
       })
       .finally(() => { if (vivo) setCargando(false) })
     return () => { vivo = false }
-  }, [clinicId, leerAlmacen, recarga])
+  }, [clinicId, leerAlmacen, recarga, soloRecepcion])
 
   const visibles = useMemo(() => {
     const base = soloMias ? tareas.filter(t => t.ownerUid === uid) : tareas

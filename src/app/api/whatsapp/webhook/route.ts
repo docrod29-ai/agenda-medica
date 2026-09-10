@@ -105,7 +105,7 @@ export interface ExpedienteDelBot {
   porConfirmar?: 'telefono-sin-nombre' | 'varios-con-ese-telefono'
 }
 
-async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string): Promise<ExpedienteDelBot> {
+async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre: string, now: string, medicoTitularUid?: string): Promise<ExpedienteDelBot> {
   try {
     // El criterio vive en `lib/whatsapp/telefono-candidatos.ts`: aquí estaba bien
     // y en los otros dos sitios que buscan por teléfono no, así que ahora es uno
@@ -161,6 +161,8 @@ async function resolverPacienteBot(clinicId: string, telefonoRaw: string, nombre
     const np = await pRef.add({
       nombre: (nombre || '').trim(),
       telefono: diez,   // se guarda en 10 dígitos (como el panel), para futuros matches
+      // D-057: el paciente que trae el bot nace del médico con el que agenda.
+      ...(medicoTitularUid ? { medicoTitularUid } : {}),
       noShowCount: 0, cancelacionCount: 0,
       createdAt: now, updatedAt: now, creadoPor: 'bot-whatsapp',
     })
@@ -1240,7 +1242,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const medicoNombre = doctor?.nombre || config?.nombreMedico || 'Dr.'
       const doctorId = doctor?.id
       // Vincula al expediente (fuera de la transacción de la cita, como el booking).
-      const expedienteBot = await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const expedienteBot = await resolverPacienteBot(clinicId, from, datos.nombre, now, doctor?.uid)
       const pacienteIdBot = expedienteBot.id
 
       /**
@@ -1544,7 +1546,7 @@ export async function handleMessage(from: string, body: string, clinicId: string
       const medicoIdBot = datos.medicoId || doctor?.id || ''
       // Vincula al expediente: usa el de la sesión de lista de espera si vino, y si no
       // lo resuelve por teléfono (crea si hace falta) para no dejar la cita huérfana.
-      const expedienteLE = datos.pacienteId ? { id: datos.pacienteId } : await resolverPacienteBot(clinicId, from, datos.nombre, now)
+      const expedienteLE = datos.pacienteId ? { id: datos.pacienteId } : await resolverPacienteBot(clinicId, from, datos.nombre, now, doctor?.id === medicoIdBot ? doctor?.uid : undefined)
       const pacienteIdLE = expedienteLE.id
       const apptsColLE = adminDb.collection('clinics').doc(clinicId).collection('appointments')
       const [sh, sm] = slotHora.split(':').map(Number)

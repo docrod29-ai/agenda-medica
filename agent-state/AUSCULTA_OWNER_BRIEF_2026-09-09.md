@@ -293,3 +293,22 @@ declarado. Estado:
 - **Capacidad de 100 000 usuarios** — no es «tiempo de carga»: es un ensayo de
   carga distribuido contra infraestructura de prueba que este contenedor no
   puede ejecutar ni pagar. Lo que necesita del dueño está en la bitácora.
+
+### Segunda vuelta del 10-sep-2026 (tarde)
+
+El dueño contestó: la asistente ve el equipo, la agenda y sólo los pendientes de
+recepción, nunca el expediente; cada médico ve sólo sus pacientes; el titular
+autoriza. Para subir estudios: «lo más recomendado». Con eso:
+
+- **D-057 implementada** (`alcance-del-paciente.ts`, `esMedicoDelPaciente` en
+  reglas, `verificarCapacidadSobrePaciente`, `CompartirExpediente`,
+  `/api/pacientes/asignar-titulares`, recepción con sus tareas). Sin acceso de
+  emergencia: no se decidió.
+- **D-058 implementada** (`estudios-aportados.ts`, `storage.rules`, subida
+  directa con token personalizado, registro y tarea por el servidor, URL firmada,
+  lectura con IA desde el bucket). Vista en el arnés con emulador de Storage.
+- **Carga**: `escenario-de-activos.mjs` nombra el experimento de 100 000
+  activos con mezcla de roles; lo que falta fuera sigue siendo del dueño.
+- **Reglas, índices y `storage.rules` van por delante de lo desplegado**: la
+  tabla de `docs/ops/REGLAS-DE-FIRESTORE.md` dice qué no rige y qué se rompe
+  hasta la siguiente ejecución del botón de producción.
