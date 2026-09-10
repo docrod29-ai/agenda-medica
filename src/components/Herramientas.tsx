@@ -71,11 +71,13 @@ export function Herramientas({ items, ocultas = [] }: {
 
   return (
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--s1)', marginBottom: 14, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderBottom: '1px solid var(--border)' }}>
+      {/* Envuelve y nada se parte: en la columna del asistente (~300 px) el
+          título, el conteo y «Buscar» se rompían por letras. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 13px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
         <Wrench size={13} color="var(--text3)" />
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: 0.3 }}>HERRAMIENTAS CLÍNICAS</span>
-        <span style={{ fontSize: 11, color: 'var(--text3)' }}>({items.length})</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--text3)', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>HERRAMIENTAS CLÍNICAS</span>
+        <span style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>({items.length})</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {buscando ? (
             <input
               autoFocus
@@ -94,13 +96,13 @@ export function Herramientas({ items, ocultas = [] }: {
               placeholder="Buscar herramienta…"
               style={{
                 background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 8,
-                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 190,
+                padding: '5px 9px', fontSize: 12, color: 'var(--text)', width: 'min(190px, 100%)',
               }}
             />
           ) : (
             <button type="button" onClick={() => setBuscando(true)} title="Buscar entre todas las herramientas"
               className="nx-acc-texto nx-acc-texto--tenue"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: 2 }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, padding: 2, whiteSpace: 'nowrap' }}>
               <Search size={13} /> Buscar
             </button>
           )}

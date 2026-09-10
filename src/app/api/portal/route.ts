@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import admin, { adminDb } from '@/lib/firebase-admin'
-import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE } from '@/lib/portal/estados'
+import { puedeTocarDesdeElPortal, MENSAJE_ESTADO_NO_TOCABLE, HORAS_CAMBIO_PACIENTE } from '@/lib/portal/estados'
 import { sincronizarCitaDelPortal, estadoDeSync } from '@/lib/calendario/sincronizar-servidor'
 import { ofrecerHuecoLiberado } from '@/lib/whatsapp/ofrecer-hueco'
 import { avisarAlConsultorio, telefonoDelConsultorio } from '@/lib/whatsapp/avisar-consultorio'
@@ -49,7 +49,6 @@ import type { Patient } from '@/types'
  * Acciones: session | confirmar | cancelar | slots | reagendar | formulario | documentos
  */
 
-const MIN_HORAS_DEFECTO = 24
 
 /**
  * LAS ACCIONES QUE MUEVEN ALGO DEL CONSULTORIO.
@@ -92,7 +91,7 @@ const PREGUNTAS_POR_VENTANA = 8
  * EL OFFSET DEL CONSULTORIO, NO UN -06:00 QUEMADO.
  *
  * Este cálculo decide si el paciente todavía llega a la política de «reagenda
- * hasta 24 h antes». Con el offset fijo, un consultorio en Tijuana (UTC-8)
+ * hasta 12 h antes». Con el offset fijo, un consultorio en Tijuana (UTC-8)
  * cerraba la puerta dos horas antes de lo que debía, y en Cancún (UTC-5, y es
  * mercado real) dos horas después. El resto del repo ya usa `instanteMX`.
  */
@@ -529,7 +528,7 @@ export async function POST(req: NextRequest) {
             telefono: config.whatsappConsultorio || config.telefonoAdmin || '',
             direccion: config.direccion || '',
           } : null,
-          minHoras: (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO,
+          minHoras: HORAS_CAMBIO_PACIENTE,
           // La pantalla del paciente también decide «próximas vs pasadas» con una
           // hora de pared: sin la zona del consultorio lo hacía con -06:00 fijo.
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
@@ -687,7 +686,7 @@ export async function POST(req: NextRequest) {
             telefono: config.whatsappConsultorio || config.telefonoAdmin || '',
             direccion: config.direccion || '',
           } : null,
-          minHoras: (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO,
+          minHoras: HORAS_CAMBIO_PACIENTE,
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
           citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
@@ -722,7 +721,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
         }
         const config = await leerConfig(clinicId)
-        const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
+        const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Cancelación en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }
@@ -852,7 +851,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
         }
         const config = await leerConfig(clinicId)
-        const minHoras = (config as { politicaCancelacionHoras?: number } | null)?.politicaCancelacionHoras ?? MIN_HORAS_DEFECTO
+        const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
           return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
         }

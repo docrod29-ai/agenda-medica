@@ -2,7 +2,7 @@
  "sellado": "2026-09-10",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 8035,
+ "totalCasos": 8185,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -185,6 +185,10 @@
    "minCasos": 11
   },
   {
+   "archivo": "src/__tests__/cancelacion-doce-horas.test.ts",
+   "minCasos": 5
+  },
+  {
    "archivo": "src/__tests__/cardiometabolico.test.ts",
    "minCasos": 56
   },
@@ -246,7 +250,7 @@
   },
   {
    "archivo": "src/__tests__/consulta-descartada-no-resucita.test.ts",
-   "minCasos": 7
+   "minCasos": 11
   },
   {
    "archivo": "src/__tests__/consultorio-degradacion-segura.test.ts",
@@ -323,6 +327,10 @@
   {
    "archivo": "src/__tests__/de-que-se-enferma-este-sistema.test.ts",
    "minCasos": 9
+  },
+  {
+   "archivo": "src/__tests__/demo-sandbox.test.ts",
+   "minCasos": 6
   },
   {
    "archivo": "src/__tests__/dictado-sin-dueno-no-se-entrega.test.ts",
@@ -711,6 +719,10 @@
   {
    "archivo": "src/__tests__/el-raton-y-el-teclado-mueven-la-cita-al-mismo-sitio.test.ts",
    "minCasos": 16
+  },
+  {
+   "archivo": "src/__tests__/el-rediseno-de-tres-areas-cabe.test.ts",
+   "minCasos": 9
   },
   {
    "archivo": "src/__tests__/el-redondeo-no-cruza-el-umbral-renal.test.ts",
@@ -1190,7 +1202,7 @@
   },
   {
    "archivo": "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
-   "minCasos": 16
+   "minCasos": 19
   },
   {
    "archivo": "src/__tests__/la-lista-de-espera-no-se-recorta-en-silencio.test.ts",
@@ -1851,6 +1863,14 @@
   {
    "archivo": "src/__tests__/reg337-la-pantalla-no-bota-al-bajar.test.ts",
    "minCasos": 14
+  },
+  {
+   "archivo": "src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts",
+   "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/reserva-publica-sin-contador.test.ts",
+   "minCasos": 3
   },
   {
    "archivo": "src/__tests__/respaldo-consultorio.test.ts",

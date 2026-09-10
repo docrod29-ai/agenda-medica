@@ -25765,6 +25765,117 @@ El golden de REG-653 «ningún hueco empieza antes de que acabe el anterior» se
 
 **Qué NO cubre.** Ni el inicio ni el final de un **bloqueo** anclan, por la razón que REG-654 ya declaró: `TimeBlock` guarda instantes que pueden venir en absoluto o en hora de pared y pasarlos a minutos del día pide la zona del consultorio. Se deja fuera a propósito en vez de hacerlo a medias, y esa hora se pide a mano. Tampoco se toca el **paso** ni se devuelve la vida a `intervaloMinutos`: revertir REG-653 es una decisión del dueño, no de esta reparación. Sigue sin haber **arrastrar ni redimensionar** citas en el calendario —no existían antes y no se añaden aquí— y el bot sigue **sin interpretar una hora escrita en lenguaje libre** («¿a las 4:20?»): es un menú numerado, y que no invente horarios está garantizado por construcción, no por prompt.
 
+
+## REG-656 — cancelación con el mismo plazo en portal y WhatsApp
+
+**Origen:** entrevista del dueño: cambios autónomos hasta 12 horas antes. Portal
+usaba 24 h y WhatsApp 0 h sin configuración. El SÍ a cancelar y NO al
+recordatorio tampoco revalidaban el plazo al ejecutar.
+**Cambio:** constante compartida de 12 h, validación al confirmar cancelación.
+Después del plazo se conserva la cita y se remite al consultorio.
+**Prueba permanente:** `src/__tests__/cancelacion-doce-horas.test.ts`.
+Dos casos fallaron antes y pasan después. No prueba Meta ni Firestore real.
+**Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-657 — respuesta IA posterior al descarte
+
+**Origen:** auditoría tras reporte de contaminación de notas. La tarea persistía
+al descartar y la respuesta terminaba etiquetada con notaId null, recuperable en
+otra consulta del mismo paciente. No demuestra mezcla entre personas distintas.
+**Cambio:** invalidar tarea al descartar y comprobar descarte/firma tras la red,
+antes de aplicar contenido. Al firmar, finalizar también la tarea pendiente.
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Callback real con respuesta diferida: falló antes al aplicar el marcador de la
+consulta descartada. No sustituye prueba de navegación de extremo a extremo.
+**Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-658 — la fusión no resuelve una ambigüedad
+
+**Origen:** auditoría: cita válida con dosis ambigua conservada, pero síntesis
+borraba needs_review y conflictos del borrador de esta misma petición.
+**Cambio:** conservar revisión por fuente e identidad y unir conflictos/datos
+críticos faltantes; la resolución sigue correspondiendo al médico.
+**Prueba permanente:** `src/__tests__/citas-de-la-fusion.test.ts`.
+Dos casos fallaron antes: cita igual y elementos reordenados. Se añade cita
+compartida por dos medicamentos. No cubre elementos omitidos, citas cambiadas,
+ni conflictos exclusivos del segundo borrador GPT.
+**Estado:** corrección local; pendiente gate completo y publicación.
+
+## REG-659 — la reserva pública se detiene si el contador de abuso falla
+
+**Origen:** auditoría de capacidad y seguridad del 9-sep-2026. La ruta pública
+usaba `limitarOResponder`, que interpreta una transacción fallida como permiso.
+Una caída del contador permitía seguir hacia expedientes, reservas y avisos.
+**Cambio:** reutilizar `limitarEstricto` para IP y teléfono; 503 con Retry-After
+cuando no se pudo contar, 429 al agotar el cupo. No cambia cupos ni horarios.
+**Prueba permanente:** `src/__tests__/reserva-publica-sin-contador.test.ts`.
+Ruta y limitador reales con infraestructura sintética: las dos caídas devolvían
+404 al alcanzar la lectura clínica antes del cambio; ahora 503 sin acceder a
+expedientes ni enviar avisos. Se conserva la continuación con cupo y el 429.
+**Qué NO cubre:** firewall del proveedor, DDoS distribuido, concurrencia real de
+Firestore, ni una auditoría integral. Cuatro casos ejecutados, tres declaraciones.
+**Estado:** pruebas dirigidas en verde; pendiente gate completo y revisión.
+
+## REG-660 — regenerar no conserva listas retiradas ni borra ediciones por identidad
+
+**Origen:** continuación de la auditoría de consulta del dueño, 9-sep-2026.
+Primer plano y recuperación ignoraban arrays vacíos con `length > 0`. Sus
+actualizadores leían refs después de adelantarlas al resultado nuevo. Los motores
+atribuían al lote IA cualquier diagnóstico equivalente o fármaco del mismo nombre,
+aunque el médico hubiera cambiado dosis, CIE, tipo o estado.
+
+**Cambio:** procesar [] explícito, conservar campos omitidos, lotes con nombres
+inválidos y vacíos del parser degradado. Capturar el lote previo antes del setter;
+guardar el lote normalizado y deduplicado por las fronteras canónicas. Comparar
+contenido completo mediante `ordenEstable`, preservando cambios y la autoridad
+`tipoOrigen: medico`. Se mantiene la reproyección explícita, GP5 y GP6.
+
+**Prueba permanente:** `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`.
+Ejecuta ambos bloques reales con motores reales y setters diferidos. Reproducción
+inicial: 18 fallos de 24 casos antes del arreglo. Los 8 casos adicionales de
+entradas inválidas fallaron antes de añadir su guarda. Resultado dirigido final:
+34 casos del golden y 108 casos en 7 archivos pasan. Datos y dosis son marcadores
+sintéticos, no criterios clínicos.
+
+Los guardianes de 40 pasadas recuerdan ahora la salida canónica anterior; el de
+receta comprueba esa referencia en lugar del lote crudo. No se retiran casos ni
+se debilita la prohibición de confirmación/codificación automática.
+
+**Qué NO cubre:** navegación real, persistencia de procedencia tras remontar,
+contaminación entre pacientes, fidelidad de prosa ni proveedor. Un medicamento
+editado que coincida exactamente con un lote IA posterior puede volver a resultar
+indistinguible y ser retirado en otro pase; falta identidad de captura explícita.
+No se afirma preservación absoluta de ese caso. El diagnóstico marcado por el
+médico sí conserva su marca de autoridad.
+
+**Estado:** reparación y pruebas dirigidas completas; gates generales y resultado
+del commit publicado se registran en el PR #478.
+
+
+## REG-661 — la demo añade datos ausentes del dictado
+
+**Descubrimiento:** revisión en navegador de la vista previa de PR #478,
+commit 0b3c51e, el 9-sep-2026. Al recorrer cita → dictado → nota, el caso de
+HTA añadía disnea negada y posología no dictada. La revisión independiente
+confirmó el mismo problema en el segundo guion y estudios comunes inventados.
+
+**Causa:** transcripción, nota y receta preescritas por separado, sin control de
+fidelidad. No es evidencia de una alucinación del proveedor: la demo no llama IA.
+
+**Arreglo:** conservar dictados; retirar negaciones, hallazgos, clasificaciones,
+esquemas y conductas no mencionados; conservar incertidumbre diagnóstica;
+marcar prescripción por confirmar con el médico. Sin estudios dictados se
+muestra ese estado. Los documentos son borradores no emitidos y el QR sólo una
+simulación, sin presentar el contenido como vigente.
+
+**Prueba permanente:** `src/__tests__/demo-sandbox.test.ts`, 6 casos existentes
+con guardián de fidelidad reforzado. Antes: 1 falla / 5 pasan. Después: 6 pasan.
+
+**Qué NO cubre:** IA, voz real, expediente privado, firma de producción,
+recomendaciones de otros módulos de la demo ni validación móvil.
+
+---
+
 ---
 
 ## REG-662 — Arrastrar una cita para moverla, y lo que sólo se vio abriendo el navegador
@@ -25887,3 +25998,62 @@ Dos cosas que la medición cambió respecto de lo que parecía en la captura:
 **Qué NO cubre.** Una diarización que atribuya mal quién dijo el fármaco: ese renglón cae en «mencionados» y el médico lo sube con un gesto (REG-515 ya lo declara). No decide cuáles seis diagnósticos son los correctos. No mide que la nota sea buena: mide que la pantalla deje de estorbar. Y la frase «un medicamento cuyo nombre no fue posible precisar» sigue dependiendo de que el modelo la ponga en la prosa (regla 22): aquí sólo se garantiza que no sea una fila.
 
 **Segunda vuelta, misma sesión (D-051, D-052).** Al leer el resumen, el dueño pidió dos cosas más. **CIE-10**: los códigos salían vacíos porque `comoSugerenciaNoConfirmada` los borraba (GP6); ahora el código de la IA entra marcado `codigoOrigen:'extraccion'`, se enseña punteado con un botón «Confirmar», teclearlo o elegirlo del catálogo lo vuelve del médico, se avisa antes de firmar (`cie_sugerido`) y **lo no confirmado se quita al firmar** (`sinCodigosSinConfirmar`), así que ningún consumidor aguas abajo —receta, Word, FHIR, portal— recibe un código que nadie confirmó. **Dosis**: la compuerta del 5-ago que apagaba Firmar se retira; `dosis_incompleta` pasa a `revisa`, entra en `NO_SE_PLIEGAN`, no se descarta, se sella con la firma, y `por-que-no-se-firma` pierde el origen `dosis`. `AntesDeFirmar` deja de titular todo bloqueo como «Falta la dosis de…». Se invirtieron, con su razón escrita: `consultorio-diagnostico-cie-anti-inflacion`, `gp6-reproyeccion-cruza-fronteras`, `el-boton-dice-por-que-esta-apagado`, `nadie-firma-sin-nombre`, `dosis-avisa-antes-de-firmar`, `dosis-desconocida-declarada`, `una-barra-y-no-ocho-recuadros`, `ya-lo-toma-o-se-lo-receto-hoy`. Lo que NO cubre: un código sugerido equivocado que el médico confirme sin mirar sigue siendo suyo —el gesto existe para eso—; y una receta sin cantidad ya puede firmarse: el aviso rojo es lo único que lo impide.
+
+**Tercera vuelta — el rediseño de tres áreas del PR #478 se mira antes de que salga (10-sep-2026).** Al relevar el PR de Codex se levantó el arnés visual (emulador, consultorio sintético, Chromium) sobre el árbol fusionado. Con 14 620 casos en verde, la pantalla se veía mal: «Copiar»/«Imprimir» partidos letra por letra, filas de medicamento que no cabían en la columna de la nota, el resumen cortado a 1280 px y el chat y las herramientas dentro de la nota con el asistente vacío. El dueño: «por qué vas a desplegar algo que se ve mal; arregla todo». Arreglos: la cabecera de la hoja envuelve y sus botones no se encogen; la nota es un contenedor de tamaño y bajo 720 px la cabecera de columnas se apaga y el fármaco ocupa su línea (`!important`, porque `S.row` va en línea y gana); tres columnas sólo desde 1440 y dos entre 1280 y 1439 con el asistente al lado; el chat y el catálogo se mudan al asistente y sus cabeceras envuelven. **Prueba permanente (sellada):** `src/__tests__/el-rediseno-de-tres-areas-cabe.test.ts`. Qué NO cubre: mide el código, no los píxeles — el arnés hay que volver a lanzarlo cada vez que se toque la consulta.
+
+---
+
+## REG-665 — la oferta de espera pierde duración y médico al reservar o reenviar
+
+**Descubrimiento:** auditoría del flujo real ofrecer → WhatsApp → aceptación,
+9-sep-2026, con Firestore y proveedor en memoria. Una oferta de 45 minutos se
+reservaba como 30 y permitía invadir una cita a los 30 minutos. La reconstrucción
+de sesión por el cron omitía médico y duración. Además, desactivar los avisos
+periódicos detenía la bandeja de reintentos completa.
+
+**Arreglo:** transportar duración en la sesión y su metadato de reintento;
+utilizarla en la comprobación transaccional de solape y en la cita. Una duración
+inválida bloquea la reserva; sesiones antiguas sin el campo conservan 30 minutos.
+El cron conserva médico, duración y fecha de contacto, y procesa reintentos
+independientemente de los interruptores de recordatorios.
+
+**Prueba permanente:** `src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts`.
+Antes: 4 casos de duración fallaban; el caso adicional de reintento también
+reprodujo la detención del envío. Después: 21 casos pasan, con intervalos
+sintéticos de 15, 45 y 90 minutos, solape y reenvío hasta aceptación.
+
+**Qué NO cubre:** proveedor real, entrega externa, carga ni distribución a todos
+los compatibles. El límite vigente de tres ofertas por llamada sigue pendiente.
+
+## REG-666 — una corrección IA tardía modifica el encuentro cerrado
+
+**Descubrimiento:** auditoría del callback `corregirConIA`, reproducido con
+respuesta diferida. Sólo miraba el estado capturado antes de esperar la red.
+
+**Arreglo:** comprobar las referencias síncronas al iniciar, al recibir el cuerpo
+y al gestionar errores; impedir deshacer sobre un encuentro cerrado. La firma
+marca su referencia al confirmar la escritura, antes del siguiente render.
+
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Dos casos fallaban antes: respuesta tras firmar y tras descartar. Ambos pasan;
+el caso de consulta abierta sigue aplicando la corrección. Archivo: 14 casos.
+
+**Qué NO cubre:** mezcla entre pacientes, exactitud del modelo, red real ni
+navegación privada. No se modifica la política de firma.
+
+## REG-667 — un autoguardado pendiente recrea una consulta descartada
+
+**Descubrimiento:** auditoría de la cadena de guardados. Una tarea en cola no
+revalidaba descarte al ejecutarse; descartar leía el id antes de que terminara
+una creación pendiente.
+
+**Arreglo:** verificar cierre dentro de la cola, marcar descarte antes de
+esperar y leer el id después de terminar los guardados. Restaurar el indicador
+de operación tras la espera para mantener bloqueados los controles al borrar.
+
+**Prueba permanente:** `src/__tests__/consulta-descartada-no-resucita.test.ts`.
+Dos casos fallaban antes; después verifican que la cola no crea y que el descarte
+borra el id recién recibido. Los 14 casos del archivo pasan.
+
+**Qué NO cubre:** borrado rechazado, sesiones simultáneas en otros dispositivos
+ni recuperación de una escritura cuya respuesta de red se perdió.

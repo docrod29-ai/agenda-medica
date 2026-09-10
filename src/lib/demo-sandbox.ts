@@ -35,6 +35,8 @@ export interface DemoEscenario {
   folio: string
 }
 
+// NEEDS_CLINICAL_REVIEW: los dos guiones omiten datos de prescripción.
+// El médico debe aclararlos; la demo muestra borradores, nunca los completa.
 export const DEMO_ESCENARIOS: DemoEscenario[] = [
   {
     cita: { hora: '09:00', iniciales: 'M. F.', edad: 54, sexo: 'F', motivo: 'Control de hipertensión', color: 'var(--nexus)' },
@@ -45,15 +47,14 @@ export const DEMO_ESCENARIOS: DemoEscenario[] = [
       'Continúo con losartán y agrego recomendación de dieta baja en sodio.',
     ],
     nota: [
-      { seccion: 'Subjetivo', texto: 'Femenino de 54 años en control de HTA. Buen apego al tratamiento. Niega cefalea, mareo o disnea.' },
-      { seccion: 'Objetivo', texto: 'TA 138/84 mmHg · FC 72 lpm · sin edema periférico. Resto de la exploración sin datos relevantes.' },
-      { seccion: 'Análisis', texto: 'Hipertensión arterial esencial en control aceptable (I10).' },
-      { seccion: 'Plan', texto: 'Continuar losartán 50 mg c/24 h. Dieta hiposódica. Cita de control en 4 semanas con toma de TA en casa.' },
+      { seccion: 'Subjetivo', texto: 'Femenino de 54 años en control de HTA. Buen apego al tratamiento. Niega cefalea y mareo.' },
+      { seccion: 'Objetivo', texto: 'TA 138/84 mmHg · FC 72 lpm · sin edema.' },
+      { seccion: 'Análisis', texto: 'Hipertensión arterial en seguimiento.' },
+      { seccion: 'Plan', texto: 'Continuar losartán. Recomendar dieta baja en sodio. Dosis, vía y frecuencia no dictadas: por confirmar con el médico antes de emitir la receta.' },
     ],
-    diagnostico: 'Hipertensión arterial esencial (I10)',
+    diagnostico: 'Hipertensión arterial',
     medicamentos: [
-      { nombre: 'Losartán 50 mg', indicacion: '1 tableta cada 24 horas' },
-      { nombre: 'Dieta hiposódica', indicacion: 'Reducir sal; caminata 30 min/día' },
+      { nombre: 'Losartán', indicacion: 'Dosis, vía y frecuencia por confirmar con el médico.' },
     ],
     folio: 'RX-DEMO-A1',
   },
@@ -66,16 +67,13 @@ export const DEMO_ESCENARIOS: DemoEscenario[] = [
       'Impresión de faringoamigdalitis probablemente bacteriana; inicio antibiótico y sintomático.',
     ],
     nota: [
-      { seccion: 'Subjetivo', texto: 'Masculino de 38 años con odinofagia de 2 días, fiebre 38.5 °C y disfagia. Sin tos.' },
-      { seccion: 'Objetivo', texto: 'Faringe hiperémica con exudado amigdalino bilateral. Adenopatías cervicales anteriores dolorosas.' },
-      { seccion: 'Análisis', texto: 'Faringoamigdalitis aguda, criterios de Centor sugerentes de etiología bacteriana (J03.9).' },
-      { seccion: 'Plan', texto: 'Amoxicilina 500 mg c/8 h por 7 días. Paracetamol para fiebre/dolor. Reposo e hidratación. Signos de alarma explicados.' },
+      { seccion: 'Subjetivo', texto: 'Masculino de 38 años con odinofagia de 2 días, fiebre referida de 38.5 °C y dificultad para deglutir.' },
+      { seccion: 'Objetivo', texto: 'Faringe hiperémica con exudado amigdalino. Adenopatías cervicales dolorosas.' },
+      { seccion: 'Análisis', texto: 'Impresión dictada: faringoamigdalitis probablemente bacteriana.' },
+      { seccion: 'Plan', texto: 'Se dicta inicio de antibiótico y tratamiento sintomático, sin identificar fármacos ni esquemas. Por confirmar con el médico antes de emitir la receta.' },
     ],
-    diagnostico: 'Faringoamigdalitis aguda (J03.9)',
-    medicamentos: [
-      { nombre: 'Amoxicilina 500 mg', indicacion: '1 cápsula cada 8 horas por 7 días' },
-      { nombre: 'Paracetamol 500 mg', indicacion: '1 tableta cada 8 horas si fiebre o dolor' },
-    ],
+    diagnostico: 'Faringoamigdalitis probablemente bacteriana',
+    medicamentos: [],
     folio: 'RX-DEMO-B2',
   },
 ]

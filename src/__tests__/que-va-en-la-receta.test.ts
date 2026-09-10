@@ -199,7 +199,9 @@ describe('está conectado de verdad', () => {
     const src = readFileSync(join(process.cwd(),
       'src/app/(dashboard)/consulta/[patientId]/page.tsx'), 'utf8')
     expect(src).toContain('fusionarMedicamentos({')
-    expect(src).toContain('medDeLaIaRef.current = nuevosMed')
+    // REG-660: guardar el crudo pierde la normalización y el completado de
+    // duplicados. La procedencia recuerda la salida de la frontera canónica.
+    expect(src).toContain('medDeLaIaRef.current = medDeEstePase')
     // Todo lote automático atraviesa fusionarMedicamentos antes de tocar estado.
     expect(src).toContain('setMedicamentos(prev => fusionarMedicamentos({')
     // Y no queda ningún resto del `[...prev, ...nuevos]` que acumulaba.

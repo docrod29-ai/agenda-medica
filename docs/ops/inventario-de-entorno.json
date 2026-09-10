@@ -517,6 +517,7 @@
       "defectoLiteral": null,
       "defectoDe": null,
       "archivos": [
+        "src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
         "src/app/api/cron/asientos/route.ts",
         "src/app/api/cron/limpiar-audio/route.ts",
         "src/app/api/cron/reminders/route.ts",

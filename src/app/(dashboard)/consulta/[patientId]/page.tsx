@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
+import { ConsultaWorkspace } from '@/components/consulta/ConsultaWorkspace'
+import { CONSULTA_WORKSPACE } from '@/components/consulta/consulta-workspace-textos'
+import workspaceStyles from '@/components/consulta/consulta-workspace.module.css'
 import { labsDesdeEstudios } from '@/lib/expediente/labs-desde-texto'
 import { formatDateMX } from '@/lib/availability'
 import { conViaAsumida, avisoDeViaAsumida } from '@/lib/expediente/via-asumida'
@@ -514,10 +517,11 @@ export default function ConsultaActivaPage() {
   // y marca para AUTO-PROCESAR (un toque menos: grabar → detener → nota lista).
   const autoProcRef = useRef(false)
   /**
-   * LO QUE LA IA PUSO EN LA PASADA ANTERIOR.
+   * LO QUE LA FRONTERA CANÓNICA DEJÓ DEL LOTE IA ANTERIOR (REG-660).
    *
    * Es lo único que permite distinguir sus diagnósticos de los que escribió el
-   * médico — y por tanto lo único que hace seguro SUSTITUIR en vez de acumular.
+   * médico — y por tanto lo que permite SUSTITUIR sin borrar sus ediciones.
+   * Guarda la salida normalizada/deduplicada, nunca la propuesta cruda.
    *
    * Sin esto, el pase en vivo (cada 15 s, ~40 por consulta) sumaba una tanda
    * entera cada vez, con la IA redactando distinto en cada pasada. Así se
@@ -2712,7 +2716,7 @@ export default function ConsultaActivaPage() {
     // Una nota firmada es inmutable. El atajo de teclado no comprobaba esto y
     // reescribía en pantalla el contenido de una nota ya firmada: lo que se veía
     // dejaba de coincidir con lo almacenado y con lo que se entregó al paciente.
-    if (firmadaRef.current) return
+    if (firmadaRef.current || descartadaRef.current) return
     // enVivo = estructuración EN TIEMPO REAL mientras se graba (silenciosa, sin
     // toasts ni reset de aprobaciones; la nota se va armando sola).
     const enVivo = opts?.enVivo === true
@@ -2776,6 +2780,11 @@ export default function ConsultaActivaPage() {
         }),
       })
       const data = await res.json().catch(() => null)
+      // La respuesta puede llegar tras descartar o firmar mientras esperaba la red.
+      if (descartadaRef.current || firmadaRef.current) {
+        if (!enVivo && !descartadaRef.current) setTareaProc({ ejecutando: false })
+        return
+      }
       if (!data) { if (!enVivo) { toast(comoSeDegrada('ia_respuesta_ilegible').mensaje, 'error'); setTareaProc({ ejecutando: false }) } return }
       if (!data.ok) {
         if (!enVivo) {
@@ -2798,8 +2807,8 @@ export default function ConsultaActivaPage() {
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
-      // REGLA ANTI-PÉRDIDA: en un "Procesar con IA" normal SOLO se sobreescribe lo
-      // que la IA realmente devolvió; NUNCA se borra lo que ya había. Solo al
+      // REGLA ANTI-PÉRDIDA: sólo se sustituye lo que la IA devolvió explícitamente.
+      // Una lista vacía retira lo automático intacto, no las ediciones médicas. Al
       // RE-PROYECTAR a otra modalidad (tipoOverride) se parte de plantilla limpia.
       const esPreop = tipoActivo === 'valoracion_preoperatoria'
 
@@ -2898,53 +2907,34 @@ export default function ConsultaActivaPage() {
       // Queda anotado qué dejó la IA, para que el próximo pase sepa qué es suyo.
       seccionesDeLaIaRef.current = { ...seccionesDeLaIaRef.current, ...loQueEscribeLaIa }
 
-      const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => d.descripcion) : []
-      if (tipoOverride) {
-        // GP6: re-proyección cruza la frontera canónica; sugerir no confirma ni codifica.
-        setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
-        dxDeLaIaRef.current = nuevosDx
-      } else if (nuevosDx.length > 0) {
-        /**
-         * FUSIÓN CON PROCEDENCIA — no acumula, y sigue sin borrar lo del médico.
-         *
-         * La versión anterior concatenaba y sólo descartaba el repetido si el
-         * texto era IDÉNTICO letra por letra. Con el pase en vivo disparando
-         * cada 15 s y la IA redactando distinto cada vez, una consulta acababa
-         * con 19 diagnósticos y tres redacciones del mismo código.
-         *
-         * Ahora se sustituye SÓLO lo que la IA puso en su pasada anterior, se
-         * conserva siempre lo que escribió el médico, y se deduplica por CIE-10
-         * cuando lo hay — que es para lo que existe el código.
-         */
-        setDiagnosticos(prev => fusionarDiagnosticos({
-          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+      const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter((d: Diagnostico) => typeof d?.descripcion === 'string' && d.descripcion.trim()) : []
+      const dxValidos = Array.isArray(data.diagnosticos) && nuevosDx.length === data.diagnosticos.length
+      if (tipoOverride || (dxValidos && (!data.fallbackLocal || nuevosDx.length > 0))) {
+        // REG-660: [] es una retirada explícita; omisión/fallo local no lo son.
+        // Capturar ANTES del setter: React puede ejecutarlo tras avanzar la ref.
+        const dxAnteriores = dxDeLaIaRef.current
+        const dxDeEstePase = fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] })
+        if (tipoOverride) setDiagnosticos(dxDeEstePase)
+        else setDiagnosticos(prev => fusionarDiagnosticos({
+          previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxAnteriores,
         }))
-        dxDeLaIaRef.current = nuevosDx
+        // La procedencia recuerda lo que realmente entró por GP6, sin CIE
+        // automático ni definitivo y con los duplicados resueltos.
+        dxDeLaIaRef.current = dxDeEstePase
       }
 
-      const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => m.nombre) : []
-      if (tipoOverride) {
-        // GP6/GP5: re-proyectar no convierte extracción automática en prescripción.
-        setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
-        medDeLaIaRef.current = nuevosMed
-      } else if (nuevosMed.length > 0) {
-        /**
-         * FUSIÓN CON PROCEDENCIA — la lista deja de acumular.
-         *
-         * Antes hacía `[...previos, ...nuevos]` y sólo descartaba el repetido si
-         * el nombre coincidía letra por letra. Con el pase en vivo corriendo
-         * cada 15 s, lo que se dictó al recabar ANTECEDENTES en el minuto dos
-         * («toma metformina y losartán») se quedaba en la lista para siempre —
-         * y esa lista es la que se imprime en la receta.
-         *
-         * Es el mismo arreglo que ya tenían los diagnósticos, y que a los
-         * medicamentos nunca se les aplicó: se sustituye SÓLO lo que la IA puso
-         * en su pasada anterior y se conserva siempre lo que escribió el médico.
-         */
-        setMedicamentos(prev => fusionarMedicamentos({
-          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+      const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter((m: Medicamento) => typeof m?.nombre === 'string' && m.nombre.trim()) : []
+      const medValidos = Array.isArray(data.medicamentos) && nuevosMed.length === data.medicamentos.length
+      if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
+        const medAnteriores = medDeLaIaRef.current
+        const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
+        if (tipoOverride) setMedicamentos(medDeEstePase)
+        else setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
         }))
-        medDeLaIaRef.current = nuevosMed
+        // GP5 también normaliza estado y combina duplicados; el lote crudo no
+        // permite reconocer después ese renglón compuesto como automático.
+        medDeLaIaRef.current = medDeEstePase
       }
 
       if (data.signosVitales) {
@@ -3042,7 +3032,7 @@ export default function ConsultaActivaPage() {
         setTareaProc({ ejecutando: false, resultado: { data: data as Record<string, unknown>, tipoActivo, tipoOverride: !!tipoOverride, ts, notaId: notaIdRef.current } })
       }
     } catch {
-      if (!enVivo) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
+      if (!enVivo && !descartadaRef.current) { toast(comoSeDegrada('ia_red').mensaje, 'error'); setTareaProc({ ejecutando: false }) }
     } finally {
       if (enVivo) { vivoRef.current = false; setEstructurandoVivo(false) }
       else setProcesando(false)
@@ -3092,7 +3082,7 @@ export default function ConsultaActivaPage() {
      *     los medicamentos de la consulta ANTERIOR dentro de la nota nueva y
      *     vacía. Sin más aviso que un toast que sonaba a buena noticia.
      */
-    if (firmadaRef.current) return
+    if (firmadaRef.current || descartadaRef.current) return
     if ((r.notaId ?? null) !== (notaIdRef.current ?? null)) {
       setTareaProc({ ejecutando: false })   // era de otra nota: se descarta
       return
@@ -3115,28 +3105,28 @@ export default function ConsultaActivaPage() {
         return v ? { ...s, value: sanitizarProsa(v) } : s
       })
     })
-    const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => d.descripcion) : []
-    if (tipoOverride) {
-      setDiagnosticos(fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] }))
-      dxDeLaIaRef.current = nuevosDx
-    } else if (nuevosDx.length > 0) {
-      // El mismo motor que arriba: dos sitios con la misma regla, no dos reglas.
-      setDiagnosticos(prev => fusionarDiagnosticos({
-        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxDeLaIaRef.current,
+    const nuevosDx = Array.isArray(data.diagnosticos) ? data.diagnosticos.filter(d => typeof d?.descripcion === 'string' && d.descripcion.trim()) : []
+    const dxValidos = Array.isArray(data.diagnosticos) && nuevosDx.length === data.diagnosticos.length
+    if (tipoOverride || (dxValidos && (!data.fallbackLocal || nuevosDx.length > 0))) {
+      // Misma frontera y mismo snapshot que en primer plano (REG-660).
+      const dxAnteriores = dxDeLaIaRef.current
+      const dxDeEstePase = fusionarDiagnosticos({ previos: [], nuevos: nuevosDx, deLaIaAnterior: [] })
+      if (tipoOverride) setDiagnosticos(dxDeEstePase)
+      else setDiagnosticos(prev => fusionarDiagnosticos({
+        previos: prev, nuevos: nuevosDx, deLaIaAnterior: dxAnteriores,
       }))
-      dxDeLaIaRef.current = nuevosDx
+      dxDeLaIaRef.current = dxDeEstePase
     }
-    const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => m.nombre) : []
-    if (tipoOverride) {
-      setMedicamentos(fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] }))
-      medDeLaIaRef.current = nuevosMed
-    } else if (nuevosMed.length > 0) {
-      // Mismo criterio que el camino de primer plano: se sustituye lo de la IA,
-      // se conserva lo del médico. Ver `fusionarMedicamentos`.
-      setMedicamentos(prev => fusionarMedicamentos({
-        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medDeLaIaRef.current,
+    const nuevosMed = Array.isArray(data.medicamentos) ? data.medicamentos.filter(m => typeof m?.nombre === 'string' && m.nombre.trim()) : []
+    const medValidos = Array.isArray(data.medicamentos) && nuevosMed.length === data.medicamentos.length
+    if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
+      const medAnteriores = medDeLaIaRef.current
+      const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
+      if (tipoOverride) setMedicamentos(medDeEstePase)
+      else setMedicamentos(prev => fusionarMedicamentos({
+        previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
       }))
-      medDeLaIaRef.current = nuevosMed
+      medDeLaIaRef.current = medDeEstePase
     }
     if (data.signosVitales) {
       const sv = data.signosVitales
@@ -3549,6 +3539,8 @@ export default function ConsultaActivaPage() {
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
+      // REG-667: pudo descartarse mientras esperaba otro autoguardado.
+      if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
         const nota = construirNota('borrador')
@@ -3674,13 +3666,18 @@ export default function ConsultaActivaPage() {
       // notaIdRef y NO el estado: si un autoguardado acaba de crear la nota, el
       // estado todavía no se re-renderizó y se saltaba el borrado, dejando una
       // nota huérfana en el expediente. firmar() ya usaba la ref por esto mismo.
-      const idReal = notaIdRef.current ?? notaId
       /**
        * Se marca ANTES de borrar, no después: entre el borrado y la navegación
        * cabe un autoguardado de la cadena, y ése es justo el que resucitaría la
        * consulta.
        */
       descartadaRef.current = true
+      // Una creación en vuelo puede obtener su id después de pulsar descartar.
+      await cadenaGuardadoRef.current
+      // El finally del guardado anterior pudo liberar el indicador.
+      setGuardando(true)
+      const idReal = notaIdRef.current ?? notaId
+      setTareaProc({ ejecutando: false })
       if (clinicId && idReal) {
         await deleteNota(clinicId, patientId, idReal)
       }
@@ -3707,7 +3704,7 @@ export default function ConsultaActivaPage() {
     // respaldoKey depende del episodio (internamientoActivo); si se omitía, al
     // cambiar de episodio el callback conservaba la llave VIEJA y borraba el
     // respaldo del episodio equivocado (dejando el actual vivo, y viceversa).
-  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA])
+  }, [firmada, clinicId, notaId, patientId, router, toast, confirm, respaldoKey, borradorMem, audio, volverA, setTareaProc])
 
   // ── Autoguardado cada 30s ──────────────────────────────────────
   // La función real se guarda en un ref que se refresca en CADA render con los
@@ -4615,6 +4612,7 @@ export default function ConsultaActivaPage() {
         setNotaId(nuevo)
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
+      firmadaRef.current = true
       setFirmada(true)
       /**
        * V15-NOTE-PLAN-CONTINUITY-001 (Fase 8, segunda rebanada) — LA URL TIENE
@@ -4936,7 +4934,7 @@ export default function ConsultaActivaPage() {
   // el cambio pedido. Guarda un snapshot para poder deshacer.
   const corregirConIA = async () => {
     const instr = instruccionCorr.trim()
-    if (!instr || corrigiendo || firmada) return
+    if (!instr || corrigiendo || firmada || firmadaRef.current || descartadaRef.current) return
     setChatCorr(c => [...c, { rol: 'user', texto: instr }])
     setInstruccionCorr('')
     setCorrigiendo(true)
@@ -4961,6 +4959,8 @@ export default function ConsultaActivaPage() {
         body: JSON.stringify({ nota, instruccion: instr, contexto: { edad: patient?.edad, sexo: patient?.sexo } }),
       })
       const data = await res.json().catch(() => null)
+      // REG-666: el cierre pudo ocurrir durante fetch o durante la lectura del cuerpo.
+      if (firmadaRef.current || descartadaRef.current) return
       if (!data?.ok) { setChatCorr(c => [...c, { rol: 'ia', texto: data?.error || 'No pude aplicar el cambio. Reformúlalo.' }]); setSnapshotUndo(null); return }
       // Aplicar la nota corregida.
       if (typeof data.resumenEjecutivo === 'string') setResumen(sanitizarProsa(data.resumenEjecutivo))
@@ -5006,11 +5006,12 @@ export default function ConsultaActivaPage() {
       setChatCorr(c => [...c, { rol: 'ia', texto: '✓ Listo, apliqué el cambio. Revisa la nota (puedes deshacer).' }])
       if (aviso) setChatCorr(c => [...c, { rol: 'ia', texto: `⚠ ${aviso}` }])
     } catch {
+      if (firmadaRef.current || descartadaRef.current) return
       setChatCorr(c => [...c, { rol: 'ia', texto: 'Sin conexión. Intenta de nuevo.' }]); setSnapshotUndo(null)
     } finally { setCorrigiendo(false) }
   }
   const deshacerCorreccion = () => {
-    if (!snapshotUndo) return
+    if (!snapshotUndo || firmadaRef.current || descartadaRef.current) return
     setResumen(snapshotUndo.resumen); setSecciones(snapshotUndo.secciones)
     setDiagnosticos(snapshotUndo.diagnosticos); setMedicamentos(snapshotUndo.medicamentos); setSignos(snapshotUndo.signos)
     setSnapshotUndo(null)
@@ -5094,7 +5095,7 @@ export default function ConsultaActivaPage() {
   const segundosVivo = voz.duracion
 
   return (
-    <div className="nx-canvas">
+    <div className={`nx-canvas ${workspaceStyles.canvas}`}>
       <button onClick={volverAtras} className="nx-acc-plana" style={S.back}>
         <ArrowLeft size={15} /> {esNotaHospital ? 'Volver al episodio' : 'Expediente'}
       </button>
@@ -5190,6 +5191,7 @@ export default function ConsultaActivaPage() {
         {firmada && <span style={S.firmadaBadge}><CheckCircle2 size={14} /> Nota firmada</span>}
       </div>
 
+      <ConsultaWorkspace firmada={firmada} contexto={<>
       {/* Alergias — SIEMPRE visible y EDITABLE (el Dr. reportó que no había dónde
           ponerlas). Se guarda en el expediente del paciente y alimenta las alertas
           de fármaco. Rojo cuando hay alergias; neutro cuando no.
@@ -5647,6 +5649,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      </>} nota={<>
       {/* Aviso de contexto: esta nota pertenece a un episodio de HOSPITAL, no a consulta */}
       {esNotaHospital && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '9px 13px', borderRadius: 10, background: 'var(--nexus-tenue)', border: '1px solid var(--nexus-borde)', fontSize: 12, color: 'var(--text2)' }}>
@@ -6516,8 +6519,8 @@ export default function ConsultaActivaPage() {
       {/* ── Resumen ejecutivo ── */}
       {resumen && (
         <div style={S.resumen}>
-          <Sparkles size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: 'italic' }}>{resumen}</span>
+          <FileText size={14} color="var(--teal)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.75 }}>{resumen}</span>
         </div>
       )}
 
@@ -7654,7 +7657,7 @@ export default function ConsultaActivaPage() {
           anuncia el lector. La fila no cambia de forma.
         */}
         {filasDeReceta.length > 0 && (
-          <div aria-hidden="true" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
+          <div aria-hidden="true" className="nx-med-cabecera" style={{ ...S.row, flexWrap: 'wrap', fontSize: 10.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.02em', textTransform: 'uppercase', paddingBottom: 2 }}>
             <span style={{ flex: 2, minWidth: 120 }}>Medicamento</span>
             <span style={{ flex: 1, minWidth: 70 }}>Dosis</span>
             <span style={{ flex: 1, minWidth: 92 }}>Vía</span>
@@ -7663,7 +7666,7 @@ export default function ConsultaActivaPage() {
           </div>
         )}
         {filasDeReceta.map(({ m, i }) => (
-          <div key={i} style={{ ...S.row, flexWrap: 'wrap' }}>
+          <div key={i} className="nx-med-fila" style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
               aria-label={`Medicamento ${i + 1}`}
               onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
@@ -7780,6 +7783,7 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      </>} asistente={<>
       {/*
         ── COPILOTO, JUNTO A LO QUE YA SE CAPTURÓ (§8.8, 11-ago-2026) ─────────
         Vivía arriba, antes de Secciones narrativas/Diagnósticos/Medicamentos:
@@ -7819,6 +7823,59 @@ export default function ConsultaActivaPage() {
             <PanelRazonamiento entrada={entradaCopiloto} embebido />
           </div>
         </details>
+      )}
+
+      {!(diagnosticos.length || medicamentos.length || resumen || Object.keys(signosNum).length) && (
+        <p className={workspaceStyles.empty}>{CONSULTA_WORKSPACE.sinCaptura}</p>
+      )}
+
+      {/*
+        ── EL CHAT DE CORRECCIÓN Y LAS HERRAMIENTAS VIVEN EN EL ASISTENTE ──────
+        (relevo del PR #478, 10-sep-2026). Con tres áreas en escritorio, la
+        columna del asistente quedaba vacía debajo de dos tarjetas mientras
+        estos dos bloques —que son apoyo, no nota— seguían dentro de la
+        columna de la nota. Se mudan aquí; en teléfono y tableta el orden del
+        documento no cambia: siguen detrás de la nota y delante de firmar.
+      */}
+      {/* ── Chat de corrección por IA ── */}
+      {!firmada && (
+        <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+            <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
+            Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
+          </div>
+          {chatCorr.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
+              {chatCorr.map((m, i) => (
+                <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
+                  {m.texto}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Envuelve: en la columna del asistente (~300 px) el botón se salía del recuadro. */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              value={instruccionCorr}
+              onChange={e => setInstruccionCorr(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
+              placeholder="Escribe la corrección…"
+              aria-label="Corrección para la nota"
+              disabled={corrigiendo}
+              style={{ flex: '1 1 160px', minWidth: 0, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
+            />
+            {snapshotUndo && (
+              <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+                ↩ Deshacer
+              </button>
+            )}
+            <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
+            </button>
+          </div>
+        </div>
       )}
 
       {/*
@@ -7949,50 +8006,11 @@ export default function ConsultaActivaPage() {
         const idsVisibles = new Set(visibles.map(h => h.id))
         return { items: visibles, ocultas: TODAS.filter(h => !idsVisibles.has(h.id)) }
       })()} />
+      </>}>
 
       {/* ── Validación + Acciones ── */}
       {!firmada && (
         <>
-          {/* ── Chat de corrección por IA ── */}
-          {!firmada && (
-            <div style={{ marginTop: 18, border: '1px solid var(--nexus-borde)', borderRadius: 14, background: 'var(--nexus-tenue)', padding: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
-                <Sparkles size={15} style={{ color: 'var(--nexus)' }} /> Corregir por chat
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 3, marginBottom: 10 }}>
-                Escribe qué está mal y lo corrijo al instante, sin tocar lo demás. Ej: “la dosis de amoxicilina es 500 mg”, “quita la diabetes”, “el Dx correcto es apendicitis”.
-              </div>
-              {chatCorr.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', marginBottom: 10 }}>
-                  {chatCorr.map((m, i) => (
-                    <div key={i} style={{ alignSelf: m.rol === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%', fontSize: 12.5, padding: '7px 11px', borderRadius: 10, background: m.rol === 'user' ? 'var(--nexus-solido)' : 'var(--s2)', color: m.rol === 'user' ? '#fff' : 'var(--text)' }}>
-                      {m.texto}
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  value={instruccionCorr}
-                  onChange={e => setInstruccionCorr(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); corregirConIA() } }}
-                  placeholder="Escribe la corrección…"
-                  aria-label="Corrección para la nota"
-                  disabled={corrigiendo}
-                  style={{ flex: 1, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, color: 'var(--text)' }}
-                />
-                {snapshotUndo && (
-                  <button onClick={deshacerCorreccion} title="Deshacer el último cambio" className="nx-acc-caja" style={{ border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-                    ↩ Deshacer
-                  </button>
-                )}
-                <button onClick={corregirConIA} disabled={corrigiendo || !instruccionCorr.trim()} className="nx-acc-fuerte" style={{ color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontSize: 13.5, fontWeight: 700, cursor: (corrigiendo || !instruccionCorr.trim()) ? 'default' : 'pointer', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {corrigiendo ? <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Corrigiendo…</> : 'Corregir'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {validacion.errores.length > 0 && (
             <div style={S.valBox('error')}>
               {validacion.errores.map((e, i) => <div key={i} style={{ display: 'flex', gap: 6 }}><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} /> {e}</div>)}
@@ -8148,6 +8166,7 @@ export default function ConsultaActivaPage() {
         </>
       )}
 
+      </ConsultaWorkspace>
       {/*
         V15-MOBILE-001 (Fase 9, §22): el cierre, al alcance del pulgar. La
         radiografía móvil midió «Firmar» a ~2,900px de scroll a 390×844 — el
@@ -8366,4 +8385,3 @@ export default function ConsultaActivaPage() {
     </div>
   )
 }
-

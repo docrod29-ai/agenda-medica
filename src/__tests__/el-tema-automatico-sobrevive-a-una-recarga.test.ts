@@ -82,8 +82,8 @@ describe('el guion del <head> y el hook deciden lo mismo', () => {
     ['light', 'light'],
     ['dark', 'dark'],
     ['auto', null],          // sin atributo → manda prefers-color-scheme
-    [null, 'dark'],          // nunca eligió → la marca es oscura
-    ['basura', 'dark'],      // valor corrupto → la marca es oscura
+    [null, 'light'],         // decisión del dueño, 9-sep-2026: claro inicial
+    ['basura', 'light'],     // valor corrupto → valor de fábrica
   ]
 
   for (const [guardado, esperado] of CASOS) {
@@ -93,7 +93,7 @@ describe('el guion del <head> y el hook deciden lo mismo', () => {
     })
   }
 
-  it('si localStorage lanza, pinta oscuro y no rompe la página', () => {
+  it('si localStorage lanza, pinta claro y no rompe la página', () => {
     // Modo privado, cookies bloqueadas: no hay preferencia que respetar.
     let atributo: string | null = null
     const documento = {
@@ -104,7 +104,7 @@ describe('el guion del <head> y el hook deciden lo mismo', () => {
     }
     const almacen = { getItem: () => { throw new Error('bloqueado') } }
     expect(() => new Function('document', 'localStorage', GUION_TEMA)(documento, almacen)).not.toThrow()
-    expect(atributo).toBe('dark')
+    expect(atributo).toBe('light')
   })
 })
 
@@ -121,7 +121,7 @@ describe('«automático» se escribe, no se borra', () => {
   it('lo guardado como «auto» se relee como «auto»', () => {
     // El caso exacto que se perdía en la recarga.
     expect(modoGuardado('auto')).toBe('auto')
-    expect(modoGuardado(null)).toBe('dark')
+    expect(modoGuardado(null)).toBe('light')
   })
 
   it('el ciclo sigue pasando por los tres modos', () => {

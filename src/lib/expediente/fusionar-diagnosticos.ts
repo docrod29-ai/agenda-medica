@@ -28,6 +28,7 @@
  */
 import type { Diagnostico } from '@/types/expediente'
 import { estaVigente } from './problemas-activos'
+import { ordenEstable } from './integrity'
 
 /** Normaliza para comparar: sin acentos, sin plurales obvios, sin relleno. */
 function clave(texto: string): string {
@@ -167,7 +168,7 @@ export interface FusionDeDiagnosticos {
   previos: readonly Diagnostico[]
   /** Lo que la IA acaba de producir. */
   nuevos: readonly Diagnostico[]
-  /** Lo que la IA produjo en la pasada ANTERIOR. */
+  /** Lote anterior tras la frontera canónica: deduplicado y no confirmado. */
   deLaIaAnterior?: readonly Diagnostico[]
 }
 
@@ -185,11 +186,12 @@ export interface FusionDeDiagnosticos {
 export function fusionarDiagnosticos(p: FusionDeDiagnosticos): Diagnostico[] {
   const previos = p.previos ?? []
   const nuevos = (p.nuevos ?? []).filter(d => d?.descripcion?.trim())
-  const anteriores = p.deLaIaAnterior ?? []
-
-  const delMedico = anteriores.length
-    ? previos.filter(d => !anteriores.some(a => esElMismo(a, d)))
-    : previos
+  // REG-660: el mismo diagnóstico no implica la misma autoría. Comparar todo
+  // el contenido protege CIE, tipo, estado y texto editados. La ref del llamador
+  // guarda el lote ya normalizado, nunca el CIE/definitivo crudo del proveedor.
+  const anteriores = new Set((p.deLaIaAnterior ?? []).map(d => JSON.stringify(ordenEstable(d))))
+  const delMedico = previos.filter(d => d.tipoOrigen === 'medico'
+    || !anteriores.has(JSON.stringify(ordenEstable(d))))
 
   // Primero deduplicar lo del médico sin cambiar su certeza ni su codificación.
   const out: Diagnostico[] = []

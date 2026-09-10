@@ -75,6 +75,9 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
       <header style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
         borderBottom: '1px solid var(--border)',
+        // En una columna de ~600 px (consulta de tres áreas) la cabecera
+        // envuelve; sin esto los botones se partían letra por letra.
+        flexWrap: 'wrap',
       }}>
         {/* h2, no span: la hoja es una sección mayor del lienzo de consulta y
             su título entra al esquema de encabezados (h1 paciente → h2 sección
@@ -88,7 +91,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
           en sus palabras, sin nada que usted no haya escrito
         </span>
 
-        <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="no-print" style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexShrink: 0 }}>
           <button
             onClick={copiar}
             style={{
@@ -96,6 +99,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
               padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
               border: '1px solid var(--border)', cursor: 'pointer',
+              whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             {copiado ? <ClipboardCheck size={14} /> : <Copy size={14} />}
@@ -109,6 +113,7 @@ export function HojaParaElPaciente(p: HojaParaElPacienteProps) {
               padding: '7px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600,
               background: 'var(--s3)', color: 'var(--text)',
               border: '1px solid var(--border)', cursor: 'pointer',
+              whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             <Printer size={14} /> Imprimir

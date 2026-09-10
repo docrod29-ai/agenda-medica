@@ -25,9 +25,9 @@
  *
  * ── LO QUE **NO** CAMBIA ─────────────────────────────────────────────────────
  *
- * El valor de fábrica sigue siendo **oscuro**: es la identidad de la marca y
- * es una decisión de producto, no un accidente. Lo que cambia es que ahora
- * «automático» se escribe, en vez de representarse con un hueco.
+ * El dueño eligió **claro** de fábrica el 9-sep-2026. Se conservan las
+ * preferencias explícitas, incluido «automático», que se escribe en vez de
+ * representarse con un hueco.
  *
  * La llave `nexusmed.theme` NO se renombra: está declarada en
  * `NO_SE_RENOMBRAN` de `marca.ts` — renombrarla le borra al médico su
@@ -49,15 +49,15 @@ export const EVENTO_TEMA = 'nx:tema'
  * a `prefers-color-scheme` en `globals.css`.
  */
 export function atributoDeTema(guardado: string | null | undefined): 'dark' | 'light' | null {
-  if (guardado === 'light') return 'light'
+  if (guardado === 'dark') return 'dark'
   if (guardado === 'auto') return null
-  // 'dark', un valor corrupto, o nunca eligió: la marca es oscura.
-  return 'dark'
+  // Claro inicial; una elección explícita de oscuro/auto tiene precedencia.
+  return 'light'
 }
 
 /** El modo que el control tiene que enseñar según lo guardado. */
 export function modoGuardado(guardado: string | null | undefined): ModoTema {
-  return guardado === 'light' ? 'light' : guardado === 'auto' ? 'auto' : 'dark'
+  return guardado === 'dark' ? 'dark' : guardado === 'auto' ? 'auto' : 'light'
 }
 
 /**
@@ -67,7 +67,7 @@ export function modoGuardado(guardado: string | null | undefined): ModoTema {
  * los dos lectores se desfasaron la primera vez. Va en ES5 y sin dependencias:
  * corre en línea en el `<head>`, antes de que exista ningún bundle.
  *
- * El `catch` pinta oscuro: si `localStorage` no se puede leer (modo privado,
+ * El `catch` pinta claro: si `localStorage` no se puede leer (modo privado,
  * cookies bloqueadas) no hay preferencia que respetar, y el valor de fábrica
  * es el de la marca.
  */
@@ -75,8 +75,8 @@ export const GUION_TEMA = `(function(){
   try{
     var t = localStorage.getItem('${LLAVE_TEMA}');
     if (t === 'auto') { document.documentElement.removeAttribute('data-theme'); return; }
-    document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
   } catch(e){
-    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'light');
   }
 })();`

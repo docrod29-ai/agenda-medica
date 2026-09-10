@@ -619,7 +619,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * código no cumple es la contradicción más cara: quien la lee deja de
      * comprobar.
      */
-    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516, 532, 544, 545, 546, 569, 572, 576, 610, 611, 613, 614, 633, 637, 638, 653],
+    regs: [171, 179, 180, 189, 191, 194, 196, 199, 214, 217, 223, 226, 229, 234, 269, 270, 272, 273, 277, 278, 279, 285, 286, 291, 293, 298, 305, 307, 311, 312, 313, 314, 321, 322, 336, 338, 364, 372, 373, 374, 377, 403, 412, 417, 444, 516, 532, 544, 545, 546, 569, 572, 576, 610, 611, 613, 614, 633, 637, 638, 653, 656, 658],
   },
   {
     clave: 'habla_real',
@@ -984,7 +984,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hay edad» leído como «no es niño». El resultado se LEÍA bien: una receta
      * sin alertas.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 602, 606, 609, 616, 619, 622, 626, 627, 628, 649],
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 602, 606, 609, 616, 619, 622, 626, 627, 628, 649, 659, 661],
   },
   {
     clave: 'aislamiento',
@@ -1184,7 +1184,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665],
   },
   {
     clave: 'tarde',
@@ -1193,7 +1193,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
       'El aviso es correcto y aparece DESPUÉS del momento en que habría servido ' +
       '— casi siempre después de firmar. Un aviso tras la firma no es una ' +
       'protección: es un registro de que no la hubo.',
-    regs: [173, 190],
+    regs: [173, 190, 666, 667],
   },
   {
     clave: 'mensaje_miente',

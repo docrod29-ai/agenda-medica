@@ -3,6 +3,11 @@ import {
   DEMO_ESCENARIOS, DEMO_PASOS, siguientePaso, dictadoHasta, dictadoCompleto,
 } from '@/lib/demo-sandbox'
 
+/**
+ * Revisión visual de PR478: las notas preescritas añadían negaciones, dosis y
+ * conductas ausentes del dictado. Este golden comprueba ambos guiones concretos;
+ * NO evalúa transcripción, IA ni seguridad de recetas de producción.
+ */
 describe('demo-sandbox (motor del sandbox interactivo)', () => {
   it('los escenarios son ficticios: solo iniciales, nunca nombre completo real', () => {
     for (const e of DEMO_ESCENARIOS) {
@@ -12,11 +17,21 @@ describe('demo-sandbox (motor del sandbox interactivo)', () => {
     }
   })
 
-  it('cada escenario tiene nota S/O/A/P completa y al menos un medicamento', () => {
+  it('cada escenario conserva S/O/A/P y solo documenta lo dictado', () => {
     for (const e of DEMO_ESCENARIOS) {
       expect(e.nota.map(s => s.seccion)).toEqual(['Subjetivo', 'Objetivo', 'Análisis', 'Plan'])
-      expect(e.medicamentos.length).toBeGreaterThan(0)
       expect(e.dictado.length).toBeGreaterThan(0)
+      const salida = [...e.nota.map(s => s.texto), e.diagnostico,
+        ...e.medicamentos.flatMap(m => [m.nombre, m.indicacion])].join(' ')
+      // Ninguno de estos dos dictados indica posología ni estudios.
+      expect(salida).not.toMatch(/\b(?:mg|cápsula|tableta|Centor|I10|J03\.9)\b/i)
+      expect(salida).not.toMatch(/disnea|sin tos|bilateral|anteriores|resto de la exploración|4 semanas|30 min|signos de alarma explicados/i)
+      expect(salida).toMatch(/por confirmar con el médico/i)
+      if (e.cita.iniciales === 'J. R.') {
+        expect(salida).toContain('probablemente bacteriana')
+        expect(salida).not.toMatch(/amoxicilina|paracetamol/i)
+        expect(e.medicamentos).toEqual([])
+      }
     }
   })
 

@@ -79,6 +79,9 @@ import { join } from 'path'
 
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 const CSS = leer('src/app/globals.css')
+// Admite el modificador CSS Module de la consulta de tres áreas. El literal
+// nx-canvas sigue siendo obligatorio; ni el token ni el padding se sustituyen.
+const LIENZO = /className=(?:"nx-canvas\b|\{`nx-canvas\b)/
 
 /** Las seis que puntúa §29 — las que esta rebanada convierte. */
 const CONVERTIDAS = [
@@ -104,7 +107,7 @@ describe('RTC-12(a) — el lienzo de página', () => {
 
   it('2. las seis superficies de §29 entran por el lienzo compartido', () => {
     for (const p of CONVERTIDAS) {
-      expect(leer(p), `${p} no usa .nx-canvas`).toMatch(/className="nx-canvas/)
+      expect(leer(p), `${p} no usa .nx-canvas`).toMatch(LIENZO)
     }
   })
 
@@ -114,7 +117,9 @@ describe('RTC-12(a) — el lienzo de página', () => {
     // número se borra, no se acompaña.
     for (const p of CONVERTIDAS) {
       const src = leer(p)
-      const contenedor = src.slice(src.indexOf('className="nx-canvas'))
+      const inicio = src.search(LIENZO)
+      expect(inicio, `${p} perdió el lienzo compartido`).toBeGreaterThanOrEqual(0)
+      const contenedor = src.slice(inicio)
       const primerCierre = contenedor.indexOf('>')
       expect(
         contenedor.slice(0, primerCierre),

@@ -268,11 +268,9 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
   const [verificado, setVerificado] = useState(false)
   const [doc, setDoc] = useState<'receta' | 'orden'>('receta')
   const esReceta = doc === 'receta'
-  // Estudios ficticios para ilustrar la ORDEN médica (mismo flujo que la receta).
-  const estudios = ['Biometría hemática completa', 'Química sanguínea (glucosa, creatinina, PFH)', 'Examen general de orina', 'Proteína C reactiva']
   return (
     <div>
-      <Encabezado icono={FileText} titulo="Receta y orden médica" sub="Salen con tu formato, firma y un QR que verifica la integridad. Cambia entre receta y orden. (Documentos ficticios)" />
+      <Encabezado icono={FileText} titulo="Receta y orden médica" sub="Revisa lo dictado y los datos pendientes. Son borradores ficticios, sin firma ni validez clínica." />
       {/* Conmutador Receta / Orden */}
       <div style={{ display: 'inline-flex', gap: 4, margin: '16px 0 0', padding: 4, background: 'var(--s2)', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)' }}>
         {([['receta', 'Receta', FileText], ['orden', 'Orden médica', ClipboardList]] as const).map(([k, label, Icono]) => (
@@ -290,22 +288,18 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
             <div style={{ fontSize: 15, fontWeight: 800 }}>Dr. Nombre Apellido <span style={{ fontSize: 11, fontWeight: 500, color: '#6b7280' }}>(ficticio)</span></div>
             <div style={{ fontSize: 11.5, color: '#6b7280' }}>Medicina General · Céd. Prof. 0000000</div>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--nexus)', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Receta médica' : 'Orden de estudios'}</div>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', color: 'var(--nexus)', textTransform: 'uppercase', marginBottom: 8 }}>{esReceta ? 'Borrador de receta' : 'Borrador de orden'}</div>
+          <p style={{ fontSize: 12, lineHeight: 1.5 }}>Pendiente de revisión médica · no emitido</p>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}><strong>Paciente:</strong> {escenario.cita.iniciales} · {escenario.cita.sexo === 'F' ? 'F' : 'M'} {escenario.cita.edad} a · <strong>Folio:</strong> {escenario.folio}</div>
           <div style={{ fontSize: 12, color: '#374151', marginBottom: 12 }}><strong>Dx:</strong> {escenario.diagnostico}</div>
           {esReceta
-            ? escenario.medicamentos.map((m, i) => (
+            ? (escenario.medicamentos.length ? escenario.medicamentos.map((m, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <CheckCircle2 size={15} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
+                  <Info size={15} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
                   <span style={{ fontSize: 12.5 }}><strong>{m.nombre}</strong> — {m.indicacion}</span>
                 </div>
-              ))
-            : estudios.map((e, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                  <ClipboardList size={15} style={{ color: 'var(--nexus)', flexShrink: 0, marginTop: 1 }} />
-                  <span style={{ fontSize: 12.5 }}>{e}</span>
-                </div>
-              ))}
+              )) : <p style={{ fontSize: 12, lineHeight: 1.5 }}>No se identificaron fármacos en el dictado. Confirma con el médico el nombre y el esquema antes de emitir una receta.</p>)
+            : <p style={{ fontSize: 12.5, lineHeight: 1.5 }}>No se dictaron estudios. El médico debe indicarlos antes de emitir una orden.</p>}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
             <div style={{ width: 52, height: 52, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', fontSize: 9, color: '#6b7280', textAlign: 'center', lineHeight: 1.15, border: '1px solid #e5e7eb' }}>QR<br/>verif.</div>
           </div>
@@ -317,7 +311,7 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
           {!verificado ? (
             <>
               <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.55, marginTop: 0 }}>
-                Al escanear el QR, cualquiera puede comprobar que la receta se generó en Ausculta y no fue alterada.
+                Este botón muestra un ejemplo de verificación. No firma el borrador ni confirma que los datos clínicos estén completos.
               </p>
               <button onClick={() => setVerificado(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                 <ShieldCheck size={15} /> Simular escaneo del QR
@@ -326,15 +320,15 @@ function Receta({ escenario, onReiniciar, onOtro, onExplorar }: { escenario: Dem
           ) : (
             <div className="nx-fade">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', marginBottom: 10 }}>
-                <ShieldCheck size={20} /> <strong>Integridad verificada</strong>
+                <ShieldCheck size={20} /> <strong>Simulación de verificación</strong>
               </div>
-              {[['Documento', 'Generado por Ausculta'], ['Folio', escenario.folio], ['Estado', 'Vigente']].map(([k, v]) => (
+              {[['Documento', 'Ejemplo ficticio'], ['Folio', escenario.folio], ['Estado', 'Borrador no emitido']].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
                   <span style={{ color: 'var(--text3)' }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
                 </div>
               ))}
               <p style={{ fontSize: 11, color: 'var(--text3)', marginTop: 10, lineHeight: 1.5 }}>
-                La verificación confirma integridad; no sustituye los requisitos legales ni la validación de la cédula ante la autoridad.
+                Esta simulación no verifica un documento real. Los datos pendientes requieren revisión médica.
               </p>
             </div>
           )}

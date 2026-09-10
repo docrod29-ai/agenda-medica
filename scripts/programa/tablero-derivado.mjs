@@ -47,13 +47,19 @@ export const FIN = '<!-- CENSO-DERIVADO:FIN -->'
 const INTERNAMENTE_ACCIONABLES = ['NOT_STARTED', 'PARTIAL', 'PREPARED', 'IMPLEMENTED_NOT_PROVEN']
 
 export function censo() {
-  const salida = execFileSync('npx', ['tsx', '--eval', `
+  // El censo sólo usa tipos borrables; Node 22.18+ (como CI) puede leerlo
+  // sin descargar un ejecutor ni abrir el canal IPC del CLI de tsx.
+  const [major, minor] = process.versions.node.split('.').map(Number)
+  if (major < 22 || (major === 22 && minor < 18)) {
+    throw new Error('El censo de mantenimiento requiere Node 22.18 o posterior (igual que CI).')
+  }
+  const salida = execFileSync(process.execPath, ['--experimental-strip-types', '--input-type=module', '--eval', `
     import { REQUISITOS } from './src/lib/programa/requisitos.ts'
     process.stdout.write(JSON.stringify(REQUISITOS.map(r => ({
       id: r.id, ws: r.ws, estado: r.estado,
       desbloqueaCon: r.desbloqueaCon ?? null,
     }))))
-  `], { encoding: 'utf8' })
+  `], { encoding: 'utf8', timeout: 15_000 })
   return JSON.parse(salida)
 }
 

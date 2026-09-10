@@ -100,9 +100,9 @@ async function escribe(texto: string, de: string, clinicId = CLINICA) {
   const { handleMessage } = await import('@/app/api/whatsapp/webhook/route')
   await handleMessage(de, texto, clinicId)
 }
-async function ofrecer(clinicId = CLINICA, fecha = manana()) {
+async function ofrecer(clinicId = CLINICA, fecha = manana(), duracion = SLOT.duracion, medicoId = 'doc-1') {
   const { ofrecerHuecoLiberado } = await import('@/lib/whatsapp/ofrecer-hueco')
-  return ofrecerHuecoLiberado(clinicId, { fecha, hora: SLOT.hora, medicoId: 'doc-1', duracion: SLOT.duracion })
+  return ofrecerHuecoLiberado(clinicId, { fecha, hora: SLOT.hora, medicoId, duracion })
 }
 
 const citas = (c = CLINICA) => t.listar(`clinics/${c}/appointments`)
@@ -137,6 +137,32 @@ describe('lista de espera · la promoción es determinista', () => {
 })
 
 describe('lista de espera · un «SÍ» y una sola cita', () => {
+  // REG-665: el filtro usaba la duración, pero la aceptación siempre escribía
+  // 30 min. Ejecutamos oferta y webhook reales; no valida Meta ni reglas reales.
+  it.each([15, 45, 90])('conserva los %i minutos ofrecidos al aceptar', async duracion => {
+    ventanaAbierta(CLINICA, ANA)
+    enLista(CLINICA, 'w-ana', ANA, 'Ana Sintética', 1)
+    await ofrecer(CLINICA, manana(), duracion)
+    await escribe('si', ANA)
+    expect(citas()).toHaveLength(1)
+    expect(citas()[0].datos.duracion).toBe(duracion)
+  })
+
+  it('una oferta de 45 min no invade la cita que empieza a los 30 min', async () => {
+    ventanaAbierta(CLINICA, ANA)
+    enLista(CLINICA, 'w-ana', ANA, 'Ana Sintética', 1)
+    const fecha = manana()
+    await ofrecer(CLINICA, fecha, 45)
+    t.poner(`clinics/${CLINICA}/appointments/ocupada`, {
+      pacienteTelefono: BETO, fechaHora: `${fecha} 11:30`,
+      duracion: 30, medicoId: 'doc-1', estado: 'confirmada',
+    })
+    await escribe('si', ANA)
+    expect(citas()).toHaveLength(1)
+    expect(citas()[0].id).toBe('ocupada')
+    expect(para(ANA)).toContain('acaba de ocuparse')
+  })
+
   async function anaAceptaUnaVez() {
     ventanaAbierta(CLINICA, ANA)
     enLista(CLINICA, 'w-ana', ANA, 'Ana Sintética', 1)
@@ -281,6 +307,37 @@ describe('lista de espera · dos consultorios nunca se mezclan', () => {
 })
 
 describe('lista de espera · el proveedor caído no pierde el estado', () => {
+  it('el cron conserva médico, duración y fecha de contacto al reenviar', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-10T17:00:00Z'))
+    try {
+      ventanaAbierta(CLINICA, ANA)
+      enLista(CLINICA, 'w-ana', ANA, 'Ana Sintética', 1)
+      proveedor.caido = true
+      await ofrecer(CLINICA, manana(), 45, 'doc-2')
+      const salida = t.listar(`clinics/${CLINICA}/whatsapp_outbox`)[0]
+      expect(salida).toBeDefined()
+      t.poner(`clinics/${CLINICA}/whatsapp_outbox/${salida.id}`, {
+        ...salida.datos, proximoIntentoAt: '2026-09-10T16:00:00Z',
+      })
+      proveedor.caido = false
+      const { NextRequest } = await import('next/server')
+      const { GET } = await import('@/app/api/cron/reminders/route')
+      const response = await GET(new NextRequest('http://localhost/api/cron/reminders', {
+        headers: { authorization: `Bearer ${process.env.CRON_SECRET || ''}` },
+      }))
+      expect(response.status).toBe(200)
+      expect(await response.json()).toMatchObject({ sent: 1 })
+      const datos = sesiones()[0]?.datos.datos as Record<string, unknown>
+      expect(datos?.medicoId).toBe('doc-2')
+      expect(datos?.slotDuracion).toBe('45')
+      expect(lista()[0].datos.contactadoEn).toBe(new Date().toISOString())
+      await escribe('si', ANA)
+      expect(citas()[0]?.datos.duracion).toBe(45)
+      expect(citas()[0]?.datos.medicoId).toBe('doc-2')
+    } finally { vi.useRealTimers() }
+  })
+
   it('si el aviso no sale, la entrada NO queda marcada como contactada', async () => {
     ventanaAbierta(CLINICA, ANA)
     enLista(CLINICA, 'w-ana', ANA, 'Ana Sintética', 1)

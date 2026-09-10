@@ -6,8 +6,9 @@
 
 ## Punto de partida (heredado, validado)
 
-- Oscuro por defecto, superficies ink, cobalto `--nexus #3D5AFE` sólo para
-  acción/estado activo (`docs/DESIGN_SYSTEM.md` §2).
+- Claro por defecto por decisión explícita del dueño (9-sep-2026); conservar
+  oscuro y automático elegidos. Acento cian-petróleo semántico en `--nexus`,
+  con variantes por tema definidas en `src/app/globals.css`.
 - Geist Sans para UI; Fraunces sólo para momentos; números clínicos siempre
   tabulares.
 - Firmas de producto candidatas (V10 §17, §30): la **línea de tiempo
