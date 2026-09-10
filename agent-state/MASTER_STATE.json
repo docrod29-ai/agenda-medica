@@ -23,14 +23,9 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs",
-    " M src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts",
-    " M src/app/(dashboard)/calendario/page.tsx",
-    " M src/app/api/appointments/route.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -72,5 +67,5 @@
     "casosDePrueba": 13101,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1191"
+  "versionEnElRepo": "nexusmed-v1192"
 }

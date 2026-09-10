@@ -3891,3 +3891,33 @@ compartido y un guardián) y D-032 (la caja ámbar se retira; sólo la caja).
 
 Primer paquete de la sesión que sale de uso real en un aparato real. Ninguna de
 las cuatro la había cazado el arnés, que corre en Chromium a 390 px.
+
+## v1192 — 10-sep-2026
+
+Arrastrar una cita en el calendario, y las tres cosas que sólo se vieron
+**abriendo el navegador** con 14 500 pruebas en verde.
+
+- **REG-662** — arrastrar para mover, con el teclado desde el primer minuto
+  (flechas ±5 min, Shift ±60, mismo guardián y mismo paso que el ratón). Al
+  soltar, la hora imanta a las aristas del motor: donde termina la cita anterior
+  o donde ésta acabaría clavada contra la siguiente. Dentro venían dos defectos
+  que ningún diff enseña: `stopPropagation` sobre `pointerup` **no cancela el
+  `click`**, así que soltar abría «Editar cita» encima del aviso de choque; y la
+  hora del fantasma caía ilegible sobre el nombre de la cita de debajo. Y un
+  tercero, medido con un teléfono emulado: **con el dedo el gesto se moría a
+  medias, en silencio** — el navegador se queda con el desplazamiento y manda
+  `pointercancel`. El arrastre se declara de ratón y lápiz; en táctil la cita se
+  toca y se mueve por el modal.
+
+- **REG-663** — un consultorio **sin horario configurado** devolvía **500 con el
+  cuerpo vacío** en `POST /api/appointments`, así que no podía crear ni mover
+  una sola cita y lo único que veía era «No se pudo mover la cita»: un no sin
+  motivo. `getDaySchedule` ya no lanza, la ruta distingue «no hay horario» de
+  «ese día no se abre», y el tramo validador entero pasa a ir dentro de un `try`
+  que responde **500 con motivo** — para la siguiente excepción, la que todavía
+  no conocemos.
+
+La siembra del arnés escribía `horaInicio`/`horaFin` (los campos de la pantalla
+de configuración) y no `horario`, que es el que lee el motor: era ella misma un
+«escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
+una jornada partida por la comida, que es el caso del acta del dueño.
