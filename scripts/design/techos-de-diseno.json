@@ -3,10 +3,10 @@
   "techos": {
     "respaldosDeToken": 0,
     "hexEnLinea": 312,
-    "tamanosFueraDeEscala": 1829,
-    "radiosFueraDeEscala": 596,
+    "tamanosFueraDeEscala": 1827,
+    "radiosFueraDeEscala": 595,
     "sombrasEnLinea": 19,
-    "gradientes": 10,
+    "gradientes": 9,
     "cristal": 14,
     "halosDeColor": 5,
     "lienzosAMano": 42

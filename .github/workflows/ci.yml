@@ -14,6 +14,49 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Cuenta ficticia y reglas reales; no requiere secretos de Vercel/Firebase.
+  # Amplía la QA pública con el recorrido autenticado y capturas revisables.
+  workspace-sintetico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXT_PUBLIC_FIREBASE_EMULATORS: '1'
+      NEXT_PUBLIC_FIREBASE_API_KEY: arnes-visual-v10
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: localhost
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-nexusmed-v10
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: demo-nexusmed-v10.appspot.com
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+      NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:arnesvisual'
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+      AUSCULTA_WORKSPACE_QA: '1'
+      PLAYWRIGHT_LOCAL: '1'
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run build
+      - name: Recorrido autenticado con datos ficticios
+        run: npx firebase emulators:exec --only auth,firestore --project demo-nexusmed-v10 "node scripts/design/sembrar-emulador.mjs && npx playwright test e2e/workspace-sintetico.spec.ts --project=chromium --project=iphone-safari --workers=2 --reporter=list,html"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workspace-sintetico
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   # Gate de seguridad clínica (unidad Nexus OS E0-11). Job SEPARADO y con nombre
   # ESTABLE a propósito: es el que se marca como *required status check* en la
   # protección de rama de `main`. Corre solo los invariantes (sin tsc ni build):

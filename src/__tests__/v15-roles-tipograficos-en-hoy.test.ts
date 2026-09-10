@@ -111,7 +111,7 @@ describe('AppointmentRow (zona TODAY) habla los roles de §2', () => {
 describe('ProxHero (zona NOW) habla los roles de §2', () => {
   it('la identidad del paciente es span.nx-ident', () => {
     // Falla contra el árbol previo: el nombre era un div con fontSize 16 inline.
-    expect(HERO).toMatch(/className="nx-ident"/)
+    expect(HERO).toMatch(/<span className="nx-ident(?:\s+[^\"]+)?"/)
   })
 
   it('la identidad del héroe ya no se trunca — §24, el defecto central de la rebanada', () => {
@@ -121,7 +121,7 @@ describe('ProxHero (zona NOW) habla los roles de §2', () => {
 
   it('la hora del héroe habla .riel-hora y el metadato es .nx-meta', () => {
     expect(HERO).toMatch(/className="riel-hora"/)
-    expect(HERO).toMatch(/className="nx-meta"/)
+    expect(HERO).toMatch(/className="nx-meta(?:\s+[^\"]+)?"/)
     expect(HERO).not.toMatch(/className="t-num"/)
   })
 
@@ -132,9 +132,12 @@ describe('ProxHero (zona NOW) habla los roles de §2', () => {
 })
 
 describe('freeze funcional — la rebanada es tipográfica, no de conducta', () => {
-  it('la fila sigue abriendo la cita y el héroe sigue iniciando consulta', () => {
+  it('la fila abre la cita y el héroe conecta la acción según rol y paciente', () => {
     expect(FILA).toMatch(/href=\{`\/citas\?id=\$\{appt\.id\}`\}/)
-    expect(HERO).toMatch(/href=\{`\/consulta\/\$\{appt\.pacienteId\}`\}/)
+    // REG-669: el destino incondicional mandaba también a recepción a consulta.
+    // La matriz de roles/destinos se ejecuta en hoy-conserva-la-consulta-en-curso.
+    expect(HERO).toContain('const accion = accionDeCitaEnFoco(appt, puedeConsultar)')
+    expect(HERO).toMatch(/href=\{accion\.href\}/)
   })
 
   it('la fila conserva su compuerta puedeIniciar y su StatusBadge', () => {

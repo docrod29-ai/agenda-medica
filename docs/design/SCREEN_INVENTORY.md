@@ -45,7 +45,7 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 1242 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 1232 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2902 | 1 | — | ✅ | — |
@@ -57,7 +57,7 @@
 | `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
-| `/dashboard` | medico | ✅ | 384 | 5 | — | ✅ | — |
+| `/dashboard` | medico | ✅ | 385 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 1267 | 15 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 896 | 0 | — | ✅ | — |
@@ -71,7 +71,7 @@
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1051 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 568 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 1040 | 3 | — | ✅ | — |
-| `/pacientes` | medico | ✅ | 1488 | 4 | — | ✅ | — |
+| `/pacientes` | medico | ✅ | 1481 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 994 | 3 | — | ✅ | ✅ |
 | `/reactivacion` | medico | ✅ | 365 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1363 | 3 | — | ✅ | — |

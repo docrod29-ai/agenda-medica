@@ -76,6 +76,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
+import { accionDeCitaEnFoco } from '@/lib/hoy/cita-en-foco'
 
 const RAIZ = process.cwd()
 const BOTON = readFileSync(join(RAIZ, 'src/components/ui/Button.tsx'), 'utf8')
@@ -166,24 +167,33 @@ describe('la apariencia vive en la HOJA, no en el JSX (lección nx-stat-grid)', 
     expect(CSS).toMatch(/\.prox-hero > a \{ width: 100%; flex-shrink: 1; \}/)
     // El enlace del héroe ya no lleva NINGÚN `style` en línea: si vuelve uno,
     // vuelve el riesgo de que pise a la hoja sin que nadie lo note.
-    const enlaceDelHeroe = HOY.slice(HOY.indexOf('<Link\n        href={`/consulta/'))
-    expect(enlaceDelHeroe.slice(0, enlaceDelHeroe.indexOf('onClick'))).not.toMatch(/style=/)
+    const heroe = HOY.slice(HOY.indexOf('function ProxHero'))
+    const inicio = heroe.indexOf('<Link')
+    expect(inicio).toBeGreaterThan(-1)
+    const enlaceDelHeroe = heroe.slice(inicio)
+    const fin = enlaceDelHeroe.indexOf('onClick')
+    expect(fin).toBeGreaterThan(0)
+    expect(enlaceDelHeroe.slice(0, fin)).not.toMatch(/style=/)
   })
 })
 
 describe('freeze funcional — la rebanada es de estructura accesible, no de conducta (§42)', () => {
-  it('el CTA del héroe sigue llevando a la consulta de ESE paciente', () => {
+  it('el CTA del médico lleva a ESE paciente y recepción abre la cita', () => {
     const heroe = HOY.slice(HOY.indexOf('function ProxHero'))
-    expect(heroe).toMatch(/href=\{`\/consulta\/\$\{appt\.pacienteId\}`\}/)
+    expect(heroe).toContain('const accion = accionDeCitaEnFoco(appt, puedeConsultar)')
+    expect(heroe).toMatch(/href=\{accion\.href\}/)
     expect(heroe).toMatch(/className="prox-hero-cta"/)
-    expect(heroe).toMatch(/Iniciar consulta/)
+    expect(heroe).toContain('{accion.texto}')
+    const cita = { id: 'cita-a', pacienteId: 'paciente-a', estado: 'confirmada' as const, fechaHora: '2026-09-10 09:00' }
+    expect(accionDeCitaEnFoco(cita, true)).toEqual({ href: '/consulta/paciente-a', texto: 'Iniciar consulta', consulta: true })
+    expect(accionDeCitaEnFoco(cita, false)).toEqual({ href: '/citas?id=cita-a', texto: 'Ver cita', consulta: false })
   })
 
   it('y sigue coreografiando la continuidad de §20, sólo en el clic simple', () => {
     const heroe = HOY.slice(HOY.indexOf('function ProxHero'))
     expect(heroe).toMatch(/if \(!esClickDeNavegacionSimple\(e\)\) return/)
     expect(heroe).toMatch(/e\.currentTarget\.closest\('\.prox-hero'\)\?\.querySelector<HTMLElement>\('\.nx-ident'\)/)
-    expect(heroe).toMatch(/navegarConContinuidad\(\(\) => router\.push\(`\/consulta\/\$\{appt\.pacienteId\}`\), origen\)/)
+    expect(heroe).toMatch(/navegarConContinuidad\(\(\) => router\.push\(accion\.href\), origen\)/)
   })
 
   it('el 404 conserva su aspecto: el estilo del botón se mudó al enlace entero', () => {

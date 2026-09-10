@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 130 de 453, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 130 de 454, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-604** (5-sep-2026), y es la subespecie en la que
