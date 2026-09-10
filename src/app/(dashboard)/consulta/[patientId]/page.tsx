@@ -239,6 +239,7 @@ const PanelPediatria = dynamic(() => import('@/components/PanelPediatria').then(
 const PanelGineco = dynamic(() => import('@/components/PanelGineco').then(m => m.PanelGineco), { ssr: false })
 const PanelCirugia = dynamic(() => import('@/components/PanelCirugia').then(m => m.PanelCirugia), { ssr: false })
 import type { EstadoDelPanelDeCirugia } from '@/components/PanelCirugia'
+import { CAPACIDADES_DEL_PACIENTE } from '@/lib/nav/capacidades-del-paciente'
 const PanelCardiometabolico = dynamic(() => import('@/components/PanelCardiometabolico').then(m => m.PanelCardiometabolico), { ssr: false })
 const PanelPreventivo = dynamic(() => import('@/components/PanelPreventivo').then(m => m.PanelPreventivo), { ssr: false })
 /**
@@ -6581,7 +6582,17 @@ export default function ConsultaActivaPage() {
           consultor sin perder nada ni tener que empezar de nuevo. */}
       {(diagnosticos.length > 0 || medicamentos.length > 0 || resumen) && (
         <button
-          onClick={() => window.open(`/consultor?paciente=${patientId}`, '_blank', 'noopener')}
+          /* D-046 — la URL sale de la DECLARACIÓN, no de una copia a mano.
+             `CAPACIDADES_DEL_PACIENTE` existe para que el guardián de
+             alcanzabilidad pueda contestar «¿sigue habiendo puerta a
+             /consultor?» leyendo el código. Mientras la puerta vivía en el
+             expediente, la declaración se consumía allí; al mudarse aquí, se
+             consume aquí — si no, la lista diría una cosa y la pantalla otra,
+             que es justo lo que esa declaración vino a impedir. */
+          onClick={() => window.open(
+            CAPACIDADES_DEL_PACIENTE.find(c => c.id === 'consultor')!.conPaciente!(patientId),
+            '_blank', 'noopener',
+          )}
           title="Se abre en otra pestaña para que no pierdas tu nota en progreso"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 12, marginRight: 8, background: 'var(--nexus-tenue)', color: 'var(--nexus)', border: '1px solid var(--nexus-borde)', borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           <FlaskConical size={14} /> Preguntar a la evidencia (chat) ↗

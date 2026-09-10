@@ -3921,3 +3921,36 @@ La siembra del arnés escribía `horaInicio`/`horaFin` (los campos de la pantall
 de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
+
+## v1193 — 10-sep-2026
+
+**D-046** — el expediente del paciente se queda con lo que ES expediente.
+
+El dueño pidió, mirando su iPhone, quitar la tarjeta de «Herramientas clínicas»
+para poder ver las consultas y sus fechas, y dejar un expediente de fotografía
+clínica para irlas comparando.
+
+El arnés midió antes de tocar nada, y corrigió el encargo en dos puntos: las
+herramientas **no** tapaban las consultas —iban debajo—, y lo que de verdad las
+escondía era la posición de la historia, que empezaba a **1 199 px** en un
+teléfono. En la captura del dueño la tarjeta parece estar arriba porque ese
+paciente no tiene notas firmadas, sólo una consulta sin cerrar.
+
+- **Fuera la barra de herramientas.** La fotografía seriada se queda como
+  sección propia y desplegada —serie por región, antes/después y días de
+  evolución—, que es la única de las cuatro que es material longitudinal.
+  Laboratorios, Consultor de evidencia y Antibiograma se usan desde la consulta,
+  donde ya estaban. Lo que cuesta, dicho: fuera de un encuentro ya no se ve la
+  tendencia por analito. Se le preguntó al dueño y decidió que sí.
+- **La historia sube** por delante del estado clínico y de los pendientes: la
+  primera consulta pasa de 1 199 px a **785 px**.
+- Dos cabos que dejó el quitar, cazados antes de dar nada por hecho: el riel del
+  Clinical Spine ofrecía «Laboratorios y fotografía» apuntando a un ancla que ya
+  no existía, y la declaración `CAPACIDADES_DEL_PACIENTE` se quedaba sin
+  consumidor. El riel se reordena y renombra; la declaración se muda con la
+  puerta a la consulta.
+
+De RTC-09 y RTC-10 no se deshace lo que encontró el equipo rojo: la IA sigue
+fuera del índice administrativo y sigue siendo contextual; ninguna caja-módulo
+vuelve por delante de lo clínico, ninguna tarjeta vacía, documentos al final.
+Cambió cuál de los bloques clínicos va primero, y por una medición.

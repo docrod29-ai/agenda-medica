@@ -23,25 +23,9 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/product/DECISION_REGISTER.md",
-    " M src/__tests__/consultorio-diagnostico-cie-anti-inflacion.test.ts",
-    " M src/__tests__/dosis-avisa-antes-de-firmar.test.ts",
-    " M src/__tests__/dosis-desconocida-declarada.test.ts",
-    " M src/__tests__/el-boton-dice-por-que-esta-apagado.test.ts",
-    " M src/__tests__/gp6-reproyeccion-cruza-fronteras.test.ts",
-    " M src/__tests__/la-nota-que-el-medico-pidio.test.ts",
-    " M src/__tests__/nadie-firma-sin-nombre.test.ts",
-    " M src/__tests__/una-barra-y-no-ocho-recuadros.test.ts",
-    " M src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/components/AntesDeFirmar.tsx",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/expediente/avisos-consulta.ts",
-    " M src/lib/expediente/fusionar-diagnosticos.ts",
-    " M src/lib/expediente/por-que-no-se-firma.ts",
-    " M src/types/expediente.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
   "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
@@ -75,13 +59,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/clinical-note-simplification-kl71ne",
+  "ramaActual": "claude/ausculta-scheduling-audit-ev7hua",
   "derivado": {
-    "regsEnElLedger": 443,
-    "ultimaREG": "REG-664",
-    "archivosDePrueba": 1101,
-    "casosDePrueba": 13139,
+    "regsEnElLedger": 442,
+    "ultimaREG": "REG-663",
+    "archivosDePrueba": 1100,
+    "casosDePrueba": 13102,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1192"
+  "versionEnElRepo": "nexusmed-v1193"
 }
