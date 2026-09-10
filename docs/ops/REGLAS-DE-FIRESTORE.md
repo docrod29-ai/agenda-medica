@@ -2,7 +2,9 @@
 
 > **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó con la
 > ejecución **#29** del botón de producción (8-sep-2026, v1188), y el sello lo
-> registra. Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
+> registra. Las ejecuciones **#30 a #34** (9 y 10-sep-2026, v1191 a v1195)
+> reenviaron el mismo archivo sin un byte de diferencia: el sello no se movió.
+> Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
 

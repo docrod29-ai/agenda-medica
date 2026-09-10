@@ -17,15 +17,18 @@
   ],
   "maxRamasConcurrentes": 3,
   "ultimaVersionEnProduccion": {
-    "version": "nexusmed-v1187",
-    "confirmadaEl": "2026-09-06",
-    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34054755373",
+    "version": "nexusmed-v1195",
+    "confirmadaEl": "2026-09-10",
+    "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34498385700",
+    "notaDelCierre": "Ejecución #34 (10-sep-2026, 15:53 UTC) sobre el árbol 95e45248 (v1195): Compuerta 3 comprobó la versión contra el sitio vivo y PRODUCTION_RELEASE=SUCCESS. Entre la #29 (v1188) y ésta hubo cuatro más, todas SUCCESS: #30 (v1191, que arrastró v1189 y v1190), #31 (v1192), #32 (v1193) y #33 (v1194). El tablero se quedó en v1187 desde el 6-sep — sexta vez que se atrasa; las cinco anteriores están contadas en el-tablero-del-loop-no-miente.test.ts.",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt"
+    "M agent-state/AUSCULTA_LAST_SAFE_CHECKPOINT.md",
+    " M agent-state/MASTER_STATE.json",
+    " M docs/maintenance/sw-changelog.md",
+    " M docs/ops/REGLAS-DE-FIRESTORE.md",
+    " M firestore.rules.estado.json"
   ],
   "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
@@ -59,7 +62,7 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "codex/ausculta-consulta-agenda",
+  "ramaActual": "claude/trabajo-completado-1infnd",
   "derivado": {
     "regsEnElLedger": 452,
     "ultimaREG": "REG-667",

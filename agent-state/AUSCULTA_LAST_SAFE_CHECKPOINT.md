@@ -1,5 +1,30 @@
 # AUSCULTA — último punto seguro
 
+## Checkpoint · 10-sep-2026 — **v1195 EN PRODUCCIÓN: todo lo fusionado hasta hoy está publicado** (botón #34 SUCCESS 15:53 UTC sobre `95e45248`; #30–#33 cerraron v1189…v1194)
+
+```
+CURRENT_BRANCH=claude/trabajo-completado-1infnd
+CURRENT_HEAD=(este commit)
+CURRENT_PR=(sin PR — rama de cierre documental, cero cambio de conducta)
+LAST_COMPLETED_UNIT=Cierre del ciclo v1189…v1195: el tablero pasa de v1187 a v1195 con su ejecución; el sello de reglas anota las cinco reconfirmaciones idénticas; el changelog del SW lleva «Publicado» en las siete versiones que no lo tenían.
+CURRENT_PARTIAL_UNIT=(ninguna)
+EXACT_NEXT_ACTION=No hay versión preparada sin publicar ni PR abierto. Lo siguiente lo decide el dueño: el «Pendiente concreto» de AUSCULTA_OWNER_BRIEF_2026-09-09.md sigue entero (mezcla entre pacientes sin confirmar, carga sin medir, decisiones de agenda y portal sin implementar).
+TESTS_PASSED=(ver la corrida de esta rama en CI)
+BUILD=compila
+BLOCKED_EXTERNAL=sin cambio
+DO_NOT_REGRESS=REG-542…REG-667
+```
+
+Lo que se comprobó del otro lado, hoy, y no de memoria: las ejecuciones #30 a
+#34 del botón de producción en GitHub Actions, paso por paso —Compuerta 3 contra
+el sitio vivo, reglas, índices, seguridad, smoke y portal— y `PRODUCTION_RELEASE
+= SUCCESS` en el acta de las cinco. El sitio vivo no se pudo tocar desde este
+contenedor (el proxy rechaza `agenda-medica-one.vercel.app`); la Compuerta 3 del
+workflow es la que lo tocó.
+
+Lo que NO afirma este checkpoint: nada nuevo sobre el producto. Publicar no
+verifica. La lista de lo pendiente del brief del 9-sep sigue igual.
+
 ## Checkpoint · 6-sep-2026 — **v1184 EN PRODUCCIÓN** (PR #459 → `8fe45415`, pin #463 → `c49c3a25`, botón #24 SUCCESS 02:04 UTC; actas v1180…v1184 cerradas)
 
 ## Checkpoint · 6-sep-2026 — **fusionado con `main`: 155 commits de distancia, 12 archivos en conflicto, resueltos**

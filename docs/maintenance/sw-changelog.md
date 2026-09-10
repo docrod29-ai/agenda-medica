@@ -55,6 +55,18 @@ herramientas de desarrollo, que no se sirven. Y que la pantalla se vea bien con
 el framework nuevo: se comprobó que compila (168 páginas) y que las 14 473
 pruebas pasan, no se abrió un navegador.
 
+### Publicado
+
+Ejecución **#30** del botón de producción, 9-sep-2026 02:50 UTC, sobre el árbol
+`f80fda25`. Los seis renglones en verde y `PRODUCTION_RELEASE = SUCCESS`. Esta
+ejecución publicó **tres versiones de golpe** —v1189, v1190 y v1191—, porque el
+pin llevaba parado en v1188 y un despliegue arrastra todo lo no desplegado.
+`firestore.rules` no cambió: el sello siguió en `5a5acc35…`.
+
+Lo que esto **no** demuestra: nada distinto de lo que cada versión ya declaró
+arriba — no se abrió un navegador contra producción más allá del smoke público
+y la seguridad de cabeceras.
+
 ## v1190 — la jornada deja de perder su último cuarto de hora
 
 **8 archivos de producto · 4 goldens nuevos · 1 golden revisado · 0 pantallas
@@ -109,6 +121,9 @@ rejilla. Ahora sella que la rejilla avanza **exactamente** la duración y que el
 Los bloqueos siguen sin anclar (misma razón declarada en REG-654). No hay
 arrastrar ni redimensionar citas en el calendario — no existían antes y no se
 añaden aquí. El bot sigue sin interpretar «¿a las 4:20?»: es un menú numerado.
+
+**Publicado el 9-sep 02:50 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #30,
+que llevó v1189, v1190 y v1191 juntas; ver el aviso bajo v1191).
 
 ## v1189 — la rejilla de la agenda se recoloca donde acaba la cita anterior
 
@@ -169,6 +184,10 @@ de verdad.
 - **Que un médico pueda tener sus propias duraciones.** Sigue sin poder:
   `horarioPropio` no lo enciende ninguna pantalla, pese a que el alta de médicos
   promete «puedes editarlos después».
+
+**Publicado el 9-sep 02:50 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #30,
+que llevó v1189, v1190 y v1191 juntas; ver el aviso bajo v1191). Fusionada días
+antes, nunca había llegado a producción hasta esa ejecución.
 
 ## v1188 — el alta por invitación: contraseña, correo y un solo consultorio
 
@@ -3922,6 +3941,9 @@ de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
 
+**Publicado el 10-sep 02:14 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #31,
+sobre el árbol `3f1d1ca6`). Reglas e índices sin cambio; sello `5a5acc35…`.
+
 ## v1195 — 10-sep-2026
 
 **PR #478 · consulta de tres áreas, agenda segura y dependencias** — el lote de
@@ -3955,6 +3977,22 @@ Codex, relevado y terminado por Claude con autorización del dueño.
 Lo que este lote NO acredita, dicho por Codex y sostenido aquí: la mezcla
 entre pacientes no está confirmada como resuelta, el objetivo de carga no está
 medido, y varias decisiones de agenda y portal siguen sin implementar.
+
+### Publicado
+
+Ejecución **#34** del botón de producción, 10-sep-2026 15:53 UTC, sobre el árbol
+`95e45248`. Los seis renglones en verde: versión servida (Compuerta 3 contra el
+sitio vivo), reglas, índices, seguridad (57 casos), smoke público (10 casos) y
+portal fail-closed (401 sin enlace). `PRODUCTION_RELEASE = SUCCESS`.
+`firestore.rules` y `firestore.indexes.json` no cambiaron desde v1188: el sello
+que emitió el workflow es el mismo `5a5acc35…`.
+
+Con esta ejecución el sitio vivo lleva **todo lo fusionado a `main` hasta hoy**:
+no queda ninguna versión preparada y sin publicar.
+
+Lo que esto **no** demuestra: lo que el propio lote dejó dicho arriba —mezcla
+entre pacientes, carga, decisiones de agenda y portal pendientes— sigue sin
+acreditarse por haberse desplegado. Publicar no verifica; sólo pone al alcance.
 
 ## v1194 — 10-sep-2026
 
@@ -3990,6 +4028,9 @@ Lo que cuesta, dicho: una receta ya puede firmarse sin cantidad, y el aviso rojo
 es lo único que lo impide; y un código sugerido equivocado que el médico
 confirme sin mirar es suyo — el gesto existe para eso.
 
+**Publicado el 10-sep 12:29 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #33,
+sobre el árbol `bd428e8c`). Reglas e índices sin cambio; sello `5a5acc35…`.
+
 ## v1193 — 10-sep-2026
 
 **D-046** — el expediente del paciente se queda con lo que ES expediente.
@@ -4022,3 +4063,6 @@ De RTC-09 y RTC-10 no se deshace lo que encontró el equipo rojo: la IA sigue
 fuera del índice administrativo y sigue siendo contextual; ninguna caja-módulo
 vuelve por delante de lo clínico, ninguna tarjeta vacía, documentos al final.
 Cambió cuál de los bloques clínicos va primero, y por una medición.
+
+**Publicado el 10-sep 05:08 UTC** (`PRODUCTION_RELEASE=SUCCESS`, ejecución #32,
+sobre el árbol `839d12d2`). Reglas e índices sin cambio; sello `5a5acc35…`.
