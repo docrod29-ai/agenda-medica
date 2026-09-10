@@ -176,6 +176,69 @@ export function medicamentosDeLaReceta<
   return loQueSeReceta(meds).filter(m => estaVigente(m))
 }
 
+/**
+ * ── EL RENGLÓN QUE NO NOMBRA NINGÚN FÁRMACO (10-sep-2026, D-048) ────────────
+ *
+ * El médico dueño, probando en su iPhone: la lista de medicamentos traía
+ * «Medicamento no especificado», «Medicamento previo (nombre no precisado)»,
+ * «Antibiótico no especificado» y «medicamento de terminación reciente cuyo
+ * nombre no fue precisado» — TRES renglones por la misma frase del paciente
+ * («acabo de terminar un medicamento»). Cada uno sin dosis, cada uno
+ * bloqueando la firma, y ninguno de ellos es un medicamento: son la frase
+ * «no se sabe cuál» disfrazada de fila.
+ *
+ * La regla 19 del prompt ya lo prohíbe y el modelo la ignora. Ésta es la
+ * defensa determinista: lo que no nombra un fármaco no entra a la lista. La
+ * frase sigue en la prosa de la nota, que es donde la regla 22 la manda
+ * («un medicamento cuyo nombre no fue posible precisar»), y ahí no bloquea
+ * nada ni sale impreso en la receta.
+ *
+ * Señala de menos, nunca de más: sólo cae lo que DICE que no sabe el nombre
+ * («no especificado», «no precisado», «sin nombre», «cuyo nombre…») o lo que es
+ * puro nombre de clase («un antibiótico»). «Doxiciclina» pasa siempre.
+ */
+const DICE_QUE_NO_SABE_EL_NOMBRE =
+  /no (?:fue |ha sido |pudo ser |se )?(?:especificad|precisad|identificad|refier|record)|sin (?:especificar|precisar|nombre|identificar)|nombre (?:desconocido|no (?:precisado|especificado|referido|identificado))|cuyo nombre|no (?:se )?(?:sabe|recuerda|supo) (?:el nombre|cu[aá]l)|\bdesconocid[oa]\b/i
+const SOLO_UNA_CLASE =
+  /^(?:un |una |el |la |otro |otra )?(?:medicamento|medicina|f[aá]rmaco|antibi[oó]tico|analg[eé]sico|antiinflamatorio|tratamiento|pastilla|inyecci[oó]n)s?(?: previo| anterior| actual| reciente| nuevo| habitual)?s?$/i
+
+export function esNombreSinPrecisar(nombre: unknown): boolean {
+  const n = String(nombre ?? '').trim()
+  if (!n) return false
+  return DICE_QUE_NO_SABE_EL_NOMBRE.test(n) || SOLO_UNA_CLASE.test(n)
+}
+
+/**
+ * ── LO QUE SÓLO SE MENCIONÓ (10-sep-2026, D-048) ────────────────────────────
+ *
+ * El complemento exacto de `loQueSeReceta` entre los renglones con nombre: lo
+ * que el paciente refirió, lo que la IA extrajo sin intención declarada, lo
+ * suspendido. La pantalla lo enseña en UNA línea discreta, no como filas de
+ * receta — y por eso no puede bloquear la firma: nada de esto sale en el papel.
+ *
+ * Sigue en `nota.medicamentos`: de la lista entera cuelgan el cruce de
+ * alergias, el de interacciones y la reconciliación (REG-173/190). Una vista
+ * distinta, la misma entidad.
+ */
+export function loQueSoloSeMenciono<
+  T extends Pick<Medicamento, 'nombre' | 'procedenciaClinica' | 'estado' | 'speaker'>,
+>(meds: readonly T[]): T[] {
+  const receta = new Set<T>(loQueSeReceta(meds))
+  return (meds ?? []).filter(m => String(m?.nombre ?? '').trim() && !receta.has(m))
+}
+
+/**
+ * El médico lo pasa a la receta de hoy con un gesto explícito. Es SU intención,
+ * dicha con el dedo: por eso se escribe `speaker:'medico'` —la atribución que
+ * REG-515 exige— y se borra el `estado` de captura. Reversible: en la lista
+ * tiene su botón de quitar.
+ */
+export function comoRecetaDeHoy(m: Medicamento): Medicamento {
+  const { estado: _estado, motivoEstado: _motivo, ...resto } = m
+  void _estado; void _motivo
+  return { ...resto, procedenciaClinica: 'se_prescribe_hoy', speaker: 'medico' }
+}
+
 /** Lo que el paciente ya tomaba. Va en la nota; no va en la receta. */
 export function loQueYaTomaba<T extends Pick<Medicamento, 'procedenciaClinica'>>(
   meds: readonly T[],
@@ -244,6 +307,8 @@ export function fusionarMedicamentos(p: FusionDeMedicamentos): Medicamento[] {
   const previos = p.previos ?? []
   const nuevos = (p.nuevos ?? [])
     .filter(m => m?.nombre?.trim())
+    // Un renglón que no nombra un fármaco no es un medicamento (ver abajo).
+    .filter(m => !esNombreSinPrecisar(m.nombre))
     .map(sinIntencionAutomaticaNoEsReceta)
   const anteriores = p.deLaIaAnterior ?? []
 

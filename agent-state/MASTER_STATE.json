@@ -23,9 +23,25 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt"
+    "M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/product/DECISION_REGISTER.md",
+    " M scripts/design/techos-de-diseno.json",
+    " M src/__tests__/dosis-desconocida-declarada.test.ts",
+    " M src/__tests__/el-medico-no-elige-marca.test.ts",
+    " M src/__tests__/modulos-sin-conectar.test.ts",
+    " M src/__tests__/que-es-de-que.test.ts",
+    " M src/__tests__/v15-a11y-consulta-esquema-de-encabezados.test.ts",
+    " M src/__tests__/v15-admin-no-esencial-se-calla-al-grabar.test.ts",
+    " M src/__tests__/ya-lo-toma-o-se-lo-receto-hoy.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    " M src/lib/expediente/fusionar-diagnosticos.ts",
+    " M src/lib/expediente/que-va-en-la-receta.ts",
+    "?? src/__tests__/la-nota-que-el-medico-pidio.test.ts"
   ],
   "actualizado": "2026-09-09",
   "resumenDesdeElUltimoEstado": {
@@ -59,12 +75,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "claude/ausculta-scheduling-audit-ev7hua",
+  "ramaActual": "claude/clinical-note-simplification-kl71ne",
   "derivado": {
-    "regsEnElLedger": 442,
-    "ultimaREG": "REG-663",
-    "archivosDePrueba": 1100,
-    "casosDePrueba": 13101,
+    "regsEnElLedger": 443,
+    "ultimaREG": "REG-664",
+    "archivosDePrueba": 1101,
+    "casosDePrueba": 13126,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1192"

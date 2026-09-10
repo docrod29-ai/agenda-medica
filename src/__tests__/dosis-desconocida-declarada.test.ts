@@ -74,7 +74,8 @@ describe('LO QUE ESCRIBE LA IA NO CUENTA COMO DECLARACIÓN', () => {
 
 describe('LA COMPUERTA DE FIRMA LA RESPETA', () => {
   it('lo declarado desconocido no bloquea', () => {
-    const i = consulta.indexOf('const dosisMal = medicamentos')
+    // D-048: la compuerta mira la receta de hoy, no la lista entera.
+    const i = consulta.indexOf('const dosisMal = loQueSeReceta(medicamentos)')
     expect(consulta.slice(i, i + 700)).toContain('!esDosisDeclaradaDesconocida(m.dosis)')
   })
 

@@ -1108,7 +1108,17 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * dentro —14 510 pruebas en verde—, intolerable por fuera, que es la forma
      * exacta de esta familia. Se cazó levantando el arnés visual y arrastrando.
      */
-    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 662],
+    /**
+     * 664 es esta familia vista por el dueño en su propio iPhone: nueve
+     * bloqueos de dosis de los que ninguno era una receta suya, once
+     * diagnósticos, un selector de nivel que el Board #296 ya había prohibido
+     * y una sección de procedencia que no pidió ver. Causa raíz de fondo, otra
+     * vez `no_conectado`: `loQueSeReceta` ya decidía qué baja al papel y ni la
+     * lista ni la compuerta de firma lo miraban. Se clasifica aquí porque lo
+     * que el dueño midió fue el estorbo, y la reparación se hizo con cuatro
+     * decisiones suyas (D-046 a D-049).
+     */
+    regs: [178, 181, 184, 231, 233, 301, 319, 337, 390, 517, 518, 535, 654, 655, 662, 664],
   },
   {
     clave: 'perdida',

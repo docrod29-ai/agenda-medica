@@ -103,6 +103,28 @@ function deduplicarLoteIa(nuevos: readonly Diagnostico[]): Diagnostico[] {
   return out
 }
 
+/**
+ * ── UNA CONSULTA NO TERMINA CON DOCE DIAGNÓSTICOS (10-sep-2026, D-049) ──────
+ *
+ * El médico dueño, con la pantalla llena de filas: «no infieres ningún dx; sí
+ * quiero que lo hagas, pero no mil». La regla 7-bis del prompt pide de TRES A
+ * SEIS y el modelo devolvió once. Un prompt es una petición; esto es el tope.
+ *
+ * Se acota SÓLO el lote de la IA, nunca lo que escribió el médico. Al recortar
+ * salen primero los `diferencial` —la regla 7-bis los quiere en la prosa, no
+ * en la lista— y después la cola, conservando el orden del modelo, que es su
+ * orden de relevancia.
+ */
+export const TOPE_DE_SUGERENCIAS_IA = 6
+
+export function acotarLoteIa(lote: readonly Diagnostico[]): Diagnostico[] {
+  const out = [...lote]
+  for (let i = out.length - 1; i >= 0 && out.length > TOPE_DE_SUGERENCIAS_IA; i--) {
+    if (out[i].tipo === 'diferencial') out.splice(i, 1)
+  }
+  return out.slice(0, TOPE_DE_SUGERENCIAS_IA)
+}
+
 export interface FusionDeDiagnosticos {
   /** Lo que había en la nota antes de esta pasada. */
   previos: readonly Diagnostico[]
@@ -142,7 +164,7 @@ export function fusionarDiagnosticos(p: FusionDeDiagnosticos): Diagnostico[] {
 
   // El lote IA usa sus códigos SÓLO para deduplicar. Si coincide con una decisión
   // del médico, la decisión humana gana completa. Si no, entra como sugerencia.
-  for (const sugerida of deduplicarLoteIa(nuevos)) {
+  for (const sugerida of acotarLoteIa(deduplicarLoteIa(nuevos))) {
     if (out.some(confirmada => esElMismo(confirmada, sugerida))) continue
     out.push(comoSugerenciaNoConfirmada(sugerida))
   }

@@ -141,13 +141,18 @@ describe('el médico elige intención clínica, nunca una marca (#345)', () => {
     }
   })
 
-  it('el selector de la consulta no rehace un catálogo con marcas', () => {
+  it('la consulta ya no tiene selector de nivel: el médico no elige (D-046)', () => {
+    /**
+     * Board #296 decía «el médico no elige modelos ni niveles» y el selector
+     * seguía en la consulta. El 10-sep-2026 el dueño lo retiró. Sin catálogo
+     * no hay dónde colar una marca — y la petición ya no manda `motor`, así
+     * que el nivel lo pone el servidor por plan.
+     */
     const src = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
-    const decl = src.slice(src.indexOf('const MOTORES_UI'))
-    const bloque = decl.slice(0, decl.indexOf('\n\n'))
-    expect(MARCA.test(bloque), `marca en el selector de nota: ${bloque}`).toBe(false)
-    // Y deriva de la fuente única, en vez de escribir su propia tabla a mano.
-    expect(bloque).toContain('MOTORES[k]')
+    expect(src).not.toContain('const MOTORES_UI')
+    expect(src).not.toContain('Nivel de IA para esta nota')
+    expect(src).not.toMatch(/\n\s*motor: motorEfectivo/)
+    expect(src).not.toMatch(/motor: \(enVivo \|\| preliminar\)/)
   })
 
   it('lo que el médico sí elige es intención clínica', () => {
