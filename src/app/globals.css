@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Dirección visual solicitada por el dueño, 10-sep-2026.
+   Azul vivo compartido por toda la aplicación; los avisos conservan su semántica.
+   Contraste WCAG medido con scripts/design/lib/contraste-wcag.mjs:
+   blanco sobre #075BCC = 6.22 : 1; #69BEFF sobre #172334 = 7.85 : 1;
+   #075BCC sobre #E8EFF8 = 5.37 : 1. Las notas históricas inferiores describen
+   el origen de los tokens, no certifican los valores de esta revisión. */
+
 :root {
   /* ── Ausculta design tokens ──────────────────────────────────
      Sistema de color rediseñado:
@@ -12,11 +19,11 @@
      ────────────────────────────────────────────────────────────── */
 
   /* Canvas + superficies (dark mode primario, ink-neutral) */
-  --bg:        #0B0C0E;
-  --s:         #131518;
-  --s1:        #131518;
-  --s2:        #1A1D21;
-  --s3:        #232629;
+  --bg:        #0B111B;
+  --s:         #111C2A;
+  --s1:        #111C2A;
+  --s2:        #141F2F;
+  --s3:        #172334;
 
   /* Bordes — alpha sobre canvas para integración */
   --border:    rgba(242,239,233,0.08);
@@ -71,9 +78,9 @@
               #177886 con blanco encima = 5.16 : 1   ✓ AA  (relleno)
      Claro:   #12626E sobre --s3  = 5.82 : 1   ✓ AA
               #12626E con blanco encima = 7.00 : 1   ✓ AA  (relleno)             */
-  --nexus:        #2AA5B5;
-  --nexus-hover:  #38B6C4;
-  --nexus-soft:   rgba(42, 165, 181, 0.14);
+  --nexus:        #69BEFF;
+  --nexus-hover:  #91D0FF;
+  --nexus-soft:   rgba(105, 190, 255, 0.14);
   /*
     EL AZUL DE RELLENO — el que lleva texto blanco encima.
 
@@ -93,7 +100,7 @@
     decisiones está mal por su cuenta, y por eso ninguna revisión de una sola
     pieza lo encuentra. Lo que la cierra no es el color: es tener DOS tokens.
   */
-  --nexus-solido: #177886;   /* relleno: blanco encima = 5.16 : 1 ✓ AA */
+  --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -682,10 +689,10 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   font-weight: 600;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--nexus-hover);
+  background: color-mix(in srgb, var(--nexus-solido) 88%, black);
 }
 .btn-primary:active:not(:disabled) {
-  background: var(--nexus-hover);
+  background: color-mix(in srgb, var(--nexus-solido) 80%, black);
   opacity: 0.92;
 }
 
@@ -953,7 +960,7 @@ tbody tr:last-child { border-bottom: none; }
 .nav-item--tenue:hover { color: var(--text2); }
 
 .nav-item.active {
-  background: var(--s2);
+  background: var(--nexus-soft);
   color: var(--text);
   font-weight: 600;
 }
@@ -2304,11 +2311,11 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Light mode — paleta bone-soft anti-fatiga ocular ─────────── */
 :root[data-theme="light"] {
   /* Bone-soft (no blanco puro — reduce fatiga ocular en consulta larga) */
-  --bg:        #FAFAF7;
+  --bg:        #F2F6FC;
   --s:         #FFFFFF;
   --s1:        #FFFFFF;
-  --s2:        #F5F3EE;
-  --s3:        #ECEAE3;
+  --s2:        #F0F5FC;
+  --s3:        #E8EFF8;
 
   /* Bordes ink con alpha sobre canvas claro */
   --border:    rgba(11, 12, 14, 0.08);
@@ -2322,13 +2329,13 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
   --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
 
-  --nexus:        #12626E;   /* 5.82 : 1 sobre --s3 claro ✓ AA */
-  --nexus-hover:  #0E5058;
-  --nexus-soft:   rgba(18, 98, 110, 0.10);
+  --nexus:        #075BCC;   /* 5.37 : 1 sobre --s3 claro ✓ AA */
+  --nexus-hover:  #064AA6;
+  --nexus-soft:   rgba(7, 91, 204, 0.10);
   /* En claro el relleno ya era #2845EA (blanco encima = 6,71) y por eso este
      tema nunca tuvo el fallo. Se nombra igual para que .btn-primary sirva a
      los dos temas con una sola regla. */
-  --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
+  --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -2408,17 +2415,17 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Auto-light si el OS prefiere claro y no hay override manual ── */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
-    --bg:        #FAFAF7;
+    --bg:        #F2F6FC;
     --s:         #FFFFFF;
     --s1:        #FFFFFF;
-    --s2:        #F5F3EE;
-    --s3:        #ECEAE3;
+    --s2:        #F0F5FC;
+    --s3:        #E8EFF8;
     --border:    rgba(11, 12, 14, 0.08);
     --border2:   rgba(11, 12, 14, 0.16);
-    --nexus:        #12626E;
-    --nexus-hover:  #0E5058;
-    --nexus-soft:   rgba(18, 98, 110, 0.10);
-    --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
+    --nexus:        #075BCC;
+    --nexus-hover:  #064AA6;
+    --nexus-soft:   rgba(7, 91, 204, 0.10);
+    --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
     --teal:         var(--nexus);
     --teal-dim:     var(--nexus-hover);
     --teal-glow:    var(--nexus-soft);
@@ -3008,6 +3015,8 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
+  padding-block: 8px 20px;
+  border-bottom: 1px solid var(--nexus-borde);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -3015,8 +3024,16 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   flex-wrap: wrap;
   margin-bottom: 20px;
 }
-.page-header-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.page-header-sub { font-size: 14px; color: var(--text2); margin-top: 8px; max-width: 64ch; line-height: 1.6; }
 .page-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Identidad compartida: el marco separa navegación, lectura y acción. */
+.sidebar-logo { border-bottom-color: var(--nexus-borde); }
+.nx-flow-rail .sidebar-logo > .nx-flow-rail-quiet-icon { color: var(--nexus); }
+.page-header .t-h1 { letter-spacing: -.035em; }
+@media (prefers-reduced-motion: no-preference) {
+  .page-header { animation: nx-rise 240ms var(--mov-curva) both; }
+}
 
 /* ── Dashboard "Dirección A" — revelado escalonado + banda próxima cita ── */
 @keyframes nx-rise {

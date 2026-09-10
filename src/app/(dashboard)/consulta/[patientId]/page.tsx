@@ -2928,7 +2928,7 @@ export default function ConsultaActivaPage() {
       if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
         const medAnteriores = medDeLaIaRef.current
         const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
-        if (tipoOverride) setMedicamentos(medDeEstePase)
+        if (tipoOverride) setMedicamentos(prev => fusionarMedicamentos({ previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos: nuevosMed, deLaIaAnterior: [] }))
         else setMedicamentos(prev => fusionarMedicamentos({
           previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
         }))
@@ -3122,7 +3122,7 @@ export default function ConsultaActivaPage() {
     if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
       const medAnteriores = medDeLaIaRef.current
       const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
-      if (tipoOverride) setMedicamentos(medDeEstePase)
+      if (tipoOverride) setMedicamentos(prev => fusionarMedicamentos({ previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos: nuevosMed, deLaIaAnterior: [] }))
       else setMedicamentos(prev => fusionarMedicamentos({
         previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
       }))
@@ -4968,7 +4968,13 @@ export default function ConsultaActivaPage() {
         setSecciones(prev => prev.map(s => (typeof data.secciones[s.key] === 'string' ? { ...s, value: sanitizarProsa(data.secciones[s.key]) } : s)))
       }
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
-      if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
+      if (Array.isArray(data.medicamentos)) {
+        const nuevos = data.medicamentos.filter((m: Medicamento) => m?.nombre?.trim())
+        setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos, deLaIaAnterior: [],
+        }))
+        medDeLaIaRef.current = fusionarMedicamentos({ previos: [], nuevos, deLaIaAnterior: [] })
+      }
       if (data.signosVitales && typeof data.signosVitales === 'object') {
         // MERGE por campo, no reemplazo: si la IA devuelve el bloque de signos
         // parcial (o vacío) al corregir algo ajeno a signos, un reemplazo total
@@ -7126,7 +7132,7 @@ export default function ConsultaActivaPage() {
             if (typeof v.resumenEjecutivo === 'string') setResumen(v.resumenEjecutivo)
             if (v.signosVitales) setSignos(v.signosVitales)
             if (Array.isArray(v.diagnosticos)) setDiagnosticos(v.diagnosticos)
-            if (Array.isArray(v.medicamentos)) setMedicamentos(v.medicamentos)
+            if (Array.isArray(v.medicamentos)) setMedicamentos(v.medicamentos.map(m => ({ ...m, origenCaptura: 'medico' })))
             if (typeof v.transcripcionCruda === 'string') voz.setTranscripcion(v.transcripcionCruda)
           }}
         />
@@ -7502,7 +7508,7 @@ export default function ConsultaActivaPage() {
               setMedicamentos(prev => {
                 const names = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
                 const nuevos = n.medicamentos.filter(m => m.nombre && !names.has(m.nombre.trim().toLowerCase()))
-                return [...prev, ...nuevos]
+                return [...prev, ...nuevos.map(m => ({ ...m, origenCaptura: 'medico' as const }))]
               })
               setEstudiosOrden(n.estudios)
               toast('Valoración aplicada — revisa secciones, medicamentos y estudios', 'success')
@@ -7669,11 +7675,11 @@ export default function ConsultaActivaPage() {
           <div key={i} className="nx-med-fila" style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
               aria-label={`Medicamento ${i + 1}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', nombre: e.target.value } : x))}
               style={{ ...S.input, flex: 2, minWidth: 120 }} />
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
               aria-label={`Dosis${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
             {/*
               «NO LA SABE» — la salida honesta cuando el paciente no conoce la dosis.
@@ -7687,7 +7693,7 @@ export default function ConsultaActivaPage() {
             {!firmada && m.nombre?.trim() && !m.dosis?.trim() && (
               <button
                 type="button"
-                onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: DOSIS_DESCONOCIDA } : x))}
+                onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', dosis: DOSIS_DESCONOCIDA } : x))}
                 title="El paciente lo toma pero no sabe la dosis. Se registra así, y se imprime."
                 style={{ ...S.input, flex: '0 0 auto', cursor: 'pointer', fontSize: 12, padding: '0 10px', whiteSpace: 'nowrap' }}
               >No la sabe</button>
@@ -7700,7 +7706,7 @@ export default function ConsultaActivaPage() {
               importa, pero no dejaba capturarla.
             */}
             <select value={m.via ?? 'oral'} disabled={firmada} aria-label={`Vía de administración${m.nombre ? ` de ${m.nombre}` : ''}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, via: e.target.value as Medicamento['via'] } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', via: e.target.value as Medicamento['via'] } : x))}
               style={{ ...S.input, flex: 1, minWidth: 92 }}>
               <option value="oral">Oral</option>
               <option value="iv">IV</option>
@@ -7714,11 +7720,11 @@ export default function ConsultaActivaPage() {
             </select>
             <input value={m.frecuencia} disabled={firmada} placeholder="Frecuencia"
               aria-label={`Frecuencia${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, frecuencia: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', frecuencia: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 90 }} />
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
               aria-label={`Duración${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
             {!firmada && (
               <button
@@ -7758,7 +7764,7 @@ export default function ConsultaActivaPage() {
           </div>
         )}
         {!firmada && (
-          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} className="nx-acc-caja" style={S.addBtn}>
+          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '', origenCaptura: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar medicamento
           </button>
         )}
@@ -7939,7 +7945,7 @@ export default function ConsultaActivaPage() {
             pesoPrevio={pesoPrevio?.kg} fechaDelPesoPrevio={pesoPrevio?.fecha}
             hoy={hoyDeLaConsulta}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}
-            onRecetar={med => setMedicamentos(prev => [...prev, med])} />,
+            onRecetar={med => setMedicamentos(prev => [...prev, { ...med, origenCaptura: 'medico' }])} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{
           id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
@@ -8216,7 +8222,7 @@ export default function ConsultaActivaPage() {
                     // está declarando que deja de tomarse. Inventar una vía aquí
                     // sería escribir en el expediente algo que nadie dijo.
                     nombre, dosis: dosis ?? '', via: 'otra', frecuencia: '', duracion: '',
-                    estado, motivoEstado: motivo.trim(),
+                    estado, motivoEstado: motivo.trim(), origenCaptura: 'medico',
                   } as Medicamento]
                 })
                 toast(`${nombre}: quedará registrado como ${estado === 'suspendida' ? 'suspendido' : 'terminado'} al firmar`, 'success')

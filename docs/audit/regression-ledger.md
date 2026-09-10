@@ -26057,3 +26057,10 @@ borra el id recién recibido. Los 14 casos del archivo pasan.
 
 **Qué NO cubre:** borrado rechazado, sesiones simultáneas en otros dispositivos
 ni recuperación de una escritura cuya respuesta de red se perdió.
+
+
+## REG-668 — una respuesta IA no se apropia de una edición médica (10-sep-2026)
+
+La revisión del PR #478 reprodujo pérdida de una dosis editada: la IA la repetía y una respuesta vacía posterior eliminaba el renglón. La comparación del contenido no prueba autoría. Se añade `Medicamento.origenCaptura`, sellado como `ia` al entrar por extracción y como `medico` al editar, añadir, aceptar, restaurar una versión o cambiar el estado desde la consulta. Reproyección y corrección conservan las capturas explícitas. El campo viaja con la nota y el borrador; no cambia la intención terapéutica ni activa órdenes.
+
+Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloques reales de primer plano y recuperación, eco seguido de retirada, ronda JSON, origen falsificado por IA y reproyección de una suspensión. Antes de la reparación fallaron los dos casos de eco/retirada. No demuestra QA privada montada, reglas Firestore ni aislamiento entre médicos.

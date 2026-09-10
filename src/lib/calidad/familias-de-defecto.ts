@@ -1184,7 +1184,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665, 668],
   },
   {
     clave: 'tarde',

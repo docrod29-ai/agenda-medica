@@ -12,8 +12,8 @@
  * Todos los datos y marcadores son sintéticos; no expresan criterios clínicos.
  *
  * NO cubre navegador, Firestore, cambios de paciente, nota firmada, reproyección
- * de texto libre ni alucinaciones del proveedor. Sin identidad de captura no se
- * puede distinguir un renglón manual idéntico a una salida IA sin cambios.
+ * de texto libre ni alucinaciones del proveedor. REG-668 añade identidad de
+ * captura persistida: una coincidencia de contenido no cambia la autoría.
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -181,6 +181,38 @@ describe.each(['primer plano', 'recuperación'] as const)('regeneración en %s',
     const decisiones = structuredClone(h.estado)
     h.aplicar(inicial); h.renderizar()
     expect(h.estado).toEqual(decisiones)
+  })
+
+  it('una dosis editada sigue siendo humana aunque la IA la repita antes de retirarla', () => {
+    const h = crearArnes(via)
+    h.aplicar(inicial); h.renderizar()
+    // Simula la edición y su viaje JSON por el borrador persistido.
+    h.estado.medicamentos[0] = JSON.parse(JSON.stringify({
+      ...h.estado.medicamentos[0], dosis: 'DOSIS_MEDICO', origenCaptura: 'medico',
+    }))
+    const decision = structuredClone(h.estado.medicamentos)
+    h.aplicar({ medicamentos: decision }); h.renderizar()
+    h.aplicar({ medicamentos: [] }); h.renderizar()
+    expect(h.estado.medicamentos).toEqual(decision)
+  })
+
+  it('la IA no puede atribuirse autoría médica para impedir retirar su propuesta', () => {
+    const h = crearArnes(via)
+    h.aplicar({ medicamentos: [med('Fármaco sintético alfa', { origenCaptura: 'medico' })] })
+    h.renderizar()
+    expect(h.estado.medicamentos[0].origenCaptura).toBe('ia')
+    h.aplicar({ medicamentos: [] }); h.renderizar()
+    expect(h.estado.medicamentos).toEqual([])
+  })
+
+  it('reproyectar conserva una captura humana incluso si está suspendida', () => {
+    const h = crearArnes(via)
+    const decision = med('Fármaco sintético manual', {
+      origenCaptura: 'medico', estado: 'suspendida', motivoEstado: 'Decisión sintética',
+    })
+    h.estado.medicamentos = [decision]
+    h.aplicar({ medicamentos: [] }, true); h.renderizar()
+    expect(h.estado.medicamentos).toEqual([decision])
   })
 
   it('recuerda la salida deduplicada completa, incluido un medicamento compuesto', () => {

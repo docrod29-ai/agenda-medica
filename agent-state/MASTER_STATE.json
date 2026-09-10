@@ -23,9 +23,24 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M docs/maintenance/sw-changelog.md",
-    " M public/sw.js",
-    " M public/version.txt"
+    "M agent-state/MASTER_STATE.json",
+    " M docs/audit/regression-ledger.md",
+    " M docs/data-room/INDICE.md",
+    " M docs/design/SCREEN_INVENTORY.md",
+    " M docs/product/AUSCULTA-MASTER-BOARD.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/el-acento-retirado-no-sigue-pintando.test.ts",
+    "MM src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts",
+    " M src/__tests__/v15-rtc19-configuracion-habla-el-token.test.ts",
+    " M src/__tests__/v15-rtc28-el-cromo-sigue-al-tema.test.ts",
+    "M  src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    "MM src/app/globals.css",
+    " M src/app/opengraph-image.tsx",
+    "M  src/components/consulta/consulta-workspace.module.css",
+    " M src/lib/calidad/familias-de-defecto.ts",
+    " M src/lib/clinical/invariantes-clinicos.json",
+    "M  src/lib/expediente/que-va-en-la-receta.ts",
+    "MM src/types/expediente.ts"
   ],
   "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
@@ -59,12 +74,12 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "codex/ausculta-consulta-agenda",
+  "ramaActual": "codex/ausculta-visual-safety",
   "derivado": {
-    "regsEnElLedger": 452,
-    "ultimaREG": "REG-667",
+    "regsEnElLedger": 453,
+    "ultimaREG": "REG-668",
     "archivosDePrueba": 1105,
-    "casosDePrueba": 13179,
+    "casosDePrueba": 13182,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1195"

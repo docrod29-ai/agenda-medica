@@ -147,9 +147,9 @@ describe('la tarjeta social se puede pintar', () => {
     const css = leer('src/app/globals.css')
     // Si el acento cambia en globals.css y aquí no, la tarjeta social se queda
     // hablando el acento anterior — que es el defecto que este archivo arregla.
-    expect(og).toContain("const COBALT = '#2AA5B5'")
-    expect(css).toContain('--nexus:        #2AA5B5')
-    expect(og).toContain("const INK = '#0B0C0E'")
-    expect(css).toContain('--bg:        #0B0C0E')
+    expect(og).toContain("const COBALT = '#69BEFF'")
+    expect(css).toContain('--nexus:        #69BEFF')
+    expect(og).toContain("const INK = '#0B111B'")
+    expect(css).toContain('--bg:        #0B111B')
   })
 })

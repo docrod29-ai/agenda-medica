@@ -186,7 +186,7 @@ describe('RTC-19 · configuración — el cromo habla el token', () => {
      * era «un hex en línea»: era un teal distinto del de todo lo demás, en la
      * pantalla que más se abre después de las clínicas.
      */
-    expect(leer('src/app/globals.css')).toMatch(/--nexus:\s*#2AA5B5/i)
+    expect(leer('src/app/globals.css')).toMatch(/--nexus:\s*#69BEFF/i)
     expect(CUENTA).toContain('color-mix(in srgb, var(--nexus)')
   })
 })
