@@ -10,7 +10,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { BotonGoogle } from '@/components/brand/BotonGoogle'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
-import { MarcaAuth } from '@/components/brand/MarcaAuth'
 import { MarcaAusculta } from '@/components/MarcaAusculta'
 import { EsperaDeLaPuerta } from '@/components/landing/EsperaDeLaPuerta'
 
@@ -149,17 +148,18 @@ function LoginInner() {
   return (
     /* <main>: la página entera es el landmark — axe (landmark-one-main/region)
        lo pedía desde siempre; primera medición de la puerta en V15 lo pagó. */
-    <main className="nx-puerta">
-      {/* Background glow */}
-      {/* Halo de marca discreto — cobalto soft */}
-      <div style={{
-        position: 'absolute', top: '15%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: 720, height: 720, borderRadius: '50%',
-        background: 'radial-gradient(circle, var(--nexus-soft) 0%, transparent 65%)',
-        pointerEvents: 'none', opacity: 0.6,
-      }} />
-      {/* Motivo de red/nexo de marca — muy tenue, detrás del formulario */}
-      <MarcaAuth style={{ top: '4%', left: '50%', transform: 'translateX(-50%)', width: 'min(760px, 120vw)', opacity: 0.14 }} />
+    <main className="nx-puerta nx-puerta-login">
+      <aside className="nx-puerta-contexto" aria-label="Tu espacio clínico">
+        <MarcaAusculta size={42} />
+        <p className="nx-puerta-contexto-kicker">TU ESPACIO CLÍNICO</p>
+        <p className="nx-puerta-contexto-titulo">Más atención.<br />Menos pendientes.</p>
+        <p>Tu agenda, la historia del paciente y la nota de hoy, en un mismo espacio.</p>
+        <ol className="nx-puerta-recorrido">
+          <li><span>01</span><div><strong>Prepara la consulta</strong><p>La agenda y el contexto, a la vista.</p></div></li>
+          <li><span>02</span><div><strong>Conversa y documenta</strong><p>Dicta, revisa y conserva tu criterio.</p></div></li>
+          <li><span>03</span><div><strong>Cierra con claridad</strong><p>Nota, receta y seguimiento conectados.</p></div></li>
+        </ol>
+      </aside>
 
       <div className="nx-puerta-columna">
         {/*

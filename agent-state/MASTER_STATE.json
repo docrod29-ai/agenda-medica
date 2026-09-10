@@ -23,24 +23,11 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    "M docs/maintenance/AUSCULTA-VISUAL-2026-09-10.md",
+    " M scripts/design/techos-de-diseno.json",
     " M src/__tests__/el-acento-retirado-no-sigue-pintando.test.ts",
-    "MM src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts",
-    " M src/__tests__/v15-rtc19-configuracion-habla-el-token.test.ts",
-    " M src/__tests__/v15-rtc28-el-cromo-sigue-al-tema.test.ts",
-    "M  src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    "MM src/app/globals.css",
-    " M src/app/opengraph-image.tsx",
-    "M  src/components/consulta/consulta-workspace.module.css",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "M  src/lib/expediente/que-va-en-la-receta.ts",
-    "MM src/types/expediente.ts"
+    " M src/app/globals.css",
+    " M src/app/login/page.tsx"
   ],
   "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {

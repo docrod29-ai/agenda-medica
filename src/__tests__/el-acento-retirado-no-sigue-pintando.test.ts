@@ -119,7 +119,9 @@ describe('el acento retirado no sigue pintando', () => {
   it('el cuarto papel del acento tiene token, en los TRES bloques de tema', () => {
     const css = leer('src/app/globals.css')
     // dark (:root) · light ([data-theme="light"]) · sistema (prefers-color-scheme)
-    const veces = css.split('--nexus-borde:').length - 1
+    // El marco de navegación tiene su tema acotado; aquí se vigilan los tres temas globales.
+    const temas = css.replace(/\.sidebar \{[\s\S]*?\n\}/, '')
+    const veces = temas.split('--nexus-borde:').length - 1
     expect(veces, 'un token de acento definido en un solo tema es el defecto de la vez anterior').toBe(3)
     expect(css.split('--nexus-tenue:').length - 1).toBe(3)
     // Derivado de --nexus, no fijado: es lo que hace que el próximo cambio

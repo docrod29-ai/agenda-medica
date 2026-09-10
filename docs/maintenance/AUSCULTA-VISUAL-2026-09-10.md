@@ -21,3 +21,9 @@ Contraste determinista, medido con el comprobador WCAG existente: blanco sobre a
 QA montada en cuenta privada, teclado y móvil del nuevo aspecto; asignación y aislamiento entre médicos de la misma clínica (incluidas exportaciones y metadatos clínicos del directorio); migración revisada del legado y publicación de reglas Firebase. La verificación de la demo pública no sustituye esos recorridos. Este lote no cambia permisos ni migra pacientes.
 
 No se presenta este ajuste compartido como un rediseño completo, pantalla por pantalla, ni como cierre del objetivo de seguridad/despliegue. La vista previa es para verificar los cambios; producción requiere resolver las compuertas pendientes.
+
+## Ampliación de la interfaz
+
+CI remoto de `daf1091`: cinco jobs completados correctamente (verificar, clinical-safety, lint, aislamiento-tenant y e2e-publico). Preview Vercel construido, aunque la inspección en navegador sigue detenida en el acceso de Vercel.
+
+El dueño reiteró que un cambio de paleta era insuficiente. Se añadió una composición de acceso con panel azul y recorrido de tres pasos en escritorio; en móvil el formulario sigue en una columna. El marco de navegación tiene ahora un tema tinta acotado, distinto del área de trabajo. Se corrigió el contraste del hover en las acciones con texto blanco. Se retiró el halo decorativo del acceso: el techo de degradados bajó de 11 a 10. Comprobación de los cinco guardianes afectados: 55 casos correctos; build equivalente final correcto. Esta ampliación todavía requiere inspección visual autenticada.

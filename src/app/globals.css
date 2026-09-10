@@ -869,6 +869,20 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Sidebar (Ausculta) ───────────────────────────────────── */
 .sidebar {
+  /* La navegación es un marco tinta en ambos temas; sus tokens están acotados
+     al marco para que formularios y datos clínicos mantengan el tema elegido. */
+  --bg: #0E2038;
+  --s1: #142942;
+  --s2: #1D3552;
+  --s3: #263F5D;
+  --text: #F6F9FF;
+  --text2: #CFDCED;
+  --text3: #B3C5DC;
+  --nexus: #80C9FF;
+  --nexus-soft: rgba(128, 201, 255, .13);
+  --nexus-borde: rgba(128, 201, 255, .3);
+  --border: rgba(207, 220, 237, .14);
+  --border2: rgba(207, 220, 237, .25);
   background: var(--bg);
   border-right: 1px solid var(--border);
   width: 224px;
@@ -3088,7 +3102,7 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   transition: background var(--mov-rapido) var(--mov-curva),
               transform var(--mov-rapido) var(--mov-curva);
 }
-.prox-hero-cta:hover { background: var(--nexus-hover); }
+.prox-hero-cta:hover { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
 .prox-hero-cta:active { transform: scale(0.98); }
 
 /* Por debajo de esto, el CTA (flexShrink 0) le comía el ancho al nombre: la
@@ -4133,8 +4147,8 @@ html:has(.mi-barra-destinos) .theme-toggle {
    no un `<button>`: el rótulo «Estructurando la nota…» mientras la IA trabaja.
    Un `<span>` no puede estar `:disabled`, y sin esto se pintaría encendido. */
 .nx-acc-fuerte { background: var(--nexus-solido); }
-.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); }
-.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); opacity: 0.92; }
+.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
+.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: color-mix(in srgb, var(--nexus-solido) 88%, black); opacity: 0.92; }
 .nx-acc-fuerte:disabled,
 .nx-acc-fuerte[data-inerte] { background: var(--s3); }
 
@@ -4295,7 +4309,7 @@ html:has(.mi-barra-destinos) .theme-toggle {
    se toca: sólo se muda de sitio, para que el `:hover` pueda ganarle al estilo
    en línea. */
 .nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }
-.nx-chip--relleno[aria-pressed='true']:hover { background: var(--nexus-hover); }
+.nx-chip--relleno[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
 
 /* Riel del expediente. El fondo vive aquí y no en línea por la razón de
    siempre: en línea le ganaba al `:hover` y las entradas del riel eran de las
@@ -5371,6 +5385,28 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   position: relative;
   overflow: hidden;
+}
+.nx-puerta-contexto { display: none; }
+.nx-puerta-login .nx-puerta-tarjeta { border-top: 3px solid var(--nexus); }
+@media (min-width: 960px) {
+  .nx-puerta-login { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; padding: 32px; }
+  .nx-puerta-login .nx-puerta-columna { justify-self: center; }
+  .nx-puerta-contexto {
+    display: flex; flex-direction: column; justify-content: center; align-self: stretch;
+    min-width: 0; padding: clamp(32px, 5vw, 80px); border-radius: var(--r-lg);
+    background: var(--nexus-solido); color: white;
+  }
+  .nx-puerta-contexto-kicker { margin: 40px 0 16px; font-size: 12px; font-weight: 600; letter-spacing: .1em; }
+  .nx-puerta-contexto-titulo { margin: 0 0 24px; font-size: clamp(36px, 4vw, 60px); line-height: 1.08; letter-spacing: -.04em; font-weight: 600; }
+  .nx-puerta-contexto > p:not([class]) { max-width: 36ch; font-size: 17px; line-height: 1.65; }
+  .nx-puerta-recorrido { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 24px; }
+  .nx-puerta-recorrido li { display: flex; gap: 16px; align-items: baseline; }
+  .nx-puerta-recorrido li > span { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .nx-puerta-recorrido strong { font-size: 15px; }
+  .nx-puerta-recorrido p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nx-puerta-contexto, .nx-puerta-login .nx-puerta-columna { animation: nx-rise 320ms var(--mov-curva) both; }
 }
 .nx-puerta-columna { width: 100%; max-width: 420px; position: relative; }
 .nx-puerta-marca { text-align: center; margin-bottom: 30px; }
