@@ -23,19 +23,11 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M agent-state/AUSCULTA_OWNER_BRIEF_2026-09-09.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/design/capturas/v15-estado-de-accion/pendientes--desktop.png",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M src/__tests__/consulta-descartada-no-resucita.test.ts",
-    " M src/__tests__/la-lista-de-espera-no-se-duplica-ni-miente.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/api/cron/reminders/route.ts",
-    " M src/app/api/whatsapp/webhook/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts"
+    "M docs/maintenance/sw-changelog.md",
+    " M public/sw.js",
+    " M public/version.txt"
   ],
-  "actualizado": "2026-09-09",
+  "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -67,13 +59,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "codex/ausculta-revision-visual",
+  "ramaActual": "claude/clinical-note-simplification-kl71ne",
   "derivado": {
-    "regsEnElLedger": 449,
-    "ultimaREG": "REG-667",
-    "archivosDePrueba": 1100,
-    "casosDePrueba": 13093,
+    "regsEnElLedger": 443,
+    "ultimaREG": "REG-664",
+    "archivosDePrueba": 1101,
+    "casosDePrueba": 13140,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1191"
+  "versionEnElRepo": "nexusmed-v1194"
 }

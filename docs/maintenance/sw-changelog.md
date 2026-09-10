@@ -3891,3 +3891,100 @@ compartido y un guardián) y D-032 (la caja ámbar se retira; sólo la caja).
 
 Primer paquete de la sesión que sale de uso real en un aparato real. Ninguna de
 las cuatro la había cazado el arnés, que corre en Chromium a 390 px.
+
+## v1192 — 10-sep-2026
+
+Arrastrar una cita en el calendario, y las tres cosas que sólo se vieron
+**abriendo el navegador** con 14 500 pruebas en verde.
+
+- **REG-662** — arrastrar para mover, con el teclado desde el primer minuto
+  (flechas ±5 min, Shift ±60, mismo guardián y mismo paso que el ratón). Al
+  soltar, la hora imanta a las aristas del motor: donde termina la cita anterior
+  o donde ésta acabaría clavada contra la siguiente. Dentro venían dos defectos
+  que ningún diff enseña: `stopPropagation` sobre `pointerup` **no cancela el
+  `click`**, así que soltar abría «Editar cita» encima del aviso de choque; y la
+  hora del fantasma caía ilegible sobre el nombre de la cita de debajo. Y un
+  tercero, medido con un teléfono emulado: **con el dedo el gesto se moría a
+  medias, en silencio** — el navegador se queda con el desplazamiento y manda
+  `pointercancel`. El arrastre se declara de ratón y lápiz; en táctil la cita se
+  toca y se mueve por el modal.
+
+- **REG-663** — un consultorio **sin horario configurado** devolvía **500 con el
+  cuerpo vacío** en `POST /api/appointments`, así que no podía crear ni mover
+  una sola cita y lo único que veía era «No se pudo mover la cita»: un no sin
+  motivo. `getDaySchedule` ya no lanza, la ruta distingue «no hay horario» de
+  «ese día no se abre», y el tramo validador entero pasa a ir dentro de un `try`
+  que responde **500 con motivo** — para la siguiente excepción, la que todavía
+  no conocemos.
+
+La siembra del arnés escribía `horaInicio`/`horaFin` (los campos de la pantalla
+de configuración) y no `horario`, que es el que lee el motor: era ella misma un
+«escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
+una jornada partida por la comida, que es el caso del acta del dueño.
+
+## v1194 — 10-sep-2026
+
+**REG-664 · D-047 a D-052** — la nota que el médico pidió.
+
+El dueño, probando una consulta real en su iPhone, mandó cinco capturas: once
+diagnósticos sin código, nueve medicamentos sin dosis bloqueando la firma —tres
+de ellos la misma frase «acabo de terminar un medicamento» convertida en tres
+filas—, el selector de nivel de IA que el Board #296 ya prohibía, y «Qué es de
+qué» con la cita del dictado bajo cada fármaco. «No es nada amigable, súper
+confuso; nomás quiero que hagas la nota y sugerencias de tratamiento,
+diagnóstico y abordaje.»
+
+- **La lista de medicamentos es la receta de hoy** (D-049). Sus filas, la
+  compuerta de dosis y el impreso usan la misma puerta, `loQueSeReceta`. Lo que
+  el paciente refirió, lo que la IA extrajo sin intención y lo suspendido van en
+  una línea aparte, «Mencionados en la consulta, fuera de la receta», con
+  «Recetar hoy» y «Quitar». Un renglón que no nombra un fármaco («Medicamento no
+  especificado», «nombre no precisado») ya no entra desde el lote de la IA.
+- **Seis diagnósticos como máximo por pasada de la IA** (D-050): diferenciales
+  salen primero, orden del modelo conservado, lo del médico no se acota.
+- **La sugerencia trae su código CIE-10** (D-051): entra marcado como sugerido,
+  punteado en ámbar con un botón «Confirmar»; teclearlo o elegirlo del catálogo
+  lo vuelve del médico. Lo que nadie confirmó se avisa antes de firmar y se quita
+  al firmar: la descripción se firma, el código no.
+- **La dosis que falta avisa y no bloquea** (D-052). Sustituye a la decisión del
+  5-ago. Rojo, sin plegarse, sin «ya lo revisé», con «Ir a corregir», sellado con
+  la firma. Lo único que apaga Firmar es NOM-004 y el nombre de quien firma.
+- **Fuera el selector ⚡/⭐/💎** (D-047): el servidor aplica el nivel del plan.
+- **Fuera «Qué es de qué»** (D-048): la procedencia por frase sigue en la nota.
+
+Lo que cuesta, dicho: una receta ya puede firmarse sin cantidad, y el aviso rojo
+es lo único que lo impide; y un código sugerido equivocado que el médico
+confirme sin mirar es suyo — el gesto existe para eso.
+
+## v1193 — 10-sep-2026
+
+**D-046** — el expediente del paciente se queda con lo que ES expediente.
+
+El dueño pidió, mirando su iPhone, quitar la tarjeta de «Herramientas clínicas»
+para poder ver las consultas y sus fechas, y dejar un expediente de fotografía
+clínica para irlas comparando.
+
+El arnés midió antes de tocar nada, y corrigió el encargo en dos puntos: las
+herramientas **no** tapaban las consultas —iban debajo—, y lo que de verdad las
+escondía era la posición de la historia, que empezaba a **1 199 px** en un
+teléfono. En la captura del dueño la tarjeta parece estar arriba porque ese
+paciente no tiene notas firmadas, sólo una consulta sin cerrar.
+
+- **Fuera la barra de herramientas.** La fotografía seriada se queda como
+  sección propia y desplegada —serie por región, antes/después y días de
+  evolución—, que es la única de las cuatro que es material longitudinal.
+  Laboratorios, Consultor de evidencia y Antibiograma se usan desde la consulta,
+  donde ya estaban. Lo que cuesta, dicho: fuera de un encuentro ya no se ve la
+  tendencia por analito. Se le preguntó al dueño y decidió que sí.
+- **La historia sube** por delante del estado clínico y de los pendientes: la
+  primera consulta pasa de 1 199 px a **785 px**.
+- Dos cabos que dejó el quitar, cazados antes de dar nada por hecho: el riel del
+  Clinical Spine ofrecía «Laboratorios y fotografía» apuntando a un ancla que ya
+  no existía, y la declaración `CAPACIDADES_DEL_PACIENTE` se quedaba sin
+  consumidor. El riel se reordena y renombra; la declaración se muda con la
+  puerta a la consulta.
+
+De RTC-09 y RTC-10 no se deshace lo que encontró el equipo rojo: la IA sigue
+fuera del índice administrativo y sigue siendo contextual; ninguna caja-módulo
+vuelve por delante de lo clínico, ninguna tarjeta vacía, documentos al final.
+Cambió cuál de los bloques clínicos va primero, y por una medición.

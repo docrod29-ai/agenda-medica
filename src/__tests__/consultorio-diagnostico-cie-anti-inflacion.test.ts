@@ -12,7 +12,13 @@ const dx = (
 ): Diagnostico => ({ descripcion, codigoCIE10, tipo, estado: 'activo' })
 
 describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
-  it('un diagnóstico automático no se vuelve definitivo ni CIE-codificado por sí solo', () => {
+  it('un diagnóstico automático no se vuelve definitivo, y su CIE entra como SUGERIDO (D-051)', () => {
+    /**
+     * Hasta el 10-sep-2026 el código se borraba aquí. El dueño pidió que la
+     * sugerencia traiga el código y él sólo lo confirme: el código se queda,
+     * marcado `codigoOrigen:'extraccion'`, y no se firma hasta confirmarse.
+     * La certeza sigue igual: definitivo del modelo → presuntivo.
+     */
     const out = fusionarDiagnosticos({
       previos: [],
       nuevos: [dx('Uretritis por Chlamydia trachomatis', 'A56.01', 'definitivo')],
@@ -22,11 +28,12 @@ describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
     expect(out[0]).toMatchObject({
       descripcion: 'Uretritis por Chlamydia trachomatis',
       tipo: 'presuntivo',
+      codigoCIE10: 'A56.01',
+      codigoOrigen: 'extraccion',
     })
-    expect(out[0].codigoCIE10).toBeUndefined()
   })
 
-  it('sinónimos/variantes del mismo CIE se colapsan ANTES de retirar el código sugerido', () => {
+  it('sinónimos/variantes del mismo CIE se colapsan, y queda UN código sugerido', () => {
     const out = fusionarDiagnosticos({
       previos: [],
       nuevos: [
@@ -37,7 +44,8 @@ describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
     })
 
     expect(out).toHaveLength(1)
-    expect(out[0].codigoCIE10).toBeUndefined()
+    expect(out[0].codigoCIE10).toBe('A56.3')
+    expect(out[0].codigoOrigen).toBe('extraccion')
   })
 
   it('un diagnóstico capturado por el médico conserva su CIE y su certeza frente a una pasada IA equivalente', () => {
@@ -67,7 +75,10 @@ describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
     }
 
     expect(lista).toHaveLength(2)
-    expect(lista.every(d => d.codigoCIE10 === undefined)).toBe(true)
+    // Un código por diagnóstico, siempre como sugerido: cuarenta pasadas no lo confirman.
+    expect(lista.map(d => d.codigoCIE10).sort()).toEqual(['A56.3', 'N34.1'])
+    expect(lista.every(d => d.codigoOrigen === 'extraccion')).toBe(true)
+    // REG-660: el snapshot es lo que la frontera dejó visible; retirarlo entero deja la lista vacía.
     expect(fusionarDiagnosticos({ previos: lista, nuevos: [], deLaIaAnterior: previaDeLaIa })).toEqual([])
   })
 
@@ -76,6 +87,8 @@ describe('Consultorio GP6 — diagnóstico/CIE anti-inflación', () => {
     expect(sugerida.descripcion).toBe('Neumonía adquirida en comunidad')
     expect(sugerida.estado).toBe('activo')
     expect(sugerida.tipo).toBe('presuntivo')
-    expect(sugerida.codigoCIE10).toBeUndefined()
+    // El código es contenido clínico: se conserva. La autoridad es el origen: sugerido.
+    expect(sugerida.codigoCIE10).toBe('J18.9')
+    expect(sugerida.codigoOrigen).toBe('extraccion')
   })
 })

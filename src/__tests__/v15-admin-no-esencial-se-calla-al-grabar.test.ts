@@ -62,10 +62,16 @@ const PAGE = readFileSync(
 )
 
 describe('V15 — admin no esencial de /consulta se calla mientras graba', () => {
-  it('el menú de motor de IA usa grabandoAhora(), no sólo voz.grabando (cubre la ruta de audio real)', () => {
-    expect(PAGE).toContain("{voz.transcripcion.trim() && !grabandoAhora() && (")
-    // El criterio viejo, que sólo cubría Web Speech, no debe quedar como
-    // compuerta activa de este bloque.
+  it('el menú de motor de IA ya no existe (D-047): no hay bloque que callar', () => {
+    /**
+     * Hasta el 10-sep-2026 este caso vigilaba que el menú ⚡/⭐/💎 se callara
+     * mientras grababa. El dueño lo retiró entero («el nivel te había dicho
+     * que no tiene que escoger»), así que lo que se vigila ahora es que no
+     * vuelva: ni el título, ni el catálogo, ni la compuerta que lo pintaba.
+     */
+    expect(PAGE).not.toContain('Nivel de IA para esta nota')
+    expect(PAGE).not.toContain("{voz.transcripcion.trim() && !grabandoAhora() && (")
+    // El criterio viejo, que sólo cubría Web Speech, tampoco.
     expect(PAGE).not.toContain('{voz.transcripcion.trim() && !voz.grabando && (')
   })
 
@@ -89,13 +95,13 @@ describe('V15 — admin no esencial de /consulta se calla mientras graba', () =>
 })
 
 describe('V15 — freeze funcional: nada de lo que hacen estos bloques cambió', () => {
-  it('el menú de motor de IA sigue leyendo motorEfectivo/MOTORES_UI/setMotorSel, sin lógica nueva', () => {
-    const inicio = PAGE.indexOf('MENÚ DE IA: motor por nota')
-    expect(inicio).toBeGreaterThan(0)
-    const bloque = PAGE.slice(inicio, inicio + 2200)
-    expect(bloque).toContain('MOTORES_UI.map(m =>')
-    expect(bloque).toContain('onClick={() => setMotorSel(m.clave)}')
-    expect(bloque).toContain('motorEfectivo === m.clave')
+  it('el menú de motor de IA se fue entero, sin dejar estado huérfano (D-047)', () => {
+    expect(PAGE.indexOf('MENÚ DE IA: motor por nota')).toBe(-1)
+    expect(PAGE).not.toContain('const MOTORES_UI')
+    expect(PAGE).not.toContain('setMotorSel')
+    expect(PAGE).not.toContain('motorEfectivo')
+    // Lo que sí queda: el nivel que usó la nota, para procedencia.
+    expect(PAGE).toContain('motor: motorUsado ?? undefined')
   })
 
   it('el botón "Comprar más créditos" y el enlace "Ver planes" conservan su onClick/href de siempre', () => {

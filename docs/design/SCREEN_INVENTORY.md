@@ -45,11 +45,11 @@
 | `/verificar/[token]` | paciente | — | 103 | 0 | — | ✅ | — |
 | `/antibiograma` | medico | ✅ | 901 | 0 | — | ✅ | — |
 | `/asistente` | medico | ✅ | 863 | 0 | — | ✅ | — |
-| `/calendario` | medico | ✅ | 919 | 1 | — | ✅ | — |
+| `/calendario` | medico | ✅ | 1242 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2902 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 8391 | 8 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 8370 | 8 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 409 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 278 | 1 | — | ✅ | — |
@@ -58,7 +58,7 @@
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 384 | 5 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 1288 | 15 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 1267 | 15 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 896 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 758 | 0 | — | ✅ | — |
@@ -91,7 +91,7 @@
 | `/arquitectura` | publica | — | 131 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 83 | 1 | — | ✅ | — |
 | `/demo` | publica | — | 510 | 4 | — | ✅ | — |
-| `/demo/interactivo` | publica | ✅ | 766 | 2 | — | ✅ | — |
+| `/demo/interactivo` | publica | ✅ | 772 | 2 | — | ✅ | — |
 | `/demo/razonamiento` | publica | ✅ | 158 | 3 | — | ✅ | — |
 | `/evidencia` | publica | — | 94 | 0 | — | ✅ | — |
 | `/legal` | publica | ✅ | 113 | 1 | — | ✅ | — |

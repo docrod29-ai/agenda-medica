@@ -33,7 +33,10 @@ const page = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
  * motor nuevo no puede colarse en la barra sin que alguien diga si bloquea.
  */
 const ORIGENES: OrigenAviso[] = [
-  'dosis_incompleta', 'alergia_medicamento', 'contradiccion_negacion',
+  'dosis_incompleta',
+  /** D-051 — el código CIE-10 que sugirió la IA y nadie confirmó. AVISA, no bloquea. */
+  'cie_sugerido',
+  'alergia_medicamento', 'contradiccion_negacion',
   'desajuste_temporal', 'via_asumida', 'interaccion', 'controlado',
   'conflicto_extraccion', 'dato_no_precisado', 'requisito_nom004',
   'dosis_peligrosa', 'antecedente_del_familiar', 'dato_incierto',
@@ -98,7 +101,9 @@ describe('la tabla de niveles no se puede degradar en silencio', () => {
      * que cuenta la barra salen del mismo sitio.
      */
     const bloquean = ORIGENES.filter(o => NIVEL[o] === 'bloquea').sort()
-    expect(bloquean).toEqual(['dosis_incompleta', 'requisito_nom004'])
+    // Hasta el 10-sep-2026 eran dos. La dosis pasó a `revisa` por decisión del
+    // médico dueño (D-052): lo único que apaga el botón es NOM-004.
+    expect(bloquean).toEqual(['requisito_nom004'])
   })
 
   it('«bloquea» NO significa «es lo más grave»', () => {
@@ -139,6 +144,8 @@ describe('ningún aviso se perdió al reordenarlos', () => {
   it('todos los motores siguen llegando a la barra', () => {
     const avisos = construirAvisos({
       dosisIncompletas: [{ med: 'levotiroxina', mensaje: 'sin cantidad' }],
+      /** D-051 — el código que sugirió la IA y nadie confirmó. */
+      codigosSinConfirmar: [{ descripcion: 'Uretritis no gonocócica', codigo: 'N34.1' }],
       alergiaMedicamento: [{ mensaje: 'penicilina', severidad: 'critica' }],
       contradicciones: [{ condicion: 'diabetes', mensaje: 'x' }],
       desajustes: [{ condicion: 'fractura', mensaje: 'y' }],
@@ -174,7 +181,8 @@ describe('ningún aviso se perdió al reordenarlos', () => {
       dosisIncompletas: [{ med: 'a', mensaje: 'm' }, { med: 'b', mensaje: 'm' }],
       conflictos: ['c1', 'c2', 'c3'],
     })
-    expect(resumirAvisos(avisos)).toEqual({ bloquean: 2, revisar: 3 })
+    // Las dos dosis cuentan como «por revisar» desde D-052.
+    expect(resumirAvisos(avisos)).toEqual({ bloquean: 0, revisar: 5 })
   })
 
   it('sin nada que decir, no hay avisos', () => {
@@ -302,7 +310,7 @@ describe('está conectado de verdad, no sólo escrito', () => {
   })
 
   it('el botón lleva al sitio del problema', () => {
-    expect(barra).toContain('Escribir la dosis')
+    expect(barra).toContain('Ir a corregir')
     expect(page).toContain("getElementById('seccion-medicamentos')")
     expect(page).toContain('id="seccion-medicamentos"')
   })

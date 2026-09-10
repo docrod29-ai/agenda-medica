@@ -4,6 +4,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { verificarMiembro } from '@/lib/auth-server'
 import type { Appointment } from '@/types'
 import { validarFechaHoraDeAgenda } from '@/lib/agenda/horizonte'
+import { safeLog } from '@/lib/security/sanitize'
 
 /**
  * Alta de cita ATÓMICA (dashboard/asistente). Reemplaza el addDoc del cliente:
@@ -146,74 +147,114 @@ export async function POST(req: NextRequest) {
   const cfg = cfgSnap.data()
   if (cfg) {
     /**
-     * HORARIO POR MÉDICO, no solo el de la clínica.
+     * TODO ESTE TRAMO VA DENTRO DE UN `try`, y no por costumbre.
      *
-     * Cada médico puede tener su propio horario/duraciones (subcolección
-     * `doctors`). El modal genera los huecos con ESE horario, pero aquí se validaba
-     * solo contra `config/main`: si el doctor trabaja un día que la clínica marca
-     * inactivo (o más tarde que ella), el servidor rechazaba con 409 una cita que
-     * el modal sí ofrecía. Se carga el doc del médico y sus campos pisan a los de
-     * la clínica (fallback a `main` si el médico no define alguno).
+     * Lo que sigue lee la configuración, el documento del médico, los bloqueos y
+     * el motor de horarios. Estaba FUERA de todo `try`, así que una sola
+     * excepción —la de REG-663 fue `config.horario` sin definir— salía como
+     * **500 con el cuerpo vacío**. Y el cuerpo vacío es lo peor: la pantalla
+     * enseña el mensaje del servidor y, al no haber ninguno, cae en su frase de
+     * reserva («No se pudo mover la cita»), que apunta al gesto en vez de a la
+     * causa. El médico se queda sin saber ni qué arreglar.
+     *
+     * El `catch` NO responde 409. Un 409 afirmaría que se comprobó el horario y
+     * la cita no cabía, y eso sería mentira: no se pudo comprobar. Se responde
+     * 500 —es un fallo nuestro— pero **con motivo**, y se deja el rastro en el
+     * log del servidor con `safeLog`, que sanea PHI.
+     *
+     * Y no se sigue adelante: escribir la cita sin haber podido validar el
+     * horario es exactamente lo que estas cien líneas existen para impedir.
      */
-    let cfgEfectiva = cfg as unknown as import('@/types').ClinicConfig
-    if (medicoId) {
-      const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
-      const doc = docSnap.data()
-      cfgEfectiva = configParaMedico(cfgEfectiva, doc)
-    }
-    const { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } = await import('@/lib/availability')
-    const schedule = getDaySchedule(fecha, cfgEfectiva)
-    if (!schedule) {
-      return NextResponse.json({ error: 'Ese día el consultorio no da servicio' }, { status: 409 })
-    }
-    const vh = validarHorarioDia(schedule.inicio, schedule.fin)
-    if (!vh.valido || start < vh.startMin || end > vh.endMin) {
-      return NextResponse.json({ error: `Fuera del horario de ese día (${schedule.inicio}–${schedule.fin})` }, { status: 409 })
-    }
-
-    /**
-     * EL HORARIO PARTIDO, TAMBIÉN AQUÍ.
-     *
-     * De los tres caminos que escriben una cita, sólo el booking público
-     * comprobaba los descansos. Un médico que atiende 10-13 y 15-19 lo declara
-     * con un descanso de 13:00 a 15:00, y por esta vía —la del consultorio, por
-     * la que pasa la mayor parte de la agenda— una cita de 12:45 a 13:15
-     * entraba cruzando la comida entera.
-     *
-     * No hacía falta mala fe: el campo de hora manual permite pedir cualquier
-     * hora, y el motor de huecos ya no ofrecía ésa. Se ofrecía una cosa y se
-     * aceptaba otra, que es exactamente lo que este archivo ya tiene escrito
-     * para los bloqueos unas líneas más abajo.
-     */
-    if (pisaDescanso(start, end, descansosEnMinutos(schedule.descansos))) {
-      return NextResponse.json({ error: 'Ese horario cae en un descanso del día (comida, quirófano). Elige otro.' }, { status: 409 })
-    }
-
-    /**
-     * LOS BLOQUEOS TAMBIÉN SE VALIDAN AQUÍ, NO SÓLO EN EL NAVEGADOR.
-     *
-     * Quien comprobaba vacaciones, ausencias y quirófano era el modal, con la
-     * lista de bloqueos que cargó AL ABRIRSE. El borde era asimétrico: el
-     * booking público sí lo verifica en el servidor; el panel no.
-     *
-     * El caso que lo rompe no es raro: la asistente deja el modal abierto, el
-     * médico crea un bloqueo por cirugía, y veinte minutos después la asistente
-     * guarda encima del quirófano con el servidor diciendo que sí.
-     *
-     * Se responde 409 con el mismo lenguaje que el portal público, para que el
-     * mensaje diga qué pasó y no «error».
-     */
-    const bloquesSnap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
-    const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
-    if (bloques.length) {
-      const { pisaBloqueo } = await import('@/lib/time-blocks-core')
-      const tzClinica = (cfgEfectiva.zonaHoraria as string) || (await import('@/lib/timezone')).TZ_DEFAULT
-      // Con la duración: una consulta de una hora a las 10:00 se metía entera
-      // encima de un bloqueo de 10:30 porque las 10:00 no caían dentro de él.
-      const bloque = pisaBloqueo(appointment.fechaHora, Number(appointment.duracion ?? 30), bloques, medicoId, tzClinica)
-      if (bloque) {
-        return NextResponse.json({ error: `Ese horario está bloqueado (${bloque.motivo || bloque.tipo || 'ausencia'})` }, { status: 409 })
+    try {
+      /**
+       * HORARIO POR MÉDICO, no solo el de la clínica.
+       *
+       * Cada médico puede tener su propio horario/duraciones (subcolección
+       * `doctors`). El modal genera los huecos con ESE horario, pero aquí se validaba
+       * solo contra `config/main`: si el doctor trabaja un día que la clínica marca
+       * inactivo (o más tarde que ella), el servidor rechazaba con 409 una cita que
+       * el modal sí ofrecía. Se carga el doc del médico y sus campos pisan a los de
+       * la clínica (fallback a `main` si el médico no define alguno).
+       */
+      let cfgEfectiva = cfg as unknown as import('@/types').ClinicConfig
+      if (medicoId) {
+        const docSnap = await adminDb.collection('clinics').doc(clinicId).collection('doctors').doc(medicoId).get()
+        const doc = docSnap.data()
+        cfgEfectiva = configParaMedico(cfgEfectiva, doc)
       }
+      const { getDaySchedule, validarHorarioDia, descansosEnMinutos, pisaDescanso } = await import('@/lib/availability')
+      const schedule = getDaySchedule(fecha, cfgEfectiva)
+      if (!schedule) {
+        /*
+         * SE DISTINGUE «HOY NO ABRE» DE «NO HAY HORARIO NINGUNO».
+         *
+         * Los dos acaban en `null`, y hasta ahora los dos se contaban igual: «ese
+         * día el consultorio no da servicio». A un consultorio recién abierto eso
+         * le dice que no puede agendar el miércoles, cuando lo que pasa es que no
+         * ha declarado ningún horario todavía — y entonces NINGÚN día funciona.
+         * Se manda a la pantalla que lo arregla, en vez de dejarlo probando días.
+         */
+        const sinHorario = !cfgEfectiva?.horario || Object.keys(cfgEfectiva.horario).length === 0
+        return NextResponse.json({
+          error: sinHorario
+            ? 'El consultorio todavía no tiene horario configurado: decláralo en Configuración → Horario de atención.'
+            : 'Ese día el consultorio no da servicio',
+        }, { status: 409 })
+      }
+      const vh = validarHorarioDia(schedule.inicio, schedule.fin)
+      if (!vh.valido || start < vh.startMin || end > vh.endMin) {
+        return NextResponse.json({ error: `Fuera del horario de ese día (${schedule.inicio}–${schedule.fin})` }, { status: 409 })
+      }
+
+      /**
+       * EL HORARIO PARTIDO, TAMBIÉN AQUÍ.
+       *
+       * De los tres caminos que escriben una cita, sólo el booking público
+       * comprobaba los descansos. Un médico que atiende 10-13 y 15-19 lo declara
+       * con un descanso de 13:00 a 15:00, y por esta vía —la del consultorio, por
+       * la que pasa la mayor parte de la agenda— una cita de 12:45 a 13:15
+       * entraba cruzando la comida entera.
+       *
+       * No hacía falta mala fe: el campo de hora manual permite pedir cualquier
+       * hora, y el motor de huecos ya no ofrecía ésa. Se ofrecía una cosa y se
+       * aceptaba otra, que es exactamente lo que este archivo ya tiene escrito
+       * para los bloqueos unas líneas más abajo.
+       */
+      if (pisaDescanso(start, end, descansosEnMinutos(schedule.descansos))) {
+        return NextResponse.json({ error: 'Ese horario cae en un descanso del día (comida, quirófano). Elige otro.' }, { status: 409 })
+      }
+
+      /**
+       * LOS BLOQUEOS TAMBIÉN SE VALIDAN AQUÍ, NO SÓLO EN EL NAVEGADOR.
+       *
+       * Quien comprobaba vacaciones, ausencias y quirófano era el modal, con la
+       * lista de bloqueos que cargó AL ABRIRSE. El borde era asimétrico: el
+       * booking público sí lo verifica en el servidor; el panel no.
+       *
+       * El caso que lo rompe no es raro: la asistente deja el modal abierto, el
+       * médico crea un bloqueo por cirugía, y veinte minutos después la asistente
+       * guarda encima del quirófano con el servidor diciendo que sí.
+       *
+       * Se responde 409 con el mismo lenguaje que el portal público, para que el
+       * mensaje diga qué pasó y no «error».
+       */
+      const bloquesSnap = await adminDb.collection('clinics').doc(clinicId).collection('time_blocks').get()
+      const bloques = bloquesSnap.docs.map(d => ({ id: d.id, ...d.data() })) as unknown as import('@/lib/time-blocks-core').TimeBlock[]
+      if (bloques.length) {
+        const { pisaBloqueo } = await import('@/lib/time-blocks-core')
+        const tzClinica = (cfgEfectiva.zonaHoraria as string) || (await import('@/lib/timezone')).TZ_DEFAULT
+        // Con la duración: una consulta de una hora a las 10:00 se metía entera
+        // encima de un bloqueo de 10:30 porque las 10:00 no caían dentro de él.
+        const bloque = pisaBloqueo(appointment.fechaHora, Number(appointment.duracion ?? 30), bloques, medicoId, tzClinica)
+        if (bloque) {
+          return NextResponse.json({ error: `Ese horario está bloqueado (${bloque.motivo || bloque.tipo || 'ausencia'})` }, { status: 409 })
+        }
+      }
+    } catch (e) {
+      safeLog.error('[appointments] no se pudo validar el horario del día', e)
+      return NextResponse.json({
+        error: 'No se pudo comprobar el horario del consultorio, así que la cita no se guardó. Vuelve a intentarlo; si sigue igual, revisa Configuración → Horario de atención.',
+      }, { status: 500 })
     }
   }
 

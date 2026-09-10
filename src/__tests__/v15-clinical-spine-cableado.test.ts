@@ -32,7 +32,7 @@
  *
  * 1. La página importa y renderiza `<ClinicalSpine items={spineItems} />`.
  * 2. Cada id que `spineItems` puede producir ('encuentros', 'problemas',
- *    'herramientas', 'pendientes', 'internamientos') tiene su ancla
+ *    'fotos', 'pendientes', 'internamientos') tiene su ancla
  *    `id="spine-<id>"` real en `page.tsx` — no un botón que apunta a nada.
  * 3. `ClinicalSpine.tsx` no declara su propia consulta a Firestore.
  * 4. `CabosSueltosDelPaciente`/`InternamientosDelPaciente` siguen sin
@@ -79,7 +79,9 @@ describe('V15-PATIENT-WORKSPACE-001 — ClinicalSpine conectado en el expediente
 })
 
 describe('V15-PATIENT-WORKSPACE-001 — cada categoría del riel tiene un destino real en el DOM', () => {
-  const IDS = ['encuentros', 'problemas', 'herramientas', 'pendientes', 'internamientos']
+  // D-046: `herramientas` desapareció con la barra; su sección hermana es
+// `fotos`, que es lo que quedó de expediente en ese sitio.
+const IDS = ['encuentros', 'problemas', 'fotos', 'pendientes', 'internamientos']
 
   it.each(IDS)('existe id="spine-%s" en la página', (id) => {
     expect(PAGINA).toContain(`id="spine-${id}"`)

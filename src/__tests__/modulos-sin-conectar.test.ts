@@ -39,6 +39,15 @@ import { join, relative, dirname, resolve } from 'node:path'
  * porque es trabajo que no le llega a nadie.
  */
 const HUERFANOS_ACEPTADOS: Record<string, string> = {
+  /**
+   * D-048 (10-sep-2026). «Qué es de qué» se montaba en la consulta y el dueño
+   * lo retiró de la pantalla: «ya no quiero ver de dónde lo sacaste». Se
+   * conserva declarado, no escondido: el motor `plan-por-problema.ts` sigue
+   * probado y el componente está listo para otra superficie (la hoja del
+   * paciente, el impreso) si el dueño la pide. Si nadie lo reclama, se borra
+   * y sale de esta lista — no al revés.
+   */
+  'src/components/PlanPorProblema.tsx': 'Retirado de la consulta por decisión del dueño (D-048). Motor probado; componente en espera de otra superficie o de borrarse.',
   // ── Infraestructura de los propios gates: la usan los tests POR DISEÑO ────
   'src/lib/clinical/safety-gate.ts': 'ES el gate del sello clínico: lo ejecuta el CI, no una pantalla. Su sitio es ése.',
   'src/lib/clinical/adr-cobertura.ts': 'Gate de cobertura documental de los motores. Vive en el CI por definición.',

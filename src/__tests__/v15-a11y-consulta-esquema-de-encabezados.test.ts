@@ -83,10 +83,12 @@ describe('esquema de encabezados del lienzo de consulta (heading-order muere)', 
     expect(NER).toMatch(/<h2 style=\{\{[^}]*margin: 0/)
   })
 
-  it('freeze funcional: la consulta sigue montando las tres secciones', () => {
+  it('freeze funcional: la consulta sigue montando la hoja y el panel de entidades', () => {
     // Protege contra un «arreglo» que resolviera el esquema quitando piezas.
+    // «Qué es de qué» ya no se monta por decisión del dueño (D-048, 10-sep-2026),
+    // no por el esquema de encabezados: su h2/h3 se sigue vigilando arriba.
     expect(CONSULTA).toContain('<HojaParaElPaciente')
-    expect(CONSULTA).toContain('<PlanPorProblema')
+    expect(CONSULTA).not.toContain('<PlanPorProblema')
     expect(CONSULTA).toContain('<NerPanel')
   })
 

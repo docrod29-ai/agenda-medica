@@ -25874,6 +25874,133 @@ con guardián de fidelidad reforzado. Antes: 1 falla / 5 pasan. Después: 6 pasa
 **Qué NO cubre:** IA, voz real, expediente privado, firma de producción,
 recomendaciones de otros módulos de la demo ni validación móvil.
 
+---
+
+---
+
+## REG-662 — Arrastrar una cita para moverla, y lo que sólo se vio abriendo el navegador
+
+**Área**: Agenda / experiencia del médico (P2) · **Hallazgo(s) de la auditoría**: acta de agenda del dueño, mover una cita · **Estado**: CLOSED
+
+**Qué faltaba.** Mover una cita eran cuatro clics: abrir el modal, cambiar la hora, confirmar, cerrar. En la agenda del día es lo que más se hace —el paciente llama y hay que correrle la cita media hora— y se hace con otro paciente enfrente. La rejilla del calendario no arrastraba.
+
+**Por qué no basta con «soltar donde cayó el dedo».** Un puntero suelto produce horas absurdas (16:07, 16:23), y la salida fácil —redondear a la media hora— traiciona exactamente lo que REG-653, REG-654 y REG-655 arreglaron: que una consulta pueda empezar cuando termina la anterior. Arrastrar con rejilla gruesa volvería a fabricar los huecos artificiales que costó tres reparaciones quitar. La regla queda en dos pasos: se redondea al paso menudo (5 min) y luego se **imanta a las aristas** —donde termina otra cita, o donde ésta acabaría clavada contra la siguiente— si están a menos de 10 minutos. Las aristas son **las mismas** que las de `iniciosPosibles`: si el motor ofreciera unas horas y el arrastre imantara a otras, arrastrar crearía citas en horas que la lista no ofrece.
+
+El teclado va desde el primer minuto, no «después»: flechas ±5 min, Shift ±60, misma aritmética y **mismo guardián** (`hasConflict`, con la cita excluida), y el fantasma con `aria-live` para quien no ve el bloque moverse. Lo único que los separa es el imán, y por una razón dicha: el teclado ya es preciso.
+
+**Los dos defectos que sólo aparecieron al MIRARLO.** El código decía lo correcto y las 14 510 pruebas estaban en verde. Al abrir el arnés visual con emulador y arrastrar de verdad:
+
+1. **Soltar abría el formulario de la cita encima.** El `pointerup` llama a `e.stopPropagation()` y no abre nada — pero `stopPropagation` sobre `pointerup` **no cancela el `click`**: el navegador lo manda después, como evento aparte. Se veían las dos cosas a la vez: el aviso «Ahí no cabe (09:00 – 09:30)» y «Editar cita» abierto encima, con «Guardar cambios» y una hora que el médico no eligió. Es justo el momento en que se guarda algo sin querer.
+
+2. **La etiqueta del fantasma era ilegible sobre una cita.** El fantasma es translúcido a propósito —hay que ver contra qué se choca— y su hora caía encima del nombre del paciente de debajo, dos textos del mismo tamaño superpuestos. La hora es el dato que el usuario está calculando de cabeza mientras mueve.
+
+**Cómo se descubrió.** Levantando el arnés visual (emulador de Firebase + consultorio sintético + Chromium) y recorriendo el gesto, según `.claude/rules/design-system.md`: «no se aprueba una interfaz leyendo el código». Ninguno de los dos defectos es visible en un `git diff` que se ve bien.
+
+**Reproducción que fallaba.** `scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs` (`npm run arnes:arrastre`) falla en «arrastrar y soltar NO abre Editar cita» sin la marca `acabaDeArrastrar`, y **sólo** en ese caso: comprobado reinyectando el defecto. Su cuarto caso es el reverso —un temblor de 2 px sigue siendo un clic y abre la cita—, que es lo que separa «no abre tras arrastrar» de «ya no abre nunca», un defecto peor que el original.
+
+**Prueba permanente (sellada).** `src/__tests__/arrastrar-una-cita-la-deja-pegada-a-la-anterior.test.ts` y `src/__tests__/el-raton-y-el-teclado-mueven-la-cita-al-mismo-sitio.test.ts` sellan la aritmética y la paridad ratón/teclado; el guardián de navegador vive en `scripts/carril-excelencia/arrastrar-no-abre-la-cita.mjs` porque el defecto es de orden de eventos del DOM y no existe fuera de un navegador.
+
+**Estado**: reparado. La marca `acabaDeArrastrar` se pone al soltar un gesto que de verdad movió, se la come el `click` que viene detrás, y se limpia en cada `pointerdown` — así una marca que no llegara a consumirse no se come el clic del gesto siguiente. La etiqueta del fantasma va sobre fondo opaco, sólo detrás del texto: el resto del bloque sigue dejando ver lo que hay debajo.
+
+**3. Con el dedo, el gesto se moría a medias, en silencio.** Medido después, con un teléfono emulado en Chromium: sin `touch-action: none` el navegador se queda con el desplazamiento vertical a los tres `pointermove` y manda `pointercancel`. El fantasma **parpadeaba** y desaparecía; no había movimiento, ni aviso, ni nada. Arrastrar una cita en el teléfono no hacía absolutamente nada, sin decirlo.
+
+La salida fácil —`touch-action: none` en el bloque— se paga cara: el bloque deja de poder desplazar la rejilla, y en un teléfono de 393 px, donde las citas cubren casi toda la columna del día, el médico se queda sin poder bajar por su agenda con el dedo encima de ellas. Así que **el arrastre se declara de ratón y lápiz**, donde está medido, y en táctil la cita se toca y se mueve por el modal —que funciona en todas partes y es lo que se usa en el teléfono—. Habilitarlo con el dedo pide un gesto propio (mantener pulsado antes de arrastrar) y **esa es una decisión de diseño del dueño**, no un efecto colateral de una línea de CSS.
+
+**Qué NO cubre.** **Redimensionar** (cambiar la duración arrastrando el borde) no se toca. Sólo la vista de **semana**: la de día y la de mes no arrastran. El caso táctil se mide en un teléfono **emulado en Chromium**: prueba que el gesto no se queda a medias y que tocar sigue abriendo la cita; **no** prueba Safari de iOS ni su retardo de clic. Y el arrastre no cruza de día: mueve dentro de su columna.
+
+---
+
+## REG-663 — Un consultorio sin horario devolvía 500 con el cuerpo vacío, y ninguna cita podía crearse
+
+**Área**: Agenda / servidor (P1) · **Hallazgo(s) de la auditoría**: arnés visual del arrastre · **Estado**: CLOSED
+
+**Qué fallaba.** `getDaySchedule` leía `config.horario[dia]` sin comprobar que `horario` existiera. Un documento de configuración sin ese campo —un consultorio recién abierto que aún no ha declarado su horario— hacía lanzar `TypeError: Cannot read properties of undefined (reading 'miercoles')`.
+
+Y esa llamada vive en `POST /api/appointments` **fuera de todo `try`**: la excepción salía como **500 con el cuerpo vacío**. El vacío es lo peor del defecto: la pantalla enseña el mensaje del servidor y, al no haber ninguno, cae en su frase de reserva —«No se pudo mover la cita»—, un no sin motivo, que no dice ni qué arreglar.
+
+**El alcance no era el arrastre.** Era **toda alta y toda reprogramación por el panel**. Un consultorio en ese estado no podía crear ni mover una sola cita, y lo único que veía era un error sin causa.
+
+**Cómo se descubrió.** Arrastrando una cita en el arnés visual y mirando la **respuesta** de la petición en vez del código: `POST /api/appointments → 500`, cuerpo vacío. Es la regla `.claude/rules/el-dato-tiene-que-llegar.md` aplicada a una frontera que se daba por buena. El consultorio sintético del arnés escribía `horaInicio`/`horaFin` —los campos de la pantalla de configuración— y **no** `horario`, que es el que lee el motor: la siembra misma era un caso de «escrito y sin conectar», y por eso nadie había pisado este camino.
+
+**Reproducción que fallaba.** `src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts` falla en 3 casos sin la guarda de `getDaySchedule` (con la excepción exacta) y en 1 sin el mensaje distinguido. Comprobado anulando cada arreglo por separado.
+
+**Prueba permanente (sellada).** `src/__tests__/un-consultorio-sin-horario-no-tumba-la-agenda.test.ts`
+
+**Estado**: reparado. `getDaySchedule` devuelve `null` en vez de lanzar: sin horario declarado no hay día de servicio que afirmar, y ese `null` ya tenía camino en cada llamador. La ruta distingue además las dos situaciones que antes se contaban igual: «el consultorio todavía no tiene horario configurado» manda a la pantalla que lo arregla; «ese día el consultorio no da servicio» manda a otro día. Y la siembra del arnés escribe ya un `horario` de verdad, partido por la comida (14-16), que es el caso del acta del dueño y el que rompió tres veces.
+
+**Y la FORMA del defecto, no sólo esta excepción.** Arreglar `getDaySchedule` cierra la excepción que se midió; no cierra que el tramo entero —configuración, documento del médico, horario, descansos, bloqueos— siguiera fuera de todo `try`, listo para que la siguiente excepción desconocida volviera a salir muda. Ese tramo va ahora dentro de un `try` que responde **500 con motivo** y deja rastro con `safeLog` (que sanea PHI). El `catch` **no** responde 409 a propósito: un 409 afirmaría que se comprobó el horario y la cita no cabía, y sería mentira — no se pudo comprobar. Y no sigue adelante: escribir la cita sin haber podido validar el horario es justo lo que esas cien líneas existen para impedir. El caso que lo sella rompe la lectura de los **bloqueos**, que nada tiene que ver con el horario: es «la próxima excepción, la que no conocemos».
+
+**Qué NO cubre.** No se rellena un horario por defecto a un consultorio nuevo: ausencia de dato no es dato de ausencia — se dice que falta, no se inventa. Y el `catch` cubre el tramo de validación, no la transacción de escritura, que ya tenía el suyo con sus propios códigos.
+
+---
+
+## D-046 — El expediente se queda con lo que es expediente: la historia primero y la fotografía como serie
+
+**Área**: Expediente del paciente / experiencia del médico · **Tipo**: decisión del dueño, no defecto · **Fecha**: 10-sep-2026 · **Estado**: APLICADA
+
+**Qué pidió el dueño.** Mirando el expediente de un paciente en su iPhone: quitar la tarjeta de «Herramientas clínicas» para que sea fácil ver las consultas del paciente y sus fechas, y dejar «un expediente de las fotos clínicas para poder irlas comparando».
+
+**Lo que se midió antes de tocar nada.** El arnés visual, en un iPhone 13 (viewport de 664 px), sobre el consultorio sintético:
+
+| y (px) | Sección |
+|---|---|
+| 154 | identidad + alergias + «Nueva consulta» |
+| 690 | Diagnósticos y medicamentos |
+| 835 | Pendientes |
+| **1 199** | **la primera consulta, con su fecha** |
+| 1 461 | Herramientas clínicas |
+| 1 756 | Documentos |
+
+Dos cosas que la medición cambió respecto de lo que parecía en la captura:
+
+1. **Las herramientas no tapaban las consultas**: iban *debajo* de ellas. En la captura del dueño parecen estar arriba porque ese paciente no tiene ninguna nota firmada —tiene una consulta sin cerrar—, así que la historia se colapsa y la tarjeta sube hasta el CTA.
+2. Lo que de verdad escondía la historia era su **posición**: la primera consulta empezaba a 1 199 px, casi dos pantallas de desplazamiento.
+
+**Qué se decidió, con la pregunta puesta al dueño.** De las cuatro filas de la tarjeta, sólo una es *expediente* —material que se acumula y se compara con el tiempo—: la fotografía seriada. Las otras tres son herramientas de trabajo. Se le planteó explícitamente si **Laboratorios** debía quedarse en el expediente (la tendencia por analito también es material longitudinal, y fuera de un encuentro no habría otro sitio para verla) y decidió que **no**: las tres se van y viven en `/consulta/[patientId]`, donde ya estaban.
+
+**Lo que cuesta, dicho para que nadie lo descubra en la consulta**: para mirar la tendencia de un analito hay que abrir un encuentro; ver un laboratorio no siempre es atender. Queda declarado aquí y en el código, no escondido.
+
+**Qué se cambió.**
+
+- La barra de `Herramientas` del expediente se sustituye por una sección propia, **Fotografía clínica**, desplegada (una serie que hay que abrir para saber si existe es una serie que no se compara). `FotosClinicas modo="completo"` ya trae la serie agrupada por región, el antes/después y los días de evolución: no se construye nada nuevo.
+- **La historia sube** por delante del estado clínico y de los pendientes. Medido después: la primera consulta pasa de **1 199 px a 785 px**.
+- El riel del Clinical Spine **se reordena con ella**, y su fila «Laboratorios y fotografía» pasa a «Fotografía clínica». Sin esto la fila apuntaba a `spine-herramientas`, un ancla que ya no existe: llevaba a ninguna parte y encima ofrecía por su nombre algo que la pantalla ya no tiene. Lo cazó `v15-clinical-spine-cableado`, y se vio antes en el navegador leyendo el texto que quedaba en el riel.
+- `CAPACIDADES_DEL_PACIENTE` **se muda con la puerta**: la consumía el expediente y ahora la consume la consulta. Una declaración que nadie consume promete una puerta que ya no existe, que es exactamente lo que esa declaración vino a impedir. `modulos-sin-conectar` lo cazó en la misma corrida.
+
+**Qué NO se deshace de RTC-09 y RTC-10.** RTC-09 sacó las capacidades de IA del índice administrativo por ser feature-first: siguen fuera, y siguen siendo contextuales — cambió cuál de las dos pantallas del paciente las ofrece, no el principio. De RTC-10 se conserva todo lo que encontró el equipo rojo: ninguna caja-módulo por delante de lo clínico, ninguna tarjeta vacía, los documentos al final. Lo único que cambió es **cuál de los bloques clínicos va primero entre ellos**, y por una medición.
+
+**Guardianes.** `v15-rtc10-primer-viewport-clinico` (orden nuevo, con los invariantes de RTC-10 intactos), `v15-expediente-contesta-las-cinco` §6, `v15-clinical-spine-cableado` (anclas del riel), `v15-rtc09-ia-contextual` (§5 la consulta consume la declaración; §5b **al revés** — el expediente ya no las ofrece ni por su nombre, para que nadie devuelva la barra en silencio y queden dos puertas a lo mismo).
+
+**Qué NO cubre.** La primera consulta sigue **fuera del primer pliegue** en un teléfono (785 px sobre 664): entre ella y la cabecera quedan la identidad, la caja de alergias y el CTA de «Nueva consulta», y recortar eso es otra decisión. Y esto no toca la vista de escritorio más allá del mismo reordenamiento.
+
+---
+
+## REG-664 — La nota que el médico pidió: nueve bloqueos que no eran recetas, once diagnósticos, un selector que no debía existir
+
+**Área**: Consulta / nota clínica (P1) · **Hallazgo(s)**: cinco capturas del dueño en su iPhone, 10-sep-2026 · **Estado**: CLOSED · **Decisiones**: D-047, D-048, D-049, D-050
+
+**Qué fallaba.** Con una consulta real dictada, la pantalla enseñaba: **once diagnósticos** presuntivos sin código; **nueve medicamentos sin dosis bloqueando la firma**, de los que tres eran la misma frase del paciente («acabo de terminar un medicamento») convertida en tres filas —«Medicamento no especificado», «Medicamento previo (nombre no precisado)», «medicamento de terminación reciente cuyo nombre no fue precisado»— y el resto lo que ya tomaba o lo que le dio otro médico antes; el selector de nivel de IA ⚡/⭐/💎, que el Board #296 ya había prohibido; y «Qué es de qué» con la cita del dictado bajo cada fármaco. El dueño, textual: «no infieres ningún dx, si quiero que lo hagas pero no mil · sigues poniendo todos los medicamentos que usa · sigues mostrando la IA el nivel, te había dicho que no tiene que escoger · ya no quiero ver de dónde lo sacaste».
+
+**Cómo se descubrió.** Probando el producto, no leyendo el código: la regla de `design-system.md` («no se aprueba una interfaz leyendo el código») aplicada por el propio dueño. Cada uno de los cuatro puntos tenía su prueba en verde.
+
+**La causa raíz, que es una por punto.**
+- **Medicamentos** — `loQueSeReceta` ya existía y ya decidía qué baja al **papel** (REG-515, H-01). Pero la **lista** de la pantalla y la **compuerta** de dosis (`dosisIncompletas`, `dosisMal`) miraban `medicamentos` entero: la familia «escrito y sin conectar», otra vez. Y la regla 19 del prompt prohíbe las filas «no especificado»; el modelo la ignora y no había defensa determinista.
+- **Diagnósticos** — la regla 7-bis pide de tres a seis. Un prompt es una petición, no un tope.
+- **Nivel** — el selector seguía montado y la petición mandaba `motor`, aunque el servidor ya sabía elegir por plan (`motorPorDefecto`).
+- **Procedencia** — `PlanPorProblema` se montaba siempre que hubiera dos grupos.
+
+**Reproducción que fallaba.** `src/__tests__/la-nota-que-el-medico-pidio.test.ts` — sin el filtro de nombres, las tres filas de «acabo de terminar un medicamento» entran a la lista; sin el tope, entran los once diagnósticos; con la compuerta mirando la lista entera, `const dosisMal = medicamentos` sigue en la página. Comprobado anulando cada arreglo por separado.
+
+**Prueba permanente (sellada).** `src/__tests__/la-nota-que-el-medico-pidio.test.ts`. Se ajustaron, invirtiendo su aserción y explicando por qué: `v15-admin-no-esencial-se-calla-al-grabar`, `el-medico-no-elige-marca`, `que-es-de-que`, `v15-a11y-consulta-esquema-de-encabezados`, `dosis-desconocida-declarada`, `ya-lo-toma-o-se-lo-receto-hoy`.
+
+**Estado**: reparado. **Una puerta** para «qué es receta de hoy»: la pantalla (`filasDeReceta`), la compuerta de firma y el impreso usan `loQueSeReceta`. Lo demás con nombre va en una línea («Mencionados en la consulta, fuera de la receta») con «Recetar hoy» —que sube el renglón con `speaker:'medico'`, la atribución que REG-515 exige— y «Quitar». `esNombreSinPrecisar` deja fuera del lote automático lo que dice que no sabe el nombre o es puro nombre de clase; lo del médico a mano no se filtra. `acotarLoteIa` corta el lote de la IA a `TOPE_DE_SUGERENCIAS_IA = 6`, diferenciales primero, orden del modelo conservado, sin tocar lo del médico. El selector y `MOTORES_UI` desaparecen; `motorUsado` sigue viajando a la nota. `PlanPorProblema` deja de montarse.
+
+**Qué NO cubre.** Una diarización que atribuya mal quién dijo el fármaco: ese renglón cae en «mencionados» y el médico lo sube con un gesto (REG-515 ya lo declara). No decide cuáles seis diagnósticos son los correctos. No mide que la nota sea buena: mide que la pantalla deje de estorbar. Y la frase «un medicamento cuyo nombre no fue posible precisar» sigue dependiendo de que el modelo la ponga en la prosa (regla 22): aquí sólo se garantiza que no sea una fila.
+
+**Segunda vuelta, misma sesión (D-051, D-052).** Al leer el resumen, el dueño pidió dos cosas más. **CIE-10**: los códigos salían vacíos porque `comoSugerenciaNoConfirmada` los borraba (GP6); ahora el código de la IA entra marcado `codigoOrigen:'extraccion'`, se enseña punteado con un botón «Confirmar», teclearlo o elegirlo del catálogo lo vuelve del médico, se avisa antes de firmar (`cie_sugerido`) y **lo no confirmado se quita al firmar** (`sinCodigosSinConfirmar`), así que ningún consumidor aguas abajo —receta, Word, FHIR, portal— recibe un código que nadie confirmó. **Dosis**: la compuerta del 5-ago que apagaba Firmar se retira; `dosis_incompleta` pasa a `revisa`, entra en `NO_SE_PLIEGAN`, no se descarta, se sella con la firma, y `por-que-no-se-firma` pierde el origen `dosis`. `AntesDeFirmar` deja de titular todo bloqueo como «Falta la dosis de…». Se invirtieron, con su razón escrita: `consultorio-diagnostico-cie-anti-inflacion`, `gp6-reproyeccion-cruza-fronteras`, `el-boton-dice-por-que-esta-apagado`, `nadie-firma-sin-nombre`, `dosis-avisa-antes-de-firmar`, `dosis-desconocida-declarada`, `una-barra-y-no-ocho-recuadros`, `ya-lo-toma-o-se-lo-receto-hoy`. Lo que NO cubre: un código sugerido equivocado que el médico confirme sin mirar sigue siendo suyo —el gesto existe para eso—; y una receta sin cantidad ya puede firmarse: el aviso rojo es lo único que lo impide.
+
+---
+
 ## REG-665 — la oferta de espera pierde duración y médico al reservar o reenviar
 
 **Descubrimiento:** auditoría del flujo real ofrecer → WhatsApp → aceptación,

@@ -1,6 +1,6 @@
 'use client'
 import { conMayusculaInicial } from '@/lib/texto-es'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { activable } from '@/lib/ui/activable'
 import { useRouter } from 'next/navigation'
 import { useAppointments } from '@/hooks/useAppointments'
@@ -11,7 +11,7 @@ import { useDoctors } from '@/hooks/useDoctors'
 import { configParaMedico } from '@/lib/horario-medico'
 import { StatusBadge } from '@/components/StatusBadge'
 import { TipoCitaIcon } from '@/components/TipoCitaIcon'
-import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus } from '@/types'
+import { Appointment, APPOINTMENT_TYPE_CONFIG, AppointmentStatus, ClinicConfig } from '@/types'
 import { getWeekDates, esFestivo } from '@/lib/availability'
 import { hoyISO } from '@/lib/timezone'
 import { ChevronLeft, ChevronRight, Plus, Loader2, AlertCircle } from 'lucide-react'
@@ -21,6 +21,11 @@ import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
 import { etiquetaDeCita } from '@/lib/agenda/etiqueta-de-cita'
 import { horasAEnsenar, estaAbierto, type DiaDeHorario } from '@/lib/agenda/horas-a-ensenar'
 import { anclaDeRejilla, diaDeRejilla } from '@/lib/agenda/dia-de-rejilla'
+import { useToast } from '@/context/ToastContext'
+import { useClinic } from '@/context/ClinicContext'
+import { fetchAutenticado } from '@/lib/auth-client'
+import { minutoDelPuntero } from '@/lib/agenda/soltar-cita'
+import { proponerMovimiento, cuerpoDelMovimiento, PASO_DE_FLECHA, type MovimientoPropuesto } from '@/lib/agenda/mover-cita-en-la-rejilla'
 
 /**
  * Semántica VISUAL del estado en la rejilla del calendario.
@@ -185,6 +190,63 @@ export default function CalendarioPage() {
    * pueden caer a distinto lado de la medianoche.
    */
   const hoy = hoyISO()
+  const { clinicId } = useClinic()
+  const { toast } = useToast()
+
+  /**
+   * MOVER UNA CITA SIN ABRIR EL MODAL.
+   *
+   * ── POR QUÉ ────────────────────────────────────────────────────────────────
+   *
+   * Correr una cita media hora eran cuatro clics —abrir, cambiar, confirmar,
+   * cerrar— y es lo que más se hace en la agenda del día, normalmente con el
+   * paciente al teléfono y otro enfrente.
+   *
+   * ── POR QUÉ NO HAY VÍA NUEVA DE ESCRITURA ──────────────────────────────────
+   *
+   * Se escribe por `POST /api/appointments` con `reagendarId`, exactamente igual
+   * que el modal: transacción, centinela del día, re-chequeo de horario,
+   * descansos, bloqueos y empalmes, y bitácora con qué cambió. Un segundo camino
+   * de alta es lo que este repositorio ya pagó caro; arrastrar es un GESTO
+   * nuevo, no una puerta nueva.
+   *
+   * ── LO QUE NO SE HACE AQUÍ ─────────────────────────────────────────────────
+   *
+   * No se pinta la cita en su sitio nuevo antes de que el servidor conteste. La
+   * lista viene de `useAppointments`, que escucha en vivo: cuando la escritura
+   * cuaja, la cita se mueve sola. Adelantarlo enseñaría una agenda que quizá no
+   * existe — y si el servidor dice 409, el paciente ya estaría «movido» en la
+   * pantalla de quien está mirando.
+   */
+  const moverCita = async (cita: Appointment, fechaHora: string) => {
+    if (!clinicId) { toast('No se pudo identificar el consultorio', 'error'); return }
+    try {
+      const res = await fetchAutenticado('/api/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clinicId,
+          appointment: cuerpoDelMovimiento(cita, fechaHora),
+          reagendarId: cita.id,
+        }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        /*
+         * El servidor ya distingue «ese día no hay servicio», «fuera del horario
+         * de ese día», «cae en un descanso» y «ya está ocupado». Se enseña SU
+         * mensaje en vez de uno genérico: es el que sabe por qué no cupo.
+         */
+        toast(j?.error || 'No se pudo mover la cita', 'error')
+        return
+      }
+      toast(`Movida a las ${fechaHora.slice(11, 16)}`, 'success')
+    } catch {
+      // Una caída de red no puede dejar creyendo que la cita se movió.
+      toast('No se pudo mover la cita: revisa tu conexión', 'error')
+    }
+  }
+
   const [modalOpen, setModalOpen] = useState(false)
   const [editAppt, setEditAppt] = useState<Appointment | null>(null)
   const [defaultDate, setDefaultDate] = useState('')
@@ -328,6 +390,8 @@ export default function CalendarioPage() {
             festivos={diasFestivos}
             onCellClick={openNew}
             onApptClick={openEdit}
+            onApptMove={moverCita}
+            config={config}
             loading={loading}
           />
         )}
@@ -391,13 +455,16 @@ function EtiquetaDeBloque({ hora, quien }: { hora: string; quien: string }) {
   )
 }
 
-function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, onApptClick, loading }: {
+function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, onApptClick, onApptMove, config, loading }: {
   weekDates: Date[]
   appointments: Appointment[]
   horarios: DiaDeHorario[]
   festivos: readonly string[]
   onCellClick: (fecha: string, hora: string) => void
   onApptClick: (a: Appointment) => void
+  /** Mover por arrastre o por teclado. La escritura vive en la página. */
+  onApptMove: (a: Appointment, fechaHora: string) => void
+  config: ClinicConfig | null | undefined
   loading: boolean
 }) {
   // Cuántos médicos activos hay. Con uno solo, el color por médico no
@@ -425,6 +492,85 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   }, [diasISO, appointments, horarios])
   /* Un festivo cierra el día ENTERO, así que se resuelve por columna y no por celda. */
   const esFestivoElDia = useMemo(() => diasISO.map(d => esFestivo(d, festivos)), [diasISO, festivos])
+
+  /**
+   * EL ARRASTRE — el gesto, no la decisión.
+   *
+   * A qué hora va y si cabe lo dice `proponerMovimiento`, que comparte
+   * aritmética y guardián con las flechas del teclado. Aquí sólo se sigue el
+   * puntero y se pinta el fantasma.
+   *
+   * `arrastre` guarda la cita agarrada y la última propuesta, para que el bloque
+   * pueda enseñar «16:15 – 17:00» mientras se mueve y avisar en rojo si choca.
+   */
+  const { toast: toastSemana } = useToast()
+  const [arrastre, setArrastre] = useState<{ cita: Appointment; propuesta: MovimientoPropuesto } | null>(null)
+  /**
+   * El gesto en curso, en una `ref` y no en estado.
+   *
+   * Cambia en cada `pointermove` —decenas de veces por segundo— y no se pinta
+   * nada con ello: en estado provocaría un render por movimiento del ratón. Lo
+   * que SÍ se pinta (el fantasma) vive en `arrastre`, que sólo cambia cuando
+   * cambia el minuto propuesto.
+   */
+  const movimiento = useRef<{ id: string; y0: number; movio: boolean } | null>(null)
+  /**
+   * «Se acaba de arrastrar»: el freno del `click` que el navegador manda
+   * DESPUÉS del `pointerup`. Vive en una `ref` porque tiene que estar puesta
+   * cuando el `click` llegue, en el mismo tick — un `useState` lo sabría un
+   * render tarde, que es exactamente demasiado tarde.
+   */
+  const acabaDeArrastrar = useRef(false)
+
+  /** Un choque se DICE, con la hora concreta; no se resuelve solo. */
+  const toastDeChoque = (p: MovimientoPropuesto) =>
+    toastSemana(`Ahí no cabe (${p.etiqueta}): choca con otra cita, con el horario o con un bloqueo.`, 'error')
+
+
+  /**
+   * Traduce el puntero a una propuesta, dentro de la franja donde cayó.
+   *
+   * `currentTarget` es la CELDA de esa hora y ese día, así que su rectángulo da
+   * a la vez la franja horaria y la columna del día — no hace falta adivinar
+   * ninguna de las dos.
+   */
+  const proponerDesdeElPuntero = (cita: Appointment, e: React.PointerEvent, dia: string, hora: number): MovimientoPropuesto => {
+    const caja = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const minuto = minutoDelPuntero(hora, e.clientY - caja.top, caja.height)
+    return proponerMovimiento(cita, dia, minuto, appointments, config)
+  }
+
+  /**
+   * Las flechas mueven de cinco en cinco; con Mayúsculas, de hora en hora.
+   *
+   * Enter y Espacio siguen ABRIENDO la cita —eso lo pone `activable` y no se
+   * toca—, así que mover necesitaba teclas propias que no chocaran con ello.
+   * Las flechas son lo que cualquiera prueba primero sobre un elemento
+   * agarrable, y el salto de una hora con Mayúsculas evita cuarenta y ocho
+   * pulsaciones para correr una cita media jornada.
+   */
+  const moverConTeclado = (cita: Appointment, e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+    e.preventDefault()
+    e.stopPropagation()
+    const dia = cita.fechaHora.slice(0, 10)
+    const [h, m] = cita.fechaHora.slice(11, 16).split(':').map(Number)
+    const salto = (e.shiftKey ? 60 : PASO_DE_FLECHA) * (e.key === 'ArrowUp' ? -1 : 1)
+    const propuesta = proponerMovimiento(cita, dia, h * 60 + m + salto, appointments, config, [], { imanta: false })
+    if (propuesta.sinCambio) return
+    if (propuesta.choca) {
+      /*
+       * Con teclado no se puede «ver» el choque como con el fantasma, así que se
+       * DICE. No se salta el hueco ocupado en silencio: eso movería la cita a un
+       * sitio que el usuario no pidió, que es peor que no moverla.
+       */
+      setArrastre({ cita, propuesta })
+      return
+    }
+    setArrastre(null)
+    onApptMove(cita, propuesta.fechaHora)
+  }
+
 
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
@@ -539,6 +685,58 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                     aria-label={`Ahora son las ${String(Math.floor(ahoraMin / 60)).padStart(2, '0')}:${String(ahoraMin % 60).padStart(2, '0')}`}
                   />
                 )}
+                {/*
+                  EL FANTASMA: dónde va a caer y a qué hora.
+                  ──────────────────────────────────────────────────────────────
+                  Arrastrar sin verlo es adivinar. Se pinta en la celda que
+                  corresponde a la hora PROPUESTA —no a la de origen— y dice el
+                  intervalo completo («16:15 – 17:00»), que es el dato que el
+                  usuario está calculando de cabeza mientras mueve.
+
+                  En rojo cuando no cabe. La cita no se mueve hasta soltar, así
+                  que el aviso llega ANTES del error, no después.
+
+                  `aria-live` lo anuncia para quien mueve con flechas y no ve el
+                  bloque: sin esto, el teclado movería la cita en silencio.
+                */}
+                {arrastre && arrastre.propuesta.fechaHora.slice(0, 10) === ds
+                  && Math.floor(Number(arrastre.propuesta.fechaHora.slice(11, 13))) === h && (
+                  <div
+                    aria-live="polite"
+                    style={{
+                      position: 'absolute', left: 2, right: 2, zIndex: 3,
+                      top: `${(Number(arrastre.propuesta.fechaHora.slice(14, 16)) / 60) * 100}%`,
+                      height: `${Math.min((arrastre.cita.duracion / 60) * 100, 200)}%`,
+                      minHeight: 20, borderRadius: 6, pointerEvents: 'none',
+                      display: 'grid', placeItems: 'center', textAlign: 'center',
+                      fontSize: 10.5, fontWeight: 700,
+                      color: arrastre.propuesta.choca ? 'var(--red)' : 'var(--nexus)',
+                      background: `color-mix(in srgb, ${arrastre.propuesta.choca ? 'var(--red)' : 'var(--nexus)'} 12%, transparent)`,
+                      border: `2px dashed color-mix(in srgb, ${arrastre.propuesta.choca ? 'var(--red)' : 'var(--nexus)'} 60%, transparent)`,
+                    }}
+                  >
+                    {/*
+                      LA ETIQUETA VA SOBRE FONDO OPACO, y también se vio mirando:
+                      el fantasma es translúcido a propósito —hay que ver contra
+                      QUÉ se choca— y por eso su hora caía justo encima del
+                      nombre de la cita de debajo, dos textos del mismo tamaño
+                      superpuestos. La hora es el dato que el usuario está
+                      calculando de cabeza mientras mueve; el que no puede
+                      quedar ilegible es ése.
+
+                      Opaco sólo detrás del texto: el resto del bloque sigue
+                      dejando ver lo que hay debajo.
+                    */}
+                    <span
+                      style={{
+                        background: 'var(--bg)', borderRadius: 6,
+                        padding: '1px 6px', lineHeight: 1.4,
+                      }}
+                    >
+                      {arrastre.propuesta.etiqueta}
+                    </span>
+                  </div>
+                )}
                 {cellAppts.map(a => {
                   const minOffset = parseInt(a.fechaHora.slice(14, 16))
                   const heightPct = Math.min((a.duracion / 60) * 100, 200)
@@ -554,8 +752,133 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
                       key={a.id}
                       className="nx-agenda-bloque"
                       {...activable(() => onApptClick(a), { etiqueta: etiquetaDeCita(a) })}
-                      onClick={e => { e.stopPropagation(); onApptClick(a) }}
                       title={`${a.pacienteNombre} — ${a.fechaHora.slice(11, 16)}${a.medicoNombre ? ` · ${a.medicoNombre}` : ''} · ${a.estado}`}
+                      /**
+                       * `stopPropagation` en `pointerup` NO cancela el `click`.
+                       *
+                       * Se vio abriendo la pantalla, no leyéndola: al soltar un
+                       * arrastre salía el aviso de choque Y se abría «Editar
+                       * cita» encima. El navegador manda el `click` después del
+                       * `pointerup`, y detener la propagación de uno no impide
+                       * el otro — son eventos distintos, no el mismo subiendo.
+                       *
+                       * Por eso la marca: el arrastre la pone al soltar y el
+                       * `click` que viene detrás se la come. Se limpia en cada
+                       * `pointerdown`, así que si el `click` no llegara a
+                       * llegar, la marca no sobrevive al gesto siguiente.
+                       */
+                      onClick={e => {
+                        e.stopPropagation()
+                        if (acabaDeArrastrar.current) { acabaDeArrastrar.current = false; return }
+                        onApptClick(a)
+                      }}
+                      /**
+                       * ARRASTRAR PARA MOVER — y las flechas hacen lo mismo.
+                       *
+                       * `setPointerCapture` es lo que hace que el gesto no se
+                       * pierda al salir del bloque: sin él, mover la cita más de
+                       * su propia altura —que es lo normal— soltaba el arrastre
+                       * a mitad de camino.
+                       *
+                       * Sólo el botón primario y sólo si de verdad se movió el
+                       * puntero: un clic limpio tiene que seguir ABRIENDO la
+                       * cita, que es lo que se hace mil veces al día. El umbral
+                       * de 4 px es el que separa «hice clic» de «arrastré» en
+                       * una mano que no está quieta.
+                       */
+                      onPointerDown={e => {
+                        if (e.button !== 0) return
+                        /**
+                         * CON EL DEDO NO SE ARRASTRA — y es una decisión, no un olvido.
+                         *
+                         * Medido en Chromium con un teléfono emulado: sin
+                         * `touch-action: none` el navegador se queda con el
+                         * desplazamiento vertical a los tres `pointermove` y manda
+                         * `pointercancel`. El gesto MUERE a medias: ni fantasma, ni
+                         * movimiento, ni aviso. Arrastrar una cita en el teléfono no
+                         * hacía nada, en silencio, que es la peor de las tres.
+                         *
+                         * Y la salida fácil —poner `touch-action: none` en el bloque—
+                         * se paga cara: el bloque deja de poder desplazar la rejilla,
+                         * así que en un teléfono de 393 px, donde las citas cubren
+                         * casi toda la columna del día, el médico se queda sin poder
+                         * bajar por su propia agenda con el dedo encima de ellas.
+                         *
+                         * Así que el arrastre se queda en ratón y lápiz, donde está
+                         * medido, y en táctil la cita se toca y se mueve por el modal
+                         * —que funciona en todas partes y es lo que se usa en el
+                         * teléfono—. Habilitarlo con el dedo pide un gesto propio
+                         * (mantener pulsado antes de arrastrar) y esa es una decisión
+                         * de diseño del dueño, no un efecto colateral de una línea de
+                         * CSS. Queda dicho en REG-662.
+                         */
+                        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return
+                        ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+                        movimiento.current = { id: a.id, y0: e.clientY, movio: false }
+                        // Cada gesto empieza limpio: una marca que no llegó a
+                        // consumirse no se come el clic del gesto siguiente.
+                        acabaDeArrastrar.current = false
+                      }}
+                      onPointerMove={e => {
+                        const m = movimiento.current
+                        if (!m || m.id !== a.id) return
+                        if (!m.movio && Math.abs(e.clientY - m.y0) < 4) return
+                        m.movio = true
+                        setArrastre({ cita: a, propuesta: proponerDesdeElPuntero(a, e, ds, h) })
+                      }}
+                      onPointerUp={e => {
+                        const m = movimiento.current
+                        movimiento.current = null
+                        if (!m || m.id !== a.id || !m.movio) return
+                        // Se movió de verdad: NO se abre la cita, se suelta.
+                        e.stopPropagation()
+                        acabaDeArrastrar.current = true
+                        const propuesta = proponerDesdeElPuntero(a, e, ds, h)
+                        setArrastre(null)
+                        if (propuesta.sinCambio) return
+                        if (propuesta.choca) {
+                          /*
+                           * Chocar no abre un diálogo: el usuario tiene la cita
+                           * en la mano y lo que necesita es volver a soltarla en
+                           * otro sitio. Sobreagendar a propósito sigue estando
+                           * en el modal, que es donde se escribe el motivo — y
+                           * el motivo es lo que separa el sobrecupo decidido del
+                           * empalme accidental.
+                           */
+                          toastDeChoque(propuesta)
+                          return
+                        }
+                        onApptMove(a, propuesta.fechaHora)
+                      }}
+                      onPointerCancel={() => {
+                        movimiento.current = null
+                        acabaDeArrastrar.current = false
+                        setArrastre(null)
+                      }}
+                      /**
+                       * SE COMPONE CON EL DE `activable`, NO LO PISA.
+                       *
+                       * Escrito después del `{...activable(...)}`, un `onKeyDown`
+                       * propio SUSTITUYE al suyo — y con él se iba Enter y
+                       * Espacio, o sea la única forma de ABRIR la cita sin
+                       * ratón. Lo cazó `title-no-es-un-canal-de-informacion`
+                       * por su síntoma: el bloque se quedaba con el `title`
+                       * como único canal.
+                       *
+                       * Las flechas mueven; todo lo demás sigue su camino de
+                       * siempre.
+                       */
+                      onKeyDown={e => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { moverConTeclado(a, e); return }
+                        // Lo que hacía `activable`, dicho aquí: si se delegara en
+                        // él haría falta un `as unknown as` entre el evento de
+                        // React y el del DOM, y un casteo para salvar el tipo es
+                        // exactamente donde se esconden los defectos.
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onApptClick(a)
+                        }
+                      }}
                       style={{
                         position: 'absolute', left: 2, right: 2,
                         top: `${(minOffset / 60) * 100}%`,

@@ -114,7 +114,6 @@ describe('nadie firma sin nombre — REG-336', () => {
       const texto = porQueNoSePuedeFirmar({
         sinQuienFirma: true,
         erroresNOM004: ['Falta: Exploración física'],
-        dosisIncompletas: [{ nombre: 'Omeprazol', mensaje: 'Falta la dosis' }],
       })
       expect(texto.toLowerCase()).toContain('nombre')
     })
@@ -134,7 +133,6 @@ describe('nadie firma sin nombre — REG-336', () => {
       const m = motivosParaNoFirmar({
         sinQuienFirma: true,
         erroresNOM004: ['Falta: Exploración física'],
-        dosisIncompletas: [{ nombre: 'Omeprazol', mensaje: 'Falta la dosis' }],
       })
       /**
        * La atribución va PRIMERA a propósito: `porQueNoSePuedeFirmar` enseña el
@@ -143,7 +141,8 @@ describe('nadie firma sin nombre — REG-336', () => {
        * Configuración. Puesto el último, el único motivo que el médico no podía
        * encontrar solo era también el único que el mensaje nunca le enseñaba.
        */
-      expect(m.map(x => x.origen)).toEqual(['atribucion', 'nom004', 'dosis'])
+      // Desde D-052 la dosis ya no es motivo de bloqueo: quedan dos orígenes.
+      expect(m.map(x => x.origen)).toEqual(['atribucion', 'nom004'])
     })
   })
 
