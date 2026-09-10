@@ -26064,3 +26064,14 @@ ni recuperación de una escritura cuya respuesta de red se perdió.
 La revisión del PR #478 reprodujo pérdida de una dosis editada: la IA la repetía y una respuesta vacía posterior eliminaba el renglón. La comparación del contenido no prueba autoría. Se añade `Medicamento.origenCaptura`, sellado como `ia` al entrar por extracción y como `medico` al editar, añadir, aceptar, restaurar una versión o cambiar el estado desde la consulta. Reproyección y corrección conservan las capturas explícitas. El campo viaja con la nota y el borrador; no cambia la intención terapéutica ni activa órdenes.
 
 Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloques reales de primer plano y recuperación, eco seguido de retirada, ronda JSON, origen falsificado por IA y reproyección de una suspensión. Antes de la reparación fallaron los dos casos de eco/retirada. No demuestra QA privada montada, reglas Firestore ni aislamiento entre médicos.
+
+
+## REG-669 — Hoy no pierde la consulta iniciada ni ofrece un editor a recepción (10-sep-2026)
+
+**Descubrimiento:** revisión de la interfaz de Hoy. La selección comparaba la hora programada con el reloj del dispositivo; una consulta iniciada antes de esa hora desaparecía del héroe aunque siguiera en curso. Además, el enlace del héroe siempre apuntaba a consulta, incluso para recepción o sin paciente enlazado.
+
+**Arreglo:** selección única en `src/lib/hoy/cita-en-foco.ts`, conectada al reloj existente del consultorio. Prioridad: consulta en curso, paciente en sala, próxima cita abierta. Excluye citas atendidas, pagadas, finalizadas y canceladas; no modifica la agenda original. El destino de recepción o de una cita sin identidad enlazada es su detalle administrativo. «Retomar consulta» sólo deriva del estado guardado; pasar la hora no prueba atención. Un error de lectura oculta el héroe para no recomendar una cita obsoleta.
+
+**Prueba permanente:** `src/__tests__/hoy-conserva-la-consulta-en-curso.test.ts`, nueve casos. La selección y el enlace originales reproducidos fallaron siete casos; tras el arreglo pasaron los nueve y los diecinueve guardianes existentes de Hoy (28 en total).
+
+**Qué NO cubre:** autorización efectiva de servidor, aislamiento entre médicos, concurrencia de Firestore, cuenta privada, layout en navegador ni Safari real. No es una prueba de que el paciente esté siendo atendido por la hora.

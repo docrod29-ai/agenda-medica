@@ -3029,8 +3029,11 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
-  padding-block: 8px 20px;
-  border-bottom: 1px solid var(--nexus-borde);
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--nexus-solido);
+  border-radius: var(--r-lg);
+  background: var(--s1);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -3044,7 +3047,11 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 /* Identidad compartida: el marco separa navegación, lectura y acción. */
 .sidebar-logo { border-bottom-color: var(--nexus-borde); }
 .nx-flow-rail .sidebar-logo > .nx-flow-rail-quiet-icon { color: var(--nexus); }
-.page-header .t-h1 { letter-spacing: -.035em; }
+.page-header .t-h1 { font-size: 24px; letter-spacing: -.035em; }
+@media (max-width: 640px) {
+  .page-header { padding: 16px; }
+  .page-header-actions { width: 100%; }
+}
 @media (prefers-reduced-motion: no-preference) {
   .page-header { animation: nx-rise 240ms var(--mov-curva) both; }
 }
@@ -3063,22 +3070,25 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .prox-hero {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background:
-    linear-gradient(0deg, var(--nexus-soft), var(--nexus-soft)) border-box,
-    var(--s1) padding-box;
-  border: 1px solid color-mix(in srgb, var(--nexus) 32%, transparent);
+  gap: 20px;
+  background: color-mix(in srgb, var(--nexus) 9%, var(--s1));
+  border: 1px solid var(--nexus-borde);
+  border-left: 4px solid var(--nexus-solido);
   border-radius: var(--r-lg);
-  padding: 16px 18px;
+  padding: 24px;
 }
 .prox-hero-avatar {
-  width: 50px; height: 50px; border-radius: var(--r-lg); flex-shrink: 0;
-  background: var(--nexus-soft);
-  color: color-mix(in srgb, var(--nexus) 70%, white 30%);
+  width: 56px; height: 56px; border-radius: var(--r-lg); flex-shrink: 0;
+  background: var(--nexus-solido);
+  color: white;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; font-weight: 600;
+  font-size: 24px; font-weight: 600;
   font-family: var(--font-display);
 }
+.prox-hero-identidad { flex: 1; min-width: 0; }
+.prox-hero-estado { color: var(--nexus); margin-bottom: 8px; }
+.prox-hero .prox-hero-nombre { display: block; font-size: 22px; line-height: 1.3; letter-spacing: -.025em; }
+.prox-hero-detalle { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 /* CTA cómodo: ≥44px de área táctil (WCAG / móvil) */
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
@@ -3111,7 +3121,9 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
    lección que .cita-fila ya pagó más abajo, aplicada al héroe: identidad a
    todo el ancho arriba, la acción baja a su propio renglón completo. */
 @media (max-width: 560px) {
-  .prox-hero { flex-wrap: wrap; }
+  .prox-hero { flex-wrap: wrap; padding: 16px; gap: 14px; }
+  .prox-hero-avatar { width: 44px; height: 44px; font-size: 20px; }
+  .prox-hero .prox-hero-nombre { font-size: 19px; }
   .prox-hero > a { width: 100%; flex-shrink: 1; }
   .prox-hero-cta { width: 100%; justify-content: center; }
 }
@@ -3135,6 +3147,8 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--nexus-borde);
 }
 /* KICKER, no display (RTC-06): el saludo acompaña a la fecha en la escala de
    metadato. Era el texto más grande de la pantalla (32px display) y el equipo
@@ -3213,6 +3227,7 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cita-fila:hover { background: var(--s2); }
+.cita-fila:focus-within { background: var(--nexus-tenue); }
 .cita-principal {
   text-decoration: none;
   flex: 1;
@@ -3675,7 +3690,24 @@ span.riel-aviso { cursor: default; }
    `!important` no es pereza: los dos elementos declaran su `display` EN LÍNEA
    y una regla de hoja sin peso pierde contra el atributo `style` — es la misma
    trampa que el arnés cazó en RTC-05 con el FAB flotante. */
+.nx-fila-paciente {
+  position: relative;
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  transition: background var(--mov-rapido) var(--mov-curva), border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-fila-paciente:hover, .nx-fila-paciente:focus-within {
+  background: var(--nexus-tenue);
+  border-left-color: var(--nexus);
+}
+.nx-fila-paciente .nx-fila-chevron { transition: transform var(--mov-rapido) var(--mov-curva); }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-fila-paciente:hover .nx-fila-chevron,
+  .nx-fila-paciente:focus-within .nx-fila-chevron { transform: translateX(3px); }
+}
 @media (max-width: 768px) {
+  .nx-fila-paciente { padding: 14px 8px; gap: 12px; }
   .nx-fila-paciente .nx-fila-editar,
   .nx-fila-paciente .nx-fila-chevron { display: none !important; }
 }
@@ -4327,6 +4359,34 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }
 .nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
 .nx-segmento[aria-pressed='true'] { background: var(--s3); }
+
+/* La cabecera del calendario mantiene vista, periodo y creación en grupos.
+   Las flechas y su periodo nunca se separan al envolver en un teléfono. */
+.nx-calendario { padding: 24px; display: flex; flex-direction: column; }
+.nx-calendario-cabecera { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.nx-calendario-titulo { flex: 1; min-width: 0; }
+.nx-calendario-titulo h1 { margin: 0; font-size: 24px; letter-spacing: -.035em; font-weight: 600; }
+.nx-calendario-titulo p { margin: 6px 0 0; color: var(--text2); font-size: 13px; line-height: 1.5; }
+.nx-calendario-vistas { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; gap: 2px; }
+.nx-calendario-vistas .nx-segmento { min-height: 36px; padding: 6px 14px; border: none; border-radius: var(--r-sm); color: var(--text2); font: inherit; font-size: 13px; cursor: pointer; }
+.nx-calendario-vistas .nx-segmento[aria-pressed='true'] { background: var(--nexus-solido); color: white; font-weight: 600; }
+.nx-calendario-periodo { display: flex; align-items: center; gap: 4px; }
+.nx-calendario-periodo .btn-secondary { min-width: 180px; }
+.nx-calendario-semana { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid var(--nexus-borde); position: sticky; top: 0; z-index: 10; background: var(--s2); }
+.nx-calendario-dia { padding: 12px 6px; text-align: center; border-left: 1px solid var(--border); }
+.nx-calendario-dia[aria-current='date'] { background: var(--nexus-tenue); }
+.nx-calendario-dia > span { font-size: 12px; color: var(--text2); }
+.nx-calendario-dia > strong { width: 32px; height: 32px; margin: 4px auto 0; display: grid; place-items: center; border-radius: var(--r-md); font-size: 18px; font-weight: 600; }
+.nx-calendario-dia[aria-current='date'] > strong { background: var(--nexus-solido); color: white; }
+@media (max-width: 640px) {
+  .nx-calendario { padding: 16px; }
+  .nx-calendario-titulo { flex-basis: 100%; }
+  .nx-calendario-cabecera { gap: 12px; }
+  .nx-calendario-vistas { flex: 1 1 100%; }
+  .nx-calendario-vistas .nx-segmento { flex: 1; min-height: 44px; }
+  .nx-calendario-periodo { flex: 1 1 100%; }
+  .nx-calendario-periodo .btn-secondary { flex: 1; min-width: 0; }
+}
 
 /* ACCIÓN TEÑIDA, con el tinte como parámetro.
 

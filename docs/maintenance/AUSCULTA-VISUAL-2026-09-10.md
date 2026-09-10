@@ -27,3 +27,13 @@ No se presenta este ajuste compartido como un rediseño completo, pantalla por p
 CI remoto de `daf1091`: cinco jobs completados correctamente (verificar, clinical-safety, lint, aislamiento-tenant y e2e-publico). Preview Vercel construido, aunque la inspección en navegador sigue detenida en el acceso de Vercel.
 
 El dueño reiteró que un cambio de paleta era insuficiente. Se añadió una composición de acceso con panel azul y recorrido de tres pasos en escritorio; en móvil el formulario sigue en una columna. El marco de navegación tiene ahora un tema tinta acotado, distinto del área de trabajo. Se corrigió el contraste del hover en las acciones con texto blanco. Se retiró el halo decorativo del acceso: el techo de degradados bajó de 11 a 10. Comprobación de los cinco guardianes afectados: 55 casos correctos; build equivalente final correcto. Esta ampliación todavía requiere inspección visual autenticada.
+
+## Continuación sin acceso a la cuenta privada
+
+El dueño no puede completar el acceso del navegador desde su móvil y pidió continuar sin detenerse. No se reintentó ni se relajó la autenticación de Vercel. Los cinco jobs de CI sobre `8da4e10` sí terminaron correctamente; esto no certifica los cambios siguientes.
+
+Se amplió el rediseño en las pantallas de trabajo: encabezados compartidos sobre superficie propia y borde de marca, identidad del paciente en foco más legible, controles de calendario agrupados por vista/periodo y marcador claro de hoy. El directorio responde al foco del teclado igual que al puntero; el movimiento del chevron se desactiva al pedir menos movimiento. Se retiró un degradado del héroe.
+
+REG-669 repara la selección y el destino del héroe de Hoy: consulta en curso → paciente en sala → próxima cita abierta. Usa el reloj canónico del consultorio. Recepción y citas sin paciente abren el detalle de la cita. Siete reproducciones fallaron con la lógica original; el conjunto de nueve casos nuevos más diecinueve existentes pasó después (28).
+
+El entorno de ejecución local se desconectó durante la comprobación de tipos. Los cambios se reconstruyeron mediante reemplazos exactos sobre los archivos del último commit remoto; la verificación completa se traslada a CI y no se afirma que el typecheck interrumpido haya terminado. Siguen pendientes la inspección visual privada, el aislamiento entre médicos y el despliegue. El trabajo de #488 sigue separado.
