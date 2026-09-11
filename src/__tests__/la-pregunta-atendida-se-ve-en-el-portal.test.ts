@@ -76,7 +76,7 @@ vi.mock('@/lib/firebase-admin', () => ({
             return {
               doc: (patientId: string) => ({
                 // D-057: la ruta comprueba que el médico sea el DEL paciente antes de tocar la pregunta.
-                get: async () => ({ exists: true, id: patientId, data: () => ({ nombre: 'Paciente Ficticio' }) }),
+                get: async () => ({ exists: true, id: patientId, data: () => ({ nombre: 'Paciente Ficticio', medicoTitularUid: 'uid-medico' }) }),
                 collection: (s2: string) => {
                   if (s2 !== 'preguntas_paciente') throw new Error(`subcolección de paciente inesperada: ${s2}`)
                   return {

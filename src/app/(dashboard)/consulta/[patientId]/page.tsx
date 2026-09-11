@@ -37,8 +37,8 @@ import { claveDeIntento } from '@/lib/idempotencia'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
-import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
-import { borradoresBloqueados, queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
+import { ofuscar } from '@/lib/seguridad/ofuscar-local'
+import { borradoresBloqueados, queHacerConElRespaldoLocal, claveDeRespaldo, leerRespaldoConAlcance } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import {
   debeOfrecerRecuperacion, hayAudioQueNoSePuedePurgar, puedeReemplazarTranscripcion,
@@ -382,6 +382,9 @@ const CLAVES_DE_INDICACIONES: readonly string[] = ['planPostop', 'signosAlarma',
 
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
+  // REG-675: el contenido de este montaje pertenece a esta sesión. Un flush
+  // tardío no puede adoptar el uid de quien acaba de entrar en el dispositivo.
+  const [uidDelMontaje] = useState(() => auth.currentUser?.uid ?? null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const notaIdParam = searchParams.get('nota')
@@ -415,13 +418,13 @@ export default function ConsultaActivaPage() {
   const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
-  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
-  const { clinicId, role } = useClinic()
+  const { clinicId, role, sesionVigente } = useClinic()
+  const respaldoKey = useMemo(() => claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoActivo), [uidDelMontaje, clinicId, patientId, internamientoActivo])
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
   // si te vas mientras procesa, la petición sigue y su resultado se aplica al
   // volver (o en cuanto llega, si ya volviste). Clave por paciente+episodio.
-  const procKey = `procesar.${patientId}${internamientoParam ? '.h.' + internamientoParam : ''}`
+  const procKey = `procesar.${claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoParam)}`
   const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number; notaId: string | null } }>(procKey)
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
@@ -2030,7 +2033,7 @@ export default function ConsultaActivaPage() {
    * vocabulario existía, estaba probado, y no lo llamaba nadie.
    */
   const opcionesWhisper = useMemo(() => ({
-    recoveryKey: `consulta-${patientId}`,
+    recoveryKey: respaldoKey,
     noiseSuppression: false,
     echoCancellation: false,
     autoGainControl: true,
@@ -2942,7 +2945,7 @@ export default function ConsultaActivaPage() {
       if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
         const medAnteriores = medDeLaIaRef.current
         const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
-        if (tipoOverride) setMedicamentos(medDeEstePase)
+        if (tipoOverride) setMedicamentos(prev => fusionarMedicamentos({ previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos: nuevosMed, deLaIaAnterior: [] }))
         else setMedicamentos(prev => fusionarMedicamentos({
           previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
         }))
@@ -3136,7 +3139,7 @@ export default function ConsultaActivaPage() {
     if (tipoOverride || (medValidos && (!data.fallbackLocal || nuevosMed.length > 0))) {
       const medAnteriores = medDeLaIaRef.current
       const medDeEstePase = fusionarMedicamentos({ previos: [], nuevos: nuevosMed, deLaIaAnterior: [] })
-      if (tipoOverride) setMedicamentos(medDeEstePase)
+      if (tipoOverride) setMedicamentos(prev => fusionarMedicamentos({ previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos: nuevosMed, deLaIaAnterior: [] }))
       else setMedicamentos(prev => fusionarMedicamentos({
         previos: prev, nuevos: nuevosMed, deLaIaAnterior: medAnteriores,
       }))
@@ -3356,7 +3359,7 @@ export default function ConsultaActivaPage() {
         tipoNota: tipo,
         clinicId: clinicId!,
         pacienteId: patientId,
-        medicoId: auth.currentUser?.uid ?? '',
+        medicoId: uidDelMontaje ?? '',
         cedulaProfesional: config?.cedulaProfesional ?? '',
         especialidad: config?.especialidad ?? '',
         establecimiento: config?.nombreClinica ?? '',
@@ -3533,23 +3536,42 @@ export default function ConsultaActivaPage() {
       fechaConsulta: now,
       createdAt: now,
       updatedAt: now,
-      creadoPor: auth.currentUser?.uid ?? '',
+      creadoPor: uidDelMontaje ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
+  }, [uidDelMontaje, notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
-  const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
-    if (!clinicId || firmada) return Promise.resolve()
+  // REG-676: sólo el acuse de salida exige que los fallos rechacen la promesa.
+  // El botón/autoguardado conservan su manejo de errores sin rechazos sueltos.
+  const guardarBorrador = useCallback((silencioso = false, confirmarPersistencia = false): Promise<void> => {
+    if (firmada) return Promise.resolve()
     // Descartada a propósito: ni se guarda ni se recrea. Ver `descartadaRef`.
     if (descartadaRef.current) return Promise.resolve()
+    if (!clinicId) return confirmarPersistencia
+      ? Promise.reject(new Error('No se confirmó el consultorio para guardar la nota.'))
+      : Promise.resolve()
+    // REG-677: la nota pertenece al montaje, no a quien entre después.
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
+      const mensaje = 'La sesión cambió. Abre de nuevo la consulta para guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(Object.assign(new Error(mensaje), { code: 'sesion-cambiada' })) : Promise.resolve()
+    }
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
     // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
     // guardado MANUAL (no silencioso) se avisa; antes fallaba mudo.
-    if (errorCargaNota) { if (!silencioso) toast('No se pudo abrir la nota; recárgala antes de guardar.', 'error'); return Promise.resolve() }
+    if (errorCargaNota) {
+      const mensaje = 'No se pudo abrir la nota; recárgala antes de guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+    }
     // Paciente que no se pudo leer: guardar escribiría nombre y alergias vacíos
     // encima de la nota. Se bloquea hasta que la lectura del paciente tenga éxito.
-    if (pacienteError) { if (!silencioso) toast('No se pudieron leer los datos del paciente; recarga antes de guardar.', 'error'); return Promise.resolve() }
+    if (pacienteError) {
+      const mensaje = 'No se pudieron leer los datos del paciente; recarga antes de guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+    }
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -3557,6 +3579,7 @@ export default function ConsultaActivaPage() {
       if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
+        if (auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) throw Object.assign(new Error('La sesión cambió antes de guardar la nota.'), { code: 'sesion-cambiada' })
         const nota = construirNota('borrador')
         const idActual = notaIdRef.current
         if (idActual) {
@@ -3602,6 +3625,7 @@ export default function ConsultaActivaPage() {
             if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
             // Si se descartó queriendo, no se recrea. Ver `descartadaRef`.
             if (descartadaRef.current) return
+            if (auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) throw Object.assign(new Error('La sesión cambió antes de recuperar la nota.'), { code: 'sesion-cambiada' })
             const nuevo = await createNota(clinicId, patientId, { ...nota, estado: 'borrador' })
             notaIdRef.current = nuevo
             setNotaId(nuevo)
@@ -3630,6 +3654,7 @@ export default function ConsultaActivaPage() {
          */
         if ((e as { code?: string })?.code === 'conflicto-de-version') {
           toast('Otra sesión modificó esta nota. NO se guardó, para no pisar su trabajo. Copia lo tuyo y vuelve a abrirla.', 'error')
+          if (confirmarPersistencia) throw e
           return
         }
         /**
@@ -3642,7 +3667,7 @@ export default function ConsultaActivaPage() {
          */
         const codigo = (e as { code?: string })?.code ?? ''
         const detalle =
-          codigo === 'nota-inexistente' ? String((e as Error).message)
+          codigo === 'nota-inexistente' || codigo === 'sesion-cambiada' || codigo === 'datos-no-cargados' ? String((e as Error).message)
           : codigo === 'permission-denied' ? 'el servidor rechazó el permiso (reglas o sesión vencida). Si acabas de restaurar un respaldo, puede que la nota original ya no exista'
           : codigo === 'unauthenticated' ? 'tu sesión expiró: vuelve a iniciar sesión'
           : /too large|invalid-argument|exceeds/i.test(String((e as Error)?.message ?? '')) ? 'la nota superó el tamaño máximo de un documento'
@@ -3662,13 +3687,15 @@ export default function ConsultaActivaPage() {
             'error',
           )
         }
+        // La salida debe conservar el respaldo cuando Firestore no confirmó.
+        if (confirmarPersistencia) throw e
       } finally {
         setGuardando(false)
       }
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro, uidDelMontaje, sesionVigente])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -3763,10 +3790,11 @@ export default function ConsultaActivaPage() {
     }
     if (!hayAlgoQuePerder(vivo)) return
     const id = setTimeout(() => {
+      if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) return
       const r = guardarRespaldoLocal(
         vivo,
         { notaId: notaIdRef.current, ts: Date.now(), bloqueado: borradoresBloqueados() },
-        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), uidDelMontaje)),
       )
       /**
        * Y si no cupo, **se dice**. Antes esto era `catch { /* no es crítico *\/ }`
@@ -3785,7 +3813,7 @@ export default function ConsultaActivaPage() {
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
+  }, [uidDelMontaje, firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -3880,7 +3908,8 @@ export default function ConsultaActivaPage() {
       try {
         const raw = localStorage.getItem(respaldoKey)
         if (raw) {
-          b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
+          b = leerRespaldoConAlcance(raw, respaldoKey, uidDelMontaje, clinicId)
+          if (!b) { autoRestRef.current = true; return }
           setRespaldoDisponible(true)
           setRespaldoMeta({
             notaId: typeof b?.notaId === 'string' ? b.notaId : null,
@@ -3996,7 +4025,7 @@ export default function ConsultaActivaPage() {
     // firmada no se repone nada (es inmutable, NOM-024).
     // `firmada` y los campos del borrador entran en las deps porque `vacio` los
     // mira: la lista es la misma de `CAMPOS_DEL_BORRADOR` (ASN-001).
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
+  }, [uidDelMontaje, clinicId, patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -4123,6 +4152,7 @@ export default function ConsultaActivaPage() {
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current
     if (e.firmada) return
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) return
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
@@ -4135,13 +4165,13 @@ export default function ConsultaActivaPage() {
     const r = guardarRespaldoLocal(
       e,
       { notaId: notaIdRef.current, ts: Date.now(), bloqueado: false },
-      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), uidDelMontaje)),
     )
     if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
       avisoRespaldoRef.current = true
       toast(AVISO_SIN_ESPACIO, 'error')
     }
-  }, [respaldoKey, toast])
+  }, [respaldoKey, toast, uidDelMontaje])
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') flushRespaldo() }
     window.addEventListener('pagehide', flushRespaldo)
@@ -4213,29 +4243,36 @@ export default function ConsultaActivaPage() {
        *
        * Ahora quien cierra sabe si esto terminó, y si no terminó NO purga.
        */
-      const p = guardarBorrador(true)
-      const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>) => void }>).detail
-      if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p))
+      // Antes de perder la sesión, conservar también la última tecla local:
+      // si el servidor falla antes del debounce, el flush posterior al logout
+      // ya estará bloqueado. No crear una tercera forma de armar el respaldo.
+      flushRespaldo()
+      let bytes: string | null = null
+      try { bytes = localStorage.getItem(respaldoKey) } catch { /* El servidor debe guardar aunque el almacenamiento local falle. */ }
+      const p = guardarBorrador(true, true)
+      const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>, respaldo?: { clave: string; bytes: string }) => void }>).detail
+      if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p), bytes ? { clave: respaldoKey, bytes } : undefined)
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
     return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
-  }, [guardarBorrador])
+  }, [guardarBorrador, flushRespaldo, respaldoKey])
 
   const restaurarRespaldo = async () => {
     try {
       const raw = localStorage.getItem(respaldoKey)
       if (!raw) { setRespaldoDisponible(false); setRespaldoMeta(null); return }
-      const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
-      if (b.tipo) setTipo(b.tipo)
+      const b = leerRespaldoConAlcance(raw, respaldoKey, uidDelMontaje, clinicId)
+      if (!b || !sesionVigente()) { toast('Este respaldo no corresponde a la sesión y al consultorio abiertos.', 'error'); return }
+      if (b.tipo) setTipo(b.tipo as TipoNota)
       // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
       if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
       if (typeof b.resumen === 'string') setResumen(b.resumen)
-      if (b.signos) setSignos(b.signos)
+      if (b.signos) setSignos(b.signos as SignosVitales)
       if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
-      if (b.preop) setPreop(b.preop)
+      if (b.preop) setPreop(b.preop as typeof preop)
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
       if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
-      if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
+      if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
       /**
        * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.
        *
@@ -4338,6 +4375,14 @@ export default function ConsultaActivaPage() {
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
+    const comprobarSesion = () => {
+      if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
+        throw Object.assign(new Error('La sesión o el consultorio cambió antes de firmar.'), { code: 'sesion-cambiada' })
+      }
+    }
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
+      toast('La sesión cambió. Vuelve a abrir la consulta para firmar.', 'error'); return
+    }
     if (!clinicId) return
 
     /**
@@ -4539,6 +4584,7 @@ export default function ConsultaActivaPage() {
     }
     setGuardando(true)
     try {
+      comprobarSesion()
       const now = new Date().toISOString()
       /**
        * REG-060 — se sella y se escribe EL MISMO objeto.
@@ -4552,7 +4598,7 @@ export default function ConsultaActivaPage() {
        */
       const notaSellable = normalizarParaSello(notaParaValidar)
       const hashIntegridad = await generarHashIntegridad(notaSellable)
-      const medicoId = auth.currentUser?.uid ?? ''
+      const medicoId = uidDelMontaje
       const hashFirma = await generarHashFirma(notaSellable.metadata.id, medicoId, now)
 
       const notaFirmada: NotaMedica = {
@@ -4589,6 +4635,7 @@ export default function ConsultaActivaPage() {
       // Espera cualquier autoguardado en vuelo y usa la ref síncrona, para NO
       // crear una nota duplicada al firmar justo después de un autoguardado.
       await cadenaGuardadoRef.current.catch(() => {})
+      comprobarSesion()
       /**
        * TODA NOTA NACE EN BORRADOR (REG-017, decisión del médico dueño).
        *
@@ -4612,6 +4659,7 @@ export default function ConsultaActivaPage() {
         setNotaId(id)
       }
       try {
+        comprobarSesion()
         await updateNota(clinicId, patientId, id, notaFirmada)
       } catch (e) {
         /**
@@ -4621,11 +4669,14 @@ export default function ConsultaActivaPage() {
          * que no admite esperar.
          */
         if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
+        comprobarSesion()
         const nuevo = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
         notaIdRef.current = nuevo
         setNotaId(nuevo)
+        comprobarSesion()
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
+      if (!sesionVigente()) return
       firmadaRef.current = true
       setFirmada(true)
       /**
@@ -4893,7 +4944,7 @@ export default function ConsultaActivaPage() {
      * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
      * camino distinto por el que se perdía.
      */
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro, uidDelMontaje, sesionVigente])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //
@@ -4982,7 +5033,13 @@ export default function ConsultaActivaPage() {
         setSecciones(prev => prev.map(s => (typeof data.secciones[s.key] === 'string' ? { ...s, value: sanitizarProsa(data.secciones[s.key]) } : s)))
       }
       if (Array.isArray(data.diagnosticos)) setDiagnosticos(data.diagnosticos.filter((d: Diagnostico) => d.descripcion))
-      if (Array.isArray(data.medicamentos)) setMedicamentos(data.medicamentos.filter((m: Medicamento) => m.nombre))
+      if (Array.isArray(data.medicamentos)) {
+        const nuevos = data.medicamentos.filter((m: Medicamento) => m?.nombre?.trim())
+        setMedicamentos(prev => fusionarMedicamentos({
+          previos: prev.filter(m => m.origenCaptura === 'medico'), nuevos, deLaIaAnterior: [],
+        }))
+        medDeLaIaRef.current = fusionarMedicamentos({ previos: [], nuevos, deLaIaAnterior: [] })
+      }
       if (data.signosVitales && typeof data.signosVitales === 'object') {
         // MERGE por campo, no reemplazo: si la IA devuelve el bloque de signos
         // parcial (o vacío) al corregir algo ajeno a signos, un reemplazo total
@@ -7140,7 +7197,7 @@ export default function ConsultaActivaPage() {
             if (typeof v.resumenEjecutivo === 'string') setResumen(v.resumenEjecutivo)
             if (v.signosVitales) setSignos(v.signosVitales)
             if (Array.isArray(v.diagnosticos)) setDiagnosticos(v.diagnosticos)
-            if (Array.isArray(v.medicamentos)) setMedicamentos(v.medicamentos)
+            if (Array.isArray(v.medicamentos)) setMedicamentos(v.medicamentos.map(m => ({ ...m, origenCaptura: 'medico' })))
             if (typeof v.transcripcionCruda === 'string') voz.setTranscripcion(v.transcripcionCruda)
           }}
         />
@@ -7516,7 +7573,7 @@ export default function ConsultaActivaPage() {
               setMedicamentos(prev => {
                 const names = new Set(prev.map(m => m.nombre.trim().toLowerCase()))
                 const nuevos = n.medicamentos.filter(m => m.nombre && !names.has(m.nombre.trim().toLowerCase()))
-                return [...prev, ...nuevos]
+                return [...prev, ...nuevos.map(m => ({ ...m, origenCaptura: 'medico' as const }))]
               })
               setEstudiosOrden(n.estudios)
               toast('Valoración aplicada — revisa secciones, medicamentos y estudios', 'success')
@@ -7683,11 +7740,11 @@ export default function ConsultaActivaPage() {
           <div key={i} className="nx-med-fila" style={{ ...S.row, flexWrap: 'wrap' }}>
             <input value={m.nombre} disabled={firmada} placeholder="Medicamento"
               aria-label={`Medicamento ${i + 1}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, nombre: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', nombre: e.target.value } : x))}
               style={{ ...S.input, flex: 2, minWidth: 120 }} />
             <input value={m.dosis} disabled={firmada} placeholder="Dosis"
               aria-label={`Dosis${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', dosis: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 70 }} />
             {/*
               «NO LA SABE» — la salida honesta cuando el paciente no conoce la dosis.
@@ -7701,7 +7758,7 @@ export default function ConsultaActivaPage() {
             {!firmada && m.nombre?.trim() && !m.dosis?.trim() && (
               <button
                 type="button"
-                onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, dosis: DOSIS_DESCONOCIDA } : x))}
+                onClick={() => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', dosis: DOSIS_DESCONOCIDA } : x))}
                 title="El paciente lo toma pero no sabe la dosis. Se registra así, y se imprime."
                 style={{ ...S.input, flex: '0 0 auto', cursor: 'pointer', fontSize: 12, padding: '0 10px', whiteSpace: 'nowrap' }}
               >No la sabe</button>
@@ -7714,7 +7771,7 @@ export default function ConsultaActivaPage() {
               importa, pero no dejaba capturarla.
             */}
             <select value={m.via ?? 'oral'} disabled={firmada} aria-label={`Vía de administración${m.nombre ? ` de ${m.nombre}` : ''}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, via: e.target.value as Medicamento['via'] } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', via: e.target.value as Medicamento['via'] } : x))}
               style={{ ...S.input, flex: 1, minWidth: 92 }}>
               <option value="oral">Oral</option>
               <option value="iv">IV</option>
@@ -7728,11 +7785,11 @@ export default function ConsultaActivaPage() {
             </select>
             <input value={m.frecuencia} disabled={firmada} placeholder="Frecuencia"
               aria-label={`Frecuencia${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, frecuencia: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', frecuencia: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 90 }} />
             <input value={m.duracion} disabled={firmada} placeholder="Duración"
               aria-label={`Duración${m.nombre ? ` de ${m.nombre}` : ` del medicamento ${i + 1}`}`}
-              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, duracion: e.target.value } : x))}
+              onChange={e => setMedicamentos(prev => prev.map((x, j) => j === i ? { ...x, origenCaptura: 'medico', duracion: e.target.value } : x))}
               style={{ ...S.input, flex: 1, minWidth: 80 }} />
             {!firmada && (
               <button
@@ -7772,7 +7829,7 @@ export default function ConsultaActivaPage() {
           </div>
         )}
         {!firmada && (
-          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '' }])} className="nx-acc-caja" style={S.addBtn}>
+          <button onClick={() => setMedicamentos(prev => [...prev, { nombre: '', dosis: '', via: 'oral', frecuencia: '', duracion: '', origenCaptura: 'medico' }])} className="nx-acc-caja" style={S.addBtn}>
             <Plus size={13} /> Agregar medicamento
           </button>
         )}
@@ -7953,7 +8010,7 @@ export default function ConsultaActivaPage() {
             pesoPrevio={pesoPrevio?.kg} fechaDelPesoPrevio={pesoPrevio?.fecha}
             hoy={hoyDeLaConsulta}
             onAgregarANota={agregarASeccion('pediatria', 'Pediatría')}
-            onRecetar={med => setMedicamentos(prev => [...prev, med])} />,
+            onRecetar={med => setMedicamentos(prev => [...prev, { ...med, origenCaptura: 'medico' }])} />,
         }] : []),
         ...(calcSugeridas.length > 0 ? [{
           id: 'calculadoras', nombre: 'Calculadoras', color: 'var(--teal)', icono: <Calculator size={14} />,
@@ -8230,7 +8287,7 @@ export default function ConsultaActivaPage() {
                     // está declarando que deja de tomarse. Inventar una vía aquí
                     // sería escribir en el expediente algo que nadie dijo.
                     nombre, dosis: dosis ?? '', via: 'otra', frecuencia: '', duracion: '',
-                    estado, motivoEstado: motivo.trim(),
+                    estado, motivoEstado: motivo.trim(), origenCaptura: 'medico',
                   } as Medicamento]
                 })
                 toast(`${nombre}: quedará registrado como ${estado === 'suspendida' ? 'suspendido' : 'terminado'} al firmar`, 'success')

@@ -23,20 +23,22 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
+import { useClinic } from '@/context/ClinicContext'
 import { encuentroAbierto, type EncuentroAbierto } from '@/lib/nav/encuentro-abierto'
 
 export function useEncuentroAbierto(): EncuentroAbierto | null {
   const pathname = usePathname()
   const { user } = useAuth()
+  const { clinicId } = useClinic()
   const [abierto, setAbierto] = useState<EncuentroAbierto | null>(null)
 
   useEffect(() => {
-    const releer = () => setAbierto(encuentroAbierto(user?.uid))
+    const releer = () => setAbierto(encuentroAbierto(user?.uid, clinicId))
     releer()
     const alVolver = () => { if (document.visibilityState === 'visible') releer() }
     document.addEventListener('visibilitychange', alVolver)
     return () => document.removeEventListener('visibilitychange', alVolver)
-  }, [pathname, user?.uid])
+  }, [pathname, user?.uid, clinicId])
 
   return abierto
 }

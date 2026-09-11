@@ -2,7 +2,7 @@
  "sellado": "2026-09-11",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 8193,
+ "totalCasos": 8334,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -11,6 +11,10 @@
   {
    "archivo": "src/__tests__/a11y-la-superficie-del-paciente-no-pierde-terreno.test.ts",
    "minCasos": 8
+  },
+  {
+   "archivo": "src/__tests__/administrar-no-concede-todos-los-expedientes.test.ts",
+   "minCasos": 0
   },
   {
    "archivo": "src/__tests__/agendada-era-una-declaracion-no-un-hecho.test.ts",
@@ -157,12 +161,20 @@
    "minCasos": 21
   },
   {
+   "archivo": "src/__tests__/bitacora-filtro.test.ts",
+   "minCasos": 9
+  },
+  {
    "archivo": "src/__tests__/cada-campo-dice-como-se-llama.test.ts",
    "minCasos": 14
   },
   {
    "archivo": "src/__tests__/cada-capacidad-de-ia-tiene-su-contrato.test.ts",
    "minCasos": 14
+  },
+  {
+   "archivo": "src/__tests__/cada-medico-ve-sus-pacientes.test.ts",
+   "minCasos": 15
   },
   {
    "archivo": "src/__tests__/cada-nota-con-su-formato.test.ts",
@@ -453,6 +465,10 @@
    "minCasos": 18
   },
   {
+   "archivo": "src/__tests__/el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts",
+   "minCasos": 14
+  },
+  {
    "archivo": "src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts",
    "minCasos": 10
   },
@@ -525,6 +541,10 @@
    "minCasos": 6
   },
   {
+   "archivo": "src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts",
+   "minCasos": 8
+  },
+  {
    "archivo": "src/__tests__/el-doi-llegaba-a-la-pantalla-y-no-se-pintaba.test.ts",
    "minCasos": 20
   },
@@ -583,6 +603,10 @@
   {
    "archivo": "src/__tests__/el-foso-no-inventa-competidores.test.ts",
    "minCasos": 6
+  },
+  {
+   "archivo": "src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts",
+   "minCasos": 10
   },
   {
    "archivo": "src/__tests__/el-historial-completo-no-cabe-en-una-pantalla.test.ts",
@@ -749,6 +773,10 @@
    "minCasos": 7
   },
   {
+   "archivo": "src/__tests__/el-respaldo-pertenece-al-consultorio.test.ts",
+   "minCasos": 7
+  },
+  {
    "archivo": "src/__tests__/el-respaldo-sabe-volver-entero.test.ts",
    "minCasos": 25
   },
@@ -877,6 +905,10 @@
    "minCasos": 8
   },
   {
+   "archivo": "src/__tests__/exportar-no-abre-el-expediente-ajeno.test.ts",
+   "minCasos": 1
+  },
+  {
    "archivo": "src/__tests__/farmacovigilancia.test.ts",
    "minCasos": 27
   },
@@ -933,6 +965,10 @@
    "minCasos": 8
   },
   {
+   "archivo": "src/__tests__/guardar-no-acusa-un-fallo-como-exito.test.ts",
+   "minCasos": 4
+  },
+  {
    "archivo": "src/__tests__/h19-identidad-nunca-se-aprende.test.ts",
    "minCasos": 13
   },
@@ -977,8 +1013,16 @@
    "minCasos": 3
   },
   {
+   "archivo": "src/__tests__/hoy-conserva-la-consulta-en-curso.test.ts",
+   "minCasos": 9
+  },
+  {
    "archivo": "src/__tests__/hueco-escrito-no-es-dato.test.ts",
    "minCasos": 25
+  },
+  {
+   "archivo": "src/__tests__/ia-evaluacion.test.ts",
+   "minCasos": 7
   },
   {
    "archivo": "src/__tests__/ia-gateway.test.ts",
@@ -1221,6 +1265,10 @@
    "minCasos": 6
   },
   {
+   "archivo": "src/__tests__/la-medicion-no-aprueba-cambios-clinicos.test.ts",
+   "minCasos": 3
+  },
+  {
    "archivo": "src/__tests__/la-membresia-del-servidor-se-ejecuta-contra-un-doble-con-id.test.ts",
    "minCasos": 8
   },
@@ -1437,6 +1485,10 @@
    "minCasos": 9
   },
   {
+   "archivo": "src/__tests__/las-iniciales-del-paciente-se-leen.test.ts",
+   "minCasos": 1
+  },
+  {
    "archivo": "src/__tests__/las-lecturas-sin-cota-solo-bajan.test.ts",
    "minCasos": 9
   },
@@ -1482,7 +1534,7 @@
   },
   {
    "archivo": "src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts",
-   "minCasos": 4
+   "minCasos": 5
   },
   {
    "archivo": "src/__tests__/lo-que-el-medico-descarto-no-es-un-diagnostico.test.ts",
@@ -1617,6 +1669,10 @@
    "minCasos": 10
   },
   {
+   "archivo": "src/__tests__/matriz-acceso.test.ts",
+   "minCasos": 15
+  },
+  {
    "archivo": "src/__tests__/medical-dictionary.test.ts",
    "minCasos": 15
   },
@@ -1715,6 +1771,14 @@
   {
    "archivo": "src/__tests__/origen-del-dictado.test.ts",
    "minCasos": 13
+  },
+  {
+   "archivo": "src/__tests__/oro-alucinacion.test.ts",
+   "minCasos": 17
+  },
+  {
+   "archivo": "src/__tests__/paciente-ajeno-no-abre-puertas-clinicas.test.ts",
+   "minCasos": 5
   },
   {
    "archivo": "src/__tests__/paciente-equivocado-guardia.test.ts",
@@ -1870,7 +1934,7 @@
   },
   {
    "archivo": "src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts",
-   "minCasos": 12
+   "minCasos": 15
   },
   {
    "archivo": "src/__tests__/reserva-publica-sin-contador.test.ts",
@@ -2177,6 +2241,10 @@
    "minCasos": 7
   },
   {
+   "archivo": "src/__tests__/un-flush-no-cambia-de-dueno.test.ts",
+   "minCasos": 8
+  },
+  {
    "archivo": "src/__tests__/un-homonimo-no-se-cuelga-del-expediente-sin-telefono.test.ts",
    "minCasos": 6
   },
@@ -2351,6 +2419,10 @@
   {
    "archivo": "src/__tests__/v15-la-lista-vacia-dice-cuantos-hay-fuera.test.ts",
    "minCasos": 12
+  },
+  {
+   "archivo": "src/__tests__/v15-rtc08-encuentro-es-un-lugar.test.ts",
+   "minCasos": 14
   },
   {
    "archivo": "src/__tests__/v15-rtc14-una-sola-presentacion-de-alergias.test.ts",

@@ -16,9 +16,10 @@
  * en `audit_log` por cada asignación escrita.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { FieldPath } from 'firebase-admin/firestore'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
 
 export const TOPE_PACIENTES_POR_CORRIDA = 500
 
@@ -31,10 +32,11 @@ export interface ResultadoAsignacion {
   sinCita: number
   medicoSinUid: number
   truncado: boolean
+  cursor: string | null
 }
 
 export async function POST(req: NextRequest) {
-  let body: { clinicId?: string; simular?: boolean }
+  let body: { clinicId?: string; simular?: boolean; cursor?: string }
   try {
     body = await req.json()
   } catch {
@@ -46,11 +48,18 @@ export async function POST(req: NextRequest) {
 
   const acceso = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acceso.ok) return acceso.response
+  const sinAdministracion = exigeAdministrador(acceso)
+  if (sinAdministracion) return sinAdministracion
 
   try {
     const clinicRef = adminDb.collection('clinics').doc(clinicId)
+    let pagina = clinicRef.collection('patients').orderBy(FieldPath.documentId())
+    if (body.cursor) {
+      if (typeof body.cursor !== 'string' || body.cursor.includes('/') || body.cursor.length > 1500) return NextResponse.json({ error: 'Cursor inválido' }, { status: 400 })
+      pagina = pagina.startAfter(body.cursor)
+    }
     const [pacientes, medicos] = await Promise.all([
-      clinicRef.collection('patients').limit(TOPE_PACIENTES_POR_CORRIDA + 1).get(),
+      pagina.limit(TOPE_PACIENTES_POR_CORRIDA + 1).get(),
       clinicRef.collection('doctors').get(),
     ])
     const uidDeMedico = new Map<string, string>()
@@ -62,6 +71,7 @@ export async function POST(req: NextRequest) {
     const r: ResultadoAsignacion = {
       ok: true, simulado: simular, revisados: 0, yaTenian: 0, asignados: 0, sinCita: 0, medicoSinUid: 0,
       truncado: pacientes.size > TOPE_PACIENTES_POR_CORRIDA,
+      cursor: pacientes.size > TOPE_PACIENTES_POR_CORRIDA ? pacientes.docs[TOPE_PACIENTES_POR_CORRIDA - 1].id : null,
     }
     const ahora = new Date().toISOString()
     const docs = pacientes.docs.slice(0, TOPE_PACIENTES_POR_CORRIDA)

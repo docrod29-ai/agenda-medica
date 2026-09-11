@@ -69,7 +69,9 @@ describe('LA CONSULTA SE RECUPERA SOLA — no se pierde nada', () => {
   it('el autoguardado recrea la nota y sigue', () => {
     const i = consulta.indexOf("if ((e as { code?: string })?.code !== 'nota-inexistente') throw e")
     expect(i).toBeGreaterThan(0)
-    expect(consulta.slice(i, i + 400)).toContain('await createNota(')
+    const fin = consulta.indexOf('// ── Descartar borrador', i)
+    expect(fin).toBeGreaterThan(i)
+    expect(consulta.slice(i, fin)).toContain('await createNota(')
   })
 
   it('y la firma también, porque cerrar la consulta no admite esperar', () => {

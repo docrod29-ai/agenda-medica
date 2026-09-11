@@ -38,7 +38,7 @@
  * ── QUÉ NO CUBRE, DECLARADO ──────────────────────────────────────────────────
  *
  * · **No despliega nada.** Comprueba el texto del workflow; que el rol
- *   `roles/firebasestorage.admin` sea el que falta lo confirma la siguiente
+ *   `roles/firebasestorage.viewer` resuelva el acceso lo confirma la siguiente
  *   ejecución del botón, no esta prueba.
  * · **No cubre `hosting` ni ningún publicable futuro.** El día que se añada
  *   otro `--only`, hay que añadirlo al acta a mano — y a esta lista. Lo
@@ -120,11 +120,13 @@ describe('REG-668 · si fue permiso, el acta dice cuál', () => {
   it('nombra el permiso denegado, el rol exacto, y dice que no es cosa del repositorio', () => {
     const run = String(porNombre('Storage · si fue permiso')!.run)
     expect(run).toContain('firebasestorage.defaultBucket.get')
-    expect(run).toContain('roles/firebasestorage.admin')
+    expect(run).toContain('roles/firebasestorage.viewer')
+    expect(run).not.toContain('roles/firebasestorage.admin')
     expect(run).toMatch(/no en este repositorio/)
     // El 403 de Firebase dice «or it may not exist»: el aviso ofrece las dos
     // lecturas, porque con la primera sola se puede dar un rol que ya estaba.
     expect(run).toContain('or it may not')
+    expect(run).toContain('no demuestra que el bucket no exista')
   })
 
   it('y deja claro que las reglas de Firestore NO fueron el problema', () => {

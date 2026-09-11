@@ -71,7 +71,7 @@ describe('NADA ESCRIBE DESPUÉS DE DESCARTAR', () => {
      * convierte un descarte deliberado en una nota que reaparece.
      */
     const i = consulta.indexOf("if ((e as { code?: string })?.code !== 'nota-inexistente') throw e")
-    const bloque = consulta.slice(i, i + 300)
+    const bloque = consulta.slice(i, consulta.indexOf('notaIdRef.current = nuevo', i))
     expect(bloque).toContain('if (descartadaRef.current) return')
     // Y la guarda va ANTES de crear, no después.
     expect(bloque.indexOf('if (descartadaRef.current) return'))
@@ -194,6 +194,7 @@ describe('REG-667: descartar con autoguardado pendiente', () => {
     const descartadaRef = { current: false }, createNota = vi.fn(async () => 'nota-sintetica')
     const guardar = await callbackReal('guardarBorrador', {
       clinicId: 'clinica-sintetica', patientId: 'paciente-sintetico', firmada: false,
+      auth: { currentUser: { uid: 'medico-sintetico' } }, uidDelMontaje: 'medico-sintetico', sesionVigente: () => true,
       firmadaRef: { current: false }, descartadaRef, errorCargaNota: false, pacienteError: false,
       cadenaGuardadoRef, notaIdRef: { current: null }, vistoEnRef: { current: null }, fallosGuardadoRef: { current: 0 },
       construirNota: () => ({ estado: 'borrador' }), createNota,

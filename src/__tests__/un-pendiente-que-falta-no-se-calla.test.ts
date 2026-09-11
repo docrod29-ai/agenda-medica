@@ -73,6 +73,21 @@ vi.mock('firebase/firestore', () => ({
 }))
 vi.mock('@/lib/firebase', () => ({ db: {}, auth: { currentUser: { uid: 'u' } } }))
 
+vi.mock('@/lib/firebase-admin', async () => {
+  const { lecturasAdminSobreCliente, estadoDoble } = await import('./_harness/firestore-cliente-en-memoria')
+  return { adminDb: { collection: (nombre: string) => {
+    const h = estadoDoble()
+    almacen.docs.forEach((d, i) => h.docs.set(`clinics/c1/tareas_clinicas/t${i}`, { creadaEn: '2026-09-11', ...d }))
+    return lecturasAdminSobreCliente(h).collection(nombre)
+  } } }
+})
+vi.mock('@/lib/authz/verificar', () => ({ verificarCapacidad: async () => ({ ok: true, uid: 'u', role: 'admin' }) }))
+vi.mock('@/lib/auth-client', () => ({ fetchAutenticado: async (_url: string, opciones: RequestInit) => {
+  const { POST } = await import('@/app/api/tareas/listar/route')
+  const { NextRequest } = await import('next/server')
+  return POST(new NextRequest('http://localhost/api/tareas/listar', { ...opciones, signal: opciones.signal ?? undefined }))
+} }))
+
 const { tareasVivas } = await import('@/lib/tareas-clinicas/firestore')
 
 const tarea = () => ({ estado: 'solicitada', tipo: 'estudio_pendiente', titulo: 'x' })

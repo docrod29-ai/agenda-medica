@@ -29,8 +29,8 @@ export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 /* Literales del tema oscuro de globals.css. NO usar var() — ver cabecera. */
-const INK = '#0B0C0E'        /* --bg    */
-const COBALT = '#2AA5B5'     /* --nexus */
+const INK = '#0B111B'        /* --bg    */
+const COBALT = '#69BEFF'     /* --nexus */
 const TEXT = '#F2EFE9'       /* --text  */
 const MUTED = '#9BA3AE'      /* --text2 */
 const HALO = 'rgba(42,165,181,0.10)'   /* --nexus a 10 %  */

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Dirección visual solicitada por el dueño, 10-sep-2026.
+   Azul vivo compartido por toda la aplicación; los avisos conservan su semántica.
+   Contraste WCAG medido con scripts/design/lib/contraste-wcag.mjs:
+   blanco sobre #075BCC = 6.22 : 1; #69BEFF sobre #172334 = 7.85 : 1;
+   #075BCC sobre #E8EFF8 = 5.37 : 1. Las notas históricas inferiores describen
+   el origen de los tokens, no certifican los valores de esta revisión. */
+
 :root {
   /* ── Ausculta design tokens ──────────────────────────────────
      Sistema de color rediseñado:
@@ -12,11 +19,18 @@
      ────────────────────────────────────────────────────────────── */
 
   /* Canvas + superficies (dark mode primario, ink-neutral) */
-  --bg:        #0B0C0E;
-  --s:         #131518;
-  --s1:        #131518;
-  --s2:        #1A1D21;
-  --s3:        #232629;
+  --bg:        #0B111B;
+  --s:         #111C2A;
+  --s1:        #111C2A;
+  --s2:        #141F2F;
+  --s3:        #172334;
+
+  /* Marco de marca: se mantiene legible en ambos temas. El cian señala
+     navegación; los colores de riesgo siguen siendo los tokens clínicos. */
+  --marca-panel: #084CA1;
+  --marca-papel: #FFFFFF;
+  --marca-secundario: #DBEAFF;
+  --marca-acento: #63DEEF;
 
   /* Bordes — alpha sobre canvas para integración */
   --border:    rgba(242,239,233,0.08);
@@ -71,9 +85,9 @@
               #177886 con blanco encima = 5.16 : 1   ✓ AA  (relleno)
      Claro:   #12626E sobre --s3  = 5.82 : 1   ✓ AA
               #12626E con blanco encima = 7.00 : 1   ✓ AA  (relleno)             */
-  --nexus:        #2AA5B5;
-  --nexus-hover:  #38B6C4;
-  --nexus-soft:   rgba(42, 165, 181, 0.14);
+  --nexus:        #69BEFF;
+  --nexus-hover:  #91D0FF;
+  --nexus-soft:   rgba(105, 190, 255, 0.14);
   /*
     EL AZUL DE RELLENO — el que lleva texto blanco encima.
 
@@ -93,7 +107,7 @@
     decisiones está mal por su cuenta, y por eso ninguna revisión de una sola
     pieza lo encuentra. Lo que la cierra no es el color: es tener DOS tokens.
   */
-  --nexus-solido: #177886;   /* relleno: blanco encima = 5.16 : 1 ✓ AA */
+  --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -682,10 +696,10 @@ a.nx-ident-franja:focus-visible { text-decoration-color: var(--text); }
   font-weight: 600;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--nexus-hover);
+  background: color-mix(in srgb, var(--nexus-solido) 88%, black);
 }
 .btn-primary:active:not(:disabled) {
-  background: var(--nexus-hover);
+  background: color-mix(in srgb, var(--nexus-solido) 80%, black);
   opacity: 0.92;
 }
 
@@ -862,6 +876,20 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Sidebar (Ausculta) ───────────────────────────────────── */
 .sidebar {
+  /* La navegación es un marco tinta en ambos temas; sus tokens están acotados
+     al marco para que formularios y datos clínicos mantengan el tema elegido. */
+  --bg: #0C3273;
+  --s1: #113F82;
+  --s2: #124787;
+  --s3: #164D8F;
+  --text: #F6F9FF;
+  --text2: #CFDCED;
+  --text3: #B3C5DC;
+  --nexus: var(--marca-acento);
+  --nexus-soft: rgba(128, 201, 255, .20);
+  --nexus-borde: rgba(128, 201, 255, .3);
+  --border: rgba(207, 220, 237, .14);
+  --border2: rgba(207, 220, 237, .25);
   background: var(--bg);
   border-right: 1px solid var(--border);
   width: 224px;
@@ -953,7 +981,7 @@ tbody tr:last-child { border-bottom: none; }
 .nav-item--tenue:hover { color: var(--text2); }
 
 .nav-item.active {
-  background: var(--s2);
+  background: var(--nexus-soft);
   color: var(--text);
   font-weight: 600;
 }
@@ -2218,6 +2246,23 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
 .bottom-nav-wrap { display: none; }
+.bottom-nav > a { position: relative; }
+.bottom-nav > a[aria-current='page'] { background: var(--nexus-soft); }
+.bottom-nav > a[aria-current='page']::after {
+  content: '';
+  position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
+  background: var(--nexus); border-radius: 0 0 var(--r-sm) var(--r-sm);
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bottom-nav > a[aria-current='page']::after {
+    animation: nx-destino-in var(--mov-lento) var(--mov-curva) both;
+  }
+}
+@keyframes nx-destino-in {
+  from { transform: scaleX(0); }
+  to { transform: none; }
+}
 @media (max-width: 768px) {
   .bottom-nav-wrap { display: block; }
   /* Espacio inferior en main para que la última fila NO quede tapada por la barra
@@ -2242,6 +2287,14 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Mobile topbar (hamburguesa + título) ────────────────── */
 .mobile-topbar {
   display: none; /* oculto por defecto en desktop */
+  --s1: var(--marca-panel);
+  --s2: color-mix(in srgb, var(--marca-panel) 84%, white);
+  --s3: color-mix(in srgb, var(--marca-panel) 76%, white);
+  --text: var(--marca-papel);
+  --text2: var(--marca-secundario);
+  --text3: var(--marca-secundario);
+  --nexus: var(--marca-acento);
+  --border: rgba(219, 234, 255, .24);
   height: 52px;
   background: var(--s1);
   border-bottom: 1px solid var(--border);
@@ -2304,11 +2357,11 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Light mode — paleta bone-soft anti-fatiga ocular ─────────── */
 :root[data-theme="light"] {
   /* Bone-soft (no blanco puro — reduce fatiga ocular en consulta larga) */
-  --bg:        #FAFAF7;
+  --bg:        #F2F6FC;
   --s:         #FFFFFF;
   --s1:        #FFFFFF;
-  --s2:        #F5F3EE;
-  --s3:        #ECEAE3;
+  --s2:        #F0F5FC;
+  --s3:        #E8EFF8;
 
   /* Bordes ink con alpha sobre canvas claro */
   --border:    rgba(11, 12, 14, 0.08);
@@ -2322,13 +2375,13 @@ html[data-vt-continuidad] .page-transition { animation: none; }
   --elev-2: 0 8px 24px -8px color-mix(in srgb, var(--text) 8%, transparent);
   --elev-3: 0 16px 40px -12px color-mix(in srgb, var(--text) 14%, transparent);
 
-  --nexus:        #12626E;   /* 5.82 : 1 sobre --s3 claro ✓ AA */
-  --nexus-hover:  #0E5058;
-  --nexus-soft:   rgba(18, 98, 110, 0.10);
+  --nexus:        #075BCC;   /* 5.37 : 1 sobre --s3 claro ✓ AA */
+  --nexus-hover:  #064AA6;
+  --nexus-soft:   rgba(7, 91, 204, 0.10);
   /* En claro el relleno ya era #2845EA (blanco encima = 6,71) y por eso este
      tema nunca tuvo el fallo. Se nombra igual para que .btn-primary sirva a
      los dos temas con una sola regla. */
-  --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
+  --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
   --teal:         var(--nexus);
   --teal-dim:     var(--nexus-hover);
   --teal-glow:    var(--nexus-soft);
@@ -2408,17 +2461,17 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Auto-light si el OS prefiere claro y no hay override manual ── */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not([data-theme="light"]) {
-    --bg:        #FAFAF7;
+    --bg:        #F2F6FC;
     --s:         #FFFFFF;
     --s1:        #FFFFFF;
-    --s2:        #F5F3EE;
-    --s3:        #ECEAE3;
+    --s2:        #F0F5FC;
+    --s3:        #E8EFF8;
     --border:    rgba(11, 12, 14, 0.08);
     --border2:   rgba(11, 12, 14, 0.16);
-    --nexus:        #12626E;
-    --nexus-hover:  #0E5058;
-    --nexus-soft:   rgba(18, 98, 110, 0.10);
-    --nexus-solido: #12626E;   /* blanco encima = 7.00 : 1 ✓ AA */
+    --nexus:        #075BCC;
+    --nexus-hover:  #064AA6;
+    --nexus-soft:   rgba(7, 91, 204, 0.10);
+    --nexus-solido: #075BCC;   /* blanco encima = 6.22 : 1 ✓ AA */
     --teal:         var(--nexus);
     --teal-dim:     var(--nexus-hover);
     --teal-glow:    var(--nexus-soft);
@@ -3008,6 +3061,12 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
+  padding: 20px 24px;
+  border: 1px solid var(--marca-panel);
+  border-left: 4px solid var(--marca-acento);
+  border-radius: var(--r-lg);
+  background: var(--marca-panel);
+  color: var(--marca-papel);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -3015,13 +3074,48 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   flex-wrap: wrap;
   margin-bottom: 20px;
 }
-.page-header-sub { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.page-header-sub { font-size: 14px; color: var(--marca-secundario); margin-top: 8px; max-width: 64ch; line-height: 1.6; }
 .page-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.page-header .t-h1 { color: var(--marca-papel); }
+/* Las acciones conservan una primaria inequívoca sobre el marco azul. */
+.page-header .btn-primary, .nx-calendario-cabecera .btn-primary {
+  background: var(--marca-papel); color: var(--marca-panel);
+}
+.page-header .btn-primary:hover:not(:disabled), .nx-calendario-cabecera .btn-primary:hover:not(:disabled) {
+  background: var(--marca-secundario);
+}
+.page-header .btn-primary:active:not(:disabled), .nx-calendario-cabecera .btn-primary:active:not(:disabled) {
+  background: var(--marca-secundario); color: var(--marca-panel);
+}
+.page-header .btn-ghost, .page-header .btn-secondary,
+.nx-calendario-cabecera .btn-ghost, .nx-calendario-cabecera .btn-secondary {
+  color: var(--marca-papel); border-color: var(--marca-secundario);
+}
+.page-header .btn-ghost:hover:not(:disabled), .page-header .btn-secondary:hover:not(:disabled),
+.nx-calendario-cabecera .btn-ghost:hover:not(:disabled), .nx-calendario-cabecera .btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--marca-papel) 14%, transparent);
+  color: var(--marca-papel); border-color: var(--marca-secundario);
+}
+.page-header .btn:focus-visible, .nx-calendario-cabecera .btn:focus-visible {
+  outline: 2px solid var(--marca-papel); outline-offset: 3px;
+}
+
+/* Identidad compartida: el marco separa navegación, lectura y acción. */
+.sidebar-logo { border-bottom-color: var(--nexus-borde); }
+.nx-flow-rail .sidebar-logo > .nx-flow-rail-quiet-icon { color: var(--nexus); }
+.page-header .t-h1 { font-size: 24px; letter-spacing: -.035em; }
+@media (max-width: 640px) {
+  .page-header { padding: 16px; }
+  .page-header-actions { width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .page-header, .nx-calendario-titulo { animation: nx-rise var(--mov-lento) var(--mov-curva) both; }
+}
 
 /* ── Dashboard "Dirección A" — revelado escalonado + banda próxima cita ── */
 @keyframes nx-rise {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .nx-reveal { animation: nx-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {
@@ -3032,22 +3126,25 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 .prox-hero {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background:
-    linear-gradient(0deg, var(--nexus-soft), var(--nexus-soft)) border-box,
-    var(--s1) padding-box;
-  border: 1px solid color-mix(in srgb, var(--nexus) 32%, transparent);
+  gap: 20px;
+  background: color-mix(in srgb, var(--nexus) 9%, var(--s1));
+  border: 1px solid var(--nexus-borde);
+  border-left: 4px solid var(--nexus-solido);
   border-radius: var(--r-lg);
-  padding: 16px 18px;
+  padding: 24px;
 }
 .prox-hero-avatar {
-  width: 50px; height: 50px; border-radius: var(--r-lg); flex-shrink: 0;
-  background: var(--nexus-soft);
-  color: color-mix(in srgb, var(--nexus) 70%, white 30%);
+  width: 56px; height: 56px; border-radius: var(--r-lg); flex-shrink: 0;
+  background: var(--nexus-solido);
+  color: white;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; font-weight: 600;
+  font-size: 24px; font-weight: 600;
   font-family: var(--font-display);
 }
+.prox-hero-identidad { flex: 1; min-width: 0; }
+.prox-hero-estado { color: var(--nexus); margin-bottom: 8px; }
+.prox-hero .prox-hero-nombre { display: block; font-size: 22px; line-height: 1.3; letter-spacing: -.025em; }
+.prox-hero-detalle { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 /* CTA cómodo: ≥44px de área táctil (WCAG / móvil) */
 .prox-hero-cta {
   display: inline-flex; align-items: center; gap: 8px;
@@ -3071,7 +3168,7 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   transition: background var(--mov-rapido) var(--mov-curva),
               transform var(--mov-rapido) var(--mov-curva);
 }
-.prox-hero-cta:hover { background: var(--nexus-hover); }
+.prox-hero-cta:hover { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
 .prox-hero-cta:active { transform: scale(0.98); }
 
 /* Por debajo de esto, el CTA (flexShrink 0) le comía el ancho al nombre: la
@@ -3080,7 +3177,9 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
    lección que .cita-fila ya pagó más abajo, aplicada al héroe: identidad a
    todo el ancho arriba, la acción baja a su propio renglón completo. */
 @media (max-width: 560px) {
-  .prox-hero { flex-wrap: wrap; }
+  .prox-hero { flex-wrap: wrap; padding: 16px; gap: 14px; }
+  .prox-hero-avatar { width: 44px; height: 44px; font-size: 20px; }
+  .prox-hero .prox-hero-nombre { font-size: 19px; }
   .prox-hero > a { width: 100%; flex-shrink: 1; }
   .prox-hero-cta { width: 100%; justify-content: center; }
 }
@@ -3100,10 +3199,16 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 }
 
 .hoy-head {
+  --text2: var(--marca-papel);
+  --text3: var(--marca-secundario);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--marca-acento);
+  border-radius: var(--r-md);
+  background: var(--marca-panel);
 }
 /* KICKER, no display (RTC-06): el saludo acompaña a la fecha en la escala de
    metadato. Era el texto más grande de la pantalla (32px display) y el equipo
@@ -3182,6 +3287,7 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   transition: background var(--mov-rapido) var(--mov-curva);
 }
 .cita-fila:hover { background: var(--s2); }
+.cita-fila:focus-within { background: var(--nexus-tenue); }
 .cita-principal {
   text-decoration: none;
   flex: 1;
@@ -3644,7 +3750,24 @@ span.riel-aviso { cursor: default; }
    `!important` no es pereza: los dos elementos declaran su `display` EN LÍNEA
    y una regla de hoja sin peso pierde contra el atributo `style` — es la misma
    trampa que el arnés cazó en RTC-05 con el FAB flotante. */
+.nx-fila-paciente {
+  position: relative;
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  transition: background var(--mov-rapido) var(--mov-curva), border-color var(--mov-rapido) var(--mov-curva);
+}
+.nx-fila-paciente:hover, .nx-fila-paciente:focus-within {
+  background: var(--nexus-tenue);
+  border-left-color: var(--nexus);
+}
+.nx-fila-paciente .nx-fila-chevron { transition: transform var(--mov-rapido) var(--mov-curva); }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-fila-paciente:hover .nx-fila-chevron,
+  .nx-fila-paciente:focus-within .nx-fila-chevron { transform: translateX(3px); }
+}
 @media (max-width: 768px) {
+  .nx-fila-paciente { padding: 14px 8px; gap: 12px; }
   .nx-fila-paciente .nx-fila-editar,
   .nx-fila-paciente .nx-fila-chevron { display: none !important; }
 }
@@ -4111,13 +4234,25 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-acc-caja:hover:not(:disabled) { background: var(--s3); border-color: var(--border2); }
 .nx-acc-caja:active:not(:disabled) { background: var(--s3); }
 
+/* El micrófono responde al gesto; nunca aparenta grabar estando en reposo. */
+.nx-grabar-inicio { background: color-mix(in srgb, var(--nexus) 10%, var(--s1)); }
+.nx-grabar-inicio:focus-visible { outline: 2px solid var(--nexus); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-grabar-inicio > span:first-child { transition: transform var(--mov-lento) var(--mov-curva); }
+  .nx-grabar-inicio:focus-visible > span:first-child { transform: translateY(-3px); }
+  .nx-grabar-inicio:active:not(:disabled) > span:first-child { transform: scale(.94); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .nx-grabar-inicio:hover:not(:disabled) > span:first-child { transform: translateY(-3px); }
+}
+
 /* La acción que manda. Como `.btn-primary`.
    `[data-inerte]` es para el ÚNICO sitio donde esta piel la lleva un `<span>` y
    no un `<button>`: el rótulo «Estructurando la nota…» mientras la IA trabaja.
    Un `<span>` no puede estar `:disabled`, y sin esto se pintaría encendido. */
 .nx-acc-fuerte { background: var(--nexus-solido); }
-.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); }
-.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: var(--nexus-hover); opacity: 0.92; }
+.nx-acc-fuerte:hover:not(:disabled):not([data-inerte]) { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
+.nx-acc-fuerte:active:not(:disabled):not([data-inerte]) { background: color-mix(in srgb, var(--nexus-solido) 88%, black); opacity: 0.92; }
 .nx-acc-fuerte:disabled,
 .nx-acc-fuerte[data-inerte] { background: var(--s3); }
 
@@ -4278,7 +4413,7 @@ html:has(.mi-barra-destinos) .theme-toggle {
    se toca: sólo se muda de sitio, para que el `:hover` pueda ganarle al estilo
    en línea. */
 .nx-chip--relleno[aria-pressed='true'] { background: var(--nexus-solido); }
-.nx-chip--relleno[aria-pressed='true']:hover { background: var(--nexus-hover); }
+.nx-chip--relleno[aria-pressed='true']:hover { background: color-mix(in srgb, var(--nexus-solido) 88%, black); }
 
 /* Riel del expediente. El fondo vive aquí y no en línea por la razón de
    siempre: en línea le ganaba al `:hover` y las entradas del riel eran de las
@@ -4296,6 +4431,34 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-segmento { background: transparent; transition: background var(--mov-rapido) var(--mov-curva); }
 .nx-segmento:hover:not([aria-pressed='true']) { background: var(--s3); }
 .nx-segmento[aria-pressed='true'] { background: var(--s3); }
+
+/* La cabecera del calendario mantiene vista, periodo y creación en grupos.
+   Las flechas y su periodo nunca se separan al envolver en un teléfono. */
+.nx-calendario { padding: 24px; display: flex; flex-direction: column; }
+.nx-calendario-cabecera { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 20px; border-radius: var(--r-lg); background: var(--marca-panel); }
+.nx-calendario-titulo { flex: 1; min-width: 0; }
+.nx-calendario-titulo h1 { margin: 0; color: var(--marca-papel); font-size: 24px; letter-spacing: -.035em; font-weight: 600; }
+.nx-calendario-titulo p { margin: 6px 0 0; color: var(--marca-secundario); font-size: 13px; line-height: 1.5; }
+.nx-calendario-vistas { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; gap: 2px; }
+.nx-calendario-vistas .nx-segmento { min-height: 36px; padding: 6px 14px; border: none; border-radius: var(--r-sm); color: var(--text2); font: inherit; font-size: 13px; cursor: pointer; }
+.nx-calendario-vistas .nx-segmento[aria-pressed='true'] { background: var(--nexus-solido); color: white; font-weight: 600; }
+.nx-calendario-periodo { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.nx-calendario-periodo .btn-secondary { min-width: 180px; }
+.nx-calendario-semana { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid var(--nexus-borde); position: sticky; top: 0; z-index: 10; background: var(--s2); }
+.nx-calendario-dia { padding: 12px 6px; text-align: center; border-left: 1px solid var(--border); }
+.nx-calendario-dia[aria-current='date'] { background: var(--nexus-tenue); }
+.nx-calendario-dia > span { font-size: 12px; color: var(--text2); }
+.nx-calendario-dia > strong { width: 32px; height: 32px; margin: 4px auto 0; display: grid; place-items: center; border-radius: var(--r-md); font-size: 18px; font-weight: 600; }
+.nx-calendario-dia[aria-current='date'] > strong { background: var(--nexus-solido); color: white; }
+@media (max-width: 640px) {
+  .nx-calendario { padding: 16px; }
+  .nx-calendario-titulo { flex-basis: 100%; }
+  .nx-calendario-cabecera { gap: 12px; padding: 16px 12px; }
+  .nx-calendario-vistas { flex: 1 1 100%; }
+  .nx-calendario-vistas .nx-segmento { flex: 1; min-height: 44px; }
+  .nx-calendario-periodo { flex: 1 1 100%; }
+  .nx-calendario-periodo .btn-secondary { flex: 1; min-width: 0; white-space: normal; }
+}
 
 /* ACCIÓN TEÑIDA, con el tinte como parámetro.
 
@@ -5355,6 +5518,28 @@ button.riel-aviso:hover:not(:disabled) { background: color-mix(in srgb, var(--am
   position: relative;
   overflow: hidden;
 }
+.nx-puerta-contexto { display: none; }
+.nx-puerta-login .nx-puerta-tarjeta { border-top: 3px solid var(--nexus); }
+@media (min-width: 960px) {
+  .nx-puerta-login { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; padding: 32px; }
+  .nx-puerta-login .nx-puerta-columna { justify-self: center; }
+  .nx-puerta-contexto {
+    display: flex; flex-direction: column; justify-content: center; align-self: stretch;
+    min-width: 0; padding: clamp(32px, 5vw, 80px); border-radius: var(--r-lg);
+    background: var(--nexus-solido); color: white;
+  }
+  .nx-puerta-contexto-kicker { margin: 40px 0 16px; font-size: 12px; font-weight: 600; letter-spacing: .1em; }
+  .nx-puerta-contexto-titulo { margin: 0 0 24px; font-size: clamp(36px, 4vw, 60px); line-height: 1.08; letter-spacing: -.04em; font-weight: 600; }
+  .nx-puerta-contexto > p:not([class]) { max-width: 36ch; font-size: 17px; line-height: 1.65; }
+  .nx-puerta-recorrido { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 24px; }
+  .nx-puerta-recorrido li { display: flex; gap: 16px; align-items: baseline; }
+  .nx-puerta-recorrido li > span { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .nx-puerta-recorrido strong { font-size: 15px; }
+  .nx-puerta-recorrido p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nx-puerta-contexto, .nx-puerta-login .nx-puerta-columna { animation: nx-rise 320ms var(--mov-curva) both; }
+}
 .nx-puerta-columna { width: 100%; max-width: 420px; position: relative; }
 .nx-puerta-marca { text-align: center; margin-bottom: 30px; }
 .nx-puerta-volver {
@@ -5591,4 +5776,12 @@ html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
     flex-basis: 100%;
     margin-left: 24px;
   }
+}
+
+/* El papel no depende de imprimir fondos de color. */
+@media print {
+  .page-header, .hoy-head, .nx-calendario-cabecera { background: none; border-color: var(--text); }
+  .page-header .t-h1, .page-header-sub, .nx-calendario-titulo h1, .nx-calendario-titulo p,
+  .hoy-head .hoy-saludo { color: var(--text); }
+  .hoy-head { --text3: var(--text); }
 }

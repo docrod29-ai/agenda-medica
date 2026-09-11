@@ -35,7 +35,7 @@ env:
   # exige que coincidan, así que el botón quedó SIN PODER DESPLEGAR, y sólo se
   # descubría pulsándolo. Es el mismo defecto que #413 cerró para el SHA, en la
   # otra mitad del par. Ver REG-504.
-  SHA_AUTORIZADO: 15b2b91a5e2461c22675af29a7b95f6ebdcc2cdf
+  SHA_AUTORIZADO: d6c247cc7e437e035eb2e3ed912e66a6cb5461b1
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
@@ -91,14 +91,14 @@ jobs:
             COMMITS_DETRAS="$(git rev-list --count "$SHA_AUTORIZADO"..FETCH_HEAD 2>/dev/null || true)"
           fi
 
-          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos cuatro coinciden entre
+          # LO QUE ESTE BOTÓN PUBLICA O CERTIFICA. Si estos archivos coinciden entre
           # el pin y la cabeza, publicar desde el pin equivale a publicar desde la
           # cabeza — y un pin atrasado deja de ser un problema. Si difieren, se
           # para y se dice CUÁLES.
           #
           # Si no se pudo comparar (falta FETCH_HEAD), la variable se queda SIN
           # DEFINIR a propósito y la decisión lo trata como «no se sabe», que para.
-          PUBLICABLES="firestore.rules firestore.indexes.json public/version.txt public/sw.js"
+          PUBLICABLES="firestore.rules firestore.indexes.json storage.rules firebase.json public/version.txt public/sw.js"
           if git rev-parse --verify -q FETCH_HEAD >/dev/null; then
             DIFIEREN=""
             for F in $PUBLICABLES; do
@@ -345,11 +345,16 @@ jobs:
               echo
               echo "1. IAM del proyecto \`$FIREBASE_PROJECT\`"
               echo "2. la cuenta de servicio que usa este botón"
-              echo "3. rol **Firebase Storage Admin** (\`roles/firebasestorage.admin\`)"
+              echo "3. comprobar el principal efectivo y el acceso al bucket por defecto"
               echo
-              echo "Si el rol ya está y el 403 sigue, el mensaje añade «or it may not"
-              echo "exist»: el bucket por defecto no está vinculado a Firebase. Se vincula"
-              echo "en la consola de Firebase → Storage → Comenzar, una sola vez."
+              echo "Si falta este permiso, **Firebase Storage Viewer**"
+              echo "(\`roles/firebasestorage.viewer\`) ya incluye la lectura observada."
+              echo "No exige conceder creación o borrado de buckets. Los permisos de"
+              echo "publicación de reglas se comprobarán en el siguiente intento."
+              echo
+              echo "El texto «or it may not exist» no demuestra que el bucket no exista."
+              echo "Un 403 no permite decidirlo: verificar existencia y acceso efectivo,"
+              echo "sin crear ni vincular un bucket automáticamente."
               echo
               echo "Las reglas de Firestore NO son el problema: mira \`FIRESTORE_RULES\` en el acta."
             } >> "$GITHUB_STEP_SUMMARY"

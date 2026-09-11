@@ -43,7 +43,8 @@ import { decidirVigencia } from '@/lib/portal/vigencia-del-enlace'
  * - No cubre el bloqueo ARCO escrito por otro camino (hoy no hay otro).
  */
 
-vi.mock('@/lib/authz/verificar', () => ({
+vi.mock('@/lib/authz/verificar', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/lib/authz/verificar')>(),
   verificarCapacidad: async (_req: unknown, clinicId: string) =>
     ({ ok: true, uid: 'uid-admin', email: 'admin@ejemplo.test', role: 'admin', clinicId }),
 }))

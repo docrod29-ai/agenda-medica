@@ -44,8 +44,10 @@ export const EVENTO_GUARDAR_TODO = 'nx:guardar-todo'
  * Es opcional a propósito: una pantalla que no lo use sigue funcionando como
  * antes, sólo que sin acuse.
  */
+export interface RespaldoConfirmado { clave: string; bytes: string }
+
 export interface DetalleGuardarTodo {
-  esperar: (p: Promise<unknown>) => void
+  esperar: (p: Promise<unknown>, respaldo?: RespaldoConfirmado) => void
   /**
    * Lo llama quien tenga audio grabado que **todavía no se ha transcrito**.
    *
@@ -67,6 +69,7 @@ const TOPE_MS = 10_000
 const dormir = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 export interface ResultadoGuardado {
+  respaldosConfirmados?: RespaldoConfirmado[]
   /** ¿Hubo alguien escuchando que entregara una promesa? */
   huboAcuse: boolean
   /** ¿Todo lo que se estaba guardando terminó bien? */
@@ -91,9 +94,10 @@ export interface ResultadoGuardado {
  */
 export async function guardarTodoYEsperar(topeMs = TOPE_MS): Promise<ResultadoGuardado> {
   const promesas: Promise<unknown>[] = []
+  const respaldos: (RespaldoConfirmado | undefined)[] = []
   let audioSinTranscribir = false
   const detalle: DetalleGuardarTodo = {
-    esperar: p => { promesas.push(p) },
+    esperar: (p, respaldo) => { promesas.push(p); respaldos.push(respaldo) },
     marcarAudioSinTranscribir: () => { audioSinTranscribir = true },
   }
   window.dispatchEvent(new CustomEvent(EVENTO_GUARDAR_TODO, { detail: detalle }))
@@ -115,6 +119,7 @@ export async function guardarTodoYEsperar(topeMs = TOPE_MS): Promise<ResultadoGu
   return {
     huboAcuse: true,
     todoGuardado: resultados.every(r => r.status === 'fulfilled'),
+    respaldosConfirmados: respaldos.filter((b, i): b is RespaldoConfirmado => !!b && resultados[i].status === 'fulfilled'),
     seAgotoElTiempo: false,
     audioSinTranscribir,
   }
@@ -225,7 +230,7 @@ export async function salirSeguro(destino = '/login'): Promise<void> {
   const seguroPurgar = r.todoGuardado || !r.huboAcuse
 
   if (seguroPurgar) {
-    limpiarBorradoresLocales()
+    limpiarBorradoresLocales(r.respaldosConfirmados)
     try { await auth.signOut() } finally {
       purgarAudio()
       await limpiarCacheFirestore()

@@ -55,7 +55,7 @@ const H = vi.hoisted(() => {
   const crudo = process.env.FIRESTORE_EMULATOR_HOST ?? '127.0.0.1:8080'
   const i = crudo.lastIndexOf(':')
   return {
-    PROJECT_ID, TENANT_A, TENANT_B, UID,
+    PROJECT_ID, TENANT_A, TENANT_B, UID, actorUid: UID,
     host: crudo.slice(0, i) || '127.0.0.1',
     port: Number(crudo.slice(i + 1)),
   }
@@ -77,6 +77,31 @@ vi.mock('@/lib/firebase', async () => {
   }
 })
 
+// El PATCH real usa transacciones Admin del emulador; la membresía se lee
+// del mismo emulador y el guardián de capacidad permanece real.
+vi.mock('@/lib/firebase-admin', async () => {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Sólo emulador')
+  const { initializeApp } = await import('firebase-admin/app')
+  const { getFirestore } = await import('firebase-admin/firestore')
+  const app = initializeApp({ projectId: H.PROJECT_ID }, 'gp9-admin')
+  return { adminDb: getFirestore(app), default: app }
+})
+vi.mock('@/lib/auth-server', async () => {
+  const { adminDb } = await import('@/lib/firebase-admin')
+  return { verificarMiembro: async (_req: unknown, clinicId: string) => {
+  const snap = await adminDb.collection('clinic_members').doc(H.actorUid).get()
+  const data = snap.data()
+  return snap.exists && data?.clinicId === clinicId
+    ? { ok: true, uid: H.actorUid, clinicId, role: data.role }
+    : { ok: false, response: Response.json({ error: 'Sin acceso', code: 'permission-denied' }, { status: 403 }) }
+  } }
+})
+vi.mock('@/lib/auth-client', () => ({ fetchAutenticado: async (_url: string, opts: RequestInit) => {
+  const { NextRequest } = await import('next/server')
+  return transitionHandler(new NextRequest('https://sintetico.test/api/appointments', { ...opts, signal: opts.signal ?? undefined }))
+} }))
+
+const { PATCH: transitionHandler } = await import('@/app/api/appointments/route')
 const { abrirEntorno, sembrar } = await import('./entorno')
 const { cambiarEstadoCita } = await import('@/lib/agenda/transicion-cita')
 const { registrarCobro, cobrosDeCita, CobroPosiblementeDuplicado } = await import('@/lib/cobros')
@@ -93,7 +118,7 @@ async function sembrarCaso(tenant: string, cita: Record<string, unknown> = {}): 
   await env.withSecurityRulesDisabled(async ctx => {
     const db = ctx.firestore()
     await db.doc(`clinics/${tenant}/patients/${PACIENTE}`).set({
-      clinicId: tenant, nombre: 'Paciente Sintetico', noShowCount: 0, cancelacionCount: 0,
+      clinicId: tenant, medicoTitularUid: `u-${tenant}-medico`, nombre: 'Paciente Sintetico', noShowCount: 0, cancelacionCount: 0,
     })
     await db.doc(`clinics/${tenant}/appointments/${CITA}`).set({
       clinicId: tenant, pacienteId: PACIENTE, pacienteNombre: 'Paciente Sintetico',
@@ -130,14 +155,36 @@ async function contar(ruta: string): Promise<number> {
 }
 
 beforeAll(async () => { env = await abrirEntorno() })
-afterAll(async () => { await env?.cleanup() })
+afterAll(async () => {
+  const { adminDb } = await import('@/lib/firebase-admin')
+  const { deleteApp, getApp } = await import('firebase-admin/app')
+  await adminDb.terminate(); await deleteApp(getApp('gp9-admin')); await env?.cleanup()
+})
 beforeEach(async () => {
+  H.actorUid = H.UID
   await env.clearFirestore()
   await sembrar(env)          // membresias + doc de la clinica: sin ellos las reglas revientan
   await sembrarCaso(H.TENANT_A)
 })
 
 describe('GP9 - llegada / cambio de estado de la cita', () => {
+  it('recepción puede cancelar sin permiso para leer la ficha clínica', async () => {
+    H.actorUid = 'recepcion-gp9'
+    await env.withSecurityRulesDisabled(async ctx => {
+      await ctx.firestore().doc(`clinic_members/${H.actorUid}`).set({ clinicId: H.TENANT_A, role: 'secretaria' })
+    })
+    const { assertFails } = await import('@firebase/rules-unit-testing')
+    await assertFails(env.authenticatedContext(H.actorUid).firestore().doc(`clinics/${H.TENANT_A}/patients/${PACIENTE}`).get())
+    const r = await cambiarEstadoCita(H.TENANT_A, CITA, 'cancelada')
+    expect(r.aplicado).toBe(true)
+    expect((await leer(`clinics/${H.TENANT_A}/patients/${PACIENTE}`))?.cancelacionCount).toBe(1)
+    expect(r).not.toHaveProperty('paciente')
+  })
+  it('el servidor conserva la prohibición de escritura de una clínica suspendida', async () => {
+    await env.withSecurityRulesDisabled(ctx => ctx.firestore().doc(`clinics/${H.TENANT_A}`).update({ status: 'suspended', paseLibre: false }))
+    await expect(cambiarEstadoCita(H.TENANT_A, CITA, 'cancelada')).rejects.toMatchObject({ code: 'permission-denied' })
+    expect((await leer(`clinics/${H.TENANT_A}/appointments/${CITA}`))?.estado).toBe('confirmada')
+  })
   it('dos toques seguidos dejan UNA transicion y UN incremento', async () => {
     const primero = await cambiarEstadoCita(H.TENANT_A, CITA, 'no-asistio')
     const segundo = await cambiarEstadoCita(H.TENANT_A, CITA, 'no-asistio')

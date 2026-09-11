@@ -6,7 +6,8 @@ import {
 } from 'firebase/firestore'
 import { idIdempotente } from '@/lib/idempotencia'
 import { claveDeEspera } from '@/lib/whatsapp/lista-espera'
-import { db } from './firebase'
+import { db, auth } from './firebase'
+import { fetchAutenticado } from '@/lib/auth-client'
 import { logAudit } from '@/lib/expediente/audit-log'
 import {
   Appointment, Patient, WaitlistEntry, ClinicConfig, Doctor,
@@ -293,10 +294,6 @@ function acotar(n: number | undefined, porOmision: number, techo: number): numbe
  * (ver el golden de #342), no como supuesto: quien busque a uno de esos
  * pacientes lo encuentra por un campo que sí tenga, vía `buscarPacientes`.
  */
-function ordenCanonicoPacientes(): QueryConstraint[] {
-  return [orderBy('nombre', 'asc'), orderBy(documentId(), 'asc')]
-}
-
 /**
  * UNA página de pacientes, en orden determinista, con cursor de continuación.
  * Lee como mucho `limite + 1` documentos: el extra sólo sirve para saber si hay
@@ -306,23 +303,7 @@ export async function listarPacientesPagina(
   clinicId: string,
   opts: { limite?: number; cursor?: CursorPacientes | null } = {},
 ): Promise<PaginaPacientes> {
-  const limite = acotar(opts.limite, LIMITE_PAGINA_PACIENTES, LIMITE_MAX_PAGINA_PACIENTES)
-  const restricciones: QueryConstraint[] = [...ordenCanonicoPacientes()]
-  if (opts.cursor) restricciones.push(startAfter(opts.cursor.nombre, opts.cursor.id))
-  restricciones.push(limitarA(limite + 1))
-
-  const snap = await getDocs(query(col(clinicId, COLLECTIONS.patients), ...restricciones))
-  const hayMas = snap.docs.length > limite
-  const pagina = (hayMas ? snap.docs.slice(0, limite) : snap.docs)
-    .map(doc0 => ({ id: doc0.id, ...doc0.data() } as Patient))
-  const ultimo = pagina[pagina.length - 1]
-
-  return {
-    pacientes: pagina,
-    cursor: hayMas && ultimo ? { nombre: String(ultimo.nombre ?? ''), id: ultimo.id } : null,
-    hayMas,
-    limite,
-  }
+  return leerDirectorio<PaginaPacientes>(clinicId, { modo: 'pagina', limite: acotar(opts.limite, LIMITE_PAGINA_PACIENTES, LIMITE_MAX_PAGINA_PACIENTES), cursor: opts.cursor })
 }
 
 /**
@@ -334,18 +315,6 @@ export async function listarPacientesPagina(
  * desapareciera el rango quedaría vacío — la búsqueda diría «no hay» en
  * silencio, que es justo el fallo que este módulo existe para no cometer.
  */
-const FIN_DE_PREFIJO = String.fromCharCode(0xf8ff)
-
-/** Prefijo indexado: [valor, valor +) — el rango que Firestore sí sabe resolver. */
-function restriccionesPrefijo(campo: string, valor: string, ventana: number): QueryConstraint[] {
-  return [
-    orderBy(campo, 'asc'),
-    where(campo, '>=', valor),
-    where(campo, '<', valor + FIN_DE_PREFIJO),
-    limitarA(ventana),
-  ]
-}
-
 /** «juan perez» → «Juan Perez». Los nombres se capturan capitalizados. */
 function tituloCase(s: string): string {
   return s.replace(/(^|\s)\S/g, m => m.toUpperCase())
@@ -434,13 +403,12 @@ export async function buscarPacientes(
   for (const plan of planes) {
     for (const valor of plan.valores) {
       const suya = plan.ventana ?? ventana
-      const snap = await getDocs(query(
-        col(clinicId, COLLECTIONS.patients),
-        ...restriccionesPrefijo(plan.campo, valor, suya),
-      ))
-      if (snap.docs.length >= suya) truncada = true
-      for (const doc0 of snap.docs) {
-        if (!encontrados.has(doc0.id)) encontrados.set(doc0.id, { id: doc0.id, ...doc0.data() } as Patient)
+      const { pacientes } = await leerDirectorio<{ pacientes: Patient[] }>(clinicId, {
+        modo: 'prefijo', campo: plan.campo, valor, limite: suya,
+      })
+      if (pacientes.length >= suya) truncada = true
+      for (const paciente of pacientes) {
+        if (!encontrados.has(paciente.id)) encontrados.set(paciente.id, paciente)
       }
     }
   }
@@ -467,7 +435,7 @@ const _cachePacientes = new Map<string, { data: ListaPacientesCompat; ts: number
 
 /** Invalida la caché de pacientes (de una clínica o de todas). */
 export function invalidarCachePacientes(clinicId?: string): void {
-  if (clinicId) _cachePacientes.delete(clinicId)
+  if (clinicId) { for (const k of _cachePacientes.keys()) if (k.endsWith(`:${clinicId}`)) _cachePacientes.delete(k) }
   else _cachePacientes.clear()
 }
 
@@ -480,7 +448,8 @@ export async function listarPacientesCompat(
   opts?: { force?: boolean; techo?: number },
 ): Promise<ListaPacientesCompat> {
   const techo = acotar(opts?.techo, TECHO_COMPAT_PACIENTES, TECHO_COMPAT_PACIENTES)
-  const hit = _cachePacientes.get(clinicId)
+  const cacheKey = `${auth.currentUser?.uid ?? 'sin-sesion'}:${clinicId}`
+  const hit = _cachePacientes.get(cacheKey)
   if (!opts?.force && hit && hit.data.techo === techo && Date.now() - hit.ts < TTL_PACIENTES_MS) return hit.data
 
   const pacientes: Patient[] = []
@@ -504,7 +473,7 @@ export async function listarPacientesCompat(
   if (cursor && pacientes.length >= techo) truncada = true
 
   const data: ListaPacientesCompat = { pacientes, truncada, techo }
-  _cachePacientes.set(clinicId, { data, ts: Date.now() })
+  _cachePacientes.set(cacheKey, { data, ts: Date.now() })
   return data
 }
 
@@ -611,9 +580,19 @@ export async function getPatients(clinicId: string, opts?: { force?: boolean }):
  * necesitan un paciente (nota, receta, orden, expediente, referencia): evita
  * descargar toda la colección solo para hacer .find() — más rápido y menos lecturas.
  */
+async function leerDirectorio<T>(clinicId: string, consulta: Record<string, unknown>): Promise<T> {
+  const uid = auth.currentUser?.uid
+  const r = await fetchAutenticado('/api/pacientes/directorio', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...consulta, clinicId }),
+  })
+  if (uid && auth.currentUser?.uid !== uid) throw new Error('La sesión cambió antes de recibir el directorio.')
+  if (!r.ok) throw new Error('No se pudo leer el directorio de pacientes.')
+  return r.json() as Promise<T>
+}
+
 export async function getPatient(clinicId: string, patientId: string): Promise<Patient | null> {
-  const snap = await getDoc(d(clinicId, COLLECTIONS.patients, patientId))
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Patient) : null
+  return (await leerDirectorio<{ paciente: Patient | null }>(clinicId, { modo: 'uno', patientId })).paciente
 }
 
 export async function createPatient(clinicId: string, data: Omit<Patient, 'id'>): Promise<string> {
@@ -1040,3 +1019,8 @@ export async function deleteBotSession(clinicId: string, telefono: string): Prom
 // el repo —era código muerto que sugería una cobertura inexistente— y la escritura
 // de bitácora ahora va por `logAudit` → /api/auditoria/registrar, donde la
 // identidad sale del ID-token y la hora del servidor.
+
+/** IDs con acceso clínico, para el sondeo acotado de enlaces antiguos. */
+export async function listarPacientesParaRescate(clinicId: string, limite: number): Promise<{ pacientes: { id: string }[]; hayMas: boolean }> {
+  return leerDirectorio(clinicId, { modo: 'sondeo', limite })
+}

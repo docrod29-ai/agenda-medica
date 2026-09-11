@@ -22,7 +22,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { cabecera, fila, type AsientoBitacora } from '@/lib/expediente/bitacora-csv'
 
 export const maxDuration = 300
@@ -52,6 +53,53 @@ export async function GET(req: NextRequest) {
    */
   const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
+  // La vista de trabajo conserva acceso a los asientos de SUS pacientes.
+  // El volcado íntegro CSV sigue reservado al administrador.
+  if (req.nextUrl.searchParams.get('formato') === 'json') {
+    const patientId = req.nextUrl.searchParams.get('patientId') ?? ''
+    if (patientId.includes('/')) return NextResponse.json({ error: 'Paciente inválido' }, { status: 400 })
+    try {
+      const base = adminDb.collection('clinics').doc(clinicId)
+      if (patientId) {
+        const ficha = await base.collection('patients').doc(patientId).get()
+        if (!ficha.exists || !puedeVerExpediente(ficha.data(), acc.uid, acc.role)) return NextResponse.json({ error: 'No tienes acceso a este expediente.' }, { status: 403 })
+      }
+      const tope = patientId ? 500 : 200
+      const consulta = patientId
+        ? base.collection('audit_log').where('patientId', '==', patientId)
+        : base.collection('audit_log').orderBy('timestamp', 'desc')
+      const permisos = new Map<string, boolean>()
+      const filas: AsientoBitacora[] = []
+      let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined
+      let examinados = 0
+      let agotada = false
+      while (filas.length <= tope && examinados < 5000) {
+        const cantidad = Math.min(200, 5000 - examinados)
+        const snap = await (cursor ? consulta.startAfter(cursor) : consulta).limit(cantidad).get()
+        examinados += snap.size
+        if (acc.role !== 'admin' && !patientId) {
+          const ids = [...new Set(snap.docs.map(d => d.get('patientId')).filter((id): id is string => typeof id === 'string' && !!id && !id.includes('/') && !permisos.has(id)))]
+          if (ids.length) {
+            const fichas = await adminDb.getAll(...ids.map(id => base.collection('patients').doc(id)), { fieldMask: ['medicoTitularUid', 'compartidoCon'] })
+            for (const p of fichas) permisos.set(p.id, p.exists && puedeVerExpediente(p.data(), acc.uid, acc.role))
+          }
+        }
+        for (const d of snap.docs) {
+          const a = { id: d.id, ...d.data() } as AsientoBitacora
+          if (acc.role === 'admin' || patientId || (a.patientId ? permisos.get(a.patientId) === true : d.get('medicoUid') === acc.uid)) filas.push(a)
+        }
+        if (snap.size < cantidad) { agotada = true; break }
+        cursor = snap.docs[snap.docs.length - 1]
+      }
+      if (!agotada && examinados >= 5000 && filas.length <= tope) throw new Error('No se pudo completar la búsqueda dentro del límite de lectura.')
+      return NextResponse.json({ filas: filas.slice(0, tope), truncada: filas.length > tope }, { headers: { 'Cache-Control': 'no-store' } })
+    } catch (e) {
+      safeLog.error('[cumplimiento/bitacora] lectura privada', e)
+      return NextResponse.json({ error: 'No se pudo cargar la bitácora.' }, { status: 503 })
+    }
+  }
+  const sinAdministracion = exigeAdministrador(acc)
+  if (sinAdministracion) return sinAdministracion
 
   const desde = req.nextUrl.searchParams.get('desde') ?? ''
   const hasta = req.nextUrl.searchParams.get('hasta') ?? ''

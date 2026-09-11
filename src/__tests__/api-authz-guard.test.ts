@@ -127,7 +127,7 @@ describe('E0-06 · el emisor de magic-links no puede regalar alcance clínico', 
      * expediente dentro — que es EXACTAMENTE la P0 que E0-06 cerró.
      */
     const src = codigo(LINK)
-    expect(src).toMatch(/pideClinico\s*\r?\n?\s*\?\s*await verificarCapacidad\(req, body\.clinicId, 'firmar'\)/)
+    expect(src).toMatch(/pideClinico\s*\r?\n?\s*\?\s*await verificarCapacidadSobrePaciente\(req, body\.clinicId, body\.patientId, 'firmar'\)/)
   })
 
   it('la capacidad que abre esa rama es exactamente {medico, admin}', () => {

@@ -89,7 +89,9 @@ describe('ninguna pantalla de fecha deja la mayúscula en manos del CSS', () => 
       const src = leer(ruta)
       const codigo = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ')
       // `finanzas` conserva UN capitalize legítimo: el día corto de una palabra.
-      const permitidos = ruta.endsWith('finanzas/page.tsx') || ruta.endsWith('calendario/page.tsx') ? 1 : 0
+      // El conmutador del calendario migró a una clase propia; ya no necesita
+      // una excepción inline que también permitiría capitalizar una fecha.
+      const permitidos = ruta.endsWith('finanzas/page.tsx') ? 1 : 0
       const cuantos = (codigo.match(/textTransform: 'capitalize'/g) ?? []).length
       expect(
         cuantos,

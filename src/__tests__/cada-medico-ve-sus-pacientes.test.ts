@@ -60,15 +60,17 @@ describe('el módulo puro', () => {
     expect(porQueNoVe({}, OTRO, 'recepcion')).toBe('no_es_clinico')
     expect(puedeVerExpediente({}, null, 'medico')).toBe(false)
   })
-  it('sin titular (paciente de antes) se ve como siempre — ausencia de dato no es dato de ausencia', () => {
-    expect(puedeVerExpediente({}, OTRO, 'medico')).toBe(true)
-    expect(puedeVerExpediente({ medicoTitularUid: null }, OTRO, 'medico')).toBe(true)
+  it('sin titular sólo administra el expediente un administrador', () => {
+    expect(puedeVerExpediente({}, OTRO, 'medico')).toBe(false)
+    expect(puedeVerExpediente({}, OTRO, 'admin')).toBe(true)
+    expect(puedeVerExpediente({ medicoTitularUid: null }, OTRO, 'medico')).toBe(false)
   })
-  it('administra el acceso el titular o el admin; sin titular, cualquier médico puede reclamar', () => {
+  it('administra el acceso el titular o el admin; sin titular, sólo un administrador asigna', () => {
     expect(puedeAdministrarAcceso({ medicoTitularUid: TITULAR }, OTRO, 'medico')).toBe(false)
     expect(puedeAdministrarAcceso({ medicoTitularUid: TITULAR }, TITULAR, 'medico')).toBe(true)
     expect(puedeAdministrarAcceso({ medicoTitularUid: TITULAR }, OTRO, 'admin')).toBe(true)
-    expect(puedeAdministrarAcceso({}, OTRO, 'medico')).toBe(true)
+    expect(puedeAdministrarAcceso({}, OTRO, 'medico')).toBe(false)
+    expect(puedeAdministrarAcceso({}, OTRO, 'admin')).toBe(true)
     expect(puedeAdministrarAcceso({}, OTRO, 'secretaria')).toBe(false)
   })
   it('compartir no duplica, no mete al titular, y revocar quita sólo a ése', () => {
@@ -83,17 +85,18 @@ describe('el módulo puro', () => {
 describe('las reglas transcriben el módulo', () => {
   const reglas = readFileSync('firestore.rules', 'utf8')
   const sin = reglas.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/[^\n]*$/gm, '')
-  it('esMedicoDelPaciente es isMedico Y el alcance (admin, sin titular, titular, compartido)', () => {
+  it('esMedicoDelPaciente es isMedico Y el alcance (admin, titular, compartido)', () => {
     const i = sin.indexOf('function esMedicoDelPaciente(clinicId, patientId)')
     expect(i).toBeGreaterThan(-1)
     const cuerpo = sin.slice(i, sin.indexOf('\n    }', i))
     expect(cuerpo).toMatch(/return isMedico\(clinicId\) && \(/)
     expect(cuerpo).toContain('isAdmin(clinicId)')
-    expect(cuerpo).toContain("get('medicoTitularUid', null) == null")
+    expect(cuerpo).not.toContain("get('medicoTitularUid', null) == null")
+    expect(cuerpo).toContain("exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId))")
     expect(cuerpo).toContain("get('medicoTitularUid', null) == request.auth.uid")
     expect(cuerpo).toContain("request.auth.uid in fichaDelPaciente(clinicId, patientId).get('compartidoCon', [])")
   })
-  it('TODAS las subcolecciones del paciente van bajo esMedicoDelPaciente, y la ficha sigue en isMember', () => {
+  it('TODAS las subcolecciones del paciente van bajo esMedicoDelPaciente, y la ficha clínica comparte la misma guarda', () => {
     const a = sin.indexOf('match /patients/{docId} {')
     const b = sin.indexOf('match /waitlist/{docId} {')
     const bloque = sin.slice(a, b)
@@ -102,7 +105,7 @@ describe('las reglas transcriben el módulo', () => {
     for (const sub of ['notas', 'versions', 'adendas', 'paquetes_visita', 'preguntas_paciente', 'formularios_previos', 'laboratorios', 'fotos', 'clinico']) {
       expect(subs, sub).toMatch(new RegExp(`match /${sub}/\\{\\w+\\}\\s*\\{[^}]*esMedicoDelPaciente\\(clinicId, docId\\)`))
     }
-    expect(bloque).toMatch(/match \/patients\/\{docId\} \{\s*allow read: if isMember\(clinicId\);/)
+    expect(bloque).toMatch(/match \/patients\/\{docId\} \{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/)
   })
   it('titular y compartidos: los cambia el titular o el admin; al nacer, sólo quien da de alta', () => {
     expect(sin).toContain("affectedKeys().hasAny(['medicoTitularUid', 'compartidoCon'])")
@@ -112,9 +115,11 @@ describe('las reglas transcriben el módulo', () => {
   it('recepción lee y mueve SÓLO tareas de su área', () => {
     const i = sin.indexOf('match /tareas_clinicas/{tareaId} {')
     const bloque = sin.slice(i, sin.indexOf('\n      }', i))
-    expect(bloque).toMatch(/allow read: if isMedico\(clinicId\)\s*\|\| \(isMember\(clinicId\) && resource\.data\.get\('area', ''\) == 'recepcion'\)/)
+    expect(bloque).toContain("isMember(clinicId) && resource.data.get('area', '') == 'recepcion'")
+    expect(bloque).toContain('esMedicoDelPaciente(clinicId, resource.data.patientId)')
     expect(bloque).toContain("request.resource.data.get('area', '') == 'recepcion'")
-    expect(bloque).toMatch(/allow create: if isMedico\(clinicId\)/)
+    expect(bloque).toContain('esMedicoDelPaciente(clinicId, datos.patientId)')
+    expect(bloque).toContain('puedeEscribirTarea(request.resource.data)')
   })
   it('la matriz declara la guarda nueva para cada subcolección clínica del paciente', () => {
     const clinicas = MATRIZ_ACCESO.filter(r => r.ruta.startsWith('clinics/{clinicId}/patients/{docId}/'))
@@ -152,7 +157,18 @@ vi.mock('@/lib/firebase-admin', () => ({
                 doc: (id: string) => ({
                   get: async () => ({ exists: fichas.has(id), id, data: () => fichas.get(id), ref: { set: async (d: Record<string, unknown>) => { escrituras.push({ id, ...d }); fichas.set(id, { ...fichas.get(id), ...d }) } } }),
                 }),
-                limit: () => ({ get: async () => ({ size: fichas.size, docs: [...fichas.entries()].map(([id, d]) => ({ id, data: () => d, ref: { set: async (x: Record<string, unknown>) => { escrituras.push({ id, ...x }); fichas.set(id, { ...d, ...x }) } } })) }) }),
+                orderBy: () => {
+                  let cursor = '', limite = Infinity
+                  const q = {
+                    startAfter: (id: string) => { cursor = id; return q },
+                    limit: (n: number) => { limite = n; return q },
+                    get: async () => {
+                      const docs = [...fichas.entries()].sort(([a], [b]) => a.localeCompare(b)).filter(([id]) => id > cursor).slice(0, limite).map(([id, d]) => ({ id, data: () => d, ref: { set: async (x: Record<string, unknown>) => { escrituras.push({ id, ...x }); fichas.set(id, { ...d, ...x }) } } }))
+                      return { size: docs.length, docs }
+                    },
+                  }
+                  return q
+                },
               }
             }
             if (sub === 'doctors') return { get: async () => ({ forEach: (f: (d: { id: string; data: () => Record<string, unknown> }) => void) => { f({ id: 'doc-1', data: () => ({ uid: TITULAR }) }); f({ id: 'doc-sin-uid', data: () => ({}) }) } }) }

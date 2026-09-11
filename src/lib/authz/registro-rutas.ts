@@ -126,7 +126,8 @@ const PENDIENTE_AGENDA =
 export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── agenda y portal ──────────────────────────────────────────────────────
   'appointments': {
-    tipo: 'capacidad', capacidad: 'agenda.gestionar', activacionPendiente: PENDIENTE_AGENDA,
+    tipo: 'porMetodo', metodos: { POST: 'agenda.gestionar', PATCH: 'agenda.gestionar' },
+    pendientePorMetodo: { POST: PENDIENTE_AGENDA },
   },
   'calendar/calendars': { tipo: 'sesion', motivo: 'Lista los calendarios de Google DEL PROPIO uid con su token; no toca datos de la clínica.' },
   'calendar/callback': { tipo: 'publica', motivo: 'Callback OAuth de Google: llega sin sesión y se valida con el `state` firmado.' },
@@ -220,6 +221,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * La «C» de ARCO. `administrar` porque suprimir o bloquear un expediente es
    * decisión del responsable del tratamiento de los datos, no del mostrador.
    */
+  'tareas/listar': { tipo: 'capacidad', capacidad: 'tareas.leer' },
   'arco/acceso': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/cancelar': { tipo: 'capacidad', capacidad: 'administrar' },
   'arco/oponerse': { tipo: 'capacidad', capacidad: 'administrar' },
@@ -239,6 +241,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    */
   'pacientes/fundir': { tipo: 'capacidad', capacidad: 'administrar' },
   /** D-057: reparte quién ve qué en todo el consultorio; del admin, como fundir. */
+  'pacientes/directorio': { tipo: 'capacidad', capacidad: 'pacientes.directorio' },
   'pacientes/asignar-titulares': { tipo: 'capacidad', capacidad: 'administrar' },
   /** D-058: URL firmada para abrir el estudio que subió el paciente; sólo el médico DEL paciente. */
   'expediente/estudio-aportado': { tipo: 'capacidad', capacidad: 'clinico.escribir' },

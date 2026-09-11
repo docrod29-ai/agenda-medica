@@ -138,6 +138,8 @@ export type EstadoOrdenMedicamento =
   | 'cancelada'   // se retiró; no debió administrarse
 
 export interface Medicamento {
+  /** Autoría de la captura, independiente del hablante del audio y de la intención terapéutica. */
+  origenCaptura?: 'ia' | 'medico'
   nombre: string                // DCI / genérico
   nombreComercial?: string
   dosis: string                 // "500 mg"

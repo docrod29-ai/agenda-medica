@@ -83,6 +83,7 @@ import { join } from 'node:path'
 type Doc = Record<string, unknown>
 const base = new Map<string, Doc>()
 let fallaLaLecturaDelPaciente = false
+let lecturasDePacienteAntesDeFallar = 0
 let fallaLaLecturaDeNotas = false
 /** Cuántas veces se ESCRIBIÓ de verdad un paquete. La idempotencia se cuenta aquí. */
 let escrituras = 0
@@ -119,7 +120,9 @@ function refDoc(ruta: string) {
     collection: (n: string) => refColeccion(`${ruta}/${n}`),
     get: async () => {
       if (fallaLaLecturaDelPaciente && /\/patients\/[^/]+$/.test(ruta)) {
-        throw new Error('Firestore sintético: el expediente no se pudo leer')
+        if (lecturasDePacienteAntesDeFallar-- <= 0) {
+          throw new Error('Firestore sintético: el expediente no se pudo leer')
+        }
       }
       const d = base.get(ruta)
       return { exists: d !== undefined, id: ruta.slice(ruta.lastIndexOf('/') + 1), data: () => d }
@@ -242,7 +245,7 @@ function poner(ruta: string, datos: Doc) { base.set(ruta, { ...(base.get(ruta) ?
 
 function sembrarPaciente(clinicId: string, patientId: string, datos: Doc = {}) {
   poner(`clinics/${clinicId}/patients/${patientId}`, {
-    nombre: 'Paciente Sintético', alergiasEstructuradas: [{ alergeno: 'penicilina', tipo: 'medicamento', severidad: 'grave' }], ...datos,
+    nombre: 'Paciente Sintético', medicoTitularUid: 'uid_dr_david', alergiasEstructuradas: [{ alergeno: 'penicilina', tipo: 'medicamento', severidad: 'grave' }], ...datos,
   })
 }
 
@@ -288,6 +291,7 @@ beforeEach(() => {
   bitacora.length = 0
   escrituras = 0
   fallaLaLecturaDelPaciente = false
+  lecturasDePacienteAntesDeFallar = 0
   fallaLaLecturaDeNotas = false
   quienLlama = { ok: true, uid: 'uid_dr_david', email: 'dr@ejemplo.mx', role: 'medico', clinicIdReal: CLINICA_A }
   sembrarConfig(CLINICA_A)
@@ -547,6 +551,8 @@ describe('no se pudo leer ≠ no hay nada', () => {
   })
 
   it('si el expediente no se pudo leer, `alergias` es `null` — nunca `""`', async () => {
+    // La autorización inicial sí se comprueba; falla la lectura clínica posterior.
+    lecturasDePacienteAntesDeFallar = 1
     fallaLaLecturaDelPaciente = true
     const res = await liberarComoMedico()
     const p = (await res.json()).paquete as PaqueteDeVisita
@@ -788,7 +794,7 @@ describe('el camino está recorrido: UI médico → API → base → portal → 
     expect(RUTA).toContain('alergiasParaImpreso')
     expect(RUTA).toContain('medicamentosDeLaReceta')
     expect(RUTA).toContain('componerPaquete')
-    expect(RUTA).toContain("verificarCapacidad(req, clinicId, 'firmar')")
+    expect(RUTA).toContain("verificarCapacidadSobrePaciente(req, clinicId, patientId, 'firmar')")
   })
 
   it('el portal del paciente PIDE los paquetes y los pinta', () => {

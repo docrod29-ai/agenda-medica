@@ -94,14 +94,14 @@ describe('declarado en los cuatro sitios, y el bucket cerrado a todo menos a su 
   const reglas = readFileSync('firestore.rules', 'utf8')
   const storage = readFileSync('storage.rules', 'utf8')
   it('firestore.rules: la lee el médico DEL paciente, no la escribe el navegador', () => {
-    const i = reglas.indexOf('match /estudios_aportados/{docId} {')
+    const i = reglas.indexOf('match /estudios_aportados/{estudioId} {')
     expect(i).toBeGreaterThan(-1)
     const bloque = reglas.slice(i, reglas.indexOf('\n        }', i))
     expect(bloque).toContain('allow read: if esMedicoDelPaciente(clinicId, docId);')
     expect(bloque).toContain('allow write: if false;')
   })
   it('matriz, respaldo y prefijos de objeto', () => {
-    const r = MATRIZ_ACCESO.find(x => x.ruta === 'clinics/{clinicId}/patients/{docId}/estudios_aportados/{docId}')
+    const r = MATRIZ_ACCESO.find(x => x.ruta === 'clinics/{clinicId}/patients/{docId}/estudios_aportados/{estudioId}')
     expect(r).toMatchObject({ clase: 'clinico', guardaLectura: 'esMedicoDelPaciente', guardaEscritura: 'servidor' })
     const pacientes = COLECCIONES.find(c => c.ruta === 'patients')!
     expect(pacientes.hijas!.some(h => (typeof h === 'string' ? h : h.ruta) === 'estudios_aportados')).toBe(true)

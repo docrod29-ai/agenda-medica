@@ -174,8 +174,10 @@ describe('el workflow de producción usa esa compuerta de verdad', () => {
   it('calcula de verdad qué publicables difieren, y se los pasa a la decisión', () => {
     // Una decisión que sabe comparar contenido no sirve de nada si el workflow
     // no le pasa el dato. «Escrito y sin conectar», aplicado a un YAML.
-    for (const f of ['firestore.rules', 'firestore.indexes.json', 'public/version.txt', 'public/sw.js']) {
-      expect(yaml).toContain(f)
+    const publicables = yaml.match(/^\s*PUBLICABLES="([^"]+)"/m)?.[1].split(/\s+/) ?? []
+    for (const f of ['firestore.rules', 'firestore.indexes.json', 'storage.rules', 'firebase.json', 'public/version.txt', 'public/sw.js']) {
+      // REG-672: aparecer en otro paso del YAML no significa estar comparado.
+      expect(publicables).toContain(f)
     }
     expect(yaml).toContain('PUBLICABLES_DIFIEREN')
     expect(yaml).toContain('git diff --quiet')

@@ -173,11 +173,12 @@ describe('REG-519 · el enlace revocado no abre la sala de video', () => {
     expect(r.status).toBe(401)
   })
 
-  it('4 · el médico entra con su sesión de equipo y su camino NO lee el expediente del paciente', async () => {
+  it('4 · el médico comprueba su alcance sobre el paciente, sin depender de la versión del enlace', async () => {
     verificarMiembro.mockResolvedValue({ ok: true, uid: 'u1', clinicId: 'c1', role: 'medico' })
+    getPaciente.mockResolvedValue({ exists: true, data: () => ({ medicoTitularUid: 'u1', portalTokenVersion: 99 }) })
     const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1' }))
     expect(r.status).toBe(200)
-    expect(getPaciente).not.toHaveBeenCalled()
+    expect(getPaciente).toHaveBeenCalledTimes(1)
   })
 
   it('5 · un token de OTRO paciente sigue cayendo en 404 ANTES de mirar la vigencia (no confirma que la cita exista)', async () => {

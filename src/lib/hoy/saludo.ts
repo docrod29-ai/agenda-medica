@@ -34,3 +34,19 @@ export function nombreSaludo(
   if (email) return email.split('@')[0]
   return ''
 }
+
+/**
+ * El rótulo de Hoy representa el día ya elegido para filtrar las citas.
+ * Anclarlo en UTC y formatearlo en UTC conserva ese día en cualquier dispositivo;
+ * no convierte un instante real del consultorio a otra zona.
+ * El saludo utiliza los minutos del reloj canónico, nunca getHours() del equipo.
+ */
+export function presentacionDelDia(dia: string, minutos: number | null): { fecha: string; saludo: string } {
+  const fecha = new Date(`${dia}T12:00:00Z`).toLocaleDateString('es-MX', {
+    timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+  const saludo = minutos === null ? 'Buen día'
+    : minutos < 12 * 60 ? 'Buenos días'
+      : minutos < 19 * 60 ? 'Buenas tardes' : 'Buenas noches'
+  return { fecha, saludo }
+}

@@ -3,6 +3,23 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1197 — rediseño y cierre de privacidad por paciente
+
+**Preparada en #487; pendiente de publicar.** Integra main v1196, las operaciones
+verificadas de #490 y las correcciones recuperadas de #491. Conserva el rediseño
+validado y las dependencias actualizadas. REG-678–684 cierran lecturas clínicas
+ajenas, exportaciones y tareas; el directorio entrega una proyección administrativa.
+La recuperación se liga a cuenta y consultorio y sólo se purgan bytes confirmados.
+Recepción conserva la transición atómica de citas y el rescate de notas mantiene
+su límite y autorización. El evaluador conserva dosis, negaciones y unidades.
+
+Validación local: suite completa ejecutada, sus tres desajustes documentales
+corregidos y comprobados; build correcto; lint 93/93. Privacidad y transacciones
+con datos sintéticos verificadas en el emulador, incluida recepción sin lectura
+clínica. Las pruebas inversas del directorio y la purga fallan al retirar la
+protección y vuelven a pasar al restituirla. Storage ya se publicó en el run #36.
+El hash confirmado de Firestore se actualizará sólo tras publicar las reglas.
+
 ## v1191 — el RCE sin autenticar de Next, y las dos `high` que lo acompañaban
 
 **3 archivos · 0 código de producto · 0 pantallas nuevas · `firestore.rules` NO

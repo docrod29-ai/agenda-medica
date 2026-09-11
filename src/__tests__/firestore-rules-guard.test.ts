@@ -33,12 +33,16 @@ describe('firestore.rules — invariantes de seguridad', () => {
     // create: la bitácora se escribe por /api/auditoria/registrar, que pone la
     // identidad desde el ID-token y la hora del servidor. Con `create: if isMember`
     // cualquier miembro podía fabricar entradas a nombre de otro médico.
-    expect(sinComentarios).toMatch(/audit_log\/\{docId\}\s*\{[\s\S]{0,160}allow create, update, delete: if false;/)
+    const bloque = sinComentarios.match(/match \/audit_log\/\{docId\}\s*\{([^{}]*)\}/)?.[1] ?? ''
+    expect(bloque).not.toBe('')
+    expect(bloque).toContain('allow create, update, delete: if false;')
   })
 
   it('audit_log solo lo lee personal clínico', () => {
     // No contiene notas, pero sí patientId/notaId: revela a quién se atendió.
-    expect(sinComentarios).toMatch(/audit_log\/\{docId\}\s*\{\s*allow read: if isMedico\(clinicId\);/)
+    expect(sinComentarios).toContain('allow read: if isAdmin(clinicId) || (isMedico(clinicId) && (')
+    expect(sinComentarios).toContain('esMedicoDelPaciente(clinicId, resource.data.patientId)')
+    expect(sinComentarios).toContain("resource.data.get('medicoUid', '') == request.auth.uid")
   })
 
   it('REGRESIÓN: la excepción por campo de config exige pertenecer a la clínica', () => {
@@ -204,7 +208,7 @@ describe('firestore.rules — invariantes de seguridad', () => {
     // La aceptación pide «lee cita, no lee nota ni alergias». Cerrar el documento
     // administrativo del paciente rompería agendar (nombre y teléfono) y sería una
     // regresión peor que el hueco que se cierra.
-    expect(sinComentarios).toMatch(/match \/patients\/\{docId\}\s*\{\s*allow read: if isMember\(clinicId\);/)
+    expect(sinComentarios).toMatch(/match \/patients\/\{docId\}\s*\{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/)
   })
 
   it('E0-06 REGRESIÓN: notas, laboratorios y fotos siguen bajo médico — y desde D-057 bajo el médico DEL paciente', () => {

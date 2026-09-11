@@ -71,13 +71,14 @@ beforeEach(async () => {
   // La semilla deja el consultorio 'active'; se explicita para que cada bloque
   // arranque de un estado conocido y no del que dejó el anterior.
   await estadoDelConsultorio({ status: 'active', paseLibre: false })
+  await env.withSecurityRulesDisabled(ctx => ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}`).set({ nombre: 'Paciente Sintético', medicoTitularUid: uidMedico }))
 })
 
 describe('GOLDEN FLOW · con el consultorio al día', () => {
   it('1) el médico da de alta un paciente', async () => {
     await assertSucceeds(
       dbMedico().doc(`clinics/${CLINICA}/patients/${PACIENTE}`)
-        .set({ nombre: 'Paciente Sintético', edad: 42, sexo: 'M' }),
+        .set({ nombre: 'Paciente Sintético', edad: 42, sexo: 'M', medicoTitularUid: uidMedico }),
     )
   })
 
@@ -210,7 +211,7 @@ describe('GOLDEN FLOW · cuando se acaba la prueba (GA-009)', () => {
      * hostil. Se detiene lo que cuesta dinero servir, no lo que ya existe.
      */
     await env.withSecurityRulesDisabled(async ctx => {
-      await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}`).set({ nombre: 'Paciente Sintético' })
+      await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}`).set({ nombre: 'Paciente Sintético', medicoTitularUid: uidMedico })
       await ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}/notas/${NOTA}`)
         .set({ estado: 'firmada', metadata: { medicoId: uidMedico } })
     })
@@ -260,6 +261,7 @@ describe('GOLDEN FLOW · cuando se acaba la prueba (GA-009)', () => {
      * se ve idéntico a una defensa que funciona.
      */
     await estadoDelConsultorio({ status: 'active', paseLibre: false })
+  await env.withSecurityRulesDisabled(ctx => ctx.firestore().doc(`clinics/${CLINICA}/patients/${PACIENTE}`).set({ nombre: 'Paciente Sintético', medicoTitularUid: uidMedico }))
     await assertSucceeds(dbMedico().doc(`clinics/${CLINICA}/patients/pac-control`).set({ nombre: 'X' }))
   })
 })

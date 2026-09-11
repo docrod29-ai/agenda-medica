@@ -25,6 +25,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { DOMINIOS, celdasDe, type Dominio } from '@/lib/clinica/csv-clinico'
 import { libroXlsx, TIPO_MIME_XLSX, type Hoja, type Celda } from '@/lib/xlsx'
 
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
   let pacientes: FirebaseFirestore.QueryDocumentSnapshot[] = []
   try {
     const snap = await clinicRef.collection('patients').limit(TOPE_PACIENTES).get()
-    pacientes = snap.docs
+    pacientes = snap.docs.filter(p => puedeVerExpediente(p.data(), acc.uid, acc.role))
     if (snap.size >= TOPE_PACIENTES) {
       recortes.push(`Se alcanzó el tope de ${TOPE_PACIENTES} pacientes: HAY MÁS QUE NO VIENEN en este archivo.`)
     }

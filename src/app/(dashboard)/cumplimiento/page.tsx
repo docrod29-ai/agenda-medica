@@ -11,8 +11,6 @@
 import { useEffect, useState } from 'react'
 import { useClinic } from '@/context/ClinicContext'
 import { useAuth } from '@/hooks/useAuth'
-import { collection, getDocs, orderBy, query, where, limit as fbLimit } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useBusquedaDePacientes } from '@/hooks/useBusquedaDePacientes'
 import { usePacientesPorId } from '@/hooks/usePacientesPorId'
 import {
@@ -149,23 +147,28 @@ export default function CumplimientoPage() {
   useEffect(() => {
     if (!clinicId) return
     setLoading(true)
-    const consulta = pacienteFiltro
-      // TODOS los asientos de ese paciente, no los que quepan en la ventana global.
-      ? query(collection(db, 'clinics', clinicId, 'audit_log'), where('patientId', '==', pacienteFiltro), fbLimit(500))
-      : query(collection(db, 'clinics', clinicId, 'audit_log'), orderBy('timestamp', 'desc'), fbLimit(200))
+    let vigente = true
+    const parametros = new URLSearchParams({ clinicId, formato: 'json', patientId: pacienteFiltro })
     Promise.all([
-      getDocs(consulta),
+      fetchAutenticado(`/api/cumplimiento/bitacora?${parametros}`).then(async res => {
+        if (!res.ok) throw new Error('No se pudo cargar la bitácora.')
+        return res.json() as Promise<{ filas: AuditEntry[]; truncada: boolean }>
+      }),
       listarSolicitudesArco(clinicId),
-    ]).then(([logSnap, arco]) => {
-      const filas = logSnap.docs.map(d => ({ id: d.id, ...d.data() } as AuditEntry))
+    ]).then(([log, arco]) => {
+      if (!vigente) return
+      const filas = log.filas
       filas.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
       setBitacora(filas)
       setArcoList(arco)
-    }).finally(() => setLoading(false))
+      if (log.truncada) toast('Se alcanzó el límite de asientos. Acota la búsqueda por paciente.', 'info')
+    }).catch(() => { if (vigente) toast('No se pudo cargar la bitácora. Inténtalo nuevamente.', 'error') })
+      .finally(() => { if (vigente) setLoading(false) })
+    return () => { vigente = false }
     // Cambiar de paciente vuelve a preguntarle al servidor: filtrar en el
     // navegador contestaría «no hay accesos» cuando sólo son más viejos que la
     // ventana de 200.
-  }, [clinicId, pacienteFiltro])
+  }, [clinicId, pacienteFiltro, toast])
 
   /**
    * DESCARGAR LA BITÁCORA DEL PERIODO.

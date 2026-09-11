@@ -13,7 +13,39 @@
  */
 
 /** Prefijo exacto de las claves de borrador clínico. */
+import { desofuscar } from '@/lib/seguridad/ofuscar-local'
+
 export const PREFIJO_BORRADOR = 'nx.consulta.bkp.'
+const PREFIJO_CON_ALCANCE = `${PREFIJO_BORRADOR}scope:`
+
+/** REG-681: la identidad del respaldo incluye cuenta, consultorio y episodio. */
+export function claveDeRespaldo(uid: string | null | undefined, clinicId: string | null | undefined, patientId: string, internamientoId?: string): string {
+  if (!uid || !clinicId || !patientId) return ''
+  return PREFIJO_CON_ALCANCE + [uid, clinicId, patientId, internamientoId ?? ''].map(encodeURIComponent).join(':')
+}
+
+export function alcanceDelRespaldo(clave: string): { uid: string; clinicId: string; patientId: string; internamientoId?: string } | null {
+  if (!clave.startsWith(PREFIJO_CON_ALCANCE)) return null
+  try {
+    const partes = clave.slice(PREFIJO_CON_ALCANCE.length).split(':')
+    if (partes.length !== 4) return null
+    const [uid, clinicId, patientId, episodio] = partes.map(decodeURIComponent)
+    if (!uid || !clinicId || !patientId) return null
+    return { uid, clinicId, patientId, ...(episodio ? { internamientoId: episodio } : {}) }
+  } catch { return null }
+}
+
+/** Nunca adopta texto plano ni una copia cuya cuenta/consultorio no constan. */
+export function leerRespaldoConAlcance(raw: string | null, clave: string, uid: string | null | undefined, clinicId: string | null | undefined): Record<string, unknown> | null {
+  const alcance = alcanceDelRespaldo(clave)
+  if (!raw || !uid || !clinicId || alcance?.uid !== uid || alcance.clinicId !== clinicId) return null
+  try {
+    const claro = desofuscar(raw, uid)
+    if (!claro) return null
+    const contenido: unknown = JSON.parse(claro)
+    return contenido && typeof contenido === 'object' && !Array.isArray(contenido) ? contenido as Record<string, unknown> : null
+  } catch { return null }
+}
 
 /**
  * TODOS los prefijos de claves con PHI que deben purgarse al cerrar sesión
@@ -151,7 +183,7 @@ export function limpiarAudioLocal(): void {
   try { window.indexedDB.deleteDatabase('nexusmed-recovery') } catch { /* best-effort */ }
 }
 
-export function limpiarBorradoresLocales(): number {
+export function limpiarBorradoresLocales(confirmados: readonly { clave: string; bytes: string }[] = []): number {
   sesionCerrada = true   // ← cierra la ventana a los flush tardíos del desmonte
   if (typeof window === 'undefined') return 0
   let borradas = 0
@@ -161,6 +193,9 @@ export function limpiarBorradoresLocales(): number {
       const todas: string[] = []
       for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k) todas.push(k) }
       for (const k of clavesABorrar(todas)) {
+        // Una copia con alcance sólo se purga si ESTE contenido fue confirmado.
+        // Otra consulta, otra clínica o una edición posterior conservan su copia.
+        if (alcanceDelRespaldo(k) && !confirmados.some(b => b.clave === k && b.bytes === localStorage.getItem(k))) continue
         try { localStorage.removeItem(k); borradas++ } catch { /* ignora una clave problemática */ }
       }
     } catch { /* best-effort */ }

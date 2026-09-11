@@ -13,10 +13,8 @@
  *   médico que lo da de alta, o con el médico de la cita que lo trajo.
  * - `compartidoCon`: uids de otros médicos del mismo consultorio a los que el
  *   titular abrió el expediente. Lo escribe SÓLO el titular (o el admin).
- * - Sin `medicoTitularUid` = paciente de ANTES de esta decisión. Se sigue
- *   viendo como siempre hasta que alguien lo asigne: esconder de golpe a todos
- *   los pacientes del consultorio el día del despliegue sería el fallo caro.
- *   «Ausencia de dato no es dato de ausencia» también aquí.
+ * - Sin `medicoTitularUid`: sólo el administrador accede hasta asignar titular.
+ *   El directorio administrativo sigue disponible; no se modifica ningún dato clínico.
  *
  * ── QUIÉN VE QUÉ ────────────────────────────────────────────────────────────
  *
@@ -38,7 +36,7 @@ export interface FichaDeAlcance {
   compartidoCon?: readonly string[] | null
 }
 
-export type MotivoSinAcceso = 'no_es_clinico' | 'de_otro_medico'
+export type MotivoSinAcceso = 'no_es_clinico' | 'de_otro_medico' | 'sin_titular'
 
 export const ROLES_CON_EXPEDIENTE: readonly Rol[] = ['medico', 'admin']
 
@@ -47,7 +45,7 @@ export function puedeVerExpediente(ficha: FichaDeAlcance | null | undefined, uid
   if (!uid || !rol || !ROLES_CON_EXPEDIENTE.includes(rol as Rol)) return false
   if (rol === 'admin') return true
   const titular = ficha?.medicoTitularUid
-  if (!titular) return true                      // legado: sin titular, se ve como siempre
+  if (!titular) return false // Sin titular no se concede el expediente por omisión.
   if (titular === uid) return true
   return Array.isArray(ficha?.compartidoCon) && ficha!.compartidoCon!.includes(uid)
 }
@@ -55,7 +53,7 @@ export function puedeVerExpediente(ficha: FichaDeAlcance | null | undefined, uid
 export function porQueNoVe(ficha: FichaDeAlcance | null | undefined, uid: string | null | undefined, rol: Rol | string | null | undefined): MotivoSinAcceso | null {
   if (puedeVerExpediente(ficha, uid, rol)) return null
   if (!rol || !ROLES_CON_EXPEDIENTE.includes(rol as Rol)) return 'no_es_clinico'
-  return 'de_otro_medico'
+  return ficha?.medicoTitularUid ? 'de_otro_medico' : 'sin_titular'
 }
 
 /** ¿Puede este uid decidir con quién se comparte (o reclamar un paciente sin titular)? */
@@ -63,7 +61,7 @@ export function puedeAdministrarAcceso(ficha: FichaDeAlcance | null | undefined,
   if (!uid || !rol || !ROLES_CON_EXPEDIENTE.includes(rol as Rol)) return false
   if (rol === 'admin') return true
   const titular = ficha?.medicoTitularUid
-  return !titular || titular === uid
+  return !!titular && titular === uid
 }
 
 /** La lista de compartidos con `uid` dentro, sin duplicados y sin el titular. */
@@ -77,6 +75,7 @@ export function sinAcceso(ficha: FichaDeAlcance, uid: string): string[] {
 }
 
 export const TEXTO_SIN_ACCESO: Record<MotivoSinAcceso, string> = {
+  sin_titular: 'El administrador debe asignar un médico titular para abrir este expediente. La ficha administrativa sigue disponible.',
   no_es_clinico: 'El expediente lo ve el médico. Desde aquí puedes agendar y ver los pendientes de recepción.',
   de_otro_medico: 'Este paciente es de otro médico del consultorio. Pídele acceso a su médico titular: te llega en cuanto lo autorice.',
 }

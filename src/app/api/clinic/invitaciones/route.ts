@@ -86,7 +86,9 @@ export async function GET(req: NextRequest) {
       .where('clinicId', '==', clinicId)
       .orderBy('createdAt', 'desc')
       .get()
-    const invitaciones = snap.docs.map(d => ({ code: d.id, ...(d.data() as Omit<Invitacion, 'code'>) }))
+    const invitaciones = snap.docs
+      .filter(d => acc.role === 'admin' || (d.data().role !== 'admin' && d.data().creadoPor === acc.uid))
+      .map(d => ({ ...(d.data() as Omit<Invitacion, 'code'>), code: d.id }))
     return NextResponse.json({ ok: true, invitaciones })
   } catch (e) {
     safeLog.error('[clinic/invitaciones GET]', e)
@@ -161,6 +163,9 @@ export async function DELETE(req: NextRequest) {
     // ajeno bastaría para borrar la invitación de otro consultorio.
     if ((snap.data() as { clinicId?: string }).clinicId !== clinicId) {
       return NextResponse.json({ ok: false, error: 'Esa invitación no es de tu consultorio.' }, { status: 403 })
+    }
+    if (acc.role !== 'admin' && (snap.data()?.role === 'admin' || snap.data()?.creadoPor !== acc.uid)) {
+      return NextResponse.json({ ok: false, error: 'No puedes administrar esa invitación.' }, { status: 403 })
     }
     await ref.delete()
     return NextResponse.json({ ok: true })

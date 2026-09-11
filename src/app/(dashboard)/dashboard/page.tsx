@@ -41,6 +41,7 @@ import { useMemo, useEffect } from 'react'
 import { PanelPendientes } from '@/components/PanelPendientes'
 import { ContinuidadPanel } from '@/components/ContinuidadPanel'
 import { useAppointments } from '@/hooks/useAppointments'
+import { useAhoraMinutos } from '@/hooks/useAhoraMinutos'
 import { useConfig } from '@/hooks/useConfig'
 import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
@@ -56,7 +57,8 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { resumenDelDia, type ConteoDelDia } from '@/lib/hoy/resumen-del-dia'
-import { nombreSaludo } from '@/lib/hoy/saludo'
+import { nombreSaludo, presentacionDelDia } from '@/lib/hoy/saludo'
+import { accionDeCitaEnFoco, citaEnFoco } from '@/lib/hoy/cita-en-foco'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 
 function todayStr() {
@@ -65,13 +67,6 @@ function todayStr() {
 
 function tomorrowStr() {
   return sumarDiasISO(hoyISO(), 1)
-}
-
-function greet() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
 }
 
 /**
@@ -99,6 +94,7 @@ export default function DashboardPage() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const { isDoctor } = useMode()
+  const ahoraMinutos = useAhoraMinutos()
 
   const today = todayStr()
   const tomorrow = tomorrowStr()
@@ -115,15 +111,12 @@ export default function DashboardPage() {
     const noShow = ta.filter(a => a.estado === 'no-asistio').length
     const canceladas = ta.filter(a => a.estado === 'cancelada').length
     const manana = appointments.filter(a => a.fechaHora.startsWith(tomorrow)).length
-    const prox = todayAppts.find(a => {
-      if (['cancelada', 'reagendada', 'no-asistio', 'finalizada'].includes(a.estado)) return false
-      return a.fechaHora >= `${today} ${new Date().toTimeString().slice(0, 5)}`
-    }) ?? null
+    const prox = citaEnFoco(todayAppts, today, ahoraMinutos)
     return { total: ta.length, confirmadas, pendientes, noShow, canceladas, manana, prox }
-  }, [todayAppts, appointments, today, tomorrow])
+  }, [todayAppts, appointments, today, tomorrow, ahoraMinutos])
 
-  const now = new Date()
-  const fechaLabel = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  // La fecha visible y el saludo siguen el MISMO día/reloj que la agenda.
+  const { fecha: fechaLabel, saludo: saludoHora } = presentacionDelDia(today, ahoraMinutos)
   const saludo = nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)
 
   return (
@@ -147,14 +140,16 @@ export default function DashboardPage() {
         <div>
           <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
           <h1 className="hoy-saludo">
-            {greet()}
+            {saludoHora}
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
       </header>
 
       {/* 1 · ¿QUIÉN SIGUE? — lo primero que hace falta a las nueve de la mañana. */}
-      {!loading && stats.prox && <ProxHero appt={stats.prox} />}
+      {!loading && !errorCitas && stats.prox && ahoraMinutos !== null && (
+        <ProxHero appt={stats.prox} puedeConsultar={isDoctor} ahoraMinutos={ahoraMinutos} />
+      )}
 
       {/* 2 · ¿QUÉ NECESITA ATENCIÓN? — cobros, membresías y citas por confirmar. */}
       <PanelPendientes />
@@ -329,28 +324,27 @@ function AppointmentRow({ appt, isLast, puedeConsultar }: { appt: Appointment; i
   )
 }
 
-function ProxHero({ appt }: { appt: Appointment }) {
+function ProxHero({ appt, puedeConsultar, ahoraMinutos }: { appt: Appointment; puedeConsultar: boolean; ahoraMinutos: number }) {
   const router = useRouter()
   const hora = appt.fechaHora.slice(11, 16)
   const typeCfg = APPOINTMENT_TYPE_CONFIG[appt.tipo]
   const [h, m] = hora.split(':').map(Number)
-  const apptTime = new Date(); apptTime.setHours(h, m, 0, 0)
-  const diffMin = Math.round((apptTime.getTime() - Date.now()) / 60000)
-  const cuando = diffMin <= 0 ? 'en curso' : diffMin < 60 ? `en ${diffMin} min` : `en ${Math.floor(diffMin / 60)}h ${diffMin % 60}min`
+  const diffMin = h * 60 + m - ahoraMinutos
+  const cuando = diffMin <= 0 ? 'hora programada' : diffMin < 60 ? `en ${diffMin} min` : `en ${Math.floor(diffMin / 60)}h ${diffMin % 60}min`
+  const estado = appt.estado === 'en-consulta' ? 'Consulta en curso' : appt.estado === 'en-sala' ? 'Paciente en sala' : `Próxima cita · ${cuando}`
+  const accion = accionDeCitaEnFoco(appt, puedeConsultar)
 
   return (
-    <div className="prox-hero nx-reveal" style={{ animationDelay: '120ms' }}>
+    <section className="prox-hero nx-reveal" aria-label={estado}>
       <div className="prox-hero-avatar">{appt.pacienteNombre.charAt(0).toUpperCase()}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="t-overline" style={{ color: 'var(--nexus)' }}>Próxima cita · {cuando}</div>
-        {/* R3 (VISUAL_DNA §2): la identidad del héroe NOW es .nx-ident y
-            ENVUELVE — el ellipsis truncaba el nombre del paciente (§24). La
-            dominancia del héroe la dan su posición, el avatar y el CTA (§16:
-            posición antes que contenedor), no un tamaño inventado. */}
-        <span className="nx-ident" style={{ display: 'block', marginTop: 3 }}>
+      <div className="prox-hero-identidad">
+        <div className="t-overline prox-hero-estado">{estado}</div>
+        {/* El nombre sigue completo; la escala del héroe distingue al paciente
+            actual de las filas de agenda sin alterar sus datos. */}
+        <span className="nx-ident prox-hero-nombre">
           {appt.pacienteNombre}
         </span>
-        <div className="nx-meta" style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div className="nx-meta prox-hero-detalle">
           <span className="riel-hora" style={{ display: 'inline' }}>{hora}</span>
           <span>·</span>
           <TipoCitaIcon tipo={appt.tipo} size={13} /> {typeCfg?.label}
@@ -364,7 +358,7 @@ function ProxHero({ appt }: { appt: Appointment }) {
           (`.prox-hero-cta`, que se llevó también el `text-decoration` y el
           `flex-shrink` que vivían aquí en línea). §24. */}
       <Link
-        href={`/consulta/${appt.pacienteId}`}
+        href={accion.href}
         className="prox-hero-cta"
         onClick={(e) => {
           /* §20: sólo el click simple se coreografía; Ctrl/Cmd/central siguen
@@ -373,11 +367,11 @@ function ProxHero({ appt }: { appt: Appointment }) {
           if (!esClickDeNavegacionSimple(e)) return
           e.preventDefault()
           const origen = e.currentTarget.closest('.prox-hero')?.querySelector<HTMLElement>('.nx-ident') ?? null
-          navegarConContinuidad(() => router.push(`/consulta/${appt.pacienteId}`), origen)
+          navegarConContinuidad(() => router.push(accion.href), origen)
         }}
       >
-        <Mic size={16} /> Iniciar consulta
+        {accion.consulta ? <Mic size={16} /> : <CalendarDays size={16} />} {accion.texto}
       </Link>
-    </div>
+    </section>
   )
 }

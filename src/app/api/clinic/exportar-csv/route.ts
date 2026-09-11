@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
 import { verificarCapacidad } from '@/lib/authz/verificar'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { DOMINIOS, cabeceraDe, filasDe, type Dominio } from '@/lib/clinica/csv-clinico'
 
 export const maxDuration = 300
@@ -80,6 +81,8 @@ export async function GET(req: NextRequest) {
           const pacientes = await clinicRef.collection('patients').limit(TOPE_PACIENTES).get()
           if (pacientes.size >= TOPE_PACIENTES) recortado = true
           for (const p of pacientes.docs) {
+            // El Admin SDK omite las reglas: decidir ANTES de leer lo clínico.
+            if (!puedeVerExpediente(p.data(), acc.uid, acc.role)) continue
             const ctx = { pacienteNombre: String((p.data() as { nombre?: string }).nombre ?? ''), pacienteId: p.id }
             let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined
             for (;;) {

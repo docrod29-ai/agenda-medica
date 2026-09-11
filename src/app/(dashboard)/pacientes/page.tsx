@@ -840,13 +840,6 @@ function PacienteRow({ p, mode, internado, clinico, manda, porQueId, onAbrirPorQ
        * pulgar y a los FAB: en el ancho del teléfono, lo clínico gana.
        */
       className="nx-fila-paciente"
-      style={{
-        position: 'relative',
-        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-        borderBottom: '1px solid var(--border)', transition: 'background var(--mov-rapido) var(--mov-curva)',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
       <div style={{
         width: 38, height: 38, borderRadius: '50%',

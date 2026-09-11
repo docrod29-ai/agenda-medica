@@ -11,13 +11,13 @@
  * El `patientId` va dentro, así que el camino inverso —los pendientes de ESTE
  * paciente— sigue siendo una consulta directa.
  */
-import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
+import { collection, doc, addDoc, setDoc, getDoc, updateDoc, getDocs, query, where, limit } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import {
   puedeTransicionar, puedeCerrarse, conTransicion, pesoDeUrgencia,
   type TareaClinica, type EstadoTarea, type CierreDeTarea,
 } from './modelo'
-import { conRespaldoSinIndice } from '@/lib/firestore/indice-que-todavia-no-esta'
+import { fetchAutenticado } from '@/lib/auth-client'
 
 const COL = (clinicId: string) => collection(db, 'clinics', clinicId, 'tareas_clinicas')
 
@@ -136,6 +136,7 @@ export async function crearTareas(
         const { estado, ...sinEstado } = limpio as Record<string, unknown> & { estado?: unknown }
         const ref = doc(COL(clinicId), id)
         const previa = await getDoc(ref)
+        if (previa.exists() && t.origen === 'expediente:peticion-de-acceso') { n++; continue }
         // El estado sólo se escribe al NACER. Después manda el médico.
         await setDoc(ref, previa.exists() ? sinEstado : { ...sinEstado, estado }, { merge: true })
       } else {
@@ -184,199 +185,28 @@ export interface WorklistVivo {
   migracionPendiente: boolean
 }
 
-/** Los estados que cuentan como VIVOS. Una sola lista para las dos lecturas. */
-const VIVOS: EstadoTarea[] = ['solicitada', 'aceptada', 'en_curso', 'agendada', 'completada']
-
-/**
- * Las tareas VIVAS del consultorio. El worklist.
- *
- * ══ P1-14 · EL RECORTE SE HACE POR URGENCIA, NO POR ANTIGÜEDAD ═══════════════
- *
- * ── LO QUE PASABA, Y POR QUÉ NINGUNA DE LAS DOS VERSIONES ANTERIORES BASTABA ──
- *
- * Esta consulta trae como mucho `tope` tareas. La pregunta que decide si el
- * worklist sirve es **cuáles**, y ha tenido tres respuestas:
- *
- * 1. **Sin `orderBy`** (hasta REG-421): Firestore devolvía `tope` documentos
- *    cualesquiera, en orden de identificador. Entre los que no llegaban podía
- *    estar un resultado crítico sin revisar. REG-344 hizo que al menos se
- *    DIJERA (`truncada`), que es lo único que se podía hacer sin índice.
- * 2. **`orderBy('creadaEn')`** (REG-421): el recorte deja de ser arbitrario y se
- *    lleva a las MÁS NUEVAS. Mejor —una tarea vieja ya no puede caerse— pero
- *    **sustituye urgencia por antigüedad**, que es justo lo que P1-14 decía que
- *    no. En un consultorio con más de `tope` pendientes vivos, el resultado
- *    crítico de ESTA MAÑANA es el primero en caerse, y se cae en silencio.
- * 3. **Por urgencia** (esto): primero por `pesoUrgencia`, y a igual urgencia lo
- *    más viejo arriba.
- *
- * El desempate temporal no es decorativo: sin él, entre dos tareas críticas el
- * recorte volvería a ser arbitrario, y la que lleva tres semanas esperando es la
- * que más falta hace que se vea.
- *
- * ── POR QUÉ UN NÚMERO Y NO LA PALABRA ────────────────────────────────────────
- *
- * Firestore ordena texto alfabéticamente, así que `orderBy('prioridad')` pondría
- * `alta` ANTES que `critica`. Al revés de lo que dice la palabra, y en silencio.
- * Por eso existe `pesoUrgencia` — la proyección numérica de `prioridad`, escrita
- * en la única puerta de escritura. Ver `ESCALERA_DE_URGENCIA` en `modelo.ts`,
- * incluido por qué no es una segunda fuente de verdad.
- *
- * ── LA RED DE SEGURIDAD, Y POR QUÉ NO ES OPCIONAL ────────────────────────────
- *
- * **Un `orderBy` de Firestore no ordena los documentos a los que les falta el
- * campo: los EXCLUYE.** Las tareas escritas antes de P1-14 no tienen
- * `pesoUrgencia`, así que la consulta por urgencia, ella sola,
- * **haría desaparecer del worklist todos los pendientes históricos** — un
- * expediente entero de trabajo clínico, sin un error, sin una lista vacía, sin
- * nada que lo dijera.
- *
- * Por eso se leen DOS consultas y se unen por id:
- *
- * · la de urgencia, que trae lo mejor ordenado y **sólo lo migrado**;
- * · la de antigüedad —exactamente la de REG-421, con su índice ya desplegado—,
- *   que **trae todo**, porque `creadaEn` es obligatorio desde el primer día.
- *
- * La unión no puede perder nada que hoy se vea, que es la condición de este
- * cambio: lo que la versión anterior enseñaba, ésta lo enseña también.
- *
- * La segunda lectura deja de hacer falta cuando no quede ninguna tarea viva sin
- * peso. Eso NO se adivina: se mide, y sale en `migracionPendiente`. El backfill
- * es `scripts/migraciones/peso-de-urgencia.mjs`.
- *
- * ── Y SI EL ÍNDICE TODAVÍA NO ESTÁ ───────────────────────────────────────────
- *
- * Firestore no degrada una consulta sin índice: la RECHAZA. Entre que este código
- * llega a producción (Vercel publica solo con cada merge) y que el índice termina
- * de construirse hay una ventana, y en esa ventana el worklist se abriría con un
- * error — que es literalmente como se abrió por primera vez. `conRespaldoSinIndice`
- * cierra esa ventana: se cae al camino de antigüedad y lo DICE en
- * `ordenadaPorUrgencia`. No es un `catch` que se traga todo — un permiso denegado
- * o una red caída siguen subiendo.
- *
- * ── LO QUE ESTO NO HACE ──────────────────────────────────────────────────────
- *
- * · **No decide la urgencia.** La pone quien crea la tarea, en `prioridad`, y
- *   `derivar.ts` sólo la deduce de lo que el médico escribió. Aquí sólo se ordena.
- * · **No cambia lo que se VE cuando todo cabe.** Con menos de `tope` pendientes
- *   vivos, la lista es la misma de siempre: `ordenWorklist` la reordena entera en
- *   el cliente —primero lo que hay que escalar, que es criterio que Firestore no
- *   sabe evaluar—. Lo que cambia es CUÁLES llegan cuando no caben todas.
- * · **No hace el backfill.** Ese es un script, y correrlo contra datos vivos es
- *   del dueño.
- */
-export async function tareasVivas(
-  clinicId: string,
-  tope = 200,
-  /**
-   * D-057: recepción sólo puede LEER tareas con `area == 'recepcion'`, y en modo
-   * `list` Firestore exige que la consulta lo diga (si no, `permission-denied`
-   * para toda la lista). El médico no pasa nada y ve todo.
-   */
-  alcance: { soloRecepcion?: boolean } = {},
-): Promise<WorklistVivo> {
-  if (!clinicId) {
-    return { tareas: [], truncada: false, tope, ordenadaPorUrgencia: true, migracionPendiente: false }
-  }
-  const deArea = alcance.soloRecepcion ? [where('area', '==', 'recepcion')] : []
-
-  /**
-   * Se piden `tope + 1` para SABER si se quedó corto. El extra no se devuelve:
-   * sólo sirve para poder decirlo. Es el mismo truco que `listarPacientesPagina`,
-   * y aquí importa más — allí falta un nombre en una lista, aquí falta trabajo
-   * clínico que nadie va a recordar.
-   */
-  const porUrgencia = () => getDocs(query(
-    COL(clinicId),
-    /* EL ORDEN: `tareas_clinicas(area, estado, pesoUrgencia, creadaEn)` cuando hay área. */
-    ...deArea,
-    /* `agendada` es VIVA (REG-404): la cita existe y el paciente no ha venido.
-       Dejarla fuera de esta consulta la haría desaparecer del worklist, que es
-       justo lo que pasaba cuando agendar equivalía a cerrar. */
-    where('estado', 'in', VIVOS),
-    /* EL ORDEN DE ESTOS DOS ES EL DEL ÍNDICE
-       `tareas_clinicas(estado, pesoUrgencia, creadaEn)`. Cambiarlo aquí sin
-       cambiarlo allí devuelve `FAILED_PRECONDITION`, no una lista peor. */
-    orderBy('pesoUrgencia', 'asc'),
-    orderBy('creadaEn', 'asc'),
-    limit(tope + 1),
-  ))
-
-  /* La de REG-421, intacta: su índice lleva desplegado desde el 31-ago y su
-     campo es obligatorio desde el primer día, así que ésta no puede excluir a
-     nadie. Es la red. */
-  const porAntiguedad = () => getDocs(query(
-    COL(clinicId),
-    ...deArea,
-    where('estado', 'in', VIVOS),
-    orderBy('creadaEn', 'asc'),
-    limit(tope + 1),
-  ))
-
-  const { valor: snapUrgencia, degradada } = await conRespaldoSinIndice(
-    'tareas_clinicas(estado, pesoUrgencia, creadaEn)', porUrgencia, porAntiguedad,
-  )
-  const snapRed = degradada ? snapUrgencia : await porAntiguedad()
-
-  const porId = new Map<string, TareaClinica>()
-  for (const snap of degradada ? [snapUrgencia] : [snapUrgencia, snapRed]) {
-    for (const d of snap.docs) porId.set(d.id, { ...(d.data() as TareaClinica), id: d.id })
-  }
-
-  /**
-   * `truncada` si CUALQUIERA de las dos lecturas tocó su tope: las dos miran el
-   * mismo conjunto vivo desde dos órdenes, así que si una se quedó corta hay
-   * pendientes fuera. Decirlo de menos sería enseñar «no hay nada más» de un
-   * consultorio que sí lo tiene.
-   */
-  const truncada = snapUrgencia.docs.length > tope || snapRed.docs.length > tope
-
-  /* Lo que quedó SIN peso es lo que la consulta de urgencia no podría haber
-     traído: la medida exacta de cuánto falta del backfill. */
-  const todas = [...porId.values()]
-  const migracionPendiente = todas.some(t => typeof t.pesoUrgencia !== 'number')
-
-  /**
-   * El recorte final se hace AQUÍ y por el mismo criterio del servidor, para que
-   * unir dos lecturas no reintroduzca por la puerta de atrás el recorte
-   * arbitrario que este cambio existe para quitar.
-   *
-   * **Y se ordena por la PALABRA, no por el número guardado.** El número existe
-   * para una cosa sola: que Firestore pueda elegir CUÁLES manda. Una vez aquí,
-   * manda `prioridad`, que es el dato — así, si algún día un `pesoUrgencia`
-   * guardado se desincronizara, podría cambiar qué tareas llegan pero **nunca**
-   * el orden en que se ven. `pesoDeUrgencia` deja al final —no fuera— lo que no
-   * se pudo clasificar.
-   */
-  const tareas = todas
-    .sort((a, b) =>
-      pesoDeUrgencia(a.prioridad) - pesoDeUrgencia(b.prioridad) ||
-      String(a.creadaEn).localeCompare(String(b.creadaEn)))
-    .slice(0, tope)
-
-  return { tareas, truncada, tope, ordenadaPorUrgencia: !degradada, migracionPendiente }
+/** La misma colección y política de prioridad se resuelven en el servidor.
+ * Las reglas no filtran consultas globales; el lector autoriza antes del tope. */
+async function pedirListado(clinicId: string, modo: 'vivas' | 'cerradas', tope: number, soloRecepcion = false): Promise<WorklistVivo> {
+  const res = await fetchAutenticado('/api/tareas/listar', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ clinicId, modo, tope, soloRecepcion }),
+  })
+  if (!res.ok) throw new Error('No se pudieron cargar los pendientes.')
+  const listado = await res.json() as WorklistVivo & { presupuestoAgotado?: boolean }
+  if (listado.presupuestoAgotado) throw new Error('La búsqueda alcanzó su límite de lectura; no se pudo completar la lista de pendientes.')
+  return listado
 }
 
-/**
- * Las tareas CERRADAS más recientes — «closed recently» de §10 (V15
- * Master Loop, Fase 7). NO es parte de `tareasVivas()` a propósito (esa
- * consulta excluye `cerrada`, es el worklist de lo VIVO): quien quiere ver
- * lo ya resuelto paga su propia lectura, aparte, y sólo cuando la pide —
- * `/pendientes` la llama bajo demanda, no en cada carga de la pantalla más
- * visitada del médico.
- *
- * Sin `orderBy` por el mismo motivo que `tareasVivas()`: evitar el índice
- * compuesto que `where + orderBy` exigiría. El orden por fecha lo pone quien
- * llama, en cliente.
- *
- * Sólo `cerrada` — no `cancelada`. «Closed recently» en §9/§10 es la
- * constancia de que alguien revisó y decidió; cancelar es «ya no aplica»,
- * un cierre distinto que ya tiene su propio motivo visible en la bitácora.
- */
+export async function tareasVivas(clinicId: string, tope = 200, alcance: { soloRecepcion?: boolean } = {}): Promise<WorklistVivo> {
+  if (!clinicId) return { tareas: [], truncada: false, tope, ordenadaPorUrgencia: true, migracionPendiente: false }
+  return pedirListado(clinicId, 'vivas', tope, alcance.soloRecepcion === true)
+}
+
+/** Cerradas bajo demanda: revisar y cerrar sigue siendo distinto de cancelar. */
 export async function tareasCerradasRecientes(clinicId: string, tope = 30): Promise<TareaClinica[]> {
   if (!clinicId) return []
-  const q = query(COL(clinicId), where('estado', '==', 'cerrada'), limit(tope))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ ...(d.data() as TareaClinica), id: d.id }))
+  return (await pedirListado(clinicId, 'cerradas', tope)).tareas
 }
 
 /** Los pendientes de UN paciente, para su expediente. */

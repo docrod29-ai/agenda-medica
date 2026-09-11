@@ -93,9 +93,9 @@
     "  0.35.4 corrige el aviso de libheif; pide Node >=20.9 (CI usa 22).",
     "postcss: next trae 8.4.31 y el aviso cubre <=8.5.17. Procesa NUESTRO css en el build,",
     "  asi que la exposicion real es nula, pero el salto es de parche y sale gratis.",
-    "NO se toca uuid: el aviso es de v3/v5/v6 con argumento buf, y google-gax y teeny-request",
-    "  solo llaman v4() sin buf (verificado en node_modules). Subirlo de 9 a 11 seria cruzar dos",
-    "  mayores por debajo de firebase-admin — o sea del login y de Firestore — a cambio de nada."
+    "2026-09-11: qs >=6.16.0 y uuid 11.1.1 acotado a google-gax, teeny-request y gaxios.",
+    "Los tres consumidores de uuid usan v4; se comprueba CommonJS y multipart local.",
+    "Se conserva firebase-admin 13: saltar a 14 requiere migrar su API pública."
   ],
   "overrides": {
     "sharp": "^0.35.4",
@@ -104,6 +104,16 @@
     "@capacitor/cli": {
       "brace-expansion": "^5.0.9",
       "@xmldom/xmldom": "^0.9.12"
+    },
+    "qs": "^6.16.0",
+    "google-gax": {
+      "uuid": "^11.1.1"
+    },
+    "teeny-request": {
+      "uuid": "^11.1.1"
+    },
+    "gaxios": {
+      "uuid": "^11.1.1"
     }
   },
   "devDependencies": {
@@ -115,13 +125,13 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "firebase-tools": "15.25.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.11"
   }
 }

@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
 import { parcheDeLigado } from '@/lib/arco/ligar'
 
 export async function POST(req: NextRequest) {
@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
   // tratamiento quien identifica al titular, no el mostrador.
   const acceso = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acceso.ok) return acceso.response
+  const sinAdministracion = exigeAdministrador(acceso)
+  if (sinAdministracion) return sinAdministracion
 
   if (body.identidadVerificada !== true) {
     return NextResponse.json({

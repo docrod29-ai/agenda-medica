@@ -1,3 +1,9 @@
+import { FieldValue, type DocumentReference } from 'firebase-admin/firestore'
+import { verificarCapacidad } from '@/lib/authz/verificar'
+import { APPOINTMENT_STATUS_CONFIG, type AppointmentStatus } from '@/types'
+import { cambiosPorTransicion } from '@/lib/agenda/contadores-paciente'
+import { puedeEscribir } from '@/lib/finanzas/paywall-prueba'
+import type { ResultadoTransicion } from '@/lib/agenda/transicion-cita'
 import { NextRequest, NextResponse } from 'next/server'
 import { configParaMedico } from '@/lib/horario-medico'
 import { adminDb } from '@/lib/firebase-admin'
@@ -421,4 +427,61 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ id, sobreagendada: quiereSobreagendar, idempotent: reintentoIdempotente })
+}
+
+/** REG-684: recepción cambia la cita sin descargar la ficha clínica.
+ * Misma transacción y decisión canónica; el paciente procede de la cita.
+ */
+export async function PATCH(req: NextRequest) {
+  let body: Record<string, unknown>
+  try {
+    const valor: unknown = await req.json()
+    if (!valor || typeof valor !== 'object' || Array.isArray(valor)) throw new Error('Petición inválida')
+    body = valor as Record<string, unknown>
+  } catch { return NextResponse.json({ error: 'Petición inválida', code: 'invalid-argument' }, { status: 400 }) }
+  const segmento = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 1500 && !v.includes('/') && v !== '.' && v !== '..'
+  const { clinicId, citaId, nuevoEstado: solicitado } = body
+  if (!segmento(clinicId) || !segmento(citaId) || typeof solicitado !== 'string' || !Object.prototype.hasOwnProperty.call(APPOINTMENT_STATUS_CONFIG, solicitado)) {
+    return NextResponse.json({ error: 'Clínica, cita o estado inválidos.', code: 'invalid-argument' }, { status: 400 })
+  }
+  const acc = await verificarCapacidad(req, clinicId, 'agenda.gestionar')
+  if (!acc.ok) return acc.response
+  const nuevoEstado = solicitado as AppointmentStatus
+  const clinicRef = adminDb.collection('clinics').doc(clinicId)
+  const citaRef = clinicRef.collection('appointments').doc(citaId)
+  try {
+    const resultado = await adminDb.runTransaction<ResultadoTransicion>(async tx => {
+      const snap = await tx.get(citaRef)
+      if (!snap.exists) throw Object.assign(new Error('Cita ausente'), { code: 'cita-inexistente' })
+      const cita = snap.data() as { estado?: AppointmentStatus; pacienteId?: string; fechaHora?: string }
+      const estadoPrevio = (cita.estado ?? 'pendiente') as AppointmentStatus
+      const pacienteId = String(cita.pacienteId ?? '')
+      if (estadoPrevio === nuevoEstado) return { aplicado: false, estado: estadoPrevio, estadoPrevio, pacienteId }
+      // Conserva la compuerta de escritura que antes aplicaban las reglas.
+      const clinica = await tx.get(clinicRef)
+      if (!clinica.exists || !puedeEscribir(clinica.data(), Date.now())) throw Object.assign(new Error('Escritura bloqueada'), { code: 'permission-denied' })
+      const cambios = cambiosPorTransicion(estadoPrevio, nuevoEstado, cita.fechaHora ?? '')
+      let pacienteRef: DocumentReference | null = null
+      if (pacienteId && (cambios.contador || cambios.ultimaCita)) {
+        if (!segmento(pacienteId)) throw Object.assign(new Error('Referencia inválida'), { code: 'cita-paciente-invalido' })
+        const ref = clinicRef.collection('patients').doc(pacienteId)
+        if ((await tx.get(ref)).exists) pacienteRef = ref
+      }
+      const ahora = new Date().toISOString()
+      tx.update(citaRef, { estado: nuevoEstado, updatedAt: ahora })
+      if (pacienteRef) tx.update(pacienteRef, {
+        ...(cambios.contador ? { [cambios.contador]: FieldValue.increment(1) } : {}),
+        ...(cambios.ultimaCita ? { ultimaCita: cambios.ultimaCita } : {}), updatedAt: ahora,
+      })
+      return { aplicado: true, estado: nuevoEstado, estadoPrevio, pacienteId }
+    })
+    return NextResponse.json(resultado, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (e) {
+    const code = (e as { code?: unknown })?.code
+    if (code === 'cita-inexistente') return NextResponse.json({ error: 'Esa cita ya no existe en este consultorio.', code }, { status: 404 })
+    if (code === 'permission-denied') return NextResponse.json({ error: 'El consultorio no puede escribir en este momento.', code }, { status: 403 })
+    if (code === 'cita-paciente-invalido') return NextResponse.json({ error: 'La cita tiene una referencia de paciente inválida.', code }, { status: 409 })
+    safeLog.error('[appointments PATCH] transición fallida', e)
+    return NextResponse.json({ error: 'No se pudo cambiar el estado. Inténtalo nuevamente.', code: 'unavailable' }, { status: 503 })
+  }
 }

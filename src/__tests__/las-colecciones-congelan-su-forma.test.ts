@@ -80,7 +80,7 @@ function escrituraAbiertaAlCliente(cuerpo: string): boolean {
 }
 
 function formaCongelada(cuerpo: string): boolean {
-  return /hasOnly\(|affectedKeys\(\)|keys\(\)\.hasAny\(/.test(cuerpo)
+  return [...cuerpo.matchAll(/allow ([a-z, ]+):\s*if\s+([\s\S]*?);/g)].some(([, ops, cond]) => /\b(create|update|write)\b/.test(ops) && /hasOnly\(|affectedKeys\(\)|keys\(\)\.hasAny\(/.test(cond))
 }
 
 export function sinFormaCongelada(texto: string): string[] {

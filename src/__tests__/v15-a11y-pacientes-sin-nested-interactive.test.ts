@@ -75,8 +75,10 @@ describe('la fila de /pacientes no anida controles (nested-interactive ×5 muere
     // Falla contra el árbol previo: no existía .nx-fila-abrir.
     expect(FILA).toMatch(/<button\s+type="button"\s+className="nx-fila-abrir"/)
     expect(FILA).toMatch(/aria-label=\{`Abrir el expediente de \$\{p\.nombre\}`\}/)
-    // El velo necesita un ancestro posicionado: la fila es position:relative.
-    expect(FILA).toMatch(/position: 'relative',\s*\n\s*display: 'flex'/)
+    // El velo necesita un ancestro posicionado. La presentación ahora vive
+    // en la clase compartida: se comprueban la conexión Y su posición.
+    expect(FILA).toMatch(/className="nx-fila-paciente"/)
+    expect(CSS).toMatch(/\.nx-fila-paciente \{[^}]*position: relative;/)
   })
 
   it('«Editar» es HERMANO por encima del velo, no hijo del control que abre', () => {

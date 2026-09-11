@@ -57,6 +57,19 @@ const h = vi.hoisted(() => ({
   fallos: { collectionGroup: false, lectura: false, lecturaEn: '' },
 }))
 
+
+// El recorrido canónico pasa ahora por el handler real y su proyección HTTP.
+vi.mock('@/lib/firebase-admin', async () => {
+  const { lecturasAdminSobreCliente } = await import('./_harness/firestore-cliente-en-memoria')
+  return { adminDb: lecturasAdminSobreCliente(h) }
+})
+vi.mock('firebase-admin/firestore', () => ({ FieldPath: { documentId: () => '__name__' } }))
+vi.mock('@/lib/authz/verificar', () => ({ verificarCapacidad: async () => ({ ok: true, uid: 'medico-sintetico', role: 'admin' }) }))
+vi.mock('@/lib/auth-client', () => ({ fetchAutenticado: async (_url: string, opts: RequestInit) => {
+  const { POST } = await import('@/app/api/pacientes/directorio/route')
+  const { NextRequest } = await import('next/server')
+  return POST(new NextRequest('http://localhost/api/pacientes/directorio', { ...opts, signal: opts.signal ?? undefined }))
+} }))
 vi.mock('@/lib/firebase', () => ({
   db: { doble: true },
   auth: { currentUser: { uid: 'medico-sintetico' } },

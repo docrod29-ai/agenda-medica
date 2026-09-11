@@ -290,27 +290,23 @@ export default function CalendarioPage() {
   }, [view, baseDate, weekDates])
 
   return (
-    <div className="nx-alto-de-trabajo" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
+    <div className="nx-alto-de-trabajo nx-calendario">
       {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Calendario</h1>
+      <div className="nx-calendario-cabecera">
+        <div className="nx-calendario-titulo">
+          <h1>Calendario</h1>
+          <p>Citas, horarios y espacios disponibles.</p>
+        </div>
         <DoctorFilter medicoId={medicoFiltro} onChange={setMedicoFiltro} />
-        <div style={{ flex: 1 }} />
 
         {/* View tabs */}
-        <div style={{ display: 'flex', background: 'var(--s2)', borderRadius: 8, padding: 3, gap: 2 }}>
+        <div className="nx-calendario-vistas" role="group" aria-label="Vista del calendario">
           {(['dia', 'semana', 'mes'] as View[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
               className="nx-segmento"
               aria-pressed={view === v}
-              style={{
-                padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 500,
-                color: view === v ? 'var(--teal)' : 'var(--text3)',
-                textTransform: 'capitalize',
-              }}
             >
               {v === 'dia' ? 'Día' : v === 'semana' ? 'Semana' : 'Mes'}
             </button>
@@ -324,6 +320,7 @@ export default function CalendarioPage() {
             son el «anterior» y el «siguiente» del calendario — y son la ÚNICA
             forma de moverse por él. El nombre dice además de qué se mueve, que
             cambia con la vista: no es lo mismo una semana que un mes. */}
+        <div className="nx-calendario-periodo" role="group" aria-label="Periodo del calendario">
         <button
           className="btn btn-ghost btn-icon btn-sm"
           onClick={() => navigate(-1)}
@@ -332,7 +329,7 @@ export default function CalendarioPage() {
         <button
           className="btn btn-secondary btn-sm"
           onClick={() => setBaseDate(new Date())}
-          style={{ minWidth: 180, textAlign: 'center' }}
+          title="Volver a hoy"
         >
           {conMayusculaInicial(rangeLabel)}
         </button>
@@ -341,6 +338,7 @@ export default function CalendarioPage() {
           onClick={() => navigate(1)}
           aria-label={`${ETIQUETA_PASO[view]} siguiente`}
         ><ChevronRight size={16} /></button>
+        </div>
 
         <button className="btn btn-primary btn-sm" onClick={() => openNew(hoy, '')}>
           <Plus size={15} /> Nueva cita
@@ -575,23 +573,15 @@ function WeekView({ weekDates, appointments, horarios, festivos, onCellClick, on
   return (
     <div style={{ height: '100%', overflow: 'auto', background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12 }}>
       {/* Header row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(7, minmax(0, 1fr))', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10, background: 'var(--s2)' }}>
+      <div className="nx-calendario-semana">
         <div />
         {weekDates.map((d, i) => {
           const ds = diasISO[i]
           const isToday = ds === today
           return (
-            <div key={i} style={{ padding: '10px 6px', textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500 }}>{DAY_NAMES[i]}</div>
-              <div style={{
-                fontSize: 16, fontWeight: 700,
-                color: isToday ? 'var(--teal)' : 'var(--text)',
-                background: isToday ? 'var(--teal-glow)' : 'transparent',
-                width: 28, height: 28, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '2px auto 0',
-              }}>
-                {d.getDate()}
-              </div>
+            <div key={i} className="nx-calendario-dia" aria-current={isToday ? 'date' : undefined}>
+              <span>{DAY_NAMES[i]}</span>
+              <strong>{d.getDate()}</strong>
             </div>
           )
         })}

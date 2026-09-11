@@ -36,22 +36,20 @@
  * obtiene. La barra de navegación no es sitio para PHI, y un módulo que
  * devuelve «el paciente y la hora» no puede filtrar lo que nunca sostiene.
  *
- * Si el respaldo no se puede desofuscar (uid distinto, dato corrupto, versión
- * vieja), el encuentro **sigue contando**: la clave existe, así que hay algo
- * abierto. Sólo se pierde el orden entre varios, y para eso hay un desempate
- * declarado abajo. Preferir «no hay nada» ante la duda escondería una consulta
- * a medio escribir, que es el caso que más duele.
+ * REG-674: si no se puede leer con el uid vivo, no se ofrece como destino.
+ * Antes se admitía con ts=0 y otra cuenta recibía el paciente del respaldo
+ * ajeno. Ignorarlo aquí NO borra la copia ni modifica su recuperación.
+ * REG-681: la clave exige cuenta y consultorio. Las copias legadas se conservan
+ * sin adoptarlas: no hay evidencia de su consultorio. El servidor autoriza el expediente.
  */
-import { PREFIJO_BORRADOR } from '@/lib/mobile/local-drafts'
-import { desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
+import { alcanceDelRespaldo, leerRespaldoConAlcance } from '@/lib/mobile/local-drafts'
 
 export interface EncuentroAbierto {
   patientId: string
   /** Episodio hospitalario, cuando la consulta cuelga de un internamiento. */
   internamientoId?: string
   /**
-   * Último autoguardado, en ms. `0` cuando el respaldo no se pudo leer — el
-   * encuentro cuenta igual, sólo pierde prioridad en el desempate.
+   * Último autoguardado, en ms. `0` cuando un respaldo legible no trae fecha.
    */
   ts: number
 }
@@ -64,33 +62,25 @@ export function rutaDelEncuentro(e: EncuentroAbierto): string {
 }
 
 /**
- * De `nx.consulta.bkp.<paciente>` o `nx.consulta.bkp.<paciente>.h.<episodio>`
- * a sus partes. Devuelve `null` si la clave no tiene esa forma — una clave
+ * De una clave con cuenta y consultorio a su paciente y episodio. Devuelve `null` si la clave no tiene esa forma — una clave
  * ajena no puede convertirse en un destino de navegación.
  */
 export function partesDeLaClave(clave: string): { patientId: string; internamientoId?: string } | null {
-  if (!clave.startsWith(PREFIJO_BORRADOR)) return null
-  const resto = clave.slice(PREFIJO_BORRADOR.length)
-  if (!resto) return null
-  const corte = resto.indexOf('.h.')
-  if (corte === -1) return { patientId: resto }
-  const patientId = resto.slice(0, corte)
-  const internamientoId = resto.slice(corte + 3)
-  if (!patientId || !internamientoId) return null
-  return { patientId, internamientoId }
+  const alcance = alcanceDelRespaldo(clave)
+  if (!alcance) return null
+  const { patientId, internamientoId } = alcance
+  return { patientId, ...(internamientoId ? { internamientoId } : {}) }
 }
 
 /**
  * El encuentro abierto más reciente, o `null` si no hay ninguno.
  *
  * DESEMPATE, declarado a propósito: gana el sello de tiempo más alto; entre
- * los que no se pudieron leer (ts 0), gana el ÚLTIMO que enumere el almacén,
- * que en todos los navegadores es el más recientemente escrito. Es una
- * heurística y por eso está escrita: lo que no se puede saber con certeza se
- * dice, no se disfraza.
+ * los legibles sin fecha (ts 0), gana el último que enumere el almacén.
+ * Ese orden no demuestra cuál se escribió después.
  */
-export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
-  if (typeof window === 'undefined') return null
+export function encuentroAbierto(uid?: string | null, clinicId?: string | null): EncuentroAbierto | null {
+  if (!uid || !clinicId || typeof window === 'undefined') return null
   let almacen: Storage
   try {
     almacen = window.localStorage
@@ -98,7 +88,6 @@ export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
     return null   // navegación privada con almacenamiento bloqueado
   }
 
-  const secreto = secretoLocal(uid)
   let mejor: EncuentroAbierto | null = null
 
   for (let i = 0; i < almacen.length; i++) {
@@ -110,13 +99,13 @@ export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
     let ts = 0
     try {
       const crudo = almacen.getItem(clave)
-      if (crudo) {
-        const claro = desofuscar(crudo, secreto)
-        // Sólo el sello. El contenido clínico no sale de esta línea.
-        if (claro) ts = Number((JSON.parse(claro) as { ts?: unknown }).ts) || 0
-      }
+      if (!crudo) continue
+      const respaldo = leerRespaldoConAlcance(crudo, clave, uid, clinicId)
+      if (!respaldo) continue
+      // Sólo el sello. El contenido clínico nunca se devuelve a la navegación.
+      ts = Number((respaldo as { ts?: unknown }).ts) || 0
     } catch {
-      /* respaldo ilegible: el encuentro cuenta igual, con ts 0 */
+      continue // ilegible o de otra cuenta: conservar sus bytes, no ofrecerlo
     }
 
     if (!mejor || ts >= mejor.ts) mejor = { ...partes, ts }

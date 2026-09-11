@@ -31,7 +31,7 @@
  *
  * El botón de ayuda mide 0.0999 en tema claro: es **más oscuro que la
  * superficie**, y ahí el panel vio bien. Pero no es un resto del tema oscuro:
- * es `var(--nexus-solido)` (#177886), el token de **relleno** del acento, que
+ * es `var(--nexus-solido)` (#075BCC), el token de **relleno** del acento, que
  * `globals.css` documenta con su contraste —5,16 : 1 con blanco encima— y que
  * usa también la corona del pulgar.
  *
@@ -141,7 +141,7 @@ describe('RTC-28 — el cromo sigue al tema, y lo que parece oscuro es un rellen
      * de contraste, el caso 3 estaría protegiendo un nombre vacío.
      */
     const css = leer('src/app/globals.css')
-    expect(css).toMatch(/--nexus-solido:\s*#177886/i)
-    expect(css).toMatch(/5\.16 : 1/)
+    expect(css).toMatch(/--nexus-solido:\s*#075BCC/i)
+    expect(css).toMatch(/6\.22 : 1/)
   })
 })

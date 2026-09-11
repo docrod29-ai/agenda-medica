@@ -237,7 +237,7 @@ export function loQueSoloSeMenciono<
 export function comoRecetaDeHoy(m: Medicamento): Medicamento {
   const { estado: _estado, motivoEstado: _motivo, ...resto } = m
   void _estado; void _motivo
-  return { ...resto, procedenciaClinica: 'se_prescribe_hoy', speaker: 'medico' }
+  return { ...resto, procedenciaClinica: 'se_prescribe_hoy', speaker: 'medico', origenCaptura: 'medico' }
 }
 
 /** Lo que el paciente ya tomaba. Va en la nota; no va en la receta. */
@@ -310,11 +310,12 @@ export function fusionarMedicamentos(p: FusionDeMedicamentos): Medicamento[] {
     .filter(m => m?.nombre?.trim())
     // Un renglón que no nombra un fármaco no es un medicamento (ver abajo).
     .filter(m => !esNombreSinPrecisar(m.nombre))
-    .map(sinIntencionAutomaticaNoEsReceta)
+    .map(m => sinIntencionAutomaticaNoEsReceta({ ...m, origenCaptura: 'ia' }))
   // REG-660: el nombre no demuestra que la dosis o el estado sigan siendo los
   // de la IA. Sólo se retira un renglón cuyo contenido completo sigue intacto.
   const anteriores = new Set((p.deLaIaAnterior ?? []).map(m => JSON.stringify(ordenEstable(m))))
-  const delMedico = previos.filter(m => !anteriores.has(JSON.stringify(ordenEstable(m))))
+  const delMedico = previos.filter(m => m.origenCaptura === 'medico'
+    || !anteriores.has(JSON.stringify(ordenEstable(m))))
 
   // 2 · Lo del médico primero: ante un empate, manda lo suyo.
   const out: Medicamento[] = []

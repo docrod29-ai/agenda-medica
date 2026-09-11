@@ -80,10 +80,11 @@ vi.mock('@/lib/firebase-admin', () => ({
   get adminDb() { return (tienda.actual as { db: unknown }).db },
 }))
 
-vi.mock('@/lib/authz/verificar', () => ({
+vi.mock('@/lib/authz/verificar', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/lib/authz/verificar')>(),
   verificarCapacidad: async () => ({
     ok: true, uid: 'medico-sintetico', email: 'sintetico@ejemplo.test',
-    clinicId: DESTINO, role: 'owner',
+    clinicId: DESTINO, role: 'admin',
   }),
 }))
 

@@ -78,6 +78,47 @@ export function estadoDoble(): EstadoDoble {
   }
 }
 
+/** Adaptador de LECTURA Admin sobre el mismo doble, para conservar los goldens
+ * al mover una consulta detrás de autorización HTTP. No sustituye al emulador. */
+export function lecturasAdminSobreCliente(h: EstadoDoble) {
+  const api = firestoreClienteSobre(h)
+  type Cursor = { id: string; data: () => Datos }
+  type Ref = {
+    ruta: string; collection: (n: string) => Ref; doc: (n: string) => Ref
+    where: (campo: string, op: string, valor: unknown) => Ref
+    orderBy: (campo: string, dir?: 'asc' | 'desc') => Ref
+    limit: (n: number) => Ref; startAfter: (...d: unknown[]) => Ref
+    get: () => Promise<unknown>
+  }
+  function ref(ruta: string, cs: Restriccion[] = [], cursor?: Cursor | unknown[]): Ref {
+    return {
+      ruta, collection: n => ref(`${ruta}/${n}`), doc: n => ref(`${ruta}/${n}`),
+      where: (campo, op, valor) => ref(ruta, [...cs, { t: 'where', campo, op, valor }], cursor),
+      orderBy: (campo, dir = 'asc') => ref(ruta, [...cs, { t: 'orderBy', campo, dir }], cursor),
+      limit: n => ref(ruta, [...cs.filter(c => c.t !== 'limit'), { t: 'limit', n }], cursor),
+      startAfter: (...d) => ref(ruta, cs, d.length === 1 && d[0] && typeof d[0] === 'object' ? d[0] as Cursor : d),
+      async get() {
+        if (ruta.split('/').length % 2 === 0) {
+          const snap = await api.getDoc({ ruta, id: ruta.split('/').at(-1)! })
+          return { ...snap, exists: snap.exists(), get: (campo: string) => snap.data()?.[campo] }
+        }
+        // Firestore desempata por nombre, incluso cuando el código no lo pide.
+        const ordenes = cs.filter((c): c is Extract<Restriccion, { t: 'orderBy' }> => c.t === 'orderBy')
+        if (!ordenes.some(o => o.campo === '__name__')) ordenes.push({ t: 'orderBy', campo: '__name__', dir: ordenes.at(-1)?.dir ?? 'asc' })
+        const restricciones = [...cs.filter(c => c.t !== 'orderBy'), ...ordenes]
+        if (cursor) restricciones.push({ t: 'startAfter', valores: Array.isArray(cursor) ? cursor : ordenes.map(o => o.campo === '__name__' ? cursor.id : cursor.data()[o.campo]) })
+        const snap = await api.getDocs({ tipo: 'query', ref: { tipo: 'col', ruta }, cs: restricciones })
+        return { ...snap, size: snap.docs.length, empty: snap.docs.length === 0,
+          docs: snap.docs.map(d => ({ ...d, exists: true, get: (campo: string) => d.data()[campo] })) }
+      },
+    }
+  }
+  return {
+    collection: (n: string) => ref(n),
+    getAll: (...refs: Array<Ref | { fieldMask: string[] }>) => Promise.all(refs.filter((r): r is Ref => 'ruta' in r).map(r => r.get())),
+  }
+}
+
 type Fila = { ruta: string; id: string; data: Datos }
 type Restriccion =
   | { t: 'orderBy'; campo: string; dir: 'asc' | 'desc' }

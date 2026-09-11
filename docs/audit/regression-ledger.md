@@ -26074,9 +26074,10 @@ diferencia de los índices (REG-433), no podía decir qué permiso faltaba.
 **Arreglo:** `R_STORAGE` entra en el acta (línea `STORAGE_RULES=` y condición
 de `PRODUCTION_RELEASE`); el paso guarda su salida en `storage.log` y le sigue
 «Storage · si fue permiso, decir cuál falta», que nombra el permiso denegado, el
-rol (`roles/firebasestorage.admin`), la lectura alternativa del «or it may not
-exist» (bucket sin vincular) y deja claro que las reglas de Firestore no fueron
-el problema.
+permiso que ya incluye `roles/firebasestorage.viewer` y deja claro que las
+reglas de Firestore no fueron el problema. La revisión de integración corrigió
+la recomendación inicial de Admin: un 403 no demuestra que falte el bucket ni
+autoriza a crearlo o vincularlo. Se comprueba el principal y el acceso efectivo.
 
 **Prueba permanente:** `src/__tests__/el-acta-dijo-success-con-storage-rojo.test.ts`
 (8 casos). Probada al revés contra el YAML de la #35: los ocho en rojo sin el
@@ -26085,3 +26086,156 @@ arreglo.
 **Qué NO cubre:** no despliega nada ni confirma que el rol sea el que falta —eso
 lo dice la siguiente ejecución del botón—; no cubre publicables futuros
 (`hosting`), que habrá que añadir al acta a mano.
+
+
+## REG-670 — una respuesta IA no se apropia de una edición médica (10-sep-2026)
+
+La revisión del PR #478 reprodujo pérdida de una dosis editada: la IA la repetía y una respuesta vacía posterior eliminaba el renglón. La comparación del contenido no prueba autoría. Se añade `Medicamento.origenCaptura`, sellado como `ia` al entrar por extracción y como `medico` al editar, añadir, aceptar, restaurar una versión o cambiar el estado desde la consulta. Reproyección y corrección conservan las capturas explícitas. El campo viaja con la nota y el borrador; no cambia la intención terapéutica ni activa órdenes.
+
+Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloques reales de primer plano y recuperación, eco seguido de retirada, ronda JSON, origen falsificado por IA y reproyección de una suspensión. Antes de la reparación fallaron los dos casos de eco/retirada. No demuestra QA privada montada, reglas Firestore ni aislamiento entre médicos.
+
+
+## REG-669 — Hoy no pierde la consulta iniciada ni ofrece un editor a recepción (10-sep-2026)
+
+**Descubrimiento:** revisión de la interfaz de Hoy. La selección comparaba la hora programada con el reloj del dispositivo; una consulta iniciada antes de esa hora desaparecía del héroe aunque siguiera en curso. Además, el enlace del héroe siempre apuntaba a consulta, incluso para recepción o sin paciente enlazado.
+
+**Arreglo:** selección única en `src/lib/hoy/cita-en-foco.ts`, conectada al reloj existente del consultorio. Prioridad: consulta en curso, paciente en sala, próxima cita abierta. Excluye citas atendidas, pagadas, finalizadas y canceladas; no modifica la agenda original. El destino de recepción o de una cita sin identidad enlazada es su detalle administrativo. «Retomar consulta» sólo deriva del estado guardado; pasar la hora no prueba atención. Un error de lectura oculta el héroe para no recomendar una cita obsoleta.
+
+**Prueba permanente:** `src/__tests__/hoy-conserva-la-consulta-en-curso.test.ts`, nueve casos. La selección y el enlace originales reproducidos fallaron siete casos; tras el arreglo pasaron los nueve y los diecinueve guardianes existentes de Hoy (28 en total).
+
+**Qué NO cubre:** autorización efectiva de servidor, aislamiento entre médicos, concurrencia de Firestore, cuenta privada, layout en navegador ni Safari real. No es una prueba de que el paciente esté siendo atendido por la hora.
+
+**Ampliación de REG-669 (11-sep-2026).** Las capturas reales del nuevo recorrido de CI mostraron viernes 11 y «Buenos días» en Hoy, mientras el calendario y las citas seguían correctamente en jueves 10, a las 18 h del consultorio. El encabezado usaba dos lecturas del reloj del dispositivo. Ahora `presentacionDelDia` recibe el día ya utilizado para filtrar citas y los minutos canónicos; no vuelve a decidir la zona. Se amplía el caso existente de reloj/día con las fronteras del saludo y una fecha fija; el E2E compara además la fecha visible contra la zona de la siembra. No aumenta el número de casos ni declara QA de la cuenta privada.
+
+
+## REG-671 — tres puertas clínicas del Admin SDK también exigen acceso al paciente (11-sep-2026)
+
+**Descubrimiento:** revisión independiente al integrar #487 con v1196. `expediente/paquete-de-visita`, la rama clínica de `portal/link` y la rama del equipo de `telesalud/sala` sólo pedían capacidad de rol. Un médico ajeno del mismo consultorio superaba ese filtro. Las dos rutas de URL reprodujeron HTTP 200 con un paciente de otro titular.
+
+**Arreglo:** las tres llaman al guardián canónico `verificarCapacidadSobrePaciente`. Se conserva `firmar` para paquetes/enlaces, `clinico.leer` para sala, la membresía del enlace administrativo, la precedencia del token del paciente y el 404 de sala cuando nada autoriza. La identidad de la sala viene de la cita leída, no del cuerpo de la petición.
+
+**Prueba:** `src/__tests__/paciente-ajeno-no-abre-puertas-clinicas.test.ts`: nueve casos ejecutados; cinco negativos fallaron antes, y los nueve pasan después. Se ejecutan POST reales con Admin SDK sintético y autorización real de capacidad/paciente. Se comprueban las tres acciones de paquete sin lectura clínica ni escritura, enlace/sala sin URL y positivos para titular, compartido y admin; recepción conserva agenda. Los casos existentes de revocación y paquete distinguen ahora la lectura de ACL de la lectura clínica posterior.
+
+**Límites:** no despliega reglas ni migra datos. La ficha raíz aún contiene PHI legada accesible a miembros y D-057 permite pacientes sin titular hasta asignarlos; este arreglo no acredita aislamiento completo ni QA privada. No usa pacientes reales.
+
+## REG-672 — Storage entra en la comparación del árbol y en el lector de objetivos (11-sep-2026)
+
+**Descubrimiento:** la revisión del run #35 y de #490 encontró dos omisiones: Compuerta 0 no comparaba `storage.rules` ni `firebase.json`, y el lector de `--only` ignoraba `storage` por no llevar dos puntos. Un pin podía parecer equivalente aun publicando otras reglas/configuración.
+
+**Arreglo:** los dos archivos entran en `PUBLICABLES`. El lector reconoce la publicación completa de Storage y exige su archivo de reglas; un producto completo desconocido falla explícitamente. El aviso del 403 no prescribe crear/vincular buckets ni ampliar a Admin sin evidencia: Viewer contiene el permiso de lectura observado; el acceso efectivo se verifica fuera.
+
+**Pruebas:** `src/__tests__/el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts` inspecciona la variable que realmente se compara, no cualquier mención en el YAML; `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts` exige Storage y quita su declaración como control negativo. Tres casos fallaron antes. Tras el arreglo, la suite completa pasa.
+
+**Límites:** no prueba IAM, existencia del bucket ni construcción de índices; Storage continúa pendiente del acceso externo y de un despliegue correcto. No modifica reglas de datos.
+
+## REG-673 — las iniciales del paciente se leen también en claro (11-sep-2026)
+
+**Descubrimiento:** revisión independiente de las capturas del rediseño. Los seis avatares usaban texto pastel fijo, con contraste de 1.01–1.56:1 en el canvas claro. La inicial verde en Pacientes prácticamente desaparecía.
+
+**Arreglo:** el helper canónico `src/lib/avatar-color.ts` usa los seis pares temáticos existentes del sistema, conservando el hash del nombre. No hay un componente paralelo ni cambios de identidad o significado clínico.
+
+**Prueba permanente:** `src/__tests__/las-iniciales-del-paciente-se-leen.test.ts` mide los colores resueltos y su transparencia sobre cinco superficies, en oscuro, claro y automático claro. Reproducción inversa antes de cambiar el helper: doce casos fallan y seis pasan; después, los dieciocho pasan.
+
+**Límite:** comprueba pares de tokens, no toda composición del navegador, autorización ni aislamiento del expediente.
+
+## REG-674 — Retomar no ofrece un respaldo ilegible de otra cuenta (11-sep-2026)
+
+**Descubrimiento:** auditoría independiente del PR #487 con el lector real y dos usuarios sintéticos. `encuentroAbierto` devolvía el paciente de A a B, y también sin sesión, con `ts=0`. El antiguo caso 4 de RTC-08 fijaba esa conducta incorrecta: confundía conservar una copia con ofrecerla como destino.
+
+**Arreglo:** exigir uid vivo antes de leer almacenamiento y un objeto JSON desofuscable con ese uid antes de ofrecer el encuentro. No borrar ni convertir respaldos ilegibles, corruptos o legados en claro. El propietario sigue encontrando su copia original.
+
+**Prueba permanente:** `src/__tests__/v15-rtc08-encuentro-es-un-lugar.test.ts`, catorce casos. Cinco negativos fallaron con el lector original; los catorce pasan después. El doble de Storage es mutable para que intentar borrar la copia rompa la comprobación de conservación.
+
+**Límite:** ofuscación no es autenticación criptográfica. Esto cierra el destino derivado de respaldos ilegibles; no acredita clínica, memoria, recuperación legada ni permisos de servidor. Las claves antiguas siguen sin clinicId/uid.
+
+## REG-675 — un respaldo tardío no adopta el uid de la cuenta siguiente (11-sep-2026)
+
+**Descubrimiento:** auditoría independiente ejecutando `flushRespaldo` real, extraído por AST. Al cambiar auth de A a B antes de ejecutarlo, el contenido vivo de A quedaba escrito con el uid de B. El debounce tenía la misma lectura tardía; reabrir el pestillo para B no distinguía quién escribió el contenido.
+
+**Arreglo:** fijar el uid al montar consulta, comprobar identidad al ejecutar cada callback y usar sólo ese uid para ofuscar. El cierre solicita primero el flush síncrono mientras A sigue autenticado, antes del guardado al servidor: así un fallo de red anterior al debounce no pierde la última tecla. Se mantienen las dos formas canónicas de guardar, el pestillo y la declaración de audio.
+
+**Prueba permanente:** `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`, ocho casos, ejecutando callbacks reales de la pantalla. Cinco fallaron antes; pasan después: A→B/null en ambos caminos, dueño legítimo, purga y copia conservada antes de un fallo rápido de red. Revisión independiente del diff sin regresión concreta en ese alcance.
+
+**Límite:** no ejecuta Firebase real ni cubre separación por clínica, cajón en memoria, recuperación del legado o autoguardado al servidor. No migra ni borra datos.
+
+## REG-676 — un guardado rechazado no autoriza purgar el respaldo al salir (11-sep-2026)
+
+**Descubrimiento:** al continuar la QA de PR #487, la revisión independiente ejecutó `guardarBorrador` y `alGuardarTodo` reales con `createNota` rechazando. El catch absorbía el fallo: el acuse quedaba fulfilled y `salirSeguro` borraba la copia local recién conservada por REG-675. El caso de REG-675 comprobaba el flush con un doble de guardado que sí rechazaba; no recorría ese catch.
+
+**Arreglo:** `confirmarPersistencia`, activado sólo por el listener de salida, rechaza la ausencia de clínica, lecturas fallidas de nota/paciente, conflicto de versión y excepciones de persistencia. El botón y autoguardado conservan su manejo de errores. Se devuelve la promesa original al acuse y se sanea sólo la cadena interna para permitir el siguiente intento. Firmar o descartar a propósito siguen siendo salidas sin nueva escritura.
+
+**Prueba permanente:** `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`, con los tres callbacks reales extraídos por AST y `salirSeguro` importado. La prueba recorre el borrado del Map de almacenamiento, la conservación de la última tecla, el aviso de salida, el éxito legítimo y un segundo intento tras fallo. En conjunto con REG-677: trece casos fallaron antes y seis pasaron; los diecinueve pasan tras reparar. La construcción clínica y el audio usan dobles y quedan fuera de esta prueba.
+
+**Límite:** no usa Firebase ni pacientes reales. No acredita el resto de borradores guardados en otras pantallas ni la recuperación legada. Completa la protección de la copia previa al logout de REG-675 frente a este acuse falso; no equivale a aislamiento completo.
+
+## REG-677 — el guardado en cola conserva la identidad del montaje (11-sep-2026)
+
+**Descubrimiento:** la misma revisión reprodujo tres llamadas nuevas a `createNota` bajo la identidad siguiente: entrar al callback después de cambiar cuenta; liberar su cola después del cambio; y recibir `nota-inexistente` tras cambiar cuenta mientras esperaba `updateNota`.
+
+**Arreglo:** reutilizar `uidDelMontaje` de REG-675 y comprobarlo al entrar, al ejecutar la cola y antes de recrear la nota perdida. Si cambia la sesión, no se inicia esa escritura. El acuse de salida rechaza también este bloqueo y conserva el respaldo; no se desmontan almacenes ni se modifica el formato de claves.
+
+**Prueba permanente:** `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`: seis negativos, A→B y A→sin sesión en los tres puntos, más continuidad al renovar Auth conservando el uid. El golden de descarte recibe una identidad sintética válida para seguir alcanzando su propia guarda dentro de la cola.
+
+**Límite:** no cancela una petición ya enviada al SDK ni certifica cambio de clínica con el mismo uid, cajones en memoria, recuperación en claro o permisos sobre PHI legada. No migra ni borra datos de producción.
+
+
+## REG-678 — misma clínica no abre datos derivados ni exportaciones ajenas (11-sep-2026)
+
+**Reproducción:** el emulador real del PR #491 (SHA 5bb6ab9, job 103229385587) permitió siete peticiones que debían fallar: cuatro subcolecciones de paciente, modificar alergias legacy, leer tarea ajena y leer bitácora ajena. Los cuatro comodines interiores `docId` ocultaban el ID del paciente; la guarda examinaba el recurso derivado como si fuera el paciente. Los handlers reales de CSV/Excel también consultaban subcolecciones ajenas. `administrar` se concedía al médico y no equivalía a rol admin.
+
+**Arreglo:** nombres de comodín únicos; alcance de paciente en lecturas derivadas y escritura clínica legacy; CSV/Excel autorizan antes de leer subcolecciones; operaciones globales exigen rol admin explícito. La misma colección de tareas se lee por una puerta HTTP que filtra antes del tope, con lectura de fichas en lote, presupuesto explícito y la red histórica de urgencia conservada. La vista de bitácora usa su endpoint existente y filtra por alcance; el CSV global queda administrativo.
+
+**Pruebas permanentes:** `emulator/privacidad-misma-clinica.emu.test.ts`, `src/__tests__/matriz-acceso.test.ts`, `src/__tests__/administrar-no-concede-todos-los-expedientes.test.ts`, `src/__tests__/exportar-no-abre-el-expediente-ajeno.test.ts`, `src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts` y `src/__tests__/bitacora-filtro.test.ts`. Se conservan controles positivos, share/revocación y urgencia tras 201 tareas ajenas.
+
+**Límite:** este checkpoint no declara migrado el PHI legacy del documento administrativo, ni asignados los pacientes históricos, ni verificada producción. Esos datos requieren su cierre separado; no desplegar como aislamiento completo.
+
+## REG-679 — el evaluador no acepta una dosis o negación diferente (11-sep-2026)
+
+**Reproducción:** ocho fallos al ejecutar `src/__tests__/la-medicion-no-aprueba-cambios-clinicos.test.ts` contra la implementación anterior. La comparación por subcadena aceptaba 5 mg/15 mg, pérdida de negación, vía o lateralidad y otras alteraciones. El decimal podía perder su separador.
+
+**Arreglo:** comparación normalizada exacta y conservadora; se mantienen decimales, cifras, negaciones y tokens completos en el control de sustento. Una paráfrasis no idéntica requiere revisión humana; esto corrige el instrumento, no una decisión clínica. Se fortalecen `src/__tests__/ia-evaluacion.test.ts` y `src/__tests__/oro-alucinacion.test.ts`.
+
+**Validación:** cinco archivos dirigidos, 63 casos aprobados. No representa participación de revisores externos ni rendimiento de un proveedor de IA en producción.
+
+## REG-680 — guardar no acusa éxito cuando falla o cambia la sesión (11-sep-2026)
+
+**Reproducción:** cuatro negativos fallaron ejecutando `guardarBorrador` real mediante AST: fallo de red, conflicto, cuenta cambiada en la cola y cambio mientras se esperaba la nota inexistente.
+
+**Arreglo:** la promesa entregada al cierre conserva el rechazo; la cola permite reintentar después. La identidad de la nota se fija al montaje y se revalida antes de escribir/recrear. El contexto de consultorio reinicia sus proveedores existentes al cambiar de cuenta o clínica, sin afectar la navegación dentro del mismo consultorio.
+
+**Prueba permanente:** `src/__tests__/guardar-no-acusa-un-fallo-como-exito.test.ts`, con fallo/reintento y control positivo. Conserva `src/__tests__/consulta-descartada-no-resucita.test.ts` y `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`.
+
+**Límite:** este checkpoint aún no cambia las claves locales legacy, no purga copias de origen incierto ni demuestra un logout privado contra producción.
+
+
+## REG-681 — el acuse de guardado pertenece a una cuenta y un consultorio (11-sep-2026)
+
+**Reproducción:** el mismo uid podía adoptar el respaldo al cambiar de clínica; una salida exitosa también purgaba copias de otros encuentros sin haberlas guardado. La lectura local del listener podía lanzar SecurityError antes de iniciar el guardado.
+
+**Arreglo:** clave canónica por cuenta, clínica, paciente y episodio; montaje invalidado también al cambiar de rol; caché ligada a la cuenta. La purga exige clave y bytes exactos de un guardado confirmado. Se conserva una edición posterior y cualquier copia sin acuse. Fallar al leer almacenamiento local no impide guardar en servidor. La firma revalida la sesión tras esperas.
+
+**Pruebas permanentes:** `src/__tests__/el-respaldo-pertenece-al-consultorio.test.ts`, `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`, `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`. Retirar la guarda de purga produce tres fallos; restituirla conserva el control positivo. Datos sintéticos y callbacks reales; no acreditan cifrado del almacenamiento ni cancelan escrituras ya enviadas.
+
+## REG-682 — el directorio no descarga el expediente clínico de otro médico (11-sep-2026)
+
+**Reproducción:** la lectura raíz permitía a recepción y a otro médico obtener alergias y otros campos clínicos legados. El emulador de privacidad reproduce peticiones por ID conocido; el handler se comprueba con marcadores privados, también en campos futuros y objetos anidados.
+
+**Arreglo:** raíz bajo alcance clínico. La fachada existente de pacientes llama a un único directorio autenticado con proyección explícita, sin duplicar documentos. Lista, búsqueda y lectura individual conservan límites, cursores y errores. Titular, compartido y administrador conservan su expediente completo.
+
+**Pruebas permanentes:** `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts`, `src/__tests__/scale-342-lecturas-acotadas.test.ts`, `src/__tests__/ninguna-pantalla-recibe-una-lista-muda.test.ts`, `emulator/privacidad-misma-clinica.emu.test.ts`. Prueba inversa: retirar la proyección produce tres fallos con marcadores privados; restituirla pasa. No acredita despliegue: el hash confirmado de reglas sólo cambia después de publicar.
+
+## REG-683 — la falta de titular y los códigos de invitación no elevan privilegios (11-sep-2026)
+
+**Reproducción:** la ausencia de titular autorizaba lectura y apropiación por cualquier médico. El listado de invitaciones entregaba códigos administrativos a médicos aunque no pudieran emitirlos.
+
+**Arreglo:** sólo admin asigna un expediente sin titular; la petición de acceso acepta exclusivamente una tarea de contenido fijo, autor y destinatario comprobados. Cada médico ve y revoca sólo sus invitaciones de roles permitidos; admin conserva la gestión. El asignador histórico pagina y no se ejecuta automáticamente ni adivina propietarios.
+
+**Pruebas permanentes:** `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts`, `src/__tests__/cada-medico-ve-sus-pacientes.test.ts`, `emulator/privacidad-misma-clinica.emu.test.ts`. No se modificaron pacientes ni invitaciones reales.
+
+## REG-684 — proteger la ficha conserva la agenda y el rescate de notas (11-sep-2026)
+
+**Reproducción:** con la raíz privada, la transacción de cancelación de recepción fallaba al leer los contadores del paciente; el rescate de notas fallaba al listar pacientes sin autorización.
+
+**Arreglo:** PATCH de appointments ejecuta la misma decisión canónica y transacción atómica, con capacidad de agenda y compuerta de escritura del consultorio. No devuelve PHI. El rescate pide IDs autorizados al mismo directorio, conserva el techo y sondea sólo esos pacientes; no abre lecturas privadas para recuperar el funcionamiento.
+
+**Pruebas permanentes:** `emulator/gp9-transiciones-idempotentes.emu.test.ts` prueba recepción sin lectura clínica, concurrencia y suspensión; `src/__tests__/scale-342-lecturas-acotadas.test.ts` conserva rescate, ambigüedad y escala; `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts` comprueba los IDs y el recorte. Sólo datos sintéticos.

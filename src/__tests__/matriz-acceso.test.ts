@@ -6,6 +6,7 @@ import {
   rolesDe, puedeLeer, puedeEscribir, normalizarRuta, matrizComoMarkdown,
   type Rol, type Guarda,
 } from '@/lib/authz/matriz-acceso'
+import { tieneCapacidad } from '@/lib/authz/capabilities'
 import { permisosPorRol } from '@/lib/permissions'
 
 /**
@@ -59,6 +60,12 @@ function rutasDeLasReglas(): string[] {
 const RUTAS_REGLAS = rutasDeLasReglas()
 
 describe('E0-06 · el parser de firestore.rules ve el archivo real', () => {
+  it('ningún comodín interior oculta la identidad de su ancestro', () => {
+    for (const ruta of RUTAS_REGLAS) {
+      const variables = [...ruta.matchAll(/\{([^}=]+)(?:=\*\*)?\}/g)].map(m => m[1])
+      expect(new Set(variables).size, ruta).toBe(variables.length)
+    }
+  })
   it('encuentra las rutas anidadas conocidas (control de que el parser no miente)', () => {
     expect(RUTAS_REGLAS).toContain('clinics/{clinicId}')
     expect(RUTAS_REGLAS).toContain('clinics/{clinicId}/patients/{docId}')
@@ -143,9 +150,9 @@ describe('E0-06 · ACEPTACIÓN — recepción lee cita, no lee contenido clínic
   it('recepción SÍ lee la cita (la mitad afirmativa de la aceptación)', () => {
     for (const rol of ROLES_NO_CLINICOS) {
       expect(puedeLeer(rol, 'clinics/{clinicId}/appointments/{docId}')).toBe(true)
-      // Y el directorio del paciente: agendar exige nombre y teléfono. Cerrarlo
-      // rompería la agenda, que es justo lo que la aceptación pide preservar.
-      expect(puedeLeer(rol, 'clinics/{clinicId}/patients/{docId}')).toBe(true)
+      // El directorio proyectado conserva nombre y teléfono; la raíz contiene PHI.
+      expect(tieneCapacidad(rol, 'pacientes.directorio')).toBe(true)
+      expect(puedeLeer(rol, 'clinics/{clinicId}/patients/{docId}')).toBe(false)
     }
   })
 

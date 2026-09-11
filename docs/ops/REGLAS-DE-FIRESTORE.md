@@ -54,23 +54,11 @@ Que ese paso no se pueda borrar en silencio lo vigila
 
 ## PENDIENTE DE DESPLIEGUE
 
-Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
-producción.
-
-**Hoy está vacía** (11-sep-2026). La ejecución **#35** del botón, sobre el
-árbol `15b2b91` (v1196), publicó las reglas de D-057/D-058 y el índice catorce;
-`hashDesplegado` en `firestore.rules.estado.json` es el de hoy. Lo único que
-sigue sin regir es `storage.rules`, que tiene su sección propia más abajo porque
-es otro despliegue, otro permiso y otro registro.
-
-| Qué NO rige hoy | Desde | Qué se rompe mientras tanto |
+| Cambio | Qué NO rige hoy | Consecuencia hasta desplegar |
 |---|---|---|
-
-Las seis filas que hubo aquí el 10-sep —`esMedicoDelPaciente` en las
-subcolecciones clínicas, la guarda de `medicoTitularUid`/`compartidoCon`, las
-tareas de recepción, `estudios_aportados`, `storage.rules` y el índice de
-`tareas_clinicas(area, …)`— se cerraron el 11-sep con la #35, **salvo la de
-Storage**, que sigue abajo.
+| REG-682: aislamiento del expediente | Lectura raíz y subcolecciones exigen titular, compartido o administrador. | Las reglas anteriores permiten leer campos clínicos desde otras cuentas del consultorio. |
+| REG-682: tareas y auditoría | Alcance por paciente y tareas administrativas de recepción. | El navegador puede consultar pendientes clínicos ajenos con las reglas anteriores. |
+| REG-683: pacientes sin titular | Asignación exclusiva del administrador y solicitud de acceso limitada. | Un médico puede reclamar expedientes sin asignación bajo la regla anterior. |
 
 ## PENDIENTE DE DESPLIEGUE · Storage
 
@@ -99,9 +87,7 @@ y media después, lo cerró. Mismo patrón que los índices el 4-sep
 (`roles/datastore.indexAdmin`): el permiso de publicar reglas de Firestore no
 arrastra los demás, y cada publicable nuevo del botón trae el suyo.
 
-Si vuelve a salir 403 aquí con el rol puesto, el «or it may not exist» es
-literal: el bucket por defecto no está vinculado a Firebase (consola de
-Firebase → Storage → Comenzar, una sola vez).
+Storage quedó publicado en la ejecución #36. No se requiere otra intervención de IAM para este cierre.
 
 La fila que hubo aquí, el 7-sep-2026, era la clave `emailInvitado` en la forma
 congelada de `clinic_invitations` — la invitación **nominativa**, que sólo acepta
