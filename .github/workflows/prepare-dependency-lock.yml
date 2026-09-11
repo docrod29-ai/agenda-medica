@@ -16,37 +16,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Herramienta temporal de recuperación del entorno local. Produce un
-      # candidato revisable; nunca escribe en el repositorio ni despliega.
-      - name: Preparar las correcciones compatibles
-        run: |
-          node <<'JS'
-          const fs = require('node:fs')
-          const p = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          p.devDependencies.vitest = '^4.1.11'
-          p.devDependencies['@vitest/coverage-v8'] = '^4.1.11'
-          p.overrides = { ...p.overrides, qs: '^6.16.0',
-            'google-gax': { uuid: '^11.1.1' },
-            'teeny-request': { uuid: '^11.1.1' },
-            gaxios: { uuid: '^11.1.1' } }
-          fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n')
-          JS
-          npx --yes npm@11 install --package-lock-only --ignore-scripts --no-audit --fund=false
-          npx --yes npm@11 update dompurify baseline-browser-mapping qs @google-cloud/firestore @google-cloud/storage google-gax teeny-request retry-request gaxios browserslist fast-uri js-yaml hono morgan vitest @vitest/coverage-v8 @opentelemetry/core stream-json csv-parse --package-lock-only --ignore-scripts --no-audit --fund=false
-      - name: Exportar el candidato con huellas Git
-        run: |
-          node <<'JS'
-          const fs = require('node:fs')
-          const crypto = require('node:crypto')
-          for (const path of ['package.json', 'package-lock.json']) {
-            const bytes = fs.readFileSync(path)
-            const hash = crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob ' + bytes.length + '\0'), bytes])).digest('hex')
-            console.log('CANDIDATE:' + path + ':SHA:' + hash)
-            const data = bytes.toString('base64')
-            for (let i = 0; i < data.length; i += 12000)
-              console.log('CANDIDATE:' + path + ':CHUNK:' + data.slice(i, i + 12000))
-          }
-          JS
+      # Temporal: valida el lock publicado y deriva el informe canónico.
+      # No escribe en GitHub, no usa secretos y no despliega.
       - name: Instalar y comprobar consumidores de UUID
         run: |
           npm ci --ignore-scripts --no-audit --fund=false
@@ -93,5 +64,19 @@ jobs:
           JS
       - name: Auditar producción
         run: npm audit --omit=dev
+      - name: Derivar y exportar el informe
+        run: |
+          node scripts/seguridad/auditar.mjs
+          node <<'JS'
+          const fs = require('node:fs')
+          const crypto = require('node:crypto')
+          const path = 'docs/seguridad/ESTADO-DEPENDENCIAS.md'
+          const bytes = fs.readFileSync(path)
+          const hash = crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob ' + bytes.length + '\0'), bytes])).digest('hex')
+          console.log('CANDIDATE:' + path + ':SHA:' + hash)
+          const data = bytes.toString('base64')
+          for (let i = 0; i < data.length; i += 12000)
+            console.log('CANDIDATE:' + path + ':CHUNK:' + data.slice(i, i + 12000))
+          JS
       - name: Auditar también desarrollo
         run: npm audit
