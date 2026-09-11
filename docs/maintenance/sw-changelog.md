@@ -3922,6 +3922,34 @@ de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
 
+## v1196 — 11-sep-2026
+
+**PR #488 · cada médico ve sus pacientes (D-057), el paciente sube estudios
+(D-058) y los pendientes de agenda y portal (D-053…D-056)** — con autorización
+del dueño, tras contestar él las preguntas abiertas del 10-sep.
+
+- **Cada médico ve sus pacientes.** `medicoTitularUid` y `compartidoCon` en la
+  ficha; la regla vive en un solo módulo y las reglas de Firestore la
+  transcriben (`esMedicoDelPaciente`) en todas las subcolecciones clínicas.
+  Los pacientes de antes no tienen titular y se ven como siempre hasta
+  asignarlos (Configuración → Médicos, desde su última cita). La asistente ve
+  el equipo, la agenda y sólo los pendientes de recepción. El titular comparte
+  y revoca; otro médico pide acceso. Sin acceso de emergencia: no se decidió.
+- **El paciente sube estudios desde el portal.** PDF y fotos (incluido HEIC),
+  20 MB, 5 por envío, 12 al mes; entran «sin revisar» con tarea para el
+  médico, que los abre por URL firmada, los lee con la IA o los marca
+  revisados. Primer despliegue de `storage.rules` por el botón de producción.
+- **Agenda y portal.** Lista de espera avisa a todos los compatibles;
+  confirmación directa o manual configurable; dentro de las 12 h el paciente
+  pide el cambio desde el portal; lo administrativo va a recepción.
+- **Lo que este despliegue publica además del código**: reglas de Firestore,
+  un índice nuevo (`tareas_clinicas · area · estado · pesoUrgencia · creadaEn`)
+  y las reglas de Storage. Hasta que el botón corra, recepción no ve sus
+  pendientes y la subida de estudios falla. `docs/ops/REGLAS-DE-FIRESTORE.md`.
+- **Confirmado que no hay «mezcla de pacientes»** por respuesta tardía de la
+  IA al cambiar de paciente (sonda con control positivo), y el ensayo de
+  100 000 activos nombrado con mezcla de roles.
+
 ## v1195 — 10-sep-2026
 
 **PR #478 · consulta de tres áreas, agenda segura y dependencias** — el lote de

@@ -32,7 +32,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { armarExpediente } from '@/lib/expediente/exportacion-servidor'
 
 /** Es una lectura amplia: se le da aire, pero no los 300 s de una llamada de IA. */
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ pati
    * médico por secreto profesional (NOM-004). Con el permiso de mostrador, una
    * cuenta de recepción se llevaría todo por aquí.
    */
-  const acc = await verificarCapacidad(req, clinicId, 'clinico.escribir')
+  const acc = await verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')
   if (!acc.ok) return acc.response
 
   try {

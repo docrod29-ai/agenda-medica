@@ -24,6 +24,8 @@ import { Button, EmptyState, Spinner, Badge } from '@/components/ui'
 import { FotosClinicas } from '@/components/FotosClinicas'
 import { ResumenPaciente } from '@/components/expediente/ResumenPaciente'
 import { PatientAnchor } from '@/components/expediente/PatientAnchor'
+import { CompartirExpediente } from '@/components/CompartirExpediente'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { ClinicalSpine, type ClinicalSpineItem } from '@/components/expediente/ClinicalSpine'
 import { ProcedenciaDeLaNota } from '@/components/expediente/ProcedenciaDeLaNota'
 import { navegarConContinuidad } from '@/lib/ui/continuidad'
@@ -83,7 +85,7 @@ export default function ExpedientePage() {
   const { patientId } = useParams<{ patientId: string }>()
   const router = useRouter()
   const volver = useSmartBack('/pacientes')
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const { user } = useAuth()
   const { toast, confirm } = useToast()
   const { notas, loading, error: errorNotas, reload, truncada: historialTruncado, techo: techoHistorial } = useExpediente(patientId)
@@ -313,6 +315,20 @@ export default function ExpedientePage() {
     ...(clinicId && patientId ? [{ id: 'fotos', label: 'Fotografía clínica' }] : []),
   ]
 
+  /**
+   * D-057: el expediente de OTRO médico no se pinta a medias con errores de
+   * permiso: se enseña la ficha, quién es el titular y cómo pedirle acceso.
+   */
+  if (patient && role && !puedeVerExpediente(patient, user?.uid, role)) {
+    return (
+      <div style={{ padding: 16 }}>
+        <h1 className="nx-vt-paciente" style={{ fontSize: 20, margin: '0 0 4px', color: 'var(--text)' }}>{patient.nombre}</h1>
+        {patient.telefono && <p style={{ color: 'var(--text2)', margin: 0 }}>{patient.telefono}</p>}
+        <CompartirExpediente patient={patient} onCambio={setPatient} />
+      </div>
+    )
+  }
+
   return (
     <div className="nx-canvas">
       {/* Back */}
@@ -370,6 +386,7 @@ export default function ExpedientePage() {
           </button>
         }
       />
+      {patient && <CompartirExpediente patient={patient} onCambio={setPatient} />}
 
       {/* CLINICAL SPINE (§7, V15-PATIENT-WORKSPACE-001) — recorrido
           longitudinal por el expediente de ESTE paciente. Reemplaza el

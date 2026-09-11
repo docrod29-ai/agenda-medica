@@ -80,7 +80,7 @@ describe('el formulario NO toca el expediente', () => {
     const bloque = reglas.slice(i, i + 400)
     expect(bloque).toContain('allow write: if false')
     // Y es secreto médico: lo lee quien lee las notas, no recepción.
-    expect(bloque).toContain('allow read: if isMedico(clinicId)')
+    expect(bloque).toContain('allow read: if esMedicoDelPaciente(clinicId, docId)') // D-057
   })
 
   it('la consulta lo enseña SEPARADO y declarado', () => {

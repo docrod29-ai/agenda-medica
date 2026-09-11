@@ -165,7 +165,18 @@ export async function ofrecerHuecoLiberado(
 
     const clinicName = config.nombreClinica || config.nombreMedico
     let notified = 0
-    const LIMITE_NOTIFICAR = 3
+    /**
+     * SE AVISA A TODOS LOS COMPATIBLES — D-053.
+     *
+     * Hasta hoy `LIMITE_NOTIFICAR = 3`: sólo los tres primeros de la fila se
+     * enteraban de que había hueco, y si ninguno contestaba el hueco se
+     * quedaba vacío con gente esperando más abajo. El dueño decidió el
+     * 9-sep-2026: avisar a todos los compatibles y que el primero que confirme
+     * se lo quede — y eso segundo ya lo garantiza la transacción del webhook
+     * (`CONFLICTO` para el que llega tarde). Lo que sigue acotando es
+     * `TOPE_LISTA` (la lectura) y el tope diario por contacto de
+     * `enviarProactivo`, que no son de esta decisión.
+     */
 
     /**
      * Orden y elegibilidad en memoria (ver `lib/whatsapp/lista-espera.ts`):
@@ -179,7 +190,6 @@ export async function ofrecerHuecoLiberado(
 
     for (const entradaOrdenada of ordenados) {
       const doc = waitlistSnap.docs.find(d => d.id === entradaOrdenada.id)!
-      if (notified >= LIMITE_NOTIFICAR) break
       const entry = { id: doc.id, ...doc.data() } as WaitlistEntry
 
       if (!entry.pacienteTelefono) continue

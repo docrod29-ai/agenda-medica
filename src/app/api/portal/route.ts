@@ -38,7 +38,12 @@ import {
 import { urgenciaDelMensaje } from '@/lib/paciente/urgencia'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
-import { tareaDeUnaPregunta, idDeTareaDePregunta } from '@/lib/tareas-clinicas/de-una-pregunta'
+import { tareaDeUnaPregunta, idDeTareaDePregunta, tareaDeUnaSolicitudAdministrativa, ORIGEN_SOLICITUD_DE_CAMBIO } from '@/lib/tareas-clinicas/de-una-pregunta'
+import { tareaDeUnEstudioAportado, idDeTareaDeEstudio } from '@/lib/tareas-clinicas/de-un-estudio'
+import {
+  rechazoDelEnvio, rechazoDeArchivo, rutaDeEstudio, esRutaDeEstudioDe, idDeRuta, uidDelPortal, nombreLimpio, esDelMes,
+  TEXTO_RECHAZO, TEXTO_ESTADO, type EstudioAportado, type EstadoDeRevision, type ArchivoCandidato,
+} from '@/lib/portal/estudios-aportados'
 import type { Patient } from '@/types'
 
 /**
@@ -70,7 +75,7 @@ const ACCIONES_QUE_MUEVEN = new Set([
 ])
 
 /** Las que devuelven secreto médico. Exigen alcance `clinico` Y su propio cupo. */
-const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas', 'inicio', 'compartir-documento'])
+const ACCIONES_CLINICAS = new Set(['documentos', 'paquetes', 'preguntar', 'preguntas', 'inicio', 'compartir-documento', 'credencial-estudio', 'registrar-estudio', 'estudios'])
 
 /**
  * PREGUNTAR TIENE SU PROPIO FRENO, Y NO ES EL DE LA AGENDA.
@@ -100,6 +105,28 @@ function horasHasta(fechaHora: string, tz: string): number {
   const t = instanteMX(s.slice(0, 10), s.slice(11, 16), tz).getTime()
   return (t - Date.now()) / 3_600_000
 }
+
+/**
+ * CADA CITA DICE SI TODAVÍA SE PUEDE CAMBIAR EN LÍNEA — D-055.
+ *
+ * La regla de las 12 h se aplicaba SÓLO al actuar: el paciente veía Reagendar y
+ * Cancelar, tocaba, y entonces se enteraba de que ya no podía. Ahora el servidor
+ * —que es quien conoce la zona del consultorio— lo dice al listar, y la pantalla
+ * ofrece lo que sí procede: pedir el cambio al consultorio.
+ */
+function conVentanaDeCambio<T extends { fechaHora: string }>(citas: T[], zonaHoraria?: string | null) {
+  const tz = zonaHoraria || TZ_DEFAULT
+  return citas
+    .sort((a, b) => a.fechaHora.localeCompare(b.fechaHora))
+    .map(c => ({ ...c, cambioEnLinea: horasHasta(c.fechaHora, tz) >= HORAS_CAMBIO_PACIENTE }))
+}
+
+/** Lo que el portal le contesta en el acto a quien pide un cambio dentro de las 12 h. */
+const RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO =
+  'Tu consultorio recibió tu solicitud. Te contesta por aquí o por teléfono; mientras tanto tu cita sigue como estaba.'
+
+/** Lo que se añade a una respuesta administrativa: recepción también la ve (D-056). */
+const AVISO_LO_VE_RECEPCION = 'Tu consultorio también lo verá y te contesta por aquí.'
 
 
 
@@ -167,6 +194,39 @@ async function leerCitasPaciente(
 async function leerConfig(clinicId: string): Promise<ClinicConfig | null> {
   const snap = await adminDb.collection('clinics').doc(clinicId).collection('config').doc('main').get()
   return snap.exists ? (snap.data() as ClinicConfig) : null
+}
+
+/* ── Estudios que sube el paciente (D-058) ─────────────────────────────────── */
+
+const BUCKET_ESTUDIOS = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? ''
+const TEXTO_SIN_ALCANCE_ESTUDIOS = 'Pide a tu médico el acceso para poder subir estudios por aquí.'
+
+async function leerEstudios(clinicId: string, patientId: string): Promise<EstudioAportado[]> {
+  const snap = await adminDb
+    .collection('clinics').doc(clinicId)
+    .collection('patients').doc(patientId)
+    .collection('estudios_aportados')
+    .get()
+  return snap.docs
+    .map(d => ({ id: d.id, ...(d.data() as Omit<EstudioAportado, 'id'>) }))
+    .filter(e => !e.retiradoEn)
+    .sort((a, b) => String(b.subidoEn).localeCompare(String(a.subidoEn)))
+}
+
+/** «Revisado» vive en la tarea (misma doctrina que el laboratorio). */
+async function estadoDeRevision(clinicId: string, estudioId: string): Promise<EstadoDeRevision> {
+  const t = await adminDb.collection('clinics').doc(clinicId).collection('tareas_clinicas').doc(idDeTareaDeEstudio(estudioId)).get()
+  const estado = t.exists ? String(t.data()?.estado ?? '') : ''
+  return estado === 'completada' || estado === 'cerrada' ? 'revisado' : 'sin_revisar'
+}
+
+function archivosDelCuerpo(v: unknown): ArchivoCandidato[] {
+  if (!Array.isArray(v)) return []
+  return v.slice(0, 20).map(a => ({
+    nombre: nombreLimpio(String((a as { nombre?: unknown })?.nombre ?? '')),
+    contentType: String((a as { contentType?: unknown })?.contentType ?? '').toLowerCase(),
+    bytes: Number((a as { bytes?: unknown })?.bytes ?? 0),
+  }))
 }
 
 /**
@@ -256,6 +316,10 @@ export async function POST(req: NextRequest) {
     respuestas?: unknown
     /** La pregunta del paciente (V9 PATIENT-AI-001). Se recorta y se clasifica en el servidor. */
     texto?: string
+    /** D-058: los archivos que el paciente quiere subir, y el que acaba de subir. */
+    archivos?: unknown
+    ruta?: string
+    nombre?: string
     /** Compartir UN documento (PP-005): la nota firmada que el paciente eligió. */
     documentoId?: string
     /** Cuidador autorizado (§8): a quién autoriza el paciente, y a quién revoca. */
@@ -473,7 +537,7 @@ export async function POST(req: NextRequest) {
       if (limiteClinico) return limiteClinico
     }
 
-    if (body.action === 'preguntar') {
+    if (body.action === 'preguntar' || body.action === 'solicitar-cambio') {
       const limitePregunta = await limitarEstricto(`portal:pregunta:${clinicId}:${patientId}`, PREGUNTAS_POR_VENTANA, 600,
         'Has enviado varias preguntas seguidas. Espera unos minutos; tu consultorio ya tiene las anteriores.')
       if (limitePregunta) return limitePregunta
@@ -533,7 +597,7 @@ export async function POST(req: NextRequest) {
           // hora de pared: sin la zona del consultorio lo hacía con -06:00 fijo.
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
-          citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
+          citas: conVentanaDeCambio(citas, config?.zonaHoraria),
         })
       }
 
@@ -689,7 +753,7 @@ export async function POST(req: NextRequest) {
           minHoras: HORAS_CAMBIO_PACIENTE,
           zonaHoraria: config?.zonaHoraria || TZ_DEFAULT,
           anticipo: config?.anticipoLink ? { link: config.anticipoLink, monto: config.anticipoMonto ?? 0 } : null,
-          citas: citas.sort((a, b) => a.fechaHora.localeCompare(b.fechaHora)),
+          citas: conVentanaDeCambio(citas, config?.zonaHoraria),
           documentos,
           alergias,
           alergiasLeidas: pacienteLeido,
@@ -714,6 +778,174 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
+      /**
+       * PEDIR EL CAMBIO AL CONSULTORIO — D-055.
+       *
+       * Dentro de las 12 h el portal ya no mueve ni cancela la cita; hasta hoy
+       * la respuesta era «llama al consultorio», y el teléfono no es un
+       * producto. La solicitud queda escrita como pregunta administrativa del
+       * paciente (así él la ve en su historial y ve cuándo la atendieron) y
+       * abre una tarea de RECEPCIÓN con la cita colgada. La cita NO se toca:
+       * quien decide es el consultorio.
+       */
+      /**
+       * SUBIR ESTUDIOS — D-058, en dos pasos y los dos por aquí.
+       *
+       * 1. `credencial-estudio`: se validan tipo, tamaño, cantidad y cuota
+       *    mensual ANTES de mover un byte; se acuña un token personalizado
+       *    (uid del portal, nunca miembro del consultorio) y se le dan al
+       *    navegador las rutas exactas bajo SU carpeta. Las reglas de Storage
+       *    vuelven a comprobar tipo, tamaño y carpeta con ese token.
+       * 2. `registrar-estudio`: cuando el objeto ya está en el bucket, se
+       *    comprueba que existe bajo la carpeta de ESTE paciente, se registra
+       *    en `estudios_aportados` con id derivado de la ruta (reintentar no
+       *    duplica), se abre la tarea de revisión a nombre del titular y se
+       *    avisa al consultorio sin PHI. Nada de esto lo escribe el navegador.
+       */
+      case 'credencial-estudio': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const archivos = archivosDelCuerpo(body.archivos)
+        if (!archivos.length) return NextResponse.json({ error: 'Elige al menos un archivo.' }, { status: 400 })
+        const ahoraIso = new Date().toISOString()
+        const previos = await leerEstudios(clinicId, patientId)
+        const esteMes = previos.filter(e => esDelMes(String(e.subidoEn), ahoraIso)).length
+        const rechazo = rechazoDelEnvio(archivos, esteMes)
+        if (rechazo) return NextResponse.json({ error: TEXTO_RECHAZO[rechazo], motivo: rechazo }, { status: 422 })
+        const uid = uidDelPortal(clinicId, patientId)
+        const token = await admin.auth().createCustomToken(uid, { portal: true, clinicId, patientId })
+        const rutas = archivos.map(a => {
+          const id = adminDb.collection('clinics').doc().id
+          return { id, nombre: a.nombre, ruta: rutaDeEstudio(clinicId, patientId, id, a.contentType) }
+        })
+        return NextResponse.json({ ok: true, token, rutas })
+      }
+
+      case 'registrar-estudio': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const ruta = String(body.ruta ?? '')
+        if (!esRutaDeEstudioDe(ruta, clinicId, patientId)) {
+          return NextResponse.json({ error: 'Esa ruta no es de tu expediente.' }, { status: 400 })
+        }
+        const id = idDeRuta(ruta)!
+        const objeto = admin.storage().bucket(BUCKET_ESTUDIOS).file(ruta)
+        const [existe] = await objeto.exists()
+        if (!existe) return NextResponse.json({ error: 'El archivo no llegó completo. Vuelve a intentarlo.' }, { status: 404 })
+        const [meta] = await objeto.getMetadata()
+        const contentType = String(meta.contentType ?? '').toLowerCase()
+        const bytes = Number(meta.size ?? 0)
+        const rechazo = rechazoDeArchivo({ nombre: '', contentType, bytes })
+        if (rechazo) return NextResponse.json({ error: TEXTO_RECHAZO[rechazo], motivo: rechazo }, { status: 422 })
+        const ahoraIso = new Date().toISOString()
+        const previos = await leerEstudios(clinicId, patientId)
+        const yaRegistrado = previos.find(e => e.id === id)
+        if (!yaRegistrado && previos.filter(e => esDelMes(String(e.subidoEn), ahoraIso)).length >= 12) {
+          return NextResponse.json({ error: TEXTO_RECHAZO.cuota_mensual, motivo: 'cuota_mensual' }, { status: 422 })
+        }
+        const registro: Omit<EstudioAportado, 'id'> = {
+          clinicId, patientId, ruta,
+          nombre: nombreLimpio(String(body.nombre ?? '')),
+          contentType, bytes,
+          subidoEn: yaRegistrado?.subidoEn ?? ahoraIso,
+          origen: 'paciente',
+          cuidadorId: cuidadorId ?? null,
+        }
+        const base = adminDb.collection('clinics').doc(clinicId)
+        await base.collection('patients').doc(patientId).collection('estudios_aportados').doc(id).set(registro, { merge: true })
+        const titular = (paciente as unknown as { medicoTitularUid?: string } | null)?.medicoTitularUid
+        const tarea = tareaDeUnEstudioAportado({
+          clinicId, patientId, patientNombre: paciente?.nombre ?? undefined,
+          estudioId: id, nombreArchivo: registro.nombre, contentType, ahoraIso,
+          ownerUid: titular || undefined,
+        })
+        await base.collection('tareas_clinicas').doc(idDeTareaDeEstudio(id)).set(tarea, { merge: true })
+        await base.collection('audit_log').add({
+          evento: 'estudio_aportado_paciente', clinicId, patientId, timestamp: ahoraIso,
+          meta: { id, contentType, bytes, cuidadorId: cuidadorId ?? null },
+        }).catch(() => { /* la bitácora no bloquea el registro */ })
+        if (!yaRegistrado) {
+          const config = await leerConfig(clinicId)
+          const tel = telefonoDelConsultorio(config)
+          if (tel) {
+            await avisarAlConsultorio(clinicId, tel, [
+              '📎 *Un paciente subió un estudio por el portal*',
+              '',
+              'Está en Pendientes, sin revisar. El archivo no viaja por aquí: es dato de salud.',
+            ].join('\n'), 'portal:estudio')
+          }
+        }
+        return NextResponse.json({ ok: true, id, estado: 'sin_revisar', texto: TEXTO_ESTADO.sin_revisar })
+      }
+
+      case 'estudios': {
+        if (alcance !== 'clinico') return NextResponse.json({ error: TEXTO_SIN_ALCANCE_ESTUDIOS }, { status: 403 })
+        const lista = await leerEstudios(clinicId, patientId)
+        const estudios = await Promise.all(lista.map(async e => {
+          const estado = await estadoDeRevision(clinicId, e.id!)
+          return { id: e.id, nombre: e.nombre, contentType: e.contentType, bytes: e.bytes, subidoEn: e.subidoEn, estado, texto: TEXTO_ESTADO[estado] }
+        }))
+        return NextResponse.json({ ok: true, estudios })
+      }
+
+      case 'solicitar-cambio': {
+        const cita = await citaDelPaciente(body.citaId)
+        if (cita instanceof NextResponse) return cita
+        if (!puedeTocarDesdeElPortal(cita, { permiteCobrada: true })) {
+          return NextResponse.json({ error: MENSAJE_ESTADO_NO_TOCABLE }, { status: 409 })
+        }
+        const textoSolicitud = String(body.texto ?? '').trim().slice(0, TOPE_TEXTO_PREGUNTA)
+        const config = await leerConfig(clinicId)
+        const ahora = Date.now()
+        const registro = {
+          texto: `Cambio de cita del ${cita.fechaHora}: ${textoSolicitud || '(sin motivo)'}`,
+          clase: 'ADMINISTRATIVE_ACTION',
+          motivo: null,
+          respuesta: RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO,
+          procedencia: null,
+          respondida: false,
+          escalada: true,
+          atendidaEn: null as number | null,
+          creadaEn: ahora,
+          origen: ORIGEN_SOLICITUD_DE_CAMBIO,
+          citaId: cita.id,
+        }
+        const refSolicitud = await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('patients').doc(patientId)
+          .collection('preguntas_paciente')
+          .add(registro)
+        const tareaSolicitud = tareaDeUnaSolicitudAdministrativa({
+          clinicId,
+          patientId,
+          patientNombre: paciente?.nombre ?? undefined,
+          preguntaId: refSolicitud.id,
+          texto: textoSolicitud,
+          ahoraIso: new Date(ahora).toISOString(),
+          citaId: cita.id,
+          asunto: 'cambio_de_cita',
+        })
+        await adminDb
+          .collection('clinics').doc(clinicId)
+          .collection('tareas_clinicas').doc(idDeTareaDePregunta(refSolicitud.id))
+          .set(tareaSolicitud, { merge: true })
+        const telSolicitud = telefonoDelConsultorio(config)
+        if (telSolicitud) {
+          await avisarAlConsultorio(
+            clinicId,
+            telSolicitud,
+            [
+              '📅 *Un paciente pide cambiar su cita (faltan menos de 12 h)*',
+              '',
+              `👤 ${String(paciente?.nombre ?? '').trim() || 'Paciente'}`,
+              `🕐 Cita: ${cita.fechaHora}`,
+              '',
+              'El portal ya no lo deja moverla. Está en Pendientes, para recepción.',
+            ].join('\n'),
+            ORIGEN_SOLICITUD_DE_CAMBIO,
+          )
+        }
+        return NextResponse.json({ ok: true, id: refSolicitud.id, texto: RESPUESTA_A_LA_SOLICITUD_DE_CAMBIO })
+      }
+
       case 'cancelar': {
         const cita = await citaDelPaciente(body.citaId)
         if (cita instanceof NextResponse) return cita
@@ -723,7 +955,7 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
-          return NextResponse.json({ error: `Cancelación en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
+          return NextResponse.json({ error: `Faltan menos de ${minHoras} h para tu cita: pide el cambio al consultorio desde aquí.` }, { status: 422 })
         }
         await adminDb.collection('clinics').doc(clinicId).collection('appointments').doc(cita.id).update({
           estado: 'cancelada',
@@ -853,7 +1085,7 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const minHoras = HORAS_CAMBIO_PACIENTE
         if (horasHasta(cita.fechaHora, config?.zonaHoraria || TZ_DEFAULT) < minHoras) {
-          return NextResponse.json({ error: `Reagenda en línea hasta ${minHoras}h antes. Llama al consultorio.` }, { status: 422 })
+          return NextResponse.json({ error: `Faltan menos de ${minHoras} h para tu cita: pide el cambio al consultorio desde aquí.` }, { status: 422 })
         }
         /**
          * REAGENDAR PASA POR LA MISMA PUERTA QUE AGENDAR.
@@ -1235,6 +1467,13 @@ export async function POST(req: NextRequest) {
         const config = await leerConfig(clinicId)
         const telConsultorio = telefonoDelConsultorio(config)
         const r = clasificarPregunta(texto, { plan, telefonoConsultorio: telConsultorio })
+        /**
+         * LO ADMINISTRATIVO VA A RECEPCIÓN — D-056. El clasificador sigue puro
+         * (contesta lo que puede en el acto); lo que cambia es que la pregunta
+         * además llega a alguien: tarea de recepción y aviso al consultorio.
+         */
+        const paraRecepcion = r.clase === 'ADMINISTRATIVE_ACTION'
+        const respuestaAlPaciente = paraRecepcion ? `${r.texto} ${AVISO_LO_VE_RECEPCION}` : r.texto
 
         /**
          * SE GUARDA ANTES DE CONTESTAR, Y CON LISTA BLANCA.
@@ -1262,10 +1501,10 @@ export async function POST(req: NextRequest) {
            * se le dijo. Guardarla cuesta una cadena; no guardarla cuesta la
            * única prueba de lo que este canal contestó.
            */
-          respuesta: r.texto,
+          respuesta: respuestaAlPaciente,
           procedencia: r.procedencia,
           respondida: r.clase === 'ANSWER_FROM_APPROVED_PLAN',
-          escalada: r.avisarAlConsultorio,
+          escalada: r.avisarAlConsultorio || paraRecepcion,
           /** Nadie del consultorio la ha leído todavía. Lo cierra el médico. */
           atendidaEn: null as number | null,
           creadaEn: Date.now(),
@@ -1335,7 +1574,23 @@ export async function POST(req: NextRequest) {
          * dicho). Sin teléfono no se intenta nada, y desde REG-521 eso ya no
          * significa que nadie se entere.
          */
-        if ((r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED') && telConsultorio) {
+        if (paraRecepcion) {
+          const tareaRecepcion = tareaDeUnaSolicitudAdministrativa({
+            clinicId,
+            patientId,
+            patientNombre: paciente?.nombre ?? undefined,
+            preguntaId: ref.id,
+            texto,
+            ahoraIso: new Date().toISOString(),
+            asunto: 'administrativa',
+          })
+          await adminDb
+            .collection('clinics').doc(clinicId)
+            .collection('tareas_clinicas').doc(idDeTareaDePregunta(ref.id))
+            .set(tareaRecepcion, { merge: true })
+        }
+
+        if ((r.avisarAlConsultorio || r.clase === 'URGENT_REVIEW_REQUIRED' || paraRecepcion) && telConsultorio) {
           await avisarAlConsultorio(
             clinicId,
             telConsultorio,
@@ -1360,9 +1615,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           id: ref.id,
           clase: r.clase,
-          texto: r.texto,
+          texto: respuestaAlPaciente,
           procedencia: r.procedencia,
-          escalada: r.avisarAlConsultorio,
+          escalada: r.avisarAlConsultorio || paraRecepcion,
         })
       }
 

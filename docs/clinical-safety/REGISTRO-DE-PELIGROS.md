@@ -290,7 +290,7 @@ PELIGRO · CAUSA · DAÑO POSIBLE · A QUIÉN AFECTA · SEVERIDAD
 Dicho explícitamente, porque un registro de peligros que aparenta ser completo es
 peor que uno que declara sus huecos:
 
-- **Paciente equivocado** — el charter lo exige en cero (§H6). No hay todavía un caso de peligro escrito ni una prueba adversarial dedicada.
+- **Paciente equivocado** — el charter lo exige en cero (§H6). No hay todavía un caso de peligro escrito. Sí hay ya una prueba adversarial dedicada a UNA de sus vías: `scripts/ausculta-transformacion/respuesta-tardia-cambio-de-paciente.mjs` (10-sep-2026) pide una corrección a la IA en un paciente, cambia de paciente antes de que llegue y comprueba que la respuesta no cae en el segundo — con control positivo. Resultado: no cae; la respuesta se pierde (residual declarado en la sonda).
 - **Fuga entre consultorios** — hay pruebas de aislamiento en CI (`aislamiento-tenant`), pero no un caso de peligro en este formato.
 - **Inyección de instrucciones dentro del dictado** — el control existe (§11 del prompt) y desde REG-179 el reporte llega; falta el caso de peligro y su corpus adversarial.
 - **Embarazo, pediatría, ajuste renal** — hay motores y pruebas, no casos de peligro escritos aquí.

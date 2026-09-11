@@ -57,9 +57,19 @@ Que ese paso no se pueda borrar en silencio lo vigila
 Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
 producción.
 
-**Hoy está vacía.** Lo escrito en `firestore.rules` es lo que rige: el sha256 del
-archivo (`5a5acc35…`) coincide con `hashDesplegado` en
-`firestore.rules.estado.json`.
+**Hoy NO está vacía** (10-sep-2026). Lo escrito en `firestore.rules` va por
+delante de lo desplegado (`hashDesplegado` en `firestore.rules.estado.json`
+sigue siendo el de v1195). Se cierra con la siguiente ejecución del botón de
+producción, que despliega reglas, índices y —desde hoy— `storage.rules`.
+
+| Qué NO rige hoy | Desde | Qué se rompe mientras tanto |
+|---|---|---|
+| D-057 · `esMedicoDelPaciente` en las subcolecciones clínicas del paciente (notas, versiones, adendas, paquetes, preguntas, formularios, laboratorios, fotos, clínico, estudios aportados) | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | En producción cualquier médico del consultorio sigue leyendo el expediente de cualquier paciente, como hasta hoy. La pantalla ya filtra y redirige; el servidor ya niega en FHIR/exportar/telesalud/pregunta atendida. Nada se abre de más: las reglas nuevas son más ESTRECHAS que las desplegadas |
+| D-057 · guarda de `medicoTitularUid`/`compartidoCon` en `patients` (update/create) | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | Hasta desplegar, un médico podría escribir esos dos campos en un paciente ajeno desde la consola del navegador. La pantalla no lo ofrece; queda en bitácora si se hace |
+| D-057 · recepción lee/mueve tareas `area == 'recepcion'` | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | Hasta desplegar, recepción NO ve sus tareas (la regla desplegada las cierra a médico): las peticiones de cambio de cita y los mensajes administrativos las ve el médico en Pendientes |
+| D-058 · `estudios_aportados` (lectura del médico del paciente, escritura por servidor) | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | Hasta desplegar, el médico no puede LEER los estudios que suba el paciente (la colección no existe en las reglas desplegadas → denegado). El registro y la tarea sí se escriben (Admin SDK) |
+| D-058 · `storage.rules` con `estudios-paciente/` | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | Hasta desplegar, la subida desde el portal FALLA en producción (el bucket cierra todo lo no declarado). Es el primer despliegue de `storage.rules` por el botón |
+| D-057 · índice `tareas_clinicas(area, estado, pesoUrgencia, creadaEn)` | 10-sep-2026, rama `claude/clinical-note-simplification-kl71ne` (D-057/D-058) | Hasta desplegar, el worklist de recepción responde `FAILED_PRECONDITION` (y la red de `porAntiguedad` también exige área) |
 
 La fila que hubo aquí, el 7-sep-2026, era la clave `emailInvitado` en la forma
 congelada de `clinic_invitations` — la invitación **nominativa**, que sólo acepta

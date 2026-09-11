@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { safeLog } from '@/lib/security/sanitize'
 
 /**
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Faltan identificadores' }, { status: 400 })
   }
 
-  const acceso = await verificarCapacidad(req, clinicId, 'clinico.escribir')
+  const acceso = await verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')
   if (!acceso.ok) return acceso.response
 
   try {

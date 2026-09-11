@@ -31,6 +31,38 @@ service cloud.firestore {
          || get(/databases/$(database)/documents/clinic_members/$(request.auth.uid)).data.role == 'admin');
     }
 
+    /**
+     * D-057 · CADA MÉDICO VE SUS PACIENTES.
+     *
+     * El expediente (notas, laboratorios, fotos, clínico…) lo abren el médico
+     * TITULAR (`medicoTitularUid`), los médicos con los que él lo COMPARTIÓ
+     * (`compartidoCon`) y el admin del consultorio. Un paciente SIN titular es
+     * anterior a la decisión y se ve como siempre hasta que alguien lo asigne:
+     * esconder de golpe todo el consultorio el día del despliegue sería el
+     * fallo caro. La ficha (`patients/{id}`) sigue siendo `isMember`: recepción
+     * agenda con ella. La transcripción pura vive en
+     * `src/lib/authz/alcance-del-paciente.ts` y la matriz la cruza.
+     */
+    function fichaDelPaciente(clinicId, patientId) {
+      return get(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId)).data;
+    }
+
+    function esMedicoDelPaciente(clinicId, patientId) {
+      return isMedico(clinicId) && (
+        isAdmin(clinicId)
+        // Sin ficha (una nota que nace antes que el documento del paciente, o
+        // un expediente antiguo) no hay titular que comprobar: se lee como
+        // «sin titular», nunca como error. `get()` sobre un doc ausente da null
+        // y `.get()` sobre null revienta la regla entera (lo cazó el golden
+        // flow del emulador).
+        || !exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId))
+        || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == null
+        || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == request.auth.uid
+        || request.auth.uid in fichaDelPaciente(clinicId, patientId).get('compartidoCon', [])
+      );
+    }
+
+
     // Staff clínico hospitalario: médico, admin, enfermería, farmacia, laboratorio.
     // Acceden al módulo de hospitalización (NO la secretaria/recepción/facturación).
     function isClinicoHospital(clinicId) {
@@ -263,7 +295,15 @@ service cloud.firestore {
                 && request.resource.data.get('portalTokenVersion', 0) > resource.data.get('portalTokenVersion', 0))
           )
           && (isMedico(clinicId)
-              || !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposClinicosDelPaciente()));
+              || !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposClinicosDelPaciente()))
+          // D-057: quién es el titular y con quién se comparte lo decide el
+          // titular (o el admin); un paciente sin titular lo puede reclamar
+          // cualquier médico del consultorio.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['medicoTitularUid', 'compartidoCon'])
+              || (isMedico(clinicId)
+                  && (isAdmin(clinicId)
+                      || resource.data.get('medicoTitularUid', null) == null
+                      || resource.data.get('medicoTitularUid', null) == request.auth.uid)));
         /**
          * BORRAR UN EXPEDIENTE NO SE HACE DESDE EL NAVEGADOR. PUNTO.
          *
@@ -288,13 +328,17 @@ service cloud.firestore {
         allow create: if isMember(clinicId) && clinicaPuedeEscribir(clinicId)
           && !request.resource.data.keys().hasAny(['arcoBloqueo'])
           && request.resource.data.get('portalTokenVersion', 0) == 0
-          && (isMedico(clinicId) || !request.resource.data.keys().hasAny(camposClinicosDelPaciente()));
+          && (isMedico(clinicId) || !request.resource.data.keys().hasAny(camposClinicosDelPaciente()))
+          // D-057: al nacer, el titular sólo puede ser quien lo da de alta.
+          && (!request.resource.data.keys().hasAny(['medicoTitularUid', 'compartidoCon'])
+              || (isMedico(clinicId) && request.resource.data.get('medicoTitularUid', '') == request.auth.uid
+                  && request.resource.data.get('compartidoCon', []) == []));
 
         // Expediente Clínico Electrónico — notas del paciente
         // SECRETO MÉDICO: solo médicos/admin pueden leer o escribir notas clínicas.
         // La asistente NUNCA tiene acceso (NOM-004 + LFPDPPP datos sensibles).
         match /notas/{notaId} {
-          allow read: if isMedico(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
           // Abrir una nota nueva = capturar dato nuevo → sujeto al paywall.
           // Firmar/editar un borrador YA abierto no, para no dejar una consulta
           // a medias sin poder cerrarla por un corte de pago a mitad del día.
@@ -304,7 +348,7 @@ service cloud.firestore {
           // saltándose la trazabilidad NOM-024.
           // La migración/importación histórica va por Admin SDK (omite reglas) y
           // debe quedar marcada como importada — nunca parecer firma nativa.
-          allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId)
+          allow create: if esMedicoDelPaciente(clinicId, docId) && clinicaPuedeEscribir(clinicId)
                         && request.resource.data.estado == 'borrador';
           /**
            * FIRMAR ES UN ACTO PERSONAL — nadie firma con la cédula de otro.
@@ -321,16 +365,16 @@ service cloud.firestore {
            * médico: una asistencia a cuatro manos sobre un borrador es normal;
            * la firma no.
            */
-          allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'
+          allow update: if esMedicoDelPaciente(clinicId, docId) && resource.data.estado != 'firmada'
                         && (request.resource.data.estado != 'firmada'
                             || request.resource.data.metadata.medicoId == request.auth.uid);
-          allow delete: if isMedico(clinicId) && resource.data.estado != 'firmada';
+          allow delete: if esMedicoDelPaciente(clinicId, docId) && resource.data.estado != 'firmada';
 
           // Versiones históricas de borradores (NOM-024 Art. 6.4 — trazabilidad de cambios).
           // INMUTABLES una vez creadas.
           match /versions/{versionId} {
-            allow read: if isMedico(clinicId);
-            allow create: if isMedico(clinicId);
+            allow read: if esMedicoDelPaciente(clinicId, docId);
+            allow create: if esMedicoDelPaciente(clinicId, docId);
             allow update, delete: if false;
           }
 
@@ -345,8 +389,8 @@ service cloud.firestore {
            * corrección que no acredita autor ni motivo no es oponible a nadie.
            */
           match /adendas/{adendaId} {
-            allow read: if isMedico(clinicId);
-            allow create: if isMedico(clinicId)
+            allow read: if esMedicoDelPaciente(clinicId, docId);
+            allow create: if esMedicoDelPaciente(clinicId, docId)
                           && request.resource.data.autorUid == request.auth.uid
                           && request.resource.data.motivo is string
                           && request.resource.data.motivo.size() >= 3;
@@ -383,7 +427,7 @@ service cloud.firestore {
          * comprobar `visibleParaElPaciente`. `isMedico` es para el consultorio.
          */
         match /paquetes_visita/{docId} {
-          allow read: if isMedico(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
 
@@ -407,7 +451,7 @@ service cloud.firestore {
          * consultorio, que es quien tiene que ver lo que se escaló.
          */
         match /preguntas_paciente/{docId} {
-          allow read: if isMedico(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
 
@@ -415,7 +459,18 @@ service cloud.firestore {
           // `isMedico` y no `isMember`: aquí van motivo, medicamentos, alergias
           // y antecedentes — es secreto médico, igual que las notas. El guardián
           // de la matriz cazó esto cuando estaba en `isMember`.
-          allow read: if isMedico(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
+          allow write: if false;
+        }
+
+        /**
+         * ESTUDIOS APORTADOS POR EL PACIENTE — D-058. Los escribe /api/portal
+         * (Admin SDK) tras comprobar que el objeto existe en Storage bajo la
+         * carpeta de ESE paciente. Los lee el médico del paciente. Entran
+         * «sin revisar»: la revisión vive en la tarea, no aquí.
+         */
+        match /estudios_aportados/{docId} {
+          allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
 
@@ -425,7 +480,7 @@ service cloud.firestore {
          * panel con su fecha; nunca se editan (se borra y se re-sube si hay error).
          */
         match /laboratorios/{labId} {
-          allow read: if isMedico(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
           /**
            * REG-323 — SEGUNDA CAPA DEL VÍNCULO DE SUJETO.
            *
@@ -440,12 +495,12 @@ service cloud.firestore {
            * tal como se guardaron. Bloquearlos convertiría un candado nuevo en
            * un respaldo que no se puede restaurar.
            */
-          allow create: if isMedico(clinicId)
+          allow create: if esMedicoDelPaciente(clinicId, docId)
                         && (!('pacienteId' in request.resource.data)
                             || request.resource.data.pacienteId == docId)
                         && (!('clinicId' in request.resource.data)
                             || request.resource.data.clinicId == clinicId);
-          allow delete: if isMedico(clinicId);
+          allow delete: if esMedicoDelPaciente(clinicId, docId);
           allow update: if false;
         }
 
@@ -454,7 +509,7 @@ service cloud.firestore {
         // asistente nunca tiene acceso. Se permite borrar (una toma mal hecha
         // o sin consentimiento debe poder eliminarse).
         match /fotos/{fotoId} {
-          allow read, create, update, delete: if isMedico(clinicId);
+          allow read, create, update, delete: if esMedicoDelPaciente(clinicId, docId);
         }
 
         /**
@@ -476,8 +531,8 @@ service cloud.firestore {
          * lectura se queda en `isMedico` (write-only). Hasta entonces, lo estricto.
          */
         match /clinico/{clinicoId} {
-          allow read: if isMedico(clinicId);
-          allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+          allow read: if esMedicoDelPaciente(clinicId, docId);
+          allow create, update: if esMedicoDelPaciente(clinicId, docId) && clinicaPuedeEscribir(clinicId);
           allow delete: if false;   // un antecedente no se borra desde el cliente
         }
       }
@@ -1012,8 +1067,16 @@ service cloud.firestore {
        * cancela con motivo, que es un estado, no un borrado.
        */
       match /tareas_clinicas/{tareaId} {
-        allow read: if isMedico(clinicId);
-        allow create, update: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+        // D-056/D-057: recepción ve y mueve SÓLO las tareas de su área
+        // (`area == 'recepcion'`); lo clínico sigue siendo del médico. En
+        // modo `list` esto obliga a consultar con `where('area','==','recepcion')`.
+        allow read: if isMedico(clinicId)
+          || (isMember(clinicId) && resource.data.get('area', '') == 'recepcion');
+        allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
+        allow update: if clinicaPuedeEscribir(clinicId) && (isMedico(clinicId)
+          || (isMember(clinicId)
+              && resource.data.get('area', '') == 'recepcion'
+              && request.resource.data.get('area', '') == 'recepcion'));
         allow delete: if false;
       }
 

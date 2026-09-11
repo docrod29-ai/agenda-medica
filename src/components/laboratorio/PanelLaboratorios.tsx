@@ -10,6 +10,7 @@ import { dictaminarSujeto, vinculoDeSujeto, type DictamenSujeto, type DestinoPac
 import { claveDeIntento } from '@/lib/idempotencia'
 import { getPatient } from '@/lib/firestore'
 import { GraficaLab } from './GraficaLab'
+import { EstudiosAportados } from './EstudiosAportados'
 import { FlaskConical, Upload, Loader2, AlertTriangle, ShieldAlert, Trash2, Check, X } from 'lucide-react'
 
 const GRUPO_LABEL: Record<string, string> = {
@@ -121,7 +122,13 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
     return [...m.entries()]
   }, [series])
 
-  const onArchivo = async (file: File) => {
+  /**
+   * D-058: el mismo flujo de revisión para el PDF que adjunta el médico y para
+   * el estudio que subió el PACIENTE. Cambia sólo de dónde sale el archivo: en
+   * el primer caso viaja en el cuerpo; en el segundo, el servidor lo toma del
+   * bucket con la referencia (y comprueba que el médico sea el del paciente).
+   */
+  const interpretar = async (cuerpo: { archivo: string } | { estudio: { clinicId: string; patientId: string; id: string } }, esPdf: boolean) => {
     /**
      * Sin saber a quién pertenece el expediente abierto no hay contra qué
      * verificar la hoja. Se para aquí en vez de archivar a ciegas.
@@ -130,17 +137,10 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       toast('No se pudo leer el nombre del paciente de este expediente, así que no se puede verificar de quién es la hoja. Recarga e inténtalo de nuevo.', 'error')
       return
     }
-    const esPdf = file.type === 'application/pdf'
-    const esImg = file.type.startsWith('image/')
-    if (!esPdf && !esImg) { toast('Adjunta un PDF o una imagen (foto) del laboratorio', 'error'); return }
-    if (file.size > 7_500_000) { toast('El archivo pesa más de 7.5 MB. Reduce la resolución o divide el PDF.', 'error'); return }
     setSubiendo(true)
     try {
-      const dataUrl: string = await new Promise((res, rej) => {
-        const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file)
-      })
       const resp = await fetchAutenticado('/api/expediente/laboratorio-vision', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archivo: dataUrl }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo),
       })
       const data = await resp.json().catch(() => null)
       if (!data?.ok) { toast(data?.error ?? 'No se pudo interpretar el archivo', 'error'); return }
@@ -159,6 +159,17 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
       setRevision({ ...panel, fuente: esPdf ? 'pdf' : 'foto', destino, dictamen, clave: claveDeIntento() })
     } catch (e) { toast(noSePudo('interpretar el archivo de laboratorio', e), 'error') }
     finally { setSubiendo(false); if (fileRef.current) fileRef.current.value = '' }
+  }
+
+  const onArchivo = async (file: File) => {
+    const esPdf = file.type === 'application/pdf'
+    const esImg = file.type.startsWith('image/')
+    if (!esPdf && !esImg) { toast('Adjunta un PDF o una imagen (foto) del laboratorio', 'error'); return }
+    if (file.size > 7_500_000) { toast('El archivo pesa más de 7.5 MB. Reduce la resolución o divide el PDF.', 'error'); return }
+    const dataUrl: string = await new Promise((res, rej) => {
+      const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file)
+    })
+    await interpretar({ archivo: dataUrl }, esPdf)
   }
 
   const guardarRevision = async () => {
@@ -241,6 +252,13 @@ export function PanelLaboratorios({ clinicId, patientId, onAgregarANota }: {
         Antes de guardar se comprueba que la hoja sea de <strong>{pacienteNombre || 'este paciente'}</strong>: si es de otra
         persona, se bloquea. El nombre se usa sólo para esa comprobación y no se guarda.
       </p>
+
+      <EstudiosAportados
+        clinicId={clinicId}
+        patientId={patientId}
+        recarga={paneles.length}
+        onLeerConIA={e => interpretar({ estudio: { clinicId, patientId, id: e.id } }, e.contentType === 'application/pdf')}
+      />
 
       {criticos.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb, var(--red) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 35%, transparent)', borderRadius: 12, padding: '11px 14px' }}>

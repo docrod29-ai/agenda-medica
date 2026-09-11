@@ -303,6 +303,24 @@ jobs:
             npx --no-install firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive
           fi
 
+      # STORAGE (D-058): las reglas del bucket viajan con las de Firestore. Sin
+      # este paso el portal no puede subir estudios en producción: el bucket
+      # cierra todo lo que no esté declarado.
+      - name: 'Storage · desplegar REGLAS'
+        id: storage_rules
+        if: ${{ !cancelled() && steps.cred.outcome == 'success' }}
+        env:
+          MODO: ${{ steps.firebase_auth.outputs.modo }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "$MODO" = "token" ]; then
+            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
+          else
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive
+          fi
+
       # Se intenta AUNQUE las reglas hayan fallado: son dos permisos distintos y
       # dos resultados distintos, y saber los dos de una vez ahorra una vuelta.
       - name: 'Firestore · desplegar ÍNDICES'

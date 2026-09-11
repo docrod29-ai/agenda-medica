@@ -107,6 +107,7 @@ describe('LA RUTA HTTP', () => {
   it('y sigue exigiendo capacidad de médico, no de miembro', () => {
     // Lee las notas con el Admin SDK, que ignora las reglas: con `miembro` una
     // asistente podía bajar diagnósticos y alergias de cualquier paciente.
-    expect(ruta).toContain("verificarCapacidad(req, clinicId, 'clinico.escribir')")
+    // D-057: capacidad Y alcance del paciente (titular/compartido/admin) — más estrecha, no más ancha.
+    expect(ruta).toContain("verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')")
   })
 })

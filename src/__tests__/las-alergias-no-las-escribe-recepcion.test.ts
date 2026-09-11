@@ -100,7 +100,8 @@ describe('S-002 · un rol no clínico no puede escribir alergias', () => {
   })
 
   it('control: la subcolección `clinico` sí está cerrada a isMedico (el destino de la migración existe)', () => {
-    expect(sinComentarios).toMatch(/match \/clinico\/\{clinicoId\} \{\s*allow read: if isMedico\(clinicId\);/)
+    // D-057: isMedico + alcance del paciente (más estrecha, no más ancha).
+    expect(sinComentarios).toMatch(/match \/clinico\/\{clinicoId\} \{\s*allow read: if esMedicoDelPaciente\(clinicId, docId\);/)
   })
 
   it('al revés: una regla que abriera el update a isMember a secas se detecta', () => {

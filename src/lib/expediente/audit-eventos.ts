@@ -40,6 +40,14 @@ export type AuditEvento =
   // === Bitácora completa (requisito de trazabilidad de NOM-024; el numeral
   //     exacto NO está verificado contra el DOF — no citarlo en documentos) ===
   | 'expediente_lectura'         // alguien abrió un expediente
+  // D-057: quién ve el expediente de cada paciente.
+  | 'expediente_titular_asignado'   // se fijó el médico titular (alta, reclamo o asignación desde la agenda)
+  | 'expediente_compartido'         // el titular abrió el expediente a otro médico
+  | 'expediente_compartir_revocado' // el titular lo cerró
+  | 'expediente_acceso_pedido'      // otro médico pidió acceso al titular
+  // D-058: estudios que sube el paciente.
+  | 'estudio_aportado_paciente'     // el paciente subió un estudio por el portal
+  | 'estudio_aportado_abierto'      // el médico lo abrió (URL firmada)
   | 'nota_lectura'               // alguien abrió una nota específica
   | 'nota_impresion'             // alguien imprimió/descargó PDF de nota
   | 'receta_generada'            // se generó una receta
@@ -157,6 +165,12 @@ export const EVENTO_LABEL: Record<AuditEvento, string> = {
   foto_clinica_borrada: 'Borró foto clínica',
   consentimiento_grabacion: 'Consintió grabar',
   expediente_lectura: 'Vio expediente',
+  expediente_titular_asignado: 'Asignó médico titular',
+  expediente_compartido: 'Compartió expediente',
+  expediente_compartir_revocado: 'Revocó expediente compartido',
+  expediente_acceso_pedido: 'Pidió acceso al expediente',
+  estudio_aportado_paciente: 'Paciente subió un estudio',
+  estudio_aportado_abierto: 'Abrió estudio del paciente',
   nota_lectura: 'Vio nota',
   nota_impresion: 'Imprimió nota',
   receta_generada: 'Generó receta',

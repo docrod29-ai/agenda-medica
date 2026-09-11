@@ -15,6 +15,7 @@ import { ventanaDeSala, enlaceSalaPaciente } from '@/lib/telesalud/ventana-sala'
 import { CAMPOS_PREVIOS, MAX_CARACTERES, AVISO_URGENCIA } from '@/lib/portal/formulario-previo'
 import { TELEFONO_EMERGENCIAS } from '@/lib/paciente/urgencia'
 import ViaDeUrgencia from '@/components/portal/ViaDeUrgencia'
+import { SubirEstudio } from '@/components/portal/SubirEstudio'
 import type { Medicamento } from '@/types/expediente'
 
 interface DocReceta {
@@ -114,6 +115,12 @@ interface Cita {
   medicoNombre: string
   lugar?: string
   confirmadoPaciente: boolean
+  /**
+   * ¿Todavía se puede mover o cancelar desde aquí? Lo decide el servidor con la
+   * zona del consultorio (D-055). Ausente = no se sabe → se deja actuar y el
+   * servidor contesta; nunca se bloquea por un dato que no llegó.
+   */
+  cambioEnLinea?: boolean
 }
 interface CuidadorEnPantalla {
   id: string
@@ -258,6 +265,10 @@ export default function MiPortalPage() {
   const [reagendando, setReagendando] = useState<string>('') // id de cita en modo reagenda
   /** id de la cita cuya cancelación se está confirmando en la propia pantalla. */
   const [cancelando, setCancelando] = useState<string>('')
+  // D-055: pedir el cambio al consultorio cuando el portal ya no puede moverla.
+  const [solicitando, setSolicitando] = useState('')
+  const [textoSolicitud, setTextoSolicitud] = useState('')
+  const [solicitudEnviada, setSolicitudEnviada] = useState<Record<string, string>>({})
   /**
    * LO QUE NO SE PUDO HACER, ESCRITO EN LA PANTALLA — no en un `alert()`.
    *
@@ -759,12 +770,25 @@ export default function MiPortalPage() {
                         {accion === c.id + 'confirmar' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Confirmar
                       </button>
                     )}
-                    <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
-                      <CalendarClock size={14} /> Reagendar
-                    </button>
-                    <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
-                      <XCircle size={14} aria-hidden="true" /> Cancelar
-                    </button>
+                    {c.cambioEnLinea !== false ? (
+                      <>
+                        <button onClick={() => setReagendando(reagendando === c.id ? '' : c.id)} disabled={!!accion} className="btn btn-secondary btn-sm">
+                          <CalendarClock size={14} /> Reagendar
+                        </button>
+                        <button onClick={() => setCancelando(cancelando === c.id ? '' : c.id)} disabled={!!accion} aria-expanded={cancelando === c.id} className="btn btn-secondary btn-sm" style={{ color: 'var(--red-texto)' }}>
+                          <XCircle size={14} aria-hidden="true" /> Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      /*
+                        D-055: faltan menos de `minHoras` horas. Antes se enseñaban
+                        Reagendar y Cancelar y el paciente descubría el «no» al
+                        tocarlos. Se ofrece lo que sí procede.
+                      */
+                      <button onClick={() => setSolicitando(solicitando === c.id ? '' : c.id)} disabled={!!accion || !!solicitudEnviada[c.id]} aria-expanded={solicitando === c.id} className="btn btn-secondary btn-sm">
+                        <CalendarClock size={14} aria-hidden="true" /> Pedir un cambio al consultorio
+                      </button>
+                    )}
                     {/*
                       PC-019: se llamaba «Agendar», junto a Confirmar ·
                       Reagendar · Cancelar. Un adulto mayor lo lee como «agendar
@@ -811,6 +835,47 @@ export default function MiPortalPage() {
                         </button>
                       </div>
                     </div>
+                  )}
+                  {c.cambioEnLinea === false && (
+                    <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                      {solicitudEnviada[c.id]
+                        ? solicitudEnviada[c.id]
+                        : `Faltan menos de ${sesion.minHoras} horas: ya no se puede mover ni cancelar desde aquí. Pide el cambio y tu consultorio te contesta.`}
+                    </p>
+                  )}
+                  {solicitando === c.id && !solicitudEnviada[c.id] && (
+                    <form
+                      aria-label="Pedir un cambio de cita al consultorio"
+                      onSubmit={async e => {
+                        e.preventDefault()
+                        const ok = await accionCita('solicitar-cambio', c.id, { texto: textoSolicitud })
+                        if (ok) {
+                          setSolicitudEnviada(prev => ({ ...prev, [c.id]: 'Tu consultorio recibió tu solicitud. Te contesta por aquí o por teléfono; mientras tanto tu cita sigue como estaba.' }))
+                          setSolicitando(''); setTextoSolicitud('')
+                        }
+                      }}
+                      style={{ marginTop: 12, padding: 14, background: 'var(--s2)', borderRadius: 10, border: '1px solid var(--border)' }}
+                    >
+                      <label htmlFor={`solicitud-${c.id}`} style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+                        ¿Qué cambio necesitas?
+                      </label>
+                      <textarea
+                        id={`solicitud-${c.id}`}
+                        value={textoSolicitud}
+                        onChange={e => setTextoSolicitud(e.target.value.slice(0, 300))}
+                        rows={3}
+                        placeholder="Ej.: no puedo llegar a las 10, ¿se puede a las 12 o mañana?"
+                        style={{ width: '100%', boxSizing: 'border-box', fontSize: 14, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--s1)', color: 'var(--text)', resize: 'vertical' }}
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        <button type="submit" disabled={!!accion} aria-busy={accion === c.id + 'solicitar-cambio'} className="btn btn-primary btn-sm">
+                          {accion === c.id + 'solicitar-cambio' ? <Loader2 size={14} aria-hidden="true" style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} aria-hidden="true" />} Enviar al consultorio
+                        </button>
+                        <button type="button" onClick={() => setSolicitando('')} disabled={!!accion} className="btn btn-ghost btn-sm">
+                          Dejarla como está
+                        </button>
+                      </div>
+                    </form>
                   )}
                   {reagendando === c.id && <PanelReagenda cita={c} token={token} tz={tzClinica} onReagendado={(fh) => accionCita('reagendar', c.id, { nuevaFechaHora: fh })} ocupado={!!accion} />}
                 </>
@@ -1282,6 +1347,8 @@ export default function MiPortalPage() {
           })}
         </>)}
         {destino === 'documentos' && (<>
+        {/* D-058: subir estudios. Sólo con alcance clínico: es escribir en el expediente. */}
+        {sesion.alcance === 'clinico' && <SubirEstudio api={API} token={token} />}
         {/* Mis recetas — enlace sin alcance clínico (E0-06) */}
         {docsBloqueados && (
           <div style={{ marginTop: 28, background: 'var(--s1)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--text3)' }}>

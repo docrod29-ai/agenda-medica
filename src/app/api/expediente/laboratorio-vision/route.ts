@@ -16,6 +16,9 @@
  * Body:   { archivo: dataURL (image/* o application/pdf) }
  * Output: { ok, panel: PanelValidado, model } | { ok:false, error }
  */
+import admin, { adminDb } from '@/lib/firebase-admin'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
+import { esRutaDeEstudioDe, type EstudioAportado } from '@/lib/portal/estudios-aportados'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
@@ -85,10 +88,32 @@ export async function POST(req: NextRequest) {
   const _corte = await gateCreditos(clinicId, fuente); if (_corte) return _corte
   if (!API_KEY) return NextResponse.json({ ok: false, error: iaNoDisponible('vision').mensaje }, { status: 503 })
 
-  let body: { archivo?: string }
+  let body: { archivo?: string; estudio?: { clinicId?: string; patientId?: string; id?: string } }
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'JSON inválido' }, { status: 400 }) }
 
-  const arch = parseArchivo(body.archivo ?? '')
+  /**
+   * D-058: el estudio que subió el PACIENTE se lee desde el bucket, en el
+   * servidor. El navegador no puede descargarlo (las reglas del bucket no
+   * abren lectura a nadie) y no hace falta: lo que el médico manda es la
+   * referencia, y sólo si es el médico DE ese paciente (D-057).
+   */
+  let archivoDelEstudio = ''
+  if (body.estudio) {
+    const { clinicId: cId = '', patientId = '', id = '' } = body.estudio
+    if (!/^[A-Za-z0-9_-]{1,120}$/.test(cId) || !/^[A-Za-z0-9_-]{1,120}$/.test(patientId) || !/^[A-Za-z0-9_-]{1,120}$/.test(id)) {
+      return NextResponse.json({ ok: false, error: 'Referencia de estudio inválida' }, { status: 400 })
+    }
+    const sobreElPaciente = await verificarCapacidadSobrePaciente(req, cId, patientId, 'clinico.escribir')
+    if (!sobreElPaciente.ok) return sobreElPaciente.response
+    const snap = await adminDb.collection('clinics').doc(cId).collection('patients').doc(patientId).collection('estudios_aportados').doc(id).get()
+    if (!snap.exists) return NextResponse.json({ ok: false, error: 'Estudio no encontrado' }, { status: 404 })
+    const e = snap.data() as EstudioAportado
+    if (!esRutaDeEstudioDe(e.ruta, cId, patientId)) return NextResponse.json({ ok: false, error: 'La ruta del estudio no es de este expediente' }, { status: 409 })
+    const [bytes] = await admin.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '').file(e.ruta).download()
+    archivoDelEstudio = `data:${e.contentType};base64,${Buffer.from(bytes).toString('base64')}`
+  }
+
+  const arch = parseArchivo(archivoDelEstudio || body.archivo || '')
   if (!arch) return NextResponse.json({ ok: false, error: 'Falta un archivo válido: imagen (PNG/JPEG/WebP) o PDF en base64.' }, { status: 400 })
   if (arch.data.length > 10_000_000) return NextResponse.json({ ok: false, error: 'Archivo demasiado grande (>7.5MB). Reduce la resolución o divide el PDF.' }, { status: 400 })
 

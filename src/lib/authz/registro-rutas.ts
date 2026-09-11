@@ -238,6 +238,10 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
    * firmadas, con razón, no lo permiten.
    */
   'pacientes/fundir': { tipo: 'capacidad', capacidad: 'administrar' },
+  /** D-057: reparte quién ve qué en todo el consultorio; del admin, como fundir. */
+  'pacientes/asignar-titulares': { tipo: 'capacidad', capacidad: 'administrar' },
+  /** D-058: URL firmada para abrir el estudio que subió el paciente; sólo el médico DEL paciente. */
+  'expediente/estudio-aportado': { tipo: 'capacidad', capacidad: 'clinico.escribir' },
 
   // ── cobro y facturación ──────────────────────────────────────────────────
   'facturacion/descargar': {

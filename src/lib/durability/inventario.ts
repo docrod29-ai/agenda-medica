@@ -333,6 +333,14 @@ const CRUDO: Omit<ClaseDeDato, 'backupIncluded'>[] = [
     integrityInvariant: 'Lo que el paciente preguntó por el portal, con la clase que le puso el servidor y la respuesta CONGELADA de aquel día (V9 PATIENT-AI-001). No es mutable: una pregunta no se reescribe, igual que no se reescribe lo que se le entregó. Restaurar es `solo-si-falta` por eso mismo — pisar una pregunta existente con otra versión borraría el registro de qué se le contestó y cuándo, que es la mitad medicolegal de este canal. Una restauración parcial que deje esta clase vacía tiene que DECIRLO: un historial vacío se lee como «este paciente nunca preguntó», y eso es una afirmación que nadie comprobó.',
   },
   {
+    dataClass: 'patient-uploaded-studies',
+    sourcePath: 'patients.estudios_aportados',
+    systemOfRecord: 'firestore', mutable: false, signedOrImmutable: false,
+    restoreAllowed: 'solo-si-falta', retentionClass: 'clinica', containsPHI: true,
+    referenceDependencies: ['patient-demographics'],
+    integrityInvariant: 'El registro del estudio que el paciente subió desde el portal (D-058): nombre, tipo, tamaño y la RUTA del objeto en Storage (`estudios-paciente/`). El objeto y el registro son dos cosas: restaurar el registro sin el objeto deja un enlace roto que el médico ve como «no se pudo abrir», no como «no existe» — y eso tiene que DECIRSE en el acta de restauración. No es mutable: un estudio no se reescribe; retirarlo es `retiradoEn` con bitácora, no un borrado.',
+  },
+  {
     dataClass: 'physicians',
     sourcePath: 'doctors',
     systemOfRecord: 'firestore', mutable: true, signedOrImmutable: false,

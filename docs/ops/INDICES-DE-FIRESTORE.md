@@ -10,12 +10,12 @@
 > listo.** La construcción es asíncrona y puede fallar después; es lo mismo que
 > `firestore.rules.estado.json` declara en su `loQueNoDemuestra`, y es la lección
 > de la que salió este documento entero. Queda **un renglón por cerrar mirando la
-> consola**: que el trece diga `Enabled` y no «Compilando». Mientras tanto, si el
+> consola**: que el decimotercero diga `Enabled` y no «Compilando». Mientras tanto, si el
 > vigilante empieza a fallar con «The query requires an index», ésa es la causa y
 > no otra.
 >
-> **Estado**: **trece** índices declarados; **doce confirmados `Enabled` en la
-> consola**, el trece **enviado y aceptado el 6-sep** y **pendiente de
+> **Estado**: **catorce** índices declarados (el catorce, `tareas_clinicas · area · estado · pesoUrgencia · creadaEn`, nace el 10-sep-2026 con D-057 y aún no está desplegado); **doce confirmados `Enabled` en la
+> consola**, el decimotercero **enviado y aceptado el 6-sep** y **pendiente de
 > confirmar**; y **las
 > consultas ya los usan** (REG-421, REG-422, REG-423).
 >
@@ -213,7 +213,7 @@ que antes —la fila 2 es real— pero sigue sin cerrar la fila 3. La secuencia
 completa es: fusionar el índice → apretar el botón → **mirar la consola** → y sólo
 entonces fusionar el código que lo usa.
 
-## Los trece, y quién los usa
+## Los catorce, y quién los usa
 
 | Colección | Campos | Quién la hace |
 |---|---|---|
@@ -228,6 +228,7 @@ entonces fusionar el código que lo usa.
 | `reviews` | estado ↑ · publicadaEn ↓ | La página **pública** del médico |
 | `tareas_clinicas` | estado ↑ · creadaEn ↑ | `tareasVivas` — la RED de seguridad del worklist: trae también las tareas históricas sin `pesoUrgencia` |
 | `tareas_clinicas` | estado ↑ · pesoUrgencia ↑ · creadaEn ↑ | `tareasVivas` — el recorte del worklist **por urgencia** (REG-423, cierra P1-14) |
+| `tareas_clinicas` | area ↑ · estado ↑ · pesoUrgencia ↑ · creadaEn ↑ | `tareasVivas(..., { soloRecepcion })` — el worklist de RECEPCIÓN (D-057): las reglas sólo le dejan leer tareas con `area == 'recepcion'`, y en modo `list` la consulta tiene que decirlo. **Declarado el 10-sep-2026; pendiente de desplegar y de confirmar `Enabled` en la consola.** |
 | `waitlist` | estado ↑ · createdAt ↑ | `getWaitlist` — la pantalla de lista de espera |
 | `waitlist` | estado ↑ · prioridad ↑ · createdAt ↑ | `ofrecerHuecoLiberado` — a quién se le ofrece un hueco |
 
@@ -288,10 +289,10 @@ Regla «el dato tiene que LLEGAR». Sobre datos reales se cuentan **recuentos,
 nunca contenido** — llevan PHI y por eso esto no puede vivir en CI
 (`scripts/verificar-invariantes-de-datos.md`):
 
-1. Los **trece** índices, `Enabled` en la consola. No «enviados».
+1. Los **catorce** índices, `Enabled` en la consola. No «enviados».
    **REABIERTO el 6-sep-2026**, exactamente como este punto decía que pasaría:
    «vuelve a abrirse el día que esa tabla crezca». Creció, y **sigue abierto**.
-   Doce llevan `Enabled` desde el 2-sep. El trece —`errores` · `visto` ↑ ·
+   Doce llevan `Enabled` desde el 2-sep. El decimotercero —`errores` · `visto` ↑ ·
    `fecha` ↓— se **envió** ese mismo día con la ejecución #26 del botón y
    Firestore lo aceptó (`FIRESTORE_INDICES=success`), pero eso es acuse de
    recibo, **no** construcción: `deploy --only firestore:indexes` contesta al

@@ -10,11 +10,13 @@
  *
  * ── POR QUÉ DUELE DONDE NO SE VE ─────────────────────────────────────────────
  *
- * Una entrada duplicada no es sólo ruido en una lista. Al liberarse un hueco sólo
- * se avisa a TRES personas (`LIMITE_NOTIFICAR`), así que el paciente repetido
- * ocupa dos de esos tres sitios: **el tercero de la fila no se entera del hueco**
- * y el repetido recibe dos veces el mismo mensaje. La lista sigue pareciendo que
- * funciona.
+ * Una entrada duplicada no es sólo ruido en una lista. Cuando esto se escribió,
+ * al liberarse un hueco sólo se avisaba a TRES personas (`LIMITE_NOTIFICAR`), así
+ * que el paciente repetido ocupaba dos de esos tres sitios: **el tercero de la
+ * fila no se enteraba del hueco**. Desde D-053 se avisa a todos los compatibles
+ * y el tope ya no existe, pero el repetido sigue recibiendo dos veces el mismo
+ * mensaje y contando dos veces en el tope diario por contacto. La lista sigue
+ * pareciendo que funciona.
  *
  * ── LA CAUSA RAÍZ ────────────────────────────────────────────────────────────
  *

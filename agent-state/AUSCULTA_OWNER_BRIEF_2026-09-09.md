@@ -272,3 +272,43 @@ Coordinación de auditoría: al publicar se comprobó que la rama independiente
 claude/ausculta-scheduling-audit-ev7hua ya había registrado REG-662 y REG-663.
 Este lote queda renumerado REG-665 a REG-667; no modifica ni fusiona aquella
 rama. Cambio de referencias únicamente, sin alteración del comportamiento probado.
+
+## Cierre del 10-sep-2026 — lo que quedaba pendiente, punto por punto
+
+Tras publicar v1195 (PR #478 rematado), el dueño pidió cerrar lo que Codex dejó
+declarado. Estado:
+
+- **«Posible mezcla de pacientes sin secuencia identificada»** — CONFIRMADO QUE
+  NO MEZCLA por la vía que Codex señalaba (respuesta tardía de la IA al cambiar
+  de paciente). Sonda con control positivo:
+  `scripts/ausculta-transformacion/respuesta-tardia-cambio-de-paciente.mjs`.
+  Residual: la corrección pedida se pierde si el médico se va antes de que
+  llegue; no es mezcla. Bitácora: `docs/maintenance/BITACORA-2026-09-10-pendientes-de-codex.md`.
+- **Decisiones de agenda/portal/roles** — auditadas las ocho contra el código:
+  A (duración por tipo, ajustable por cita) y B (consecutivas sin huecos) ya
+  existían; C, D, E y G se implementaron hoy (D-053…D-056); F (subir estudios)
+  y H (pacientes por médico + compartir con autorización) quedan DEFINIDAS con
+  las preguntas al dueño en D-057 y D-058. No se implementan sin su respuesta
+  porque tocan reglas de Firestore/Storage y una migración.
+- **Capacidad de 100 000 usuarios** — no es «tiempo de carga»: es un ensayo de
+  carga distribuido contra infraestructura de prueba que este contenedor no
+  puede ejecutar ni pagar. Lo que necesita del dueño está en la bitácora.
+
+### Segunda vuelta del 10-sep-2026 (tarde)
+
+El dueño contestó: la asistente ve el equipo, la agenda y sólo los pendientes de
+recepción, nunca el expediente; cada médico ve sólo sus pacientes; el titular
+autoriza. Para subir estudios: «lo más recomendado». Con eso:
+
+- **D-057 implementada** (`alcance-del-paciente.ts`, `esMedicoDelPaciente` en
+  reglas, `verificarCapacidadSobrePaciente`, `CompartirExpediente`,
+  `/api/pacientes/asignar-titulares`, recepción con sus tareas). Sin acceso de
+  emergencia: no se decidió.
+- **D-058 implementada** (`estudios-aportados.ts`, `storage.rules`, subida
+  directa con token personalizado, registro y tarea por el servidor, URL firmada,
+  lectura con IA desde el bucket). Vista en el arnés con emulador de Storage.
+- **Carga**: `escenario-de-activos.mjs` nombra el experimento de 100 000
+  activos con mezcla de roles; lo que falta fuera sigue siendo del dueño.
+- **Reglas, índices y `storage.rules` van por delante de lo desplegado**: la
+  tabla de `docs/ops/REGLAS-DE-FIRESTORE.md` dice qué no rige y qué se rompe
+  hasta la siguiente ejecución del botón de producción.
