@@ -3950,6 +3950,16 @@ del dueño, tras contestar él las preguntas abiertas del 10-sep.
   IA al cambiar de paciente (sonda con control positivo), y el ensayo de
   100 000 activos nombrado con mezcla de roles.
 
+**Acta de la ejecución #35 del botón (11-sep-2026, 01:02 UTC)**: Compuerta 3
+en `nexusmed-v1196` al primer intento; `FIRESTORE_RULES=success`
+(sello `dca8f9d3…`, coincide con el árbol `15b2b91`); `FIRESTORE_INDICES=success`
+(el catorce, enviado); seguridad 57/57; smoke 10/10; portal 401 sin enlace.
+**`Storage · desplegar REGLAS` salió 403** (`firebasestorage.defaultBucket.get`
+denegado a la cuenta de servicio): `storage.rules` NO rige y la subida desde el
+portal falla en producción hasta que el dueño dé el rol
+`roles/firebasestorage.admin` y se vuelva a pulsar el botón. El acta dijo
+`SUCCESS` sin contar ese paso — REG-668, corregido en el árbol siguiente.
+
 ## v1195 — 10-sep-2026
 
 **PR #478 · consulta de tres áreas, agenda segura y dependencias** — el lote de

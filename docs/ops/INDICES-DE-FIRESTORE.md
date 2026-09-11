@@ -14,7 +14,7 @@
 > vigilante empieza a fallar con «The query requires an index», ésa es la causa y
 > no otra.
 >
-> **Estado**: **catorce** índices declarados (el catorce, `tareas_clinicas · area · estado · pesoUrgencia · creadaEn`, nace el 10-sep-2026 con D-057 y aún no está desplegado); **doce confirmados `Enabled` en la
+> **Estado**: **catorce** índices declarados (el catorce, `tareas_clinicas · area · estado · pesoUrgencia · creadaEn`, nace el 10-sep-2026 con D-057; **enviado y aceptado el 11-sep** por la ejecución #35 del botón, pendiente de confirmar `Enabled` en la consola); **doce confirmados `Enabled` en la
 > consola**, el decimotercero **enviado y aceptado el 6-sep** y **pendiente de
 > confirmar**; y **las
 > consultas ya los usan** (REG-421, REG-422, REG-423).
@@ -228,7 +228,7 @@ entonces fusionar el código que lo usa.
 | `reviews` | estado ↑ · publicadaEn ↓ | La página **pública** del médico |
 | `tareas_clinicas` | estado ↑ · creadaEn ↑ | `tareasVivas` — la RED de seguridad del worklist: trae también las tareas históricas sin `pesoUrgencia` |
 | `tareas_clinicas` | estado ↑ · pesoUrgencia ↑ · creadaEn ↑ | `tareasVivas` — el recorte del worklist **por urgencia** (REG-423, cierra P1-14) |
-| `tareas_clinicas` | area ↑ · estado ↑ · pesoUrgencia ↑ · creadaEn ↑ | `tareasVivas(..., { soloRecepcion })` — el worklist de RECEPCIÓN (D-057): las reglas sólo le dejan leer tareas con `area == 'recepcion'`, y en modo `list` la consulta tiene que decirlo. **Declarado el 10-sep-2026; pendiente de desplegar y de confirmar `Enabled` en la consola.** |
+| `tareas_clinicas` | area ↑ · estado ↑ · pesoUrgencia ↑ · creadaEn ↑ | `tareasVivas(..., { soloRecepcion })` — el worklist de RECEPCIÓN (D-057): las reglas sólo le dejan leer tareas con `area == 'recepcion'`, y en modo `list` la consulta tiene que decirlo. **Declarado el 10-sep-2026; enviado y aceptado el 11-sep (ejecución #35); pendiente de confirmar `Enabled` en la consola.** |
 | `waitlist` | estado ↑ · createdAt ↑ | `getWaitlist` — la pantalla de lista de espera |
 | `waitlist` | estado ↑ · prioridad ↑ · createdAt ↑ | `ofrecerHuecoLiberado` — a quién se le ofrece un hueco |
 

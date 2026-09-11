@@ -135,3 +135,30 @@ documentos residentes; no cabe aquí por concurrencia ni volumen. El corte local
 (400 sesiones: 32 médicos, 16 recepción, 352 pacientes) está etiquetado como
 humo del generador, no evidencia. Lo que sigue necesitando del dueño no cambia:
 proyecto de ensayo, presupuesto, plan de Vercel.
+
+## 5. Cierre del despliegue de v1196 (11-sep-2026)
+
+PR #488 fusionado (`15b2b91`), pin #489 fusionado (`9a20b06`), botón pulsado:
+ejecución **#35**.
+
+| Paso | Resultado |
+|---|---|
+| Compuertas 0–3 | verde; producción sirvió `nexusmed-v1196` al primer intento |
+| Firestore · REGLAS | verde; sello `dca8f9d3…` = sha256 del árbol |
+| Firestore · ÍNDICES | verde; el catorce enviado (falta ver `Enabled` en consola) |
+| **Storage · REGLAS** | **rojo · 403 `firebasestorage.defaultBucket.get`** |
+| Seguridad · producción | 57/57 |
+| Smoke público / portal | 10/10 · 401 sin enlace |
+| Acta | dijo `SUCCESS` sin contar Storage → REG-668 |
+
+**Lo que rige hoy**: D-053…D-057 completos; de D-058, todo salvo la subida en
+sí: el bucket rechaza el archivo del paciente hasta que `storage.rules` se
+publique. El registro, la tarea y la lectura firmada están desplegados.
+
+**Lo que es del dueño**: rol `roles/firebasestorage.admin` a la cuenta de
+servicio del botón (IAM de `nexomed-agenda`); si ya estaba, vincular el bucket
+en Firebase → Storage. Después, volver a pulsar el botón sobre `main`.
+
+**Lo que se arregló aquí**: el acta cuenta Storage y, si sale 403, dice qué rol
+falta (`el-acta-dijo-success-con-storage-rojo.test.ts`, 8 casos, probados al
+revés contra el YAML de la #35).

@@ -1241,7 +1241,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * distinga «no hay horario» de «ese día no se abre», que son dos cosas
      * distintas y mandan a sitios distintos.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663],
+    /**
+     * 668 es 433 repetida con el tercer acto del mismo botón. El despliegue
+     * ganó un paso —las reglas de Storage, D-058— y el paso ganó su `--only`,
+     * su `id` y su comentario; lo que no ganó fue su casilla en el acta. En la
+     * ejecución #35 ese paso salió 403 y el job en rojo, y el acta imprimió
+     * `PRODUCTION_RELEASE=SUCCESS`: seis variables en la suma, ninguna de
+     * Storage. Quien lee el acta —que existe para no leer el log— cree que el
+     * paciente ya puede subir estudios; el bucket sigue cerrado.
+     *
+     * Lo que la mete aquí y no en `depende_de_recordar` es que el acta no se
+     * olvidó de decir algo: DIJO algo falso, con la palabra más fuerte que
+     * tiene. La raíz es la de 433: un acta que enumera a mano lo que publica,
+     * y una publicación nueva no entra sola. La cierra la misma idea (cada
+     * acto, su casilla) y un golden que se pone rojo contra el YAML de la #35.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663, 668],
   },
   {
     clave: 'decision_del_dueno',
