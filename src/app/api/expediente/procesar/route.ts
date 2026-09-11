@@ -41,9 +41,9 @@ import {
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 /**
- * Modo rápido del proveedor (`NOTA_MODO_RAPIDO=1`): el MISMO modelo y el mismo
- * razonamiento, servidos hasta 2.5× más rápido y cobrados más caros. Lo
- * enciende el dueño; ver `parametros-de-nota.ts`.
+ * Modo rápido del proveedor: el MISMO modelo y el mismo razonamiento, servidos
+ * hasta 2.5× más rápido y cobrados más caros. Encendido por decisión del dueño
+ * (D-060); `NOTA_MODO_RAPIDO=0` lo apaga. Ver `parametros-de-nota.ts`.
  */
 const MODO_RAPIDO = modoRapidoHabilitado()
 const ANTHROPIC_VERSION = '2023-06-01'

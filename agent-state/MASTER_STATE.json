@@ -26,23 +26,11 @@
     "M CLAUDE.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
     " M src/__tests__/la-nota-maxima-si-razona.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/api/consultor-evidencia/route.ts",
-    " M src/app/api/expediente/antibiograma-razonar/route.ts",
-    " M src/app/api/expediente/corregir/route.ts",
-    " M src/app/api/expediente/evidencia/route.ts",
     " M src/app/api/expediente/procesar/route.ts",
-    " M src/app/api/expediente/verificar-nota/route.ts",
-    " M src/app/api/uci/copilot/route.ts",
-    " M src/app/superadmin/page.tsx",
-    " M src/lib/ai-keys.ts",
     " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/ia/parametros-de-nota.ts",
-    " M src/lib/ia/procedencia-motor.ts",
-    " M src/lib/modulos.ts",
-    " M src/lib/planes-ia.ts"
+    " M src/lib/ia/parametros-de-nota.ts"
   ],
   "actualizado": "2026-09-11",
   "resumenDesdeElUltimoEstado": {
@@ -78,8 +66,8 @@
   ],
   "ramaActual": "claude/faster-note-processing-ia2m69",
   "derivado": {
-    "regsEnElLedger": 472,
-    "ultimaREG": "REG-687",
+    "regsEnElLedger": 473,
+    "ultimaREG": "REG-688",
     "archivosDePrueba": 1124,
     "casosDePrueba": 13342,
     "lint": "ver scripts/lint-trinquete.mjs"

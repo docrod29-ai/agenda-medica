@@ -129,8 +129,9 @@ Stripe.
   auditan, el orquestador verifica y escribe.
 - La nota Máxima corre en **Opus 5** a la cabeza de la cascada (D-059,
   11-sep-2026); si la cuenta no lo tiene baja a 4.8 y la procedencia lo dice. El
-  modo rápido del proveedor (`NOTA_MODO_RAPIDO=1`) lo enciende el dueño: dobla
-  el costo por token de la llamada más cara.
+  modo rápido del proveedor va **encendido** (D-060, 11-sep-2026): dobla el costo
+  por token de la llamada más cara a cambio de hasta 2.5× de velocidad;
+  `NOTA_MODO_RAPIDO=0` lo apaga.
 - Hospital y UCI en ALPHA: se usan, **no se venden**. Desde el 4-sep-2026 están
   además **en pausa en la navegación** (D-030): no aparecen ni en el índice de
   Operaciones ni en el `Sidebar`, porque la prioridad es la consulta y su

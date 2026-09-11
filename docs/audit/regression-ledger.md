@@ -26263,3 +26263,9 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Lo que sí era defecto y se arregla de paso:** `corregir` y el Consultor pintaban «Claude Opus 4.8» a partir de `/opus/` o de una cadena fija, así que mentían en cuanto la cascada servía otro Opus. Ahora el nombre sale de `etiquetaDeModelo(modeloQueContesto)`. Las etiquetas del nivel Máxima (procedencia por motor, módulos, superadmin) describen la cabeza de la cascada.
 
 **Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (bloque D-059). No acredita que la cuenta tenga Opus 5: eso lo dice `/v1/models` del otro lado, y `_modelo` en cada nota.
+
+## REG-688 — D-060: el modo rápido de la nota va encendido (11-sep-2026)
+
+**Decisión del dueño, no defecto.** El modo rápido nació apagado en REG-685 porque doblar el costo por token de la llamada más cara no era decisión de código. El dueño lo encendió («has esto»). Como desde este contenedor no se puede tocar Vercel, la decisión vive en el código: `modoRapidoHabilitado()` es verdadero por omisión y sólo `NOTA_MODO_RAPIDO=0` lo apaga. Así no depende de recordar una variable en cada entorno. Costo estimado por nota Máxima con modo rápido: ver la sesión del 11-sep en `docs/maintenance/` y el libro de costos, que es el que manda.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (caso D-060).

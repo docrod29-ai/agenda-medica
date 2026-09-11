@@ -46,9 +46,10 @@
  *
  * 1. La forma antigua (`budget_tokens`) no sale hacia ningún modelo 4.6+.
  * 2. El literal no vive en la ruta: la ruta llama a `thinkingPara(model)`.
- * 3. El modo rápido del proveedor (mismo modelo, misma salida, más caro) está
- *    APAGADO salvo que el dueño lo encienda, sólo aplica a los modelos que lo
- *    sirven, y si el proveedor lo rechaza se repite en velocidad normal.
+ * 3. El modo rápido del proveedor (mismo modelo, misma salida, más caro) nació
+ *    apagado y el dueño lo encendió (D-060): va por omisión, `0` lo apaga,
+ *    sólo aplica a los modelos que lo sirven, y si el proveedor lo rechaza se
+ *    repite en velocidad normal.
  * 4. El borrador de GPT arranca ANTES de la llamada a Claude.
  *
  * ── QUÉ NO CUBRE, DECLARADO ──────────────────────────────────────────────────
@@ -196,12 +197,13 @@ describe('REG-686 · si la nota Máxima no razonó, se DICE (hallazgo B-003)', (
 })
 
 describe('REG-685 · el modo rápido es del dueño, y nunca deja sin nota', () => {
-  it('APAGADO por omisión: sin la bandera no se pide velocidad a nadie', () => {
-    expect(modoRapidoHabilitado(undefined)).toBe(false)
-    expect(modoRapidoHabilitado('')).toBe(false)
-    expect(modoRapidoHabilitado('true')).toBe(false)
+  it('ENCENDIDO por omisión (D-060) y sólo `0` lo apaga: la decisión del dueño no depende de recordar una variable', () => {
+    expect(modoRapidoHabilitado(undefined)).toBe(true)
+    expect(modoRapidoHabilitado('')).toBe(true)
     expect(modoRapidoHabilitado('1')).toBe(true)
-    expect(velocidadPara('claude-opus-4-8', false)).toBe('standard')
+    expect(modoRapidoHabilitado('0')).toBe(false)
+    // Apagado, no se pide velocidad a nadie.
+    expect(velocidadPara('claude-opus-5', false)).toBe('standard')
   })
 
   it('encendido, sólo lo sirven Opus 4.8 y Opus 5', () => {

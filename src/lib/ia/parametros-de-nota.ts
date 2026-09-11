@@ -32,10 +32,11 @@
  * el mismo razonamiento y la misma salida**, servidos hasta 2.5× más rápido, a
  * un precio por token mayor (research preview, `speed: 'fast'` + cabecera
  * beta). No cambia lo que el médico firma; cambia cuánto espera y cuánto se
- * paga. Por eso está detrás de una bandera de entorno que enciende el dueño:
- * doblar el gasto de la llamada más cara de la plataforma no es una decisión
- * de código. Y si el proveedor lo rechaza (400) o su cupo aparte se agota
- * (429), la ruta repite en velocidad normal: nunca deja al médico sin nota.
+ * paga. Doblar el gasto de la llamada más cara de la plataforma no es una
+ * decisión de código: nació apagado y el dueño lo encendió el 11-sep-2026
+ * (D-060, «has esto»). Desde entonces va ENCENDIDO por omisión y se apaga con
+ * `NOTA_MODO_RAPIDO=0`. Si el proveedor lo rechaza (400) o su cupo aparte se
+ * agota (429), la ruta repite en velocidad normal: nunca deja al médico sin nota.
  *
  * ── QUÉ NO CUBRE ─────────────────────────────────────────────────────────────
  *
@@ -61,7 +62,7 @@ export type Velocidad = 'fast' | 'standard'
 /** Cabecera beta que exige el proveedor para `speed: 'fast'`. */
 export const BETA_MODO_RAPIDO = 'fast-mode-2026-02-01'
 
-/** Bandera de entorno que enciende el modo rápido. La enciende el dueño. */
+/** Bandera de entorno del modo rápido: `0` lo apaga; cualquier otra cosa, encendido (D-060). */
 export const ENV_MODO_RAPIDO = 'NOTA_MODO_RAPIDO'
 
 /**
@@ -157,9 +158,9 @@ export function cuerpoDeVelocidad(velocidad: Velocidad): Record<string, unknown>
 }
 
 /**
- * La bandera se lee como `'1'`; cualquier otra cosa es «apagado». Se lee con
- * el nombre literal para que el inventario de entorno la vea.
+ * ENCENDIDO por omisión (D-060): sólo `'0'` lo apaga. Se lee con el nombre
+ * literal para que el inventario de entorno la vea.
  */
 export function modoRapidoHabilitado(valor: string | undefined = process.env.NOTA_MODO_RAPIDO): boolean {
-  return valor === '1'
+  return valor !== '0'
 }

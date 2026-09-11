@@ -140,7 +140,7 @@ trabajo interno se acabó.
 | Casos declarados en el árbol | **13342** en 1124 archivos | `node scripts/agent-state/actualizar.mjs` |
 | Sellado clínico | **616 archivos · 8361 casos**, no pueden encoger | `npx vitest run src/__tests__/clinical-safety-gate.test.ts` |
 | Trinquete de diseño | 9 métricas, todas al techo | `node scripts/design/trinquete-de-diseno.mjs` |
-| Última reparación en el ledger | **REG-687** | `docs/audit/regression-ledger.md` |
+| Última reparación en el ledger | **REG-688** | `docs/audit/regression-ledger.md` |
 | Compila | `npx tsc --noEmit` · `npm run build` | con los placeholders `NEXT_PUBLIC_FIREBASE_*` |
 | Navegador real | **no ejecutado** | ver WS-05 |
 
