@@ -11,9 +11,9 @@
   gap: 4px;
   padding: 6px;
   margin-bottom: 20px;
-  border: 1px solid var(--nexus-borde);
+  border: 1px solid var(--marca-panel);
   border-radius: var(--r-sm);
-  background: var(--s1);
+  background: var(--marca-panel);
 }
 
 .navigation a {
@@ -22,12 +22,12 @@
   gap: 8px;
   min-height: 44px;
   padding: 8px 16px;
-  color: var(--text2);
+  color: var(--marca-papel);
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--r-sm);
-  transition: background 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms;
+  transition: background var(--mov-rapido) var(--mov-curva), color var(--mov-rapido) var(--mov-curva);
 }
 
 .navigation a span {
@@ -36,14 +36,14 @@
   min-width: 26px;
   height: 26px;
   border-radius: 6px;
-  background: var(--nexus-soft);
-  color: var(--nexus);
+  background: var(--marca-papel);
+  color: var(--marca-panel);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
-.navigation a:hover { background: var(--nexus-tenue); color: var(--nexus); }
-.navigation a:focus-visible { outline: 2px solid var(--nexus); outline-offset: 2px; }
+.navigation a:hover { background: color-mix(in srgb, var(--marca-papel) 20%, transparent); }
+.navigation a:focus-visible { outline: 2px solid var(--marca-acento); outline-offset: 2px; }
 
 .grid { display: grid; gap: 28px; align-items: start; }
 /* La nota es un contenedor de tamaño: lo que hay dentro se adapta a SU ancho,
@@ -56,7 +56,7 @@
   outline-offset: 5px;
 }
 
-.regionHeader { padding: 12px 0 20px; border-top: 3px solid var(--nexus-borde2); }
+.regionHeader { padding: 12px 0 20px; border-top: 3px solid var(--nexus); }
 .eyebrow { color: var(--nexus); font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
 .regionHeader h2, .noteHeader h2 {
   margin: 5px 0 0;
@@ -75,10 +75,12 @@
   border-top: 3px solid var(--nexus);
   border-radius: var(--r-sm);
 }
-.noteHeader { display: flex; gap: 16px; justify-content: space-between; align-items: start; flex-wrap: wrap; padding-bottom: 24px; }
-.noteHeader h2 { font-size: 22px; }
+.noteHeader { display: flex; gap: 16px; justify-content: space-between; align-items: start; flex-wrap: wrap; padding: 16px; margin-bottom: 24px; background: var(--marca-panel); border-radius: var(--r-sm); }
+.noteHeader h2 { font-size: 22px; color: var(--marca-papel); }
+.noteHeader .eyebrow { color: var(--marca-secundario); }
+.noteHeader .documentState:not([data-signed="true"]) { color: var(--marca-panel); background: var(--marca-papel); }
 .documentState { color: var(--nexus); background: var(--nexus-soft); font-size: 11px; font-weight: 600; line-height: 1.6; padding: 5px 10px; border-radius: var(--r-sm); }
-.documentState[data-signed="true"] { color: var(--green-texto, var(--green)); background: var(--green-bg, var(--nexus-tenue)); }
+.documentState[data-signed="true"] { color: var(--green-texto, var(--green)); background: var(--s1); }
 
 /* El contexto se lee como expediente, sin encadenar tarjetas decorativas. */
 .contexto :global(.nx-ctx) {
@@ -120,16 +122,16 @@
 
 @media (max-width: 600px) {
   .nota, .cierre { padding: 16px 12px; }
-  .noteHeader { gap: 8px; padding-bottom: 20px; }
+  .noteHeader { gap: 8px; padding: 12px; margin-bottom: 20px; }
   .noteHeader h2 { font-size: 20px; }
   .navigation a { padding-inline: 8px; gap: 6px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .regionHeader, .noteHeader { animation: regionIn 220ms ease-out both; }
+  .regionHeader, .noteHeader { animation: regionIn var(--mov-lento) var(--mov-curva) both; }
 }
 @keyframes regionIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -142,6 +144,10 @@
   .grid { display: block; }
   .contexto, .asistente { position: static; max-height: none; overflow: visible; }
   .nota, .cierre { border: 0; padding: 0; }
+  .noteHeader { background: none; padding: 0; }
+  .noteHeader h2, .noteHeader .eyebrow { color: var(--text); }
+  .noteHeader .documentState:not([data-signed="true"]),
+  .noteHeader .documentState[data-signed="true"] { background: none; color: var(--text); }
 }
 
 /* ── Las filas de medicamento en una columna estrecha (relevo PR #478) ──────

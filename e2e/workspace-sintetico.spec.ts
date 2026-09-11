@@ -8,7 +8,9 @@ import { test, expect, type Page } from '@playwright/test'
  * WebKit emulado no equivale a probar Safari en un iPhone físico.
  */
 test.skip(process.env.AUSCULTA_WORKSPACE_QA !== '1', 'Requiere el arnés sintético explícito')
-test.use({ serviceWorkers: 'block' })
+// Evidencia del movimiento real además de imágenes fijas. Este arnés sólo
+// usa cuentas ficticias demo-* y prohíbe peticiones fuera de loopback.
+test.use({ serviceWorkers: 'block', video: 'on' })
 
 test.beforeEach(async ({ context, baseURL }) => {
   const target = new URL(baseURL ?? '')

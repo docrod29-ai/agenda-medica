@@ -25,6 +25,13 @@
   --s2:        #141F2F;
   --s3:        #172334;
 
+  /* Marco de marca: se mantiene legible en ambos temas. El cian señala
+     navegación; los colores de riesgo siguen siendo los tokens clínicos. */
+  --marca-panel: #084CA1;
+  --marca-papel: #FFFFFF;
+  --marca-secundario: #DBEAFF;
+  --marca-acento: #63DEEF;
+
   /* Bordes — alpha sobre canvas para integración */
   --border:    rgba(242,239,233,0.08);
   --border2:   rgba(242,239,233,0.14);
@@ -871,15 +878,15 @@ tbody tr:last-child { border-bottom: none; }
 .sidebar {
   /* La navegación es un marco tinta en ambos temas; sus tokens están acotados
      al marco para que formularios y datos clínicos mantengan el tema elegido. */
-  --bg: #0E2038;
-  --s1: #142942;
-  --s2: #1D3552;
-  --s3: #263F5D;
+  --bg: #0C3273;
+  --s1: #113F82;
+  --s2: #124787;
+  --s3: #164D8F;
   --text: #F6F9FF;
   --text2: #CFDCED;
   --text3: #B3C5DC;
-  --nexus: #80C9FF;
-  --nexus-soft: rgba(128, 201, 255, .13);
+  --nexus: var(--marca-acento);
+  --nexus-soft: rgba(128, 201, 255, .20);
   --nexus-borde: rgba(128, 201, 255, .3);
   --border: rgba(207, 220, 237, .14);
   --border2: rgba(207, 220, 237, .25);
@@ -2239,6 +2246,23 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 
 /* ── Bottom Nav — solo visible en móvil ─────────────────── */
 .bottom-nav-wrap { display: none; }
+.bottom-nav > a { position: relative; }
+.bottom-nav > a[aria-current='page'] { background: var(--nexus-soft); }
+.bottom-nav > a[aria-current='page']::after {
+  content: '';
+  position: absolute; top: 0; left: 25%; right: 25%; height: 3px;
+  background: var(--nexus); border-radius: 0 0 var(--r-sm) var(--r-sm);
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bottom-nav > a[aria-current='page']::after {
+    animation: nx-destino-in var(--mov-lento) var(--mov-curva) both;
+  }
+}
+@keyframes nx-destino-in {
+  from { transform: scaleX(0); }
+  to { transform: none; }
+}
 @media (max-width: 768px) {
   .bottom-nav-wrap { display: block; }
   /* Espacio inferior en main para que la última fila NO quede tapada por la barra
@@ -2263,6 +2287,14 @@ html[data-vt-continuidad] .page-transition { animation: none; }
 /* ── Mobile topbar (hamburguesa + título) ────────────────── */
 .mobile-topbar {
   display: none; /* oculto por defecto en desktop */
+  --s1: var(--marca-panel);
+  --s2: color-mix(in srgb, var(--marca-panel) 84%, white);
+  --s3: color-mix(in srgb, var(--marca-panel) 76%, white);
+  --text: var(--marca-papel);
+  --text2: var(--marca-secundario);
+  --text3: var(--marca-secundario);
+  --nexus: var(--marca-acento);
+  --border: rgba(219, 234, 255, .24);
   height: 52px;
   background: var(--s1);
   border-bottom: 1px solid var(--border);
@@ -3030,10 +3062,11 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 /* PageHeader — encabezado de pantalla con acciones */
 .page-header {
   padding: 20px 24px;
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--nexus-solido);
+  border: 1px solid var(--marca-panel);
+  border-left: 4px solid var(--marca-acento);
   border-radius: var(--r-lg);
-  background: var(--s1);
+  background: var(--marca-panel);
+  color: var(--marca-papel);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -3041,8 +3074,31 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   flex-wrap: wrap;
   margin-bottom: 20px;
 }
-.page-header-sub { font-size: 14px; color: var(--text2); margin-top: 8px; max-width: 64ch; line-height: 1.6; }
+.page-header-sub { font-size: 14px; color: var(--marca-secundario); margin-top: 8px; max-width: 64ch; line-height: 1.6; }
 .page-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.page-header .t-h1 { color: var(--marca-papel); }
+/* Las acciones conservan una primaria inequívoca sobre el marco azul. */
+.page-header .btn-primary, .nx-calendario-cabecera .btn-primary {
+  background: var(--marca-papel); color: var(--marca-panel);
+}
+.page-header .btn-primary:hover:not(:disabled), .nx-calendario-cabecera .btn-primary:hover:not(:disabled) {
+  background: var(--marca-secundario);
+}
+.page-header .btn-primary:active:not(:disabled), .nx-calendario-cabecera .btn-primary:active:not(:disabled) {
+  background: var(--marca-secundario); color: var(--marca-panel);
+}
+.page-header .btn-ghost, .page-header .btn-secondary,
+.nx-calendario-cabecera .btn-ghost, .nx-calendario-cabecera .btn-secondary {
+  color: var(--marca-papel); border-color: var(--marca-secundario);
+}
+.page-header .btn-ghost:hover:not(:disabled), .page-header .btn-secondary:hover:not(:disabled),
+.nx-calendario-cabecera .btn-ghost:hover:not(:disabled), .nx-calendario-cabecera .btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--marca-papel) 14%, transparent);
+  color: var(--marca-papel); border-color: var(--marca-secundario);
+}
+.page-header .btn:focus-visible, .nx-calendario-cabecera .btn:focus-visible {
+  outline: 2px solid var(--marca-papel); outline-offset: 3px;
+}
 
 /* Identidad compartida: el marco separa navegación, lectura y acción. */
 .sidebar-logo { border-bottom-color: var(--nexus-borde); }
@@ -3053,13 +3109,13 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
   .page-header-actions { width: 100%; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .page-header { animation: nx-rise 240ms var(--mov-curva) both; }
+  .page-header, .nx-calendario-titulo { animation: nx-rise var(--mov-lento) var(--mov-curva) both; }
 }
 
 /* ── Dashboard "Dirección A" — revelado escalonado + banda próxima cita ── */
 @keyframes nx-rise {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .nx-reveal { animation: nx-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 @media (prefers-reduced-motion: reduce) {
@@ -3143,12 +3199,16 @@ body:has(.bottom-nav-wrap) .theme-toggle { display: none; }
 }
 
 .hoy-head {
+  --text2: var(--marca-papel);
+  --text3: var(--marca-secundario);
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 0 16px;
-  border-bottom: 1px solid var(--nexus-borde);
+  padding: 16px 20px;
+  border-left: 4px solid var(--marca-acento);
+  border-radius: var(--r-md);
+  background: var(--marca-panel);
 }
 /* KICKER, no display (RTC-06): el saludo acompaña a la fecha en la escala de
    metadato. Era el texto más grande de la pantalla (32px display) y el equipo
@@ -4174,6 +4234,18 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-acc-caja:hover:not(:disabled) { background: var(--s3); border-color: var(--border2); }
 .nx-acc-caja:active:not(:disabled) { background: var(--s3); }
 
+/* El micrófono responde al gesto; nunca aparenta grabar estando en reposo. */
+.nx-grabar-inicio { background: color-mix(in srgb, var(--nexus) 10%, var(--s1)); }
+.nx-grabar-inicio:focus-visible { outline: 2px solid var(--nexus); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .nx-grabar-inicio > span:first-child { transition: transform var(--mov-lento) var(--mov-curva); }
+  .nx-grabar-inicio:focus-visible > span:first-child { transform: translateY(-3px); }
+  .nx-grabar-inicio:active:not(:disabled) > span:first-child { transform: scale(.94); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .nx-grabar-inicio:hover:not(:disabled) > span:first-child { transform: translateY(-3px); }
+}
+
 /* La acción que manda. Como `.btn-primary`.
    `[data-inerte]` es para el ÚNICO sitio donde esta piel la lleva un `<span>` y
    no un `<button>`: el rótulo «Estructurando la nota…» mientras la IA trabaja.
@@ -4363,10 +4435,10 @@ html:has(.mi-barra-destinos) .theme-toggle {
 /* La cabecera del calendario mantiene vista, periodo y creación en grupos.
    Las flechas y su periodo nunca se separan al envolver en un teléfono. */
 .nx-calendario { padding: 24px; display: flex; flex-direction: column; }
-.nx-calendario-cabecera { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.nx-calendario-cabecera { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; padding: 20px; border-radius: var(--r-lg); background: var(--marca-panel); }
 .nx-calendario-titulo { flex: 1; min-width: 0; }
-.nx-calendario-titulo h1 { margin: 0; font-size: 24px; letter-spacing: -.035em; font-weight: 600; }
-.nx-calendario-titulo p { margin: 6px 0 0; color: var(--text2); font-size: 13px; line-height: 1.5; }
+.nx-calendario-titulo h1 { margin: 0; color: var(--marca-papel); font-size: 24px; letter-spacing: -.035em; font-weight: 600; }
+.nx-calendario-titulo p { margin: 6px 0 0; color: var(--marca-secundario); font-size: 13px; line-height: 1.5; }
 .nx-calendario-vistas { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; gap: 2px; }
 .nx-calendario-vistas .nx-segmento { min-height: 36px; padding: 6px 14px; border: none; border-radius: var(--r-sm); color: var(--text2); font: inherit; font-size: 13px; cursor: pointer; }
 .nx-calendario-vistas .nx-segmento[aria-pressed='true'] { background: var(--nexus-solido); color: white; font-weight: 600; }
@@ -4381,7 +4453,7 @@ html:has(.mi-barra-destinos) .theme-toggle {
 @media (max-width: 640px) {
   .nx-calendario { padding: 16px; }
   .nx-calendario-titulo { flex-basis: 100%; }
-  .nx-calendario-cabecera { gap: 12px; }
+  .nx-calendario-cabecera { gap: 12px; padding: 16px 12px; }
   .nx-calendario-vistas { flex: 1 1 100%; }
   .nx-calendario-vistas .nx-segmento { flex: 1; min-height: 44px; }
   .nx-calendario-periodo { flex: 1 1 100%; }
@@ -5704,4 +5776,12 @@ html.nx-hay-pildora-grabando main { padding-bottom: 96px; }
     flex-basis: 100%;
     margin-left: 24px;
   }
+}
+
+/* El papel no depende de imprimir fondos de color. */
+@media print {
+  .page-header, .hoy-head, .nx-calendario-cabecera { background: none; border-color: var(--text); }
+  .page-header .t-h1, .page-header-sub, .nx-calendario-titulo h1, .nx-calendario-titulo p,
+  .hoy-head .hoy-saludo { color: var(--text); }
+  .hoy-head { --text3: var(--text); }
 }

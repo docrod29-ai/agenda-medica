@@ -92,3 +92,36 @@ móvil/teclado del árbol integrado requieren su CI nuevo. El cambio no declara
 cerrada la lectura de PHI legada en la ficha raíz, la asignación de pacientes sin
 titular ni pruebas físicas de Safari. Resolver el permiso externo de Storage y
 repetir el cierre de producción sigue pendiente; ningún permiso se ha cambiado.
+
+## Mayor presencia de color y movimiento — 11-sep-2026
+
+El dueño revisó las capturas anteriores y pidió un cambio más visible. Esta
+continuación parte de `53cd30a`, con sus seis jobs de CI y dependencias correctos.
+El acceso de Vercel ya se completó en el navegador y se alcanzó el login de
+Ausculta; eso no equivale a haber recorrido una cuenta privada de la aplicación.
+
+Se refuerzan los componentes canónicos: cabeceras de página, Hoy y calendario
+en azul; marco lateral y móvil azul con acento cian; selección visible en la
+navegación inferior; navegación de regiones y cabecera de la nota diferenciadas.
+Las entradas duran 320 ms y el micrófono responde a foco/activación. No hay
+movimiento de grabación en reposo. Se respetan movimiento reducido, foco visible,
+colores clínicos y la ubicación de los controles fijos. La impresión conserva
+fondo blanco y texto oscuro, incluido el estado de nota firmada.
+
+La revisión encontró iniciales de paciente casi invisibles en tema claro.
+**REG-673** sustituye seis pares pastel fijos por los pares temáticos canónicos.
+La reproducción con los colores anteriores falló en 12 de 18 combinaciones;
+después pasan las 18, con contraste mínimo 4.5:1 sobre cinco superficies por tema.
+No se cambia el hash de identidad ni se agregan dependencias.
+
+Verificación local inicial: 14 738 casos correctos y un fallo de clasificación
+de REG-673; se corrigieron su familia y la cuenta del documento. Los 57 casos
+dirigidos de presentación, movimiento y contraste ya habían pasado. Lint
+conserva el techo de 93, sin deuda nueva. La validación del árbol definitivo se
+registrará en la PR, sin atribuirle resultados del commit padre.
+
+El recorrido sintético de CI conserva sus controles de red y sus datos ficticios
+y ahora guarda video también al pasar, para mostrar movimiento real junto a las
+capturas. Esta ampliación no cambia los pendientes de Storage, aislamiento del
+legado, QA privada ni Safari físico. Las imágenes enlazadas en las secciones
+anteriores corresponden al diseño anterior, no a esta ampliación.

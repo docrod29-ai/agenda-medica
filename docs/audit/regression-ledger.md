@@ -26127,3 +26127,13 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Pruebas:** `src/__tests__/el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts` inspecciona la variable que realmente se compara, no cualquier mención en el YAML; `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts` exige Storage y quita su declaración como control negativo. Tres casos fallaron antes. Tras el arreglo, la suite completa pasa.
 
 **Límites:** no prueba IAM, existencia del bucket ni construcción de índices; Storage continúa pendiente del acceso externo y de un despliegue correcto. No modifica reglas de datos.
+
+## REG-673 — las iniciales del paciente se leen también en claro (11-sep-2026)
+
+**Descubrimiento:** revisión independiente de las capturas del rediseño. Los seis avatares usaban texto pastel fijo, con contraste de 1.01–1.56:1 en el canvas claro. La inicial verde en Pacientes prácticamente desaparecía.
+
+**Arreglo:** el helper canónico `src/lib/avatar-color.ts` usa los seis pares temáticos existentes del sistema, conservando el hash del nombre. No hay un componente paralelo ni cambios de identidad o significado clínico.
+
+**Prueba permanente:** `src/__tests__/las-iniciales-del-paciente-se-leen.test.ts` mide los colores resueltos y su transparencia sobre cinco superficies, en oscuro, claro y automático claro. Reproducción inversa antes de cambiar el helper: doce casos fallan y seis pasan; después, los dieciocho pasan.
+
+**Límite:** comprueba pares de tokens, no toda composición del navegador, autorización ni aislamiento del expediente.
