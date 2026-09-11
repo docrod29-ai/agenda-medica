@@ -7,7 +7,7 @@
  * diagnóstico diferencial — CADA punto respaldado con las citas (PMID) reales que
  * lo sustentan. No inventa fuentes: solo usa los artículos que PubMed devolvió.
  *
- * Nivel Premium usa Opus 4.8 + razonamiento; Pro usa Sonnet 5.
+ * Nivel Premium usa Opus 5 (D-059); Pro usa Sonnet 5.
  *
  * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}],
  *         contexto:{edad,sexo,alergias,embarazo,tfg:{valor,vigente},problemas,medicamentosActuales} }
@@ -56,7 +56,7 @@ const PRESUPUESTO_MS = 300_000
 /** Lo que se reserva para armar y devolver la respuesta. */
 const RESERVA_RESPUESTA_MS = 15_000
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS_PREMIUM = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
+const MODELOS_PREMIUM = ['claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 

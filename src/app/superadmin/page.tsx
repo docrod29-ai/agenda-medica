@@ -390,7 +390,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
               // — decía Premium $1,999 cuando el plan es "Pro" (precio en @/lib/planes-ia).
               const label = n === 'pro'
                 ? `${PLANES.clinica.nombre} ($${PLANES.clinica.precioMXN.toLocaleString('es-MX')}) · Sonnet 5`
-                : `${PLANES.premium.nombre} ($${PLANES.premium.precioMXN.toLocaleString('es-MX')}) · Opus 4.8 + GPT-5`
+                : `${PLANES.premium.nombre} ($${PLANES.premium.precioMXN.toLocaleString('es-MX')}) · Opus 5 + GPT-5`
               return (
                 <button key={n} disabled={busy === 'set_nivel_ia'}
                   onClick={() => { setNivelIA(n); accion('set_nivel_ia', { nivelIA: n }) }}
@@ -406,7 +406,7 @@ function ModalGestion({ cliente, paquetes, onClose, onHecho }: { cliente: Client
             })}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-            Pro: nota con Sonnet 5, 2ª opinión a botón. Premium: Opus 4.8 + razonamiento + 2ª opinión GPT-5 automática.
+            Pro: nota con Sonnet 5, 2ª opinión a botón. Premium: Opus 5 + razonamiento + 2ª opinión GPT-5 automática.
           </div>
           {/* Consumo del mes vs límite del plan */}
           {(() => {

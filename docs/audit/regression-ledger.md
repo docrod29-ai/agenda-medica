@@ -26255,3 +26255,11 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Arreglo:** la ruta lleva `razono` y lo pierde en los dos caminos que degradan. La respuesta trae `_razonamientoExtendido`, `_sinRazonamiento` y `_avisoRazonamiento` (texto en `parametros-de-nota.ts`, que dice qué revisar con más cuidado y no culpa a créditos ni saldo). La consulta lo pinta con el mismo panel ámbar que la degradación de modelo, y la procedencia inmutable guarda `razonamientoExtendido` (`false` también en el parser local; ausente en notas anteriores, porque ausencia de dato no es dato). No se bloquea firmar: degradar está bien, degradar callado no.
 
 **Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (bloque REG-686). No cubre que el médico lea el aviso ni cuántas veces se dispara en producción: eso se cuenta en Firestore por `iaAuditoria.provenance.razonamientoExtendido == false`, con recuentos y nunca contenido.
+
+## REG-687 — D-059: la nota Máxima corre en Opus 5, y el nombre del modelo sale del que contestó (11-sep-2026)
+
+**Decisión del dueño, no defecto.** Tras REG-685 el dueño pidió «mejora todo». Opus 5 cuesta lo mismo por token que Opus 4.8, es más capaz, usa el mismo tokenizador y también sirve el modo rápido. Sube a lo alto de las cascadas que tienen respaldo (`procesar`, `corregir`, `evidencia`, `antibiograma-razonar`, `uci/copilot`): si la cuenta no lo tiene, la cascada baja a 4.8 sola y la procedencia dice cuál contestó. `consultor-evidencia` se queda en 4.8 porque llama a un modelo fijo sin cascada; cambiarlo a ciegas sería un 404 sin red.
+
+**Lo que sí era defecto y se arregla de paso:** `corregir` y el Consultor pintaban «Claude Opus 4.8» a partir de `/opus/` o de una cadena fija, así que mentían en cuanto la cascada servía otro Opus. Ahora el nombre sale de `etiquetaDeModelo(modeloQueContesto)`. Las etiquetas del nivel Máxima (procedencia por motor, módulos, superadmin) describen la cabeza de la cascada.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (bloque D-059). No acredita que la cuenta tenga Opus 5: eso lo dice `/v1/models` del otro lado, y `_modelo` en cada nota.

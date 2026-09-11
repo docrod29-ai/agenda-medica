@@ -1417,7 +1417,7 @@ export default function ConsultaActivaPage() {
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
   // Lo llena Claude al terminar la diarización; editable en el diálogo.
   const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
-  // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 4.8.
+  // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 5.
   type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
   /**
    * La segunda opinión, CON la huella de lo que revisó.

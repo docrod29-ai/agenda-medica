@@ -58,9 +58,15 @@ const ANTHROPIC_VERSION = '2023-06-01'
 // Tres PERFILES de modelo, según plan del consultorio y momento:
 //  · 'live'    → borrador EN VIVO (cada ~30s): Haiku, baratísimo y veloz. Sin thinking.
 //  · 'pro'     → nota FINAL del plan Pro ($899): Sonnet 5, excelente, sin thinking.
-//  · 'premium' → nota FINAL del plan Premium ($1,999): Opus 4.8 + extended thinking.
+//  · 'premium' → nota FINAL del plan Premium ($1,999): Opus 5 + razonamiento adaptativo.
 // resolverModelo() descubre el primero disponible en la cuenta vía /v1/models.
+/**
+ * D-059 (11-sep-2026): Opus 5 arriba. Mismo precio por token que Opus 4.8, más
+ * capaz, mismo tokenizador y también sirve el modo rápido. Si la cuenta no lo
+ * tiene, la cascada baja a 4.8 y la procedencia dice cuál contestó.
+ */
 const MODELOS_PREMIUM = [
+  'claude-opus-5',
   'claude-opus-4-8',
   'claude-opus-4-6',
   'claude-sonnet-5',

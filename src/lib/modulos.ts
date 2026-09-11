@@ -131,7 +131,7 @@ export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
   { id: 'clinica',  nombre: 'Clínica',  precio: 899,  orden: 1, modulos: MODULOS_DE_PLAN.clinica,
     descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 200 créditos/mes.' },
   { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 2, modulos: MODULOS_DE_PLAN.premium,
-    descripcion: 'Todo lo de Clínica con IA Máxima (Opus 4.8 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
+    descripcion: 'Todo lo de Clínica con IA Máxima (Opus 5 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
   { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
     modeloPrecio: 'por_medico', precioBase: 3499, precioPorUnidad: 999,
     descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Incluye 1 médico · +$999/mes por médico adicional.' },

@@ -10,7 +10,7 @@
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { thinkingPara, type Thinking } from '@/lib/ia/parametros-de-nota'
+import { thinkingPara, etiquetaDeModelo, type Thinking } from '@/lib/ia/parametros-de-nota'
 import { redactarString } from '@/lib/security/sanitize'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
@@ -27,8 +27,8 @@ import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-// Mismo nivel de razonamiento que la generación de la nota: Opus 4.8 primero.
-const MODELOS = [MODEL_OVERRIDE, 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'].filter(Boolean)
+// Mismo nivel de razonamiento que la generación de la nota: Opus 5 primero (D-059).
+const MODELOS = [MODEL_OVERRIDE, 'claude-opus-5', 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'].filter(Boolean)
 
 /**
  * REG-685 · la forma del razonamiento sale del modelo (`parametros-de-nota`),
@@ -170,7 +170,8 @@ export async function POST(req: NextRequest) {
       const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string
       const nota = extraerJSON(texto)
       if (nota && typeof nota === 'object') {
-        const modelos: string[] = [/opus/.test(model) ? 'Claude Opus 4.8' : 'Claude']
+        // El nombre sale del modelo que contestó, no de una cadena fija (D-059).
+        const modelos: string[] = [etiquetaDeModelo(String(data?.model ?? model))]
         let notaFinal = nota as Record<string, unknown>
         // SEGUNDO CEREBRO (OpenAI): audita que se aplicó SOLO el cambio pedido.
         // Premium usa GPT-5, Pro GPT-4o. Si no hay llave o falla, se queda Claude.

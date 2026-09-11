@@ -125,6 +125,19 @@ export const AVISO_SIN_RAZONAMIENTO =
   'el proveedor no lo aceptó en esta llamada. El texto es válido; revisa con más ' +
   'cuidado el diagnóstico diferencial y las dosis, que es lo que ese paso mejora.'
 
+/**
+ * Nombre legible del modelo que DE VERDAD contestó, para pintarlo en la
+ * procedencia. Antes cada ruta decía «Claude Opus 4.8» a partir de `/opus/`,
+ * y mentía en cuanto la cascada servía otro Opus (D-059).
+ */
+export function etiquetaDeModelo(model: string): string {
+  const v = versionDe(model)
+  if (!v) return 'Claude'
+  const familia = v.familia[0].toUpperCase() + v.familia.slice(1)
+  const version = Number.isInteger(v.version) ? String(v.version) : v.version.toFixed(1)
+  return `Claude ${familia} ${version}`
+}
+
 /** Sólo Opus 4.8 y Opus 5 sirven el modo rápido; y sólo si el dueño lo encendió. */
 export function admiteModoRapido(model: string): boolean {
   return /^claude-opus-(?:4-8|5)$/.test(model)

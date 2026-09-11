@@ -71,7 +71,7 @@ import { join } from 'node:path'
 import {
   thinkingPara, versionDe, velocidadPara, admiteModoRapido, cabecerasDeVelocidad,
   cuerpoDeVelocidad, modoRapidoHabilitado, BUDGET_LEGADO, BETA_MODO_RAPIDO,
-  ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, AVISO_SIN_RAZONAMIENTO,
+  ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, AVISO_SIN_RAZONAMIENTO, etiquetaDeModelo,
 } from '@/lib/ia/parametros-de-nota'
 
 const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
@@ -259,5 +259,43 @@ describe('REG-685 · el borrador de GPT arranca a la vez que Claude', () => {
 
   it('el tope de 25 s del ensamble sigue: la nota de Claude nunca espera más por la segunda opinión', () => {
     expect(ruta).toContain('new Promise<null>(r => setTimeout(() => r(null), 25000))')
+  })
+})
+
+describe('D-059 · Opus 5 a la cabeza, y el nombre del modelo sale del que contestó', () => {
+  it('las cascadas con respaldo empiezan en Opus 5 y conservan 4.8 detrás', () => {
+    expect(cascadaDeLaRuta('MODELOS_PREMIUM').slice(0, 2)).toEqual(['claude-opus-5', 'claude-opus-4-8'])
+    for (const [archivo, nombre] of [
+      ['src/app/api/expediente/corregir/route.ts', 'MODELOS'],
+      ['src/app/api/expediente/evidencia/route.ts', 'MODELOS_PREMIUM'],
+      ['src/app/api/expediente/antibiograma-razonar/route.ts', 'MODELOS_OPUS'],
+      ['src/app/api/uci/copilot/route.ts', 'MODELOS_CLAUDE'],
+    ] as const) {
+      const src = leer(archivo)
+      const bloque = src.match(new RegExp(`const ${nombre} = \\[([^\\]]*)\\]`))?.[1] ?? ''
+      const ids = [...bloque.matchAll(/'(claude-[^']+)'/g)].map(m => m[1])
+      expect(ids.slice(0, 2), archivo).toEqual(['claude-opus-5', 'claude-opus-4-8'])
+    }
+  })
+
+  it('Opus 5 razona con la forma nueva y sirve el modo rápido: no se pierde nada al subir', () => {
+    expect(thinkingPara('claude-opus-5')).toEqual({ type: 'adaptive' })
+    expect(admiteModoRapido('claude-opus-5')).toBe(true)
+  })
+
+  it('el nombre legible se deriva del identificador, no de una cadena fija', () => {
+    expect(etiquetaDeModelo('claude-opus-5')).toBe('Claude Opus 5')
+    expect(etiquetaDeModelo('claude-opus-4-8')).toBe('Claude Opus 4.8')
+    expect(etiquetaDeModelo('claude-sonnet-5')).toBe('Claude Sonnet 5')
+    expect(etiquetaDeModelo('claude-haiku-4-5-20251001')).toBe('Claude Haiku 4.5')
+    expect(etiquetaDeModelo('gpt-5')).toBe('Claude')   // nunca inventa una versión
+  })
+
+  it('AL REVÉS: ninguna ruta vuelve a escribir «Claude Opus 4.8» a mano en lo que pinta', () => {
+    for (const archivo of ['src/app/api/expediente/corregir/route.ts', 'src/app/api/consultor-evidencia/route.ts']) {
+      const codigo = sinComentarios(leer(archivo))
+      expect(codigo, archivo).not.toContain("'Claude Opus 4.8'")
+      expect(codigo, archivo).toContain('etiquetaDeModelo(')
+    }
   })
 })

@@ -161,7 +161,7 @@ export const COPILOT_UCI_POR_MOTOR: Record<ClaveMotor, {
  */
 export const COSTO_CREDITOS = {
   consultorPro: 0.5,     // pregunta al Consultor con IA Pro (Sonnet 5 + GPT-4o)
-  consultorPremium: 4,   // pregunta al Consultor con IA Premium (Opus 4.8 + GPT-5): costo real ~$7.5
+  consultorPremium: 4,   // pregunta al Consultor con IA Premium (Opus 5 + GPT-5): costo real ~$7.5
   // El Copilot de UCI llama a Opus + GPT EN PARALELO por turno (dual-model, ~$10):
   // es la acción más cara del sistema. NO puede valer 0 créditos (era la mayor fuga).
   copilotUci: 7,
