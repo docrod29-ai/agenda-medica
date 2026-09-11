@@ -3959,6 +3959,9 @@ denegado a la cuenta de servicio): `storage.rules` NO rige y la subida desde el
 portal falla en producción hasta que el dueño dé el rol
 `roles/firebasestorage.admin` y se vuelva a pulsar el botón. El acta dijo
 `SUCCESS` sin contar ese paso — REG-668, corregido en el árbol siguiente.
+**Cerrado en la ejecución #36 (03:35 UTC)**: con el rol dado por el dueño,
+`storage.rules` quedó publicado («released rules storage.rules to
+firebase.storage»). Rige todo v1196.
 
 ## v1195 — 10-sep-2026
 

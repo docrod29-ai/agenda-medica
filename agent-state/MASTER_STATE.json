@@ -23,19 +23,9 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M .github/workflows/deploy-production.yml",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/maintenance/BITACORA-2026-09-10-pendientes-de-codex.md",
+    "M docs/maintenance/BITACORA-2026-09-10-pendientes-de-codex.md",
     " M docs/maintenance/sw-changelog.md",
-    " M docs/ops/INDICES-DE-FIRESTORE.md",
-    " M docs/ops/REGLAS-DE-FIRESTORE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M firestore.rules.estado.json",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/el-acta-dijo-success-con-storage-rojo.test.ts"
+    " M docs/ops/REGLAS-DE-FIRESTORE.md"
   ],
   "actualizado": "2026-09-11",
   "resumenDesdeElUltimoEstado": {
