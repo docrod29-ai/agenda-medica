@@ -95,7 +95,10 @@ describe('un seguimiento agendado sigue vivo', () => {
      * código encima.
      */
     const FIRESTORE = readFileSync('src/lib/tareas-clinicas/firestore.ts', 'utf8')
-    expect(FIRESTORE).toMatch(/'solicitada', 'aceptada', 'en_curso', 'agendada', 'completada'/)
+    const servidor = readFileSync('src/app/api/tareas/listar/route.ts', 'utf8')
+    expect(servidor).toMatch(/'solicitada', 'aceptada', 'en_curso', 'agendada', 'completada'/)
+    expect(servidor).toContain("cola.where('estado', 'in', VIVOS)")
+    expect(FIRESTORE).toContain("pedirListado(clinicId, 'vivas', tope, alcance.soloRecepcion === true)")
   })
 
   it('desde `agendada` el paso siguiente es que el paciente vino', () => {

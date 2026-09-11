@@ -230,7 +230,7 @@ describe('LA COLECCIÓN NUEVA ESTÁ DECLARADA EN LOS TRES SITIOS', () => {
    */
   it('firestore.rules, con escritura cerrada al navegador', () => {
     const reglas = readFileSync(join(process.cwd(), 'firestore.rules'), 'utf8')
-    const bloque = /match \/preguntas_paciente\/\{docId\} \{[\s\S]*?\}/.exec(reglas)?.[0] ?? ''
+    const bloque = /match \/preguntas_paciente\/\{preguntaId\} \{[\s\S]*?\}/.exec(reglas)?.[0] ?? ''
     expect(bloque, 'la colección no está en las reglas').not.toBe('')
     expect(bloque).toContain('allow write: if false')
     // D-057: la lee el médico DEL paciente (isMedico + titular/compartido/admin).

@@ -50,15 +50,10 @@ service cloud.firestore {
     function esMedicoDelPaciente(clinicId, patientId) {
       return isMedico(clinicId) && (
         isAdmin(clinicId)
-        // Sin ficha (una nota que nace antes que el documento del paciente, o
-        // un expediente antiguo) no hay titular que comprobar: se lee como
-        // «sin titular», nunca como error. `get()` sobre un doc ausente da null
-        // y `.get()` sobre null revienta la regla entera (lo cazó el golden
-        // flow del emulador).
-        || !exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId))
-        || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == null
-        || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == request.auth.uid
-        || request.auth.uid in fichaDelPaciente(clinicId, patientId).get('compartidoCon', [])
+        || (exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId))
+            && (fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == request.auth.uid
+                || (fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) != null
+                    && request.auth.uid in fichaDelPaciente(clinicId, patientId).get('compartidoCon', []))))
       );
     }
 
@@ -272,7 +267,9 @@ service cloud.firestore {
         return ['alergias', 'alergiasEstructuradas', 'notas', 'txValoracion', 'txValoracionAt', 'txValoracionHist'];
       }
       match /patients/{docId} {
-        allow read: if isMember(clinicId);
+        // REG-682: la raíz contiene PHI legado. El directorio administrativo se
+        // proyecta en /api/pacientes/directorio; ningún campo clínico se borra.
+        allow read: if esMedicoDelPaciente(clinicId, docId);
         /**
          * La asistente puede EDITAR datos del paciente (contacto, demografía)…
          * y NADA MÁS:
@@ -294,7 +291,7 @@ service cloud.firestore {
             || (isMedico(clinicId)
                 && request.resource.data.get('portalTokenVersion', 0) > resource.data.get('portalTokenVersion', 0))
           )
-          && (isMedico(clinicId)
+          && (esMedicoDelPaciente(clinicId, docId)
               || !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposClinicosDelPaciente()))
           // D-057: quién es el titular y con quién se comparte lo decide el
           // titular (o el admin); un paciente sin titular lo puede reclamar
@@ -302,7 +299,6 @@ service cloud.firestore {
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['medicoTitularUid', 'compartidoCon'])
               || (isMedico(clinicId)
                   && (isAdmin(clinicId)
-                      || resource.data.get('medicoTitularUid', null) == null
                       || resource.data.get('medicoTitularUid', null) == request.auth.uid)));
         /**
          * BORRAR UN EXPEDIENTE NO SE HACE DESDE EL NAVEGADOR. PUNTO.
@@ -426,7 +422,7 @@ service cloud.firestore {
          * Y el paciente tampoco LEE de aquí: se lo sirve /api/portal después de
          * comprobar `visibleParaElPaciente`. `isMedico` es para el consultorio.
          */
-        match /paquetes_visita/{docId} {
+        match /paquetes_visita/{paqueteId} {
           allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
@@ -450,12 +446,12 @@ service cloud.firestore {
          * con su token, filtrado por su `patientId`. `isMedico` es para el
          * consultorio, que es quien tiene que ver lo que se escaló.
          */
-        match /preguntas_paciente/{docId} {
+        match /preguntas_paciente/{preguntaId} {
           allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
 
-        match /formularios_previos/{docId} {
+        match /formularios_previos/{formularioId} {
           // `isMedico` y no `isMember`: aquí van motivo, medicamentos, alergias
           // y antecedentes — es secreto médico, igual que las notas. El guardián
           // de la matriz cazó esto cuando estaba en `isMember`.
@@ -469,7 +465,7 @@ service cloud.firestore {
          * carpeta de ESE paciente. Los lee el médico del paciente. Entran
          * «sin revisar»: la revisión vive en la tarea, no aquí.
          */
-        match /estudios_aportados/{docId} {
+        match /estudios_aportados/{estudioId} {
           allow read: if esMedicoDelPaciente(clinicId, docId);
           allow write: if false;
         }
@@ -849,7 +845,11 @@ service cloud.firestore {
       // La lectura baja a isMedico: no contiene notas, pero sí patientId, notaId y
       // metadatos que revelan a quién se atendió y cuándo.
       match /audit_log/{docId} {
-        allow read: if isMedico(clinicId);
+        allow read: if isAdmin(clinicId) || (isMedico(clinicId) && (
+          (resource.data.get('patientId', '') != ''
+            && esMedicoDelPaciente(clinicId, resource.data.patientId))
+          || (resource.data.get('patientId', '') == ''
+            && resource.data.get('medicoUid', '') == request.auth.uid)));
         allow create, update, delete: if false;   // solo Admin SDK
       }
       /**
@@ -1067,16 +1067,50 @@ service cloud.firestore {
        * cancela con motivo, que es un estado, no un borrado.
        */
       match /tareas_clinicas/{tareaId} {
+        // Solicitud administrativa acotada; pedir acceso no exige tenerlo.
+        function esPeticionDeAcceso(datos) {
+          return isMedico(clinicId)
+            && datos.keys().hasOnly(['clinicId', 'patientId', 'patientNombre', 'tipo', 'area', 'titulo', 'detalle',
+              'prioridad', 'pesoUrgencia', 'estado', 'creadaEn', 'origen', 'origenId', 'ownerUid'])
+            && datos.clinicId == clinicId
+            && datos.patientId is string
+            && exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(datos.patientId))
+            && datos.origen == 'expediente:peticion-de-acceso'
+            && datos.origenId == datos.patientId + '__' + request.auth.uid
+            && datos.ownerUid == fichaDelPaciente(clinicId, datos.patientId).get('medicoTitularUid', null)
+            && datos.ownerUid is string
+            && datos.area == 'medico' && datos.tipo == 'otra'
+            && datos.titulo == 'Solicitud de acceso al expediente'
+            && datos.detalle == 'Compártelo desde el expediente si procede. Hasta entonces sólo ve la ficha.'
+            && datos.prioridad == 'normal' && datos.estado == 'solicitada';
+        }
+        allow get: if isMedico(clinicId)
+          && (!exists(/databases/$(database)/documents/clinics/$(clinicId)/tareas_clinicas/$(tareaId))
+              || esPeticionDeAcceso(resource.data));
+        function puedeEscribirTarea(datos) {
+          return isAdmin(clinicId) || (datos.get('patientId', '') != ''
+            && exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(datos.patientId))
+            && esMedicoDelPaciente(clinicId, datos.patientId));
+        }
         // D-056/D-057: recepción ve y mueve SÓLO las tareas de su área
         // (`area == 'recepcion'`); lo clínico sigue siendo del médico. En
         // modo `list` esto obliga a consultar con `where('area','==','recepcion')`.
-        allow read: if isMedico(clinicId)
+        allow read: if (isMedico(clinicId) && (
+            !exists(/databases/$(database)/documents/clinics/$(clinicId)/tareas_clinicas/$(tareaId))
+            || isAdmin(clinicId)
+            || (resource.data.get('patientId', '') != ''
+                && exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(resource.data.patientId))
+                && esMedicoDelPaciente(clinicId, resource.data.patientId))))
           || (isMember(clinicId) && resource.data.get('area', '') == 'recepcion');
-        allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId);
-        allow update: if clinicaPuedeEscribir(clinicId) && (isMedico(clinicId)
+        allow create: if isMedico(clinicId) && clinicaPuedeEscribir(clinicId)
+          && (puedeEscribirTarea(request.resource.data) || esPeticionDeAcceso(request.resource.data));
+        allow update: if clinicaPuedeEscribir(clinicId) && (
+          (isMedico(clinicId) && puedeEscribirTarea(resource.data) && puedeEscribirTarea(request.resource.data))
           || (isMember(clinicId)
               && resource.data.get('area', '') == 'recepcion'
-              && request.resource.data.get('area', '') == 'recepcion'));
+              && request.resource.data.get('area', '') == 'recepcion'
+              && request.resource.data.get('patientId', '') == resource.data.get('patientId', '')
+              && request.resource.data.get('clinicId', '') == resource.data.get('clinicId', '')));
         allow delete: if false;
       }
 

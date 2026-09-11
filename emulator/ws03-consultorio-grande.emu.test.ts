@@ -65,12 +65,38 @@ vi.mock('firebase/firestore', async (original) => {
 })
 
 /** El `db` del producto pasa a ser el del emulador, con las reglas reales. */
-const inyectado = vi.hoisted(() => ({ db: null as unknown }))
+const inyectado = vi.hoisted(() => ({ db: null as unknown, adminDb: null as unknown, uid: '' }))
 vi.mock('@/lib/firebase', () => ({
   get db() { return inyectado.db },
-  auth: null,
+  auth: { get currentUser() { return { uid: inyectado.uid } } },
   storage: null,
 }))
+
+
+// El directorio cruza el handler real y consulta el Admin SDK del emulador.
+// La medición cuenta sus respuestas; el aislamiento se prueba en privacidad.
+vi.mock('@/lib/firebase-admin', () => ({ get adminDb() { return inyectado.adminDb } }))
+vi.mock('@/lib/authz/verificar', () => ({ verificarCapacidad: async () => ({ ok: true, uid: inyectado.uid, role: 'medico' }) }))
+vi.mock('@/lib/auth-client', () => ({ fetchAutenticado: async (_url: string, opts: RequestInit) => {
+  const { POST } = await import('@/app/api/pacientes/directorio/route')
+  const { NextRequest } = await import('next/server')
+  return POST(new NextRequest('https://sintetico.test/api/pacientes/directorio', { ...opts, signal: opts.signal ?? undefined }))
+} }))
+function medirAdmin<T extends object>(ref: T): T {
+  return new Proxy(ref, { get(target, key) {
+    const value = Reflect.get(target, key, target)
+    if (typeof value !== 'function') return value
+    return (...args: unknown[]) => {
+      const r = value.apply(target, args)
+      if (key === 'get') return r.then((snap: { size?: number }) => {
+        if (typeof snap.size === 'number') { leidos.total += snap.size; leidos.consultas++ }
+        return snap
+      })
+      return ['collection', 'doc', 'where', 'orderBy', 'startAfter', 'limit'].includes(String(key)) ? medirAdmin(r) : r
+    }
+  } })
+}
+let cerrarAdmin = async () => {}
 
 const CLINICA = TENANT_A
 const MEDICO = uidDe(TENANT_A, 'medico')
@@ -109,6 +135,7 @@ async function sembrarPacientes(n: number): Promise<void> {
         lote.set(doc(db, `clinics/${CLINICA}/patients/p${String(k).padStart(7, '0')}`), {
           nombre: `Paciente ${String(k).padStart(7, '0')}`,
           creadoPor: MEDICO,
+          medicoTitularUid: MEDICO,
           syntheticNonPhi: true,
         })
       }
@@ -159,11 +186,19 @@ function medir<T>(): { fin: () => { docs: number; consultas: number } } {
 }
 
 beforeAll(async () => {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Esta prueba exige el emulador')
+  const { initializeApp, deleteApp } = await import('firebase-admin/app')
+  const { getFirestore } = await import('firebase-admin/firestore')
+  const app = initializeApp({ projectId: 'demo-nexusmed-test' }, 'ws03-directorio')
+  const admin = getFirestore(app)
+  inyectado.adminDb = medirAdmin(admin)
+  inyectado.uid = MEDICO
+  cerrarAdmin = async () => { await admin.terminate(); await deleteApp(app) }
   env = await abrirEntorno()
   inyectado.db = contextoDe(env, CLINICA, 'medico').firestore()
 }, 120_000)
 
-afterAll(async () => { await env?.cleanup() })
+afterAll(async () => { await cerrarAdmin(); await env?.cleanup() })
 
 describe('las lecturas del consultorio no crecen con el consultorio', () => {
   const medidas: Record<string, { docs: number; consultas: number }> = {}

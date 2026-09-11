@@ -211,9 +211,9 @@ const S = Object.fromEntries(SUPUESTOS.map(s => [s.id, s.valor]))
  * creer que midió la consulta entera.
  */
 export const MEZCLA_DE_OPERACIONES = Object.freeze([
-  { op: 'abrir el expediente', clase: 'lectura', porConsulta: 4, caminoDelArnes: true },
+  { op: 'abrir el expediente', clase: 'lectura', porConsulta: 4, caminoDelArnes: false },
   { op: 'listar la página de pacientes', clase: 'lectura', porConsulta: 1, caminoDelArnes: true },
-  { op: 'releer la nota antes de firmar', clase: 'lectura', porConsulta: 1, caminoDelArnes: true },
+  { op: 'releer la nota antes de firmar', clase: 'lectura', porConsulta: 1, caminoDelArnes: false },
   { op: 'guardar el borrador', clase: 'escritura', porConsulta: 8, caminoDelArnes: false },
   { op: 'alta del paciente y de la nota', clase: 'escritura', porConsulta: 2, caminoDelArnes: true },
   { op: 'firmar la nota', clase: 'escritura', porConsulta: 1, caminoDelArnes: true },

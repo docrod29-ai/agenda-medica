@@ -100,39 +100,47 @@ const conSello = (ts: number, ruido = 'diagnóstico que no debe salir de aquí')
 beforeEach(() => { vi.unstubAllGlobals() })
 
 describe('RTC-08 — la lectura del encuentro abierto', () => {
+  it('REG-681 · un respaldo legado sin consultorio no se adopta por tener el mismo uid', () => {
+    const clave = 'nx.consulta.bkp.paciente-legado'
+    const bytes = conSello(1000)
+    const almacen = conAlmacen({ [clave]: bytes })
+    const leer = encuentroAbierto as (uid: string, clinicId: string) => unknown
+    expect(leer(UID, 'consultorio-distinto')).toBeNull()
+    expect(almacen.getItem(clave)).toBe(bytes)
+  })
   it('1 · sin respaldos, no hay encuentro', () => {
     conAlmacen({ 'nx.tema': 'dark' })
-    expect(encuentroAbierto(UID)).toBeNull()
+    expect(encuentroAbierto(UID, 'consultorio-1')).toBeNull()
   })
 
   it('2 · un respaldo de consulta ES un encuentro abierto', () => {
-    conAlmacen({ 'nx.consulta.bkp.pac-7': conSello(1000) })
-    expect(encuentroAbierto(UID)).toEqual({ patientId: 'pac-7', ts: 1000 })
+    conAlmacen({ 'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-7:': conSello(1000) })
+    expect(encuentroAbierto(UID, 'consultorio-1')).toEqual({ patientId: 'pac-7', ts: 1000 })
   })
 
   it('3 · con varios, gana el más reciente', () => {
     conAlmacen({
-      'nx.consulta.bkp.pac-viejo': conSello(1000),
-      'nx.consulta.bkp.pac-nuevo': conSello(9000),
+      'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-viejo:': conSello(1000),
+      'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-nuevo:': conSello(9000),
       'nx.uci.lecturas.x': 'no soy una consulta',
     })
-    expect(encuentroAbierto(UID)?.patientId).toBe('pac-nuevo')
+    expect(encuentroAbierto(UID, 'consultorio-1')?.patientId).toBe('pac-nuevo')
   })
 
   it('4 · otro usuario no recibe el destino; el dueño conserva su recuperación', () => {
-    const clave = 'nx.consulta.bkp.pac-9'
+    const clave = 'nx.consulta.bkp.scope:otro-uid:consultorio-1:pac-9:'
     const respaldo = ofuscar(JSON.stringify({ ts: 5 }), 'otro-uid')
     const almacen = conAlmacen({ [clave]: respaldo })
-    expect(encuentroAbierto(UID)).toBeNull()
+    expect(encuentroAbierto(UID, 'consultorio-1')).toBeNull()
     expect(almacen.getItem(clave)).toBe(respaldo)
-    expect(encuentroAbierto('otro-uid')).toEqual({ patientId: 'pac-9', ts: 5 })
+    expect(encuentroAbierto('otro-uid', 'consultorio-1')).toEqual({ patientId: 'pac-9', ts: 5 })
   })
 
   it('5 · el episodio hospitalario viaja en la ruta que retoma', () => {
     conAlmacen({
-      'nx.consulta.bkp.pac-3.h.int-42': conSello(2000),
+      'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-3:int-42': conSello(2000),
     })
-    const e = encuentroAbierto(UID)!
+    const e = encuentroAbierto(UID, 'consultorio-1')!
     expect(e).toEqual({ patientId: 'pac-3', internamientoId: 'int-42', ts: 2000 })
     expect(rutaDelEncuentro(e)).toBe('/consulta/pac-3?internamiento=int-42')
   })
@@ -144,29 +152,29 @@ describe('RTC-08 — la lectura del encuentro abierto', () => {
   })
 
   it('REG-674 · sin sesión activa no se reutiliza el uid recordado', () => {
-    conAlmacen({ 'nx.consulta.bkp.pac-7': conSello(1000) })
-    expect(encuentroAbierto(UID)?.patientId).toBe('pac-7')
-    for (const uid of [undefined, null, '']) expect(encuentroAbierto(uid)).toBeNull()
+    conAlmacen({ 'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-7:': conSello(1000) })
+    expect(encuentroAbierto(UID, 'consultorio-1')?.patientId).toBe('pac-7')
+    for (const uid of [undefined, null, '']) expect(encuentroAbierto(uid, 'consultorio-1')).toBeNull()
   })
 
   it('REG-674 · texto plano, corrupción y JSON que no es objeto se conservan sin ofrecerlos', () => {
-    const clave = 'nx.consulta.bkp.pac-7'
+    const clave = 'nx.consulta.bkp.scope:medico-1:consultorio-1:pac-7:'
     for (const respaldo of [
       JSON.stringify({ ts: 1000 }), 'NXO1:inválido',
       ofuscar('null', UID), ofuscar('[]', UID), ofuscar('"texto"', UID),
     ]) {
       const almacen = conAlmacen({ [clave]: respaldo })
-      expect(encuentroAbierto(UID)).toBeNull()
+      expect(encuentroAbierto(UID, 'consultorio-1')).toBeNull()
       expect(almacen.getItem(clave)).toBe(respaldo)
     }
   })
 
   it('REG-674 · un respaldo ajeno no sustituye el propio sin fecha', () => {
     conAlmacen({
-      'nx.consulta.bkp.propio': ofuscar(JSON.stringify({ resumen: 'Borrador sintético' }), UID),
-      'nx.consulta.bkp.ajeno': ofuscar(JSON.stringify({ ts: 9000 }), 'otro-uid'),
+      'nx.consulta.bkp.scope:medico-1:consultorio-1:propio:': ofuscar(JSON.stringify({ resumen: 'Borrador sintético' }), UID),
+      'nx.consulta.bkp.scope:otro-uid:consultorio-1:ajeno:': ofuscar(JSON.stringify({ ts: 9000 }), 'otro-uid'),
     })
-    expect(encuentroAbierto(UID)).toEqual({ patientId: 'propio', ts: 0 })
+    expect(encuentroAbierto(UID, 'consultorio-1')).toEqual({ patientId: 'propio', ts: 0 })
   })
 
   it('REG-674 · sin uid no se consulta siquiera el almacenamiento sensible', () => {

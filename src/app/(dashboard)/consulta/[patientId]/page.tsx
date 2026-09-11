@@ -37,8 +37,8 @@ import { claveDeIntento } from '@/lib/idempotencia'
 import { useGrabacionVoz } from '@/hooks/useGrabacionVoz'
 import { useGrabacionAudio, type Utterance } from '@/hooks/useGrabacionAudio'
 import { useComandoVoz } from '@/hooks/useComandoVoz'
-import { ofuscar, desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
-import { borradoresBloqueados, queHacerConElRespaldoLocal } from '@/lib/mobile/local-drafts'
+import { ofuscar } from '@/lib/seguridad/ofuscar-local'
+import { borradoresBloqueados, queHacerConElRespaldoLocal, claveDeRespaldo, leerRespaldoConAlcance } from '@/lib/mobile/local-drafts'
 import { EVENTO_GUARDAR_TODO } from '@/lib/salir-seguro'
 import {
   debeOfrecerRecuperacion, hayAudioQueNoSePuedePurgar, puedeReemplazarTranscripcion,
@@ -418,13 +418,13 @@ export default function ConsultaActivaPage() {
   const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
-  const respaldoKey = `nx.consulta.bkp.${patientId}${internamientoActivo ? '.h.' + internamientoActivo : ''}`
-  const { clinicId, role } = useClinic()
+  const { clinicId, role, sesionVigente } = useClinic()
+  const respaldoKey = useMemo(() => claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoActivo), [uidDelMontaje, clinicId, patientId, internamientoActivo])
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
   // si te vas mientras procesa, la petición sigue y su resultado se aplica al
   // volver (o en cuanto llega, si ya volviste). Clave por paciente+episodio.
-  const procKey = `procesar.${patientId}${internamientoParam ? '.h.' + internamientoParam : ''}`
+  const procKey = `procesar.${claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoParam)}`
   const [tareaProc, setTareaProc] = useTarea<{ ejecutando: boolean; resultado?: { data: Record<string, unknown>; tipoActivo: TipoNota; tipoOverride: boolean; ts: number; notaId: string | null } }>(procKey)
   const resultadoAplicadoRef = useRef(0)
   const { config } = useConfig()
@@ -2033,7 +2033,7 @@ export default function ConsultaActivaPage() {
    * vocabulario existía, estaba probado, y no lo llamaba nadie.
    */
   const opcionesWhisper = useMemo(() => ({
-    recoveryKey: `consulta-${patientId}`,
+    recoveryKey: respaldoKey,
     noiseSuppression: false,
     echoCancellation: false,
     autoGainControl: true,
@@ -3359,7 +3359,7 @@ export default function ConsultaActivaPage() {
         tipoNota: tipo,
         clinicId: clinicId!,
         pacienteId: patientId,
-        medicoId: auth.currentUser?.uid ?? '',
+        medicoId: uidDelMontaje ?? '',
         cedulaProfesional: config?.cedulaProfesional ?? '',
         especialidad: config?.especialidad ?? '',
         establecimiento: config?.nombreClinica ?? '',
@@ -3536,9 +3536,9 @@ export default function ConsultaActivaPage() {
       fechaConsulta: now,
       createdAt: now,
       updatedAt: now,
-      creadoPor: auth.currentUser?.uid ?? '',
+      creadoPor: uidDelMontaje ?? '',
     }
-  }, [notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
+  }, [uidDelMontaje, notaId, clinicId, patientId, patient, tipo, config, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, internamientoActivo, episodio, preop, extraction, safety, aprobados, voz.transcripcion, audio.utterances, notaDelSello])
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
@@ -3552,10 +3552,10 @@ export default function ConsultaActivaPage() {
       ? Promise.reject(new Error('No se confirmó el consultorio para guardar la nota.'))
       : Promise.resolve()
     // REG-677: la nota pertenece al montaje, no a quien entre después.
-    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) {
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
       const mensaje = 'La sesión cambió. Abre de nuevo la consulta para guardar.'
       if (!silencioso) toast(mensaje, 'error')
-      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+      return confirmarPersistencia ? Promise.reject(Object.assign(new Error(mensaje), { code: 'sesion-cambiada' })) : Promise.resolve()
     }
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
     // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
@@ -3579,7 +3579,7 @@ export default function ConsultaActivaPage() {
       if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
-        if (auth.currentUser?.uid !== uidDelMontaje) throw new Error('La sesión cambió antes de guardar la nota.')
+        if (auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) throw Object.assign(new Error('La sesión cambió antes de guardar la nota.'), { code: 'sesion-cambiada' })
         const nota = construirNota('borrador')
         const idActual = notaIdRef.current
         if (idActual) {
@@ -3625,7 +3625,7 @@ export default function ConsultaActivaPage() {
             if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
             // Si se descartó queriendo, no se recrea. Ver `descartadaRef`.
             if (descartadaRef.current) return
-            if (auth.currentUser?.uid !== uidDelMontaje) throw new Error('La sesión cambió antes de recuperar la nota.')
+            if (auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) throw Object.assign(new Error('La sesión cambió antes de recuperar la nota.'), { code: 'sesion-cambiada' })
             const nuevo = await createNota(clinicId, patientId, { ...nota, estado: 'borrador' })
             notaIdRef.current = nuevo
             setNotaId(nuevo)
@@ -3667,7 +3667,7 @@ export default function ConsultaActivaPage() {
          */
         const codigo = (e as { code?: string })?.code ?? ''
         const detalle =
-          codigo === 'nota-inexistente' ? String((e as Error).message)
+          codigo === 'nota-inexistente' || codigo === 'sesion-cambiada' || codigo === 'datos-no-cargados' ? String((e as Error).message)
           : codigo === 'permission-denied' ? 'el servidor rechazó el permiso (reglas o sesión vencida). Si acabas de restaurar un respaldo, puede que la nota original ya no exista'
           : codigo === 'unauthenticated' ? 'tu sesión expiró: vuelve a iniciar sesión'
           : /too large|invalid-argument|exceeds/i.test(String((e as Error)?.message ?? '')) ? 'la nota superó el tamaño máximo de un documento'
@@ -3695,7 +3695,7 @@ export default function ConsultaActivaPage() {
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro, uidDelMontaje])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro, uidDelMontaje, sesionVigente])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -3908,7 +3908,8 @@ export default function ConsultaActivaPage() {
       try {
         const raw = localStorage.getItem(respaldoKey)
         if (raw) {
-          b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
+          b = leerRespaldoConAlcance(raw, respaldoKey, uidDelMontaje, clinicId)
+          if (!b) { autoRestRef.current = true; return }
           setRespaldoDisponible(true)
           setRespaldoMeta({
             notaId: typeof b?.notaId === 'string' ? b.notaId : null,
@@ -4024,7 +4025,7 @@ export default function ConsultaActivaPage() {
     // firmada no se repone nada (es inmutable, NOM-024).
     // `firmada` y los campos del borrador entran en las deps porque `vacio` los
     // mira: la lista es la misma de `CAMPOS_DEL_BORRADOR` (ASN-001).
-  }, [patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
+  }, [uidDelMontaje, clinicId, patientId, respaldoKey, notaIdParam, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz, toast, borradorMem, firmada])
 
   // GUARDADO INMEDIATO al salir (anti-pérdida). El respaldo con debounce se
   // cancelaba si salías rápido a la agenda (el desmonte mataba el timeout antes
@@ -4246,29 +4247,32 @@ export default function ConsultaActivaPage() {
       // si el servidor falla antes del debounce, el flush posterior al logout
       // ya estará bloqueado. No crear una tercera forma de armar el respaldo.
       flushRespaldo()
+      let bytes: string | null = null
+      try { bytes = localStorage.getItem(respaldoKey) } catch { /* El servidor debe guardar aunque el almacenamiento local falle. */ }
       const p = guardarBorrador(true, true)
-      const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>) => void }>).detail
-      if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p))
+      const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>, respaldo?: { clave: string; bytes: string }) => void }>).detail
+      if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p), bytes ? { clave: respaldoKey, bytes } : undefined)
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
     return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
-  }, [guardarBorrador, flushRespaldo])
+  }, [guardarBorrador, flushRespaldo, respaldoKey])
 
   const restaurarRespaldo = async () => {
     try {
       const raw = localStorage.getItem(respaldoKey)
       if (!raw) { setRespaldoDisponible(false); setRespaldoMeta(null); return }
-      const b = JSON.parse(desofuscar(raw, secretoLocal(auth.currentUser?.uid)) ?? raw)
-      if (b.tipo) setTipo(b.tipo)
+      const b = leerRespaldoConAlcance(raw, respaldoKey, uidDelMontaje, clinicId)
+      if (!b || !sesionVigente()) { toast('Este respaldo no corresponde a la sesión y al consultorio abiertos.', 'error'); return }
+      if (b.tipo) setTipo(b.tipo as TipoNota)
       // Mismo saneo que arriba: tres sitios con la misma regla, no tres reglas.
       if (Array.isArray(b.secciones)) setSecciones(seccionesSanas(b.secciones))
       if (typeof b.resumen === 'string') setResumen(b.resumen)
-      if (b.signos) setSignos(b.signos)
+      if (b.signos) setSignos(b.signos as SignosVitales)
       if (Array.isArray(b.estudiosOrden)) setEstudiosOrden(b.estudiosOrden)
-      if (b.preop) setPreop(b.preop)
+      if (b.preop) setPreop(b.preop as typeof preop)
       if (Array.isArray(b.diagnosticos)) setDiagnosticos(diagnosticosSanos(b.diagnosticos))
       if (Array.isArray(b.medicamentos)) setMedicamentos(medicamentosSanos(b.medicamentos))
-      if (b.transcripcion) voz.setTranscripcion(b.transcripcion)
+      if (typeof b.transcripcion === 'string') voz.setTranscripcion(b.transcripcion)
       /**
        * REPONER EL `notaId`, que faltaba SÓLO en esta ruta.
        *
@@ -4371,6 +4375,14 @@ export default function ConsultaActivaPage() {
 
   // ── Firmar nota (NOM-004 + NOM-024) ────────────────────────────
   const firmar = useCallback(async () => {
+    const comprobarSesion = () => {
+      if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
+        throw Object.assign(new Error('La sesión o el consultorio cambió antes de firmar.'), { code: 'sesion-cambiada' })
+      }
+    }
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje || !sesionVigente()) {
+      toast('La sesión cambió. Vuelve a abrir la consulta para firmar.', 'error'); return
+    }
     if (!clinicId) return
 
     /**
@@ -4572,6 +4584,7 @@ export default function ConsultaActivaPage() {
     }
     setGuardando(true)
     try {
+      comprobarSesion()
       const now = new Date().toISOString()
       /**
        * REG-060 — se sella y se escribe EL MISMO objeto.
@@ -4585,7 +4598,7 @@ export default function ConsultaActivaPage() {
        */
       const notaSellable = normalizarParaSello(notaParaValidar)
       const hashIntegridad = await generarHashIntegridad(notaSellable)
-      const medicoId = auth.currentUser?.uid ?? ''
+      const medicoId = uidDelMontaje
       const hashFirma = await generarHashFirma(notaSellable.metadata.id, medicoId, now)
 
       const notaFirmada: NotaMedica = {
@@ -4622,6 +4635,7 @@ export default function ConsultaActivaPage() {
       // Espera cualquier autoguardado en vuelo y usa la ref síncrona, para NO
       // crear una nota duplicada al firmar justo después de un autoguardado.
       await cadenaGuardadoRef.current.catch(() => {})
+      comprobarSesion()
       /**
        * TODA NOTA NACE EN BORRADOR (REG-017, decisión del médico dueño).
        *
@@ -4645,6 +4659,7 @@ export default function ConsultaActivaPage() {
         setNotaId(id)
       }
       try {
+        comprobarSesion()
         await updateNota(clinicId, patientId, id, notaFirmada)
       } catch (e) {
         /**
@@ -4654,11 +4669,14 @@ export default function ConsultaActivaPage() {
          * que no admite esperar.
          */
         if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
+        comprobarSesion()
         const nuevo = await createNota(clinicId, patientId, { ...notaParaValidar, estado: 'borrador' })
         notaIdRef.current = nuevo
         setNotaId(nuevo)
+        comprobarSesion()
         await updateNota(clinicId, patientId, nuevo, notaFirmada)
       }
+      if (!sesionVigente()) return
       firmadaRef.current = true
       setFirmada(true)
       /**
@@ -4926,7 +4944,7 @@ export default function ConsultaActivaPage() {
      * arreglo del mismo dato (REG-193, REG-300, éste): cada uno cubrió un
      * camino distinto por el que se perdía.
      */
-  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro])
+  }, [clinicId, patientId, notaId, config, construirNota, router, toast, citaDeHoy, errorCargaNota, pacienteError, deEstePaciente, proximoSeguimiento, claveEncuentro, uidDelMontaje, sesionVigente])
 
   // ── Atajos de teclado ──────────────────────────────────────────
   //

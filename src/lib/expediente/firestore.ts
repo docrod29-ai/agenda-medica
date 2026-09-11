@@ -424,13 +424,10 @@ export async function buscarNotaEnClinica(clinicId: string, notaId: string): Pro
   }
 
   // ── 2. Sondeo de compatibilidad, acotado ─────────────────────────────────
-  const pacientesSnap = await getDocs(query(
-    collection(db, 'clinics', clinicId, 'patients'),
-    orderBy(documentId(), 'asc'),
-    limitarA(TECHO_SONDEO_NOTA + 1),
-  ))
-  const hayMasPacientes = pacientesSnap.docs.length > TECHO_SONDEO_NOTA
-  const candidatos = pacientesSnap.docs.slice(0, TECHO_SONDEO_NOTA)
+  const { listarPacientesParaRescate } = await import('@/lib/firestore')
+  const pagina = await listarPacientesParaRescate(clinicId, TECHO_SONDEO_NOTA)
+  const hayMasPacientes = pagina.hayMas
+  const candidatos = pagina.pacientes
 
   // En paralelo: el bucle en serie encadenaba N viajes de ida y vuelta.
   const sondeos = await Promise.all(candidatos.map(async p => ({

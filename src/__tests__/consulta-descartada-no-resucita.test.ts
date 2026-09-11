@@ -194,7 +194,7 @@ describe('REG-667: descartar con autoguardado pendiente', () => {
     const descartadaRef = { current: false }, createNota = vi.fn(async () => 'nota-sintetica')
     const guardar = await callbackReal('guardarBorrador', {
       clinicId: 'clinica-sintetica', patientId: 'paciente-sintetico', firmada: false,
-      auth: { currentUser: { uid: 'medico-sintetico' } }, uidDelMontaje: 'medico-sintetico',
+      auth: { currentUser: { uid: 'medico-sintetico' } }, uidDelMontaje: 'medico-sintetico', sesionVigente: () => true,
       firmadaRef: { current: false }, descartadaRef, errorCargaNota: false, pacienteError: false,
       cadenaGuardadoRef, notaIdRef: { current: null }, vistoEnRef: { current: null }, fallosGuardadoRef: { current: 0 },
       construirNota: () => ({ estado: 'borrador' }), createNota,

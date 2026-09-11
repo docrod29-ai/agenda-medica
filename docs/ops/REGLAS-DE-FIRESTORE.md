@@ -54,23 +54,11 @@ Que ese paso no se pueda borrar en silencio lo vigila
 
 ## PENDIENTE DE DESPLIEGUE
 
-Mientras esta lista no esté vacía, hay reglas escritas que no protegen nada en
-producción.
-
-**Hoy está vacía** (11-sep-2026). La ejecución **#35** del botón, sobre el
-árbol `15b2b91` (v1196), publicó las reglas de D-057/D-058 y el índice catorce;
-`hashDesplegado` en `firestore.rules.estado.json` es el de hoy. Lo único que
-sigue sin regir es `storage.rules`, que tiene su sección propia más abajo porque
-es otro despliegue, otro permiso y otro registro.
-
-| Qué NO rige hoy | Desde | Qué se rompe mientras tanto |
+| Cambio | Qué NO rige hoy | Consecuencia hasta desplegar |
 |---|---|---|
-
-Las seis filas que hubo aquí el 10-sep —`esMedicoDelPaciente` en las
-subcolecciones clínicas, la guarda de `medicoTitularUid`/`compartidoCon`, las
-tareas de recepción, `estudios_aportados`, `storage.rules` y el índice de
-`tareas_clinicas(area, …)`— se cerraron el 11-sep con la #35, **salvo la de
-Storage**, que sigue abajo.
+| REG-682: aislamiento del expediente | Lectura raíz y subcolecciones exigen titular, compartido o administrador. | Las reglas anteriores permiten leer campos clínicos desde otras cuentas del consultorio. |
+| REG-682: tareas y auditoría | Alcance por paciente y tareas administrativas de recepción. | El navegador puede consultar pendientes clínicos ajenos con las reglas anteriores. |
+| REG-683: pacientes sin titular | Asignación exclusiva del administrador y solicitud de acceso limitada. | Un médico puede reclamar expedientes sin asignación bajo la regla anterior. |
 
 ## PENDIENTE DE DESPLIEGUE · Storage
 
@@ -78,31 +66,28 @@ Storage**, que sigue abajo.
 REGLAS»), pero es **otro permiso**: publicar reglas de Firestore no da derecho a
 leer el bucket de Storage.
 
+**Hoy está vacía** (11-sep-2026). La ejecución **#36** del botón, sobre el mismo
+árbol `15b2b91` (v1196), publicó `storage.rules`: el log dice «released rules
+storage.rules to firebase.storage». Desde ese momento la subida de estudios
+desde el portal (D-058) rige en producción.
+
 | Qué NO rige en el bucket | Desde | Qué se rompe mientras tanto |
 |---|---|---|
-| D-058 · `storage.rules` con `estudios-paciente/{clinicId}/{patientId}/` (crear con token del portal, ≤ 20 MB, tipos declarados; nadie lee ni borra desde el navegador) | 10-sep-2026, PR #488 (v1196) | **La subida desde el portal FALLA en producción**: el bucket cierra todo lo no declarado. El resto de D-058 (registro, tarea para el médico, lectura por URL firmada) está desplegado y espera a que llegue el primer archivo |
 
-**Por qué no rige**: la ejecución #35 (11-sep-2026) salió **403** en ese paso:
-`Permission 'firebasestorage.defaultBucket.get' denied on resource
-//firebasestorage.googleapis.com/projects/nexomed-agenda/defaultBucket (or it
-may not exist)`. Las reglas y los índices de Firestore del mismo run salieron
-bien; el acta dijo `SUCCESS` porque no contaba ese paso (REG-668, corregido).
+**Lo que hubo aquí, y cómo se cerró** — vale conservarlo porque es la primera
+vez que este botón publica Storage: la ejecución #35 (11-sep-2026, 01:03 UTC)
+salió **403** en ese paso: `Permission 'firebasestorage.defaultBucket.get'
+denied on resource //firebasestorage.googleapis.com/projects/nexomed-agenda/
+defaultBucket (or it may not exist)`. Las reglas y los índices de Firestore del
+mismo run salieron bien; el acta dijo `SUCCESS` porque no contaba ese paso
+(REG-668, corregido). El dueño dio a la cuenta de servicio del botón el rol
+**Firebase Storage Admin** (`roles/firebasestorage.admin`; en la consola aparece
+como «Administrador de Cloud Storage para Firebase (Beta)») y la #36, dos horas
+y media después, lo cerró. Mismo patrón que los índices el 4-sep
+(`roles/datastore.indexAdmin`): el permiso de publicar reglas de Firestore no
+arrastra los demás, y cada publicable nuevo del botón trae el suyo.
 
-**Cómo se cierra** — en la consola, no en el repositorio, y es del dueño:
-
-1. Comprobar el principal efectivo de `FIREBASE_SERVICE_ACCOUNT` y su acceso
-   al bucket por defecto de `nexomed-agenda`. Si falta el permiso observado,
-   **Firebase Storage Viewer** (`roles/firebasestorage.viewer`) ya lo incluye,
-   según el [catálogo oficial de Google](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasestorage).
-   El error no justifica conceder creación, borrado o vinculación de buckets.
-2. Un 403 con «or it may not exist» **no demuestra** que el bucket no exista.
-   Verificar existencia y acceso efectivo; no crear ni vincular automáticamente.
-   Los permisos de publicación de reglas se comprueban después de superar esta lectura.
-3. Volver a pulsar el botón sobre `main`. Las reglas y los índices de Firestore
-   se reenvían idénticos (es idempotente); el paso de Storage es el que cambia.
-
-Cuando la siguiente ejecución imprima `STORAGE_RULES=success`, se vacía esta
-tabla y se anota aquí el run que lo cerró.
+Storage quedó publicado en la ejecución #36. No se requiere otra intervención de IAM para este cierre.
 
 La fila que hubo aquí, el 7-sep-2026, era la clave `emailInvitado` en la forma
 congelada de `clinic_invitations` — la invitación **nominativa**, que sólo acepta

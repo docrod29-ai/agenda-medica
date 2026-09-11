@@ -114,6 +114,24 @@ jobs:
         # vende —paciente → cita → nota → firma → cobro— recorrido entero contra las
         # reglas REALES. Antes nadie comprobaba esa secuencia de punta a punta.
         run: npm run test:emulador
+      - name: Carga local progresiva con el arnés existente
+        timeout-minutes: 12
+        env:
+          GCLOUD_PROJECT: demo-nexusmed-test
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+        run: |
+          mkdir -p artifacts/carga-local
+          for concurrencia in 8 16 32 80; do
+            npx firebase emulators:exec --only auth,firestore --project demo-nexusmed-test "node scripts/product/run-consultorio-load.mjs --target=emulator --tenants=40 --physicians-per-tenant=2 --patients-per-physician=5 --concurrent=$concurrencia --out=artifacts/carga-local/carga-$concurrencia.json"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: carga-local-${{ github.sha }}
+          path: artifacts/carga-local/*.json
+          retention-days: 7
+          if-no-files-found: error
 
   verificar:
     runs-on: ubuntu-latest

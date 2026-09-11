@@ -31,7 +31,7 @@ import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
 import { COLECCIONES, COLECCIONES_RAIZ, rama, type RamaRespaldo, lineaDeDocumento } from '@/lib/clinica/respaldo'
 import { cabeceraV2, pieV2, FORMATO_V2 } from '@/lib/durability/manifiesto'
 import { huellaDeEntrada, acumuladorDeConjunto } from '@/lib/durability/huellas'
@@ -61,6 +61,8 @@ export async function GET(req: NextRequest) {
    */
   const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
+  const sinAdministracion = exigeAdministrador(acc)
+  if (sinAdministracion) return sinAdministracion
 
   const clinicRef = adminDb.collection('clinics').doc(clinicId)
   const codificador = new TextEncoder()

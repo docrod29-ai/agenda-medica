@@ -167,14 +167,14 @@ function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta 
 }
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
-  it('hay 81 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
+  it('hay 108 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
     //
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(106) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` — URL firmada para abrir el estudio subido por el paciente; nace ACTIVA con `clinico.escribir` sobre el paciente.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` — pone médico titular a los pacientes de antes de la decisión, desde su última cita. Nace ACTIVA con `administrar`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06 (Panel de Lujo): `pacientes/fundir` (ASE-009 — juntar dos expedientes repetidos no existía y el único camino era fingir una solicitud ARCO de cancelación) y `arco/ligar` (ASE-010 — atar una solicitud ARCO del portal a un expediente identificado); las dos nacen con `verificarCapacidad 'administrar'`.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`; +1 el 2026-08-27: `expediente/paquete-de-visita`; +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-04: `superadmin/incidentes`; +1 el 2026-08-03: `cron/asientos`; +1 `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +1 el 2026-08-03: `cron/limpiar-audio`
+    expect(CLAVES_DISCO.length).toBe(108) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` — URL firmada para abrir el estudio subido por el paciente; nace ACTIVA con `clinico.escribir` sobre el paciente.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` — pone médico titular a los pacientes de antes de la decisión, desde su última cita. Nace ACTIVA con `administrar`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06 (Panel de Lujo): `pacientes/fundir` (ASE-009 — juntar dos expedientes repetidos no existía y el único camino era fingir una solicitud ARCO de cancelación) y `arco/ligar` (ASE-010 — atar una solicitud ARCO del portal a un expediente identificado); las dos nacen con `verificarCapacidad 'administrar'`.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`; +1 el 2026-08-27: `expediente/paquete-de-visita`; +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-04: `superadmin/incidentes`; +1 el 2026-08-03: `cron/asientos`; +1 `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +1 el 2026-08-03: `cron/limpiar-audio`
   })
 })
 
@@ -445,12 +445,12 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // correcto es exactamente éste. Si hubiera subido la ruta y no la llamada,
     // o hubiera entrado el POST sin llamada, el POST que mueve dinero estaría
     // abierto.
-    expect(llamadas.length).toBe(109) //   // +3 el 2026-09-10: `pacientes/asignar-titulares` (D-057), `expediente/estudio-aportado` (D-058) y `laboratorio-vision`, que además de su `verificarModuloIA` exige `verificarCapacidadSobrePaciente` cuando lee un estudio del paciente.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos. Tres llamadas, una por método.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` (ASE-009) y `arco/ligar` (ASE-010), una llamada y un POST cada una.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`;   // +2 el 2026-08-27 (POSTVISIT-001): `expediente/paquete-de-visita` y la rama `clinico` de `portal/link`;   // +1 el 2026-08-04: `arco/oponerse`; +1: `superadmin/incidentes`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
-    expect(rutasConGuardia).toBe(87) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado`.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares`, con su propio `verificarCapacidad`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones`, con su propio `verificarCapacidad` en los tres métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` y `arco/ligar`, cada una con su propio `verificarCapacidad`   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`   // +1 el 2026-08-27: `expediente/paquete-de-visita`   // +1 el 2026-08-04: `arco/oponerse`   // +1: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(llamadas.length).toBe(112) //   // +3 el 2026-09-10: `pacientes/asignar-titulares` (D-057), `expediente/estudio-aportado` (D-058) y `laboratorio-vision`, que además de su `verificarModuloIA` exige `verificarCapacidadSobrePaciente` cuando lee un estudio del paciente.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos. Tres llamadas, una por método.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` (ASE-009) y `arco/ligar` (ASE-010), una llamada y un POST cada una.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`;   // +2 el 2026-08-27 (POSTVISIT-001): `expediente/paquete-de-visita` y la rama `clinico` de `portal/link`;   // +1 el 2026-08-04: `arco/oponerse`; +1: `superadmin/incidentes`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(rutasConGuardia).toBe(89) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado`.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares`, con su propio `verificarCapacidad`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones`, con su propio `verificarCapacidad` en los tres métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` y `arco/ligar`, cada una con su propio `verificarCapacidad`   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`   // +1 el 2026-08-27: `expediente/paquete-de-visita`   // +1 el 2026-08-04: `arco/oponerse`   // +1: `superadmin/incidentes`   // +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
     // 40 → 42 el 2026-08-01: `telesalud/sala` y `facturacion/descargar` pasaron
     // de `verificarMiembro` a `verificarCapacidad`, así que ahora usan el
     // vocabulario de capacidades. Dos activaciones que ESTRECHAN.
-    expect(conVocabulario).toBe(66)   //   // +1 el 2026-09-10 (D-058): `laboratorio-vision` exige `'clinico.escribir'` sobre el paciente cuando lee un estudio subido por él.   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` ('clinico.escribir' como literal).   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` ('administrar' como literal).   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones`, con su propio `verificarCapacidad` en los tres métodos. Tres literales `'administrar'`, uno por método.   // +2 el 2026-09-06 al fusionar main   // +2 el 2026-09-06: `pacientes/fundir` y `arco/ligar` ('administrar' como literal las dos)   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`   // +2 el 2026-08-27 (POSTVISIT-001)   // +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
+    expect(conVocabulario).toBe(69)   //   // +1 el 2026-09-10 (D-058): `laboratorio-vision` exige `'clinico.escribir'` sobre el paciente cuando lee un estudio subido por él.   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` ('clinico.escribir' como literal).   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` ('administrar' como literal).   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones`, con su propio `verificarCapacidad` en los tres métodos. Tres literales `'administrar'`, uno por método.   // +2 el 2026-09-06 al fusionar main   // +2 el 2026-09-06: `pacientes/fundir` y `arco/ligar` ('administrar' como literal las dos)   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`   // +2 el 2026-08-27 (POSTVISIT-001)   // +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-03: `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`
   })
 
   it('el avance se cuenta DEL REGISTRO, no de la prosa del expediente', () => {
@@ -461,7 +461,7 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
     // 2026-08-01: dos activaciones (telesalud/sala y facturacion/descargar) al
     // resolver el dueño quién entra a la sala y quién descarga CFDI.
     expect(resumenActivacion(METODOS_POR_RUTA)).toEqual({
-      declarados: 73, activos: 46, pendientes: 27, //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` nace ACTIVA.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` nace ACTIVA.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` (ASE-009) y `arco/ligar` (ASE-010) nacen ACTIVAS (verificarCapacidad 'administrar', sin pendiente). +1 el 2026-09-05 (REG-523) `expediente/pregunta-atendida`: nace ACTIVA. +1 el 2026-08-27 `expediente/paquete-de-visita`: nace ACTIVA. +1 el 2026-08-04 `arco/oponerse`: nace ACTIVA. +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA. +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS
+      declarados: 76, activos: 49, pendientes: 27, //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` nace ACTIVA.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` nace ACTIVA.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06: `pacientes/fundir` (ASE-009) y `arco/ligar` (ASE-010) nacen ACTIVAS (verificarCapacidad 'administrar', sin pendiente). +1 el 2026-09-05 (REG-523) `expediente/pregunta-atendida`: nace ACTIVA. +1 el 2026-08-27 `expediente/paquete-de-visita`: nace ACTIVA. +1 el 2026-08-04 `arco/oponerse`: nace ACTIVA. +1 el 2026-08-03 `clinic/exportar-excel`: nace ACTIVA. +1 `calendar/ocupado` y +1 `seguridad/csp-estado`: los dos nacen ACTIVOS
     })
     // 29 PARES = 28 RUTAS distintas: `expediente/transcribir-diarizado` exporta GET y
     // POST y los dos siguen en `verificarModuloIA`. Ésa es la cifra del verificador.
@@ -610,6 +610,8 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
     const conPaciente = [...FUENTE_CON_LIBS].filter(([, src]) =>
       COLECCIONES_PACIENTE.some(c => src.includes(`collection('${c}')`))).map(([c]) => c).sort()
     expect(conPaciente).toEqual([
+      // PATCH de transición actualiza sólo contadores derivados de la cita.
+      'appointments',
       /**
        * Entrega el expediente al TITULAR que lo pidió (LFPDPPP Art. 28-32).
        * Toca su identidad por definición, y va bajo `administrar`: entregar
@@ -659,6 +661,7 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
        * planificador con `CRON_SECRET`, no una persona.
        */
       'cron/reminders',
+      'cumplimiento/bitacora',
       /**
        * Entrega el expediente COMPLETO a quien tiene derecho a él: por
        * definición toca la identidad y todo lo clínico. Va con
@@ -708,6 +711,7 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
        * ficha de todos) y va bajo `administrar`, como `pacientes/fundir`.
        */
       'pacientes/asignar-titulares',
+      'pacientes/directorio',
       /**
        * +1 el 2026-09-06 (ASE-009, Panel de Lujo). Junta dos expedientes que
        * son la misma persona: toca la identidad por definición —decide cuál
@@ -747,6 +751,7 @@ describe('E0-07 · propiedad heredada de E0-06, ahora expresada en capacidades',
        * atado a {clinicId, patientId} con la rama alternativa `clinico.leer`
        * para el equipo, que no pasa por esta lectura.
        */
+      'tareas/listar',
       'telesalud/sala',
       'telesalud/token',
       'whatsapp/webhook',

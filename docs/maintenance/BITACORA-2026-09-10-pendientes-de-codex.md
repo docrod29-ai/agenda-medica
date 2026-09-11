@@ -162,3 +162,25 @@ en Firebase → Storage. Después, volver a pulsar el botón sobre `main`.
 **Lo que se arregló aquí**: el acta cuenta Storage y, si sale 403, dice qué rol
 falta (`el-acta-dijo-success-con-storage-rojo.test.ts`, 8 casos, probados al
 revés contra el YAML de la #35).
+
+## 6. Storage cerrado: ejecución #36 (11-sep-2026, 03:35 UTC)
+
+El dueño dio el rol «Administrador de Cloud Storage para Firebase» a la cuenta
+de servicio del botón y dijo «Ya». Se volvió a pulsar sobre `main` (`9a20b06`,
+mismo árbol `15b2b91`):
+
+| Paso | Resultado |
+|---|---|
+| Compuertas 0–3 | verde; producción seguía sirviendo `nexusmed-v1196` |
+| Firestore · REGLAS | verde; «already up to date» (reenvío idéntico, sello `dca8f9d3…`) |
+| **Storage · REGLAS** | **verde · «released rules storage.rules to firebase.storage»** |
+| Firestore · ÍNDICES | verde (reenvío) |
+| Seguridad / Smoke / Portal | 57/57 · 10/10 · 401 |
+| Acta | `PRODUCTION_RELEASE=SUCCESS`, esta vez con razón |
+
+Con esto **rige todo v1196**, incluida la subida de estudios desde el portal
+(D-058). La tabla «PENDIENTE DE DESPLIEGUE · Storage» queda vacía.
+
+Nota: la #36 corrió con el workflow de `main`, que todavía no lleva el acta
+corregida de REG-668 (va en el PR #490). Por eso el acta de la #36 no imprime
+`STORAGE_RULES=`; el verde de Storage se leyó del paso y del log, no del acta.

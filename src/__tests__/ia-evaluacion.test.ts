@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { evaluarCaso, equivalente, resumirEvaluacion, evaluarConjunto, type CasoOro } from '@/lib/ia/evaluacion'
 
 describe('Arnés de validación de IA', () => {
-  it('equivalente: laxo por acentos/contención', () => {
+  it('equivalente: normaliza forma sin aprobar contenido clínico añadido', () => {
     expect(equivalente('Bronquitis aguda', 'bronquitis aguda')).toBe(true)
-    expect(equivalente('Hipertensión', 'hipertension arterial')).toBe(true)
+    expect(equivalente('Hipertensión', 'hipertension arterial')).toBe(false)
     expect(equivalente('Diabetes', 'asma')).toBe(false)
   })
 
@@ -14,7 +14,7 @@ describe('Arnés de validación de IA', () => {
       esperado: { diagnostico: 'bronquitis', motivo: 'tos y fiebre', plan: 'antibiótico' },
     }
     const r = evaluarCaso(oro, { id: '1', campos: { diagnostico: 'bronquitis aguda', motivo: 'cefalea' } })
-    expect(r.correctos).toContain('diagnostico')  // contención
+    expect(r.incorrectos).toContain('diagnostico') // «aguda» no figuraba en el oro
     expect(r.incorrectos).toContain('motivo')     // distinto
     expect(r.faltantes).toContain('plan')         // ausente
   })

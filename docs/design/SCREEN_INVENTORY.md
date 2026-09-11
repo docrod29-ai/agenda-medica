@@ -49,11 +49,11 @@
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
 | `/configuracion` | medico | ✅ | 2975 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 8441 | 9 | — | ✅ | ✅ |
+| `/consulta/[patientId]` | medico | ✅ | 8459 | 9 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 409 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 278 | 1 | — | ✅ | — |
-| `/cumplimiento` | medico | ✅ | 1412 | 0 | — | ✅ | — |
+| `/cumplimiento` | medico | ✅ | 1415 | 0 | — | ✅ | — |
 | `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |

@@ -8,9 +8,11 @@
  *
  * If no membership found → user needs onboarding (/setup)
  */
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
+import type { User } from 'firebase/auth'
 import { doc, onSnapshot } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { db, auth } from '@/lib/firebase'
+import { invalidarCachePacientes } from '@/lib/firestore'
 import { useAuth } from '@/hooks/useAuth'
 import { Clinic, ClinicMember } from '@/types'
 import { seSabeQueNoTieneConsultorio } from '@/lib/clinica/saber-si-hay-consultorio'
@@ -33,6 +35,8 @@ interface ClinicCtx {
    * error y sin forma de salir salvo recargar — y al recargar, lo mismo.
    */
   error: string | null
+  /** La tarea diferida conserva esta frontera, incluso después de navegar. */
+  sesionVigente: () => boolean
 }
 
 const Ctx = createContext<ClinicCtx>({
@@ -42,10 +46,27 @@ const Ctx = createContext<ClinicCtx>({
   loading: true,
   needsSetup: false,
   error: null,
+  sesionVigente: () => false,
 })
 
 export function ClinicProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
+  return <ClinicSession key={user?.uid ?? 'sin-sesion'} user={user} authLoading={authLoading}>{children}</ClinicSession>
+}
+
+function ClinicScope({ value, uid, children }: {
+  value: Omit<ClinicCtx, 'sesionVigente'>; uid: string | null; children: ReactNode
+}) {
+  const activa = useRef(true)
+  const [sesionVigente] = useState(() => () => activa.current && !!uid && auth.currentUser?.uid === uid)
+  useEffect(() => {
+    activa.current = true
+    return () => { activa.current = false; invalidarCachePacientes() }
+  }, [])
+  return <Ctx.Provider value={{ ...value, sesionVigente }}>{children}</Ctx.Provider>
+}
+
+function ClinicSession({ children, user, authLoading }: { children: ReactNode; user: User | null; authLoading: boolean }) {
   const [clinicId, setClinicId] = useState<string | null>(null)
   const [clinic, setClinic] = useState<Clinic | null>(null)
   const [role, setRole] = useState<ClinicMember['role'] | null>(null)
@@ -68,6 +89,7 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
 
     // Load clinic membership for this user
     let unsubClinic: (() => void) | null = null
+    let clinicEscuchada: string | null = null
     let resuelto = false
     const marcarListo = () => { resuelto = true; setLoading(false) }
     // RED DE SEGURIDAD: si Firestore no responde (red/permiso/token), NUNCA dejes la
@@ -123,6 +145,11 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
       }
 
       const member = snap.data() as ClinicMember
+      if (clinicEscuchada !== member.clinicId) {
+        clinicEscuchada = member.clinicId
+        setClinic(null)
+        setLoading(true)
+      }
       setRole(member.role)
       setClinicId(member.clinicId)
       setNeedsSetup(false)
@@ -146,9 +173,9 @@ export function ClinicProvider({ children }: { children: ReactNode }) {
   }, [user, authLoading])
 
   return (
-    <Ctx.Provider value={{ clinicId, clinic, role, loading, needsSetup, error }}>
+    <ClinicScope key={`${clinicId ?? 'sin-consultorio'}:${role ?? 'sin-rol'}`} uid={user?.uid ?? null} value={{ clinicId, clinic, role, loading, needsSetup, error }}>
       {children}
-    </Ctx.Provider>
+    </ClinicScope>
   )
 }
 

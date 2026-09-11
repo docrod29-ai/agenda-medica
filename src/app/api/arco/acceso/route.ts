@@ -40,7 +40,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
 import { armarExpediente, conteoDeSecciones } from '@/lib/expediente/exportacion-servidor'
 
 export const maxDuration = 60
@@ -67,6 +67,8 @@ export async function POST(req: NextRequest) {
    */
   const acceso = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acceso.ok) return acceso.response
+  const sinAdministracion = exigeAdministrador(acceso)
+  if (sinAdministracion) return sinAdministracion
 
   const solicitudId = String(body.solicitudId ?? '').trim()
 

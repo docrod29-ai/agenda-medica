@@ -7,8 +7,9 @@
  * salidas generadas, calcula exactitud por campo, tasa de error y una proxy de
  * ALUCINACIÓN (campos afirmados por la IA sin respaldo en la entrada/oro).
  *
- * El estudio real lo corre el Dr. con sus datos de-identificados; aquí está el
- * instrumento de medición, PURO y testeable.
+ * D-029: sólo corpus sintético o actuado con consentimiento documentado.
+ * Este instrumento no acredita validación clínica externa ni equivalencia
+ * semántica: una variante no idéntica requiere adjudicación del revisor.
  */
 
 import type { LoMedido } from './contratos-de-evaluacion'
@@ -39,10 +40,9 @@ export interface ResultadoCaso {
 /** Normaliza para comparar (acentos, mayúsculas, espacios, puntuación suave). */
 function norm(s: string): string {
   return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[.,;:]/g, ' ').replace(/\s+/g, ' ').trim()
+    .replace(/(?<!\d)[.,;:]|[.,;:](?!\d)/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-/** Equivalencia laxa: igualdad normalizada o contención (uno dentro del otro). */
 /**
  * ¿Qué proporción del contenido NO tiene respaldo en la entrada ni en el oro?
  *
@@ -58,22 +58,26 @@ export const PROPORCION_SIN_RESPALDO = 1 / 3
 
 /** Palabras que no aportan contenido: su ausencia en la entrada no significa nada. */
 const VACIAS = new Set([
-  'con', 'sin', 'para', 'por', 'que', 'del', 'las', 'los', 'una', 'uno', 'como',
+  'el', 'la', 'de', 'a', 'y', 'en', 'un', 'con', 'para', 'por', 'que', 'del', 'las', 'los', 'una', 'uno', 'como',
   'este', 'esta', 'muy', 'mas', 'pero', 'sus', 'era', 'son', 'fue', 'hay',
 ])
 
 export function sinSustento(valorNorm: string, entradaNorm: string, avaladoNorm = ''): boolean {
-  const palabras = valorNorm.split(/\s+/).filter(w => w.length > 3 && !VACIAS.has(w))
+  const palabras = valorNorm.split(/\s+/).filter(w => w.length > 0 && !VACIAS.has(w))
   if (palabras.length === 0) return false
-  const huerfanas = palabras.filter(w => !entradaNorm.includes(w) && !avaladoNorm.includes(w))
+  const respaldo = new Set((entradaNorm + ' ' + avaladoNorm).split(/\s+/))
+  const huerfanas = palabras.filter(w => !respaldo.has(w))
+  // Una cifra inventada no se compensa añadiendo palabras correctas.
+  if (huerfanas.some(w => /\d/.test(w))) return true
   return huerfanas.length / palabras.length > PROPORCION_SIN_RESPALDO
 }
 
 export function equivalente(a: string, b: string): boolean {
   const x = norm(a), y = norm(b)
-  if (!x && !y) return true
-  if (!x || !y) return false
-  return x === y || x.includes(y) || y.includes(x)
+  // La contención aprobaba «5 mg» dentro de «15 mg» y «fiebre» dentro de
+  // «niega fiebre». Sólo la igualdad normalizada es un acierto automático.
+  // Sinónimos, abreviaturas y calificadores distintos quedan para revisión.
+  return x === y
 }
 
 /**
@@ -151,7 +155,7 @@ export function evaluarCaso(oro: CasoOro, gen: SalidaGenerada): ResultadoCaso {
      * Se conserva el sentido útil: que el generado esté CONTENIDO en algún
      * valor del oro (es un subconjunto, no añade nada).
      */
-    const contenidoEnElOro = oroValores.some(ov => ov.includes(v))
+    const contenidoEnElOro = oroValores.some(ov => ov === v)
     if (contenidoEnElOro) continue
     if (!sinSustento(v, entradaNorm, avalado)) continue
     if (!alucinaciones.includes(campo)) alucinaciones.push(campo)

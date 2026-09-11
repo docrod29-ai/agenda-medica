@@ -150,7 +150,9 @@ export function documentosSemilla(tenant: Tenant): readonly DocSemilla[] {
     for (const uid of uids) {
       const ruta = instanciar(recurso.ruta, tenant, uid)
       if (ruta === `clinics/${tenant}`) continue // ya sembrado arriba con sus campos
-      docs.push({ ruta, datos: { clinicId: tenant, semilla: true, ...extras } })
+      docs.push({ ruta, datos: { clinicId: tenant, semilla: true, ...extras,
+        ...(ruta.split('/').length === 4 && ruta.includes('/patients/') ? { medicoTitularUid: uidDe(tenant, 'medico') } : {}),
+      } })
     }
   }
 

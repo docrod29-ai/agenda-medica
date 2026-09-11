@@ -58,7 +58,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { safeLog } from '@/lib/security/sanitize'
 import { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidad, exigeAdministrador } from '@/lib/authz/verificar'
 import { COLECCIONES, rutasDelArbol } from '@/lib/clinica/respaldo'
 import {
   leerLinea, reenraizar, reenraizarPorCampo, admitir, admitirRaizExistente,
@@ -116,6 +116,8 @@ export async function POST(req: NextRequest) {
    */
   const acc = await verificarCapacidad(req, clinicId, 'administrar')
   if (!acc.ok) return acc.response
+  const sinAdministracion = exigeAdministrador(acc)
+  if (sinAdministracion) return sinAdministracion
 
   const clinicRef = adminDb.collection('clinics').doc(clinicId)
 

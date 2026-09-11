@@ -76,7 +76,7 @@ describe('S-002 · un rol no clínico no puede escribir alergias', () => {
     const bloque = bloquePatients()
     const update = bloque.match(/allow (?:[a-z, ]*update[a-z, ]*):[^;]*;/)?.[0] ?? ''
     expect(update, 'no hay regla de update para patients').not.toBe('')
-    expect(update).toMatch(/isMedico\(clinicId\)\s*\|\|\s*!request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasAny\(camposClinicosDelPaciente\(\)\)/)
+    expect(update).toMatch(/esMedicoDelPaciente\(clinicId, docId\)\s*\|\|\s*!request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasAny\(camposClinicosDelPaciente\(\)\)/)
   })
 
   it('y tampoco al CREAR: recepción no le pone alergias al paciente al darlo de alta', () => {

@@ -119,3 +119,10 @@ export function exigeCapacidad(acceso: AccesoOk, c: Capacidad): NextResponse | n
   const r = sinCapacidad(c, acceso.role)
   return r.ok ? null : r.response
 }
+
+/** Operaciones sobre TODOS los expedientes: `administrar` también lo tiene el
+ * médico por compatibilidad, pero no equivale al rol de dueño/administrador. */
+export function exigeAdministrador(acceso: AccesoOk): NextResponse | null {
+  if (acceso.role === 'admin') return null
+  return NextResponse.json({ ok: false, error: 'Esta acción requiere al administrador del consultorio.' }, { status: 403 })
+}

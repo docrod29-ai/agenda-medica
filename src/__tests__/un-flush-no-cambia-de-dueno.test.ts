@@ -57,7 +57,7 @@ function escenario() {
     auth, uidDelMontaje: uid, vivo, respaldoKey: clave,
     estadoVivoRef: { current: vivo }, notaIdRef: { current: null },
     guardarRespaldoLocal, hayContenido: hayAlgoQuePerder, ofuscar, secretoLocal,
-    borradoresBloqueados: () => bloqueo.activo, localStorage: { setItem },
+    borradoresBloqueados: () => bloqueo.activo, localStorage: { setItem, getItem: (k: string) => datos.get(k) ?? null },
     avisoRespaldoRef: { current: false }, toast: vi.fn(), AVISO_SIN_ESPACIO,
   }
   return { uid, clave, auth, datos, setItem, bloqueo, scope, vivo }

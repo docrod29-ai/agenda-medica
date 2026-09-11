@@ -23,14 +23,17 @@ import { join } from 'node:path'
 
 const s = readFileSync(join(process.cwd(), 'src', 'app', '(dashboard)', 'cumplimiento', 'page.tsx'), 'utf8')
 
+const servidor = readFileSync('src/app/api/cumplimiento/bitacora/route.ts', 'utf8')
+
 describe('el filtro por paciente va al SERVIDOR', () => {
   it('consulta por patientId, no recorta los 200 ya traídos', () => {
-    expect(s).toContain("where('patientId', '==', pacienteFiltro)")
-    expect(s).toContain('fbLimit(500)')
+    expect(servidor).toContain("where('patientId', '==', patientId)")
+    expect(servidor).toContain('const tope = patientId ? 500 : 200')
+    expect(s).toContain("formato: 'json', patientId: pacienteFiltro")
   })
 
   it('vuelve a preguntar al cambiar de paciente', () => {
-    expect(s).toContain('}, [clinicId, pacienteFiltro])')
+    expect(s).toContain('}, [clinicId, pacienteFiltro, toast])')
   })
 
   it('la consulta por paciente NO lleva orderBy', () => {
@@ -39,8 +42,8 @@ describe('el filtro por paciente va al SERVIDOR', () => {
      * una operación aparte que puede borrar los que no estén declarados. Sin
      * `orderBy` basta el índice automático; el orden se hace en memoria.
      */
-    const i = s.indexOf("where('patientId'")
-    const linea = s.slice(s.lastIndexOf('\n', i), s.indexOf('\n', i))
+    const i = servidor.indexOf("where('patientId'")
+    const linea = servidor.slice(servidor.lastIndexOf('\n', i), servidor.indexOf('\n', i))
     expect(linea).not.toContain('orderBy')
     expect(s).toContain("filas.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))")
   })

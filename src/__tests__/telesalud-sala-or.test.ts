@@ -28,7 +28,7 @@ const verificarMiembro = vi.fn()
 vi.mock('@/lib/firebase-admin', () => ({
   adminDb: {
     collection: () => ({
-      doc: () => ({ collection: () => ({ doc: () => ({ get: getCita, update: vi.fn() }) }) }),
+      doc: () => ({ collection: (sub: string) => ({ doc: () => ({ get: sub === 'patients' ? async () => ({ exists: true, data: () => ({ medicoTitularUid: 'u1' }) }) : getCita, update: vi.fn() }) }) }),
     }),
   },
 }))
@@ -84,7 +84,7 @@ describe('E0-07 · telesalud/sala conserva el OR de autorización', () => {
     expect(verificarMiembro).not.toHaveBeenCalled()
   })
 
-  it('(a) el miembro del consultorio entra por la segunda rama, sin token', async () => {
+  it('(a) el médico autorizado entra por la segunda rama, sin token', async () => {
     verificarMiembro.mockResolvedValue({ ok: true, uid: 'u1', clinicId: 'c1', role: 'medico' })
     const r = await POST(peticion({ citaId: 'cita-1', clinicId: 'c1' }))
     expect(r.status).toBe(200)

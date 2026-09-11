@@ -69,7 +69,7 @@ function escenario(overrides: Record<string, unknown> = {}) {
   const createNota = vi.fn(async () => 'nota-sintetica')
   const updateNota = vi.fn(async () => {})
   const scope: Record<string, unknown> = {
-    auth: borde.auth, uidDelMontaje: uid, clinicId: 'clinica-sintetica', patientId: 'paciente-sintetico',
+    auth: borde.auth, sesionVigente: () => true, uidDelMontaje: uid, clinicId: 'clinica-sintetica', patientId: 'paciente-sintetico',
     firmada: false, firmadaRef: { current: false }, descartadaRef: { current: false },
     errorCargaNota: null, pacienteError: null, cadenaGuardadoRef: { current: Promise.resolve() },
     notaIdRef: { current: null }, vistoEnRef: { current: null }, fallosGuardadoRef: { current: 0 },
@@ -78,7 +78,7 @@ function escenario(overrides: Record<string, unknown> = {}) {
     toast: vi.fn(), console: { error: vi.fn() },
     estadoVivoRef: { current: vivo }, respaldoKey: clave, guardarRespaldoLocal,
     hayContenido: hayAlgoQuePerder, ofuscar, borradoresBloqueados: () => false,
-    localStorage: { setItem: (k: string, v: string) => datos.set(k, v) },
+    localStorage: { setItem: (k: string, v: string) => datos.set(k, v), getItem: (k: string) => datos.get(k) ?? null },
     avisoRespaldoRef: { current: false }, AVISO_SIN_ESPACIO,
     hayAudioQueNoSePuedePurgar: () => false, audioEstadoRef: { current: 'inactivo' },
     hayAudioGuardadoRef: { current: false }, audioDescartadoRef: { current: false }, ...overrides,
@@ -86,7 +86,9 @@ function escenario(overrides: Record<string, unknown> = {}) {
   const guardar = callback('guardarBorrador', scope) as (silencioso?: boolean, confirmarPersistencia?: boolean) => Promise<void>
   const flush = callback('flushRespaldo', scope)
   const escuchar = callback('alGuardarTodo', { ...scope, guardarBorrador: guardar, flushRespaldo: flush }) as EventListener
-  borde.limpiarBorradoresLocales.mockImplementation(() => datos.clear())
+  borde.limpiarBorradoresLocales.mockImplementation((confirmados: { clave: string; bytes: string }[] = []) => {
+    for (const { clave, bytes } of confirmados) if (datos.get(clave) === bytes) datos.delete(clave)
+  })
   const salir = async () => {
     window.addEventListener(EVENTO_GUARDAR_TODO, escuchar)
     try { await salirSeguro() } finally { window.removeEventListener(EVENTO_GUARDAR_TODO, escuchar) }
@@ -121,9 +123,17 @@ describe('REG-676 — la salida recibe el resultado real del guardado', () => {
     await e.salir()
     expect(e.createNota).toHaveBeenCalledOnce()
     expect(borde.limpiarBorradoresLocales).toHaveBeenCalledOnce()
+    expect(borde.limpiarBorradoresLocales).toHaveBeenCalledWith([{ clave: e.clave, bytes: expect.any(String) }])
     expect(borde.limpiarCacheFirestore).toHaveBeenCalledOnce()
     expect(e.datos.size).toBe(0)
     expect(window.location.href).toBe('/login')
+  })
+
+  it('un SecurityError de localStorage no impide guardar ni inventa confirmación local', async () => {
+    const e = escenario({ localStorage: { setItem: () => {}, getItem: () => { throw new DOMException('Sintético', 'SecurityError') } } })
+    await e.salir()
+    expect(e.createNota).toHaveBeenCalledOnce()
+    expect(borde.limpiarBorradoresLocales).toHaveBeenCalledWith([])
   })
 
   it.each(['unavailable', 'conflicto-de-version'])('el guardado habitual sigue manejando %s sin rechazo no atendido', async codigo => {

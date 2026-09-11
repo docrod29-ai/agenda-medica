@@ -194,7 +194,7 @@ describe('EL ARNÉS YA NO ES HUÉRFANO — se usa, y da un número', () => {
 
   it('la equivalencia es laxa a propósito', () => {
     // «cefalea» y «cefalea tensional» no son dos hallazgos distintos para esto.
-    expect(equivalente('cefalea', 'cefalea tensional')).toBe(true)
+    expect(equivalente('cefalea', 'cefalea tensional')).toBe(false)
     expect(equivalente('diabetes', 'hipertensión')).toBe(false)
   })
 

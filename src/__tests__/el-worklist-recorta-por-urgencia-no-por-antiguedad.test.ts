@@ -67,6 +67,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const h = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
+  role: 'admin', uid: 'medico-sintetico',
   contador: { lecturas: 0, getDocs: 0, getDoc: 0 },
   fallos: { collectionGroup: false, lectura: false, lecturaEn: '', indiceAusenteSobre: '' },
 }))
@@ -80,6 +81,17 @@ vi.mock('firebase/firestore', async () => {
   const { firestoreClienteSobre } = await import('./_harness/firestore-cliente-en-memoria')
   return firestoreClienteSobre(h)
 })
+
+vi.mock('@/lib/firebase-admin', async () => {
+  const { lecturasAdminSobreCliente } = await import('./_harness/firestore-cliente-en-memoria')
+  return { adminDb: lecturasAdminSobreCliente(h) }
+})
+vi.mock('@/lib/authz/verificar', () => ({ verificarCapacidad: async () => ({ ok: true, uid: h.uid, role: h.role }) }))
+vi.mock('@/lib/auth-client', () => ({ fetchAutenticado: async (_url: string, opciones: RequestInit) => {
+  const { POST } = await import('@/app/api/tareas/listar/route')
+  const { NextRequest } = await import('next/server')
+  return POST(new NextRequest('http://localhost/api/tareas/listar', { ...opciones, signal: opciones.signal ?? undefined }))
+} }))
 
 import { tareasVivas, crearTareas } from '@/lib/tareas-clinicas/firestore'
 import {
@@ -100,9 +112,39 @@ function sembrar(id: string, campos: Record<string, unknown>) {
 
 beforeEach(() => {
   h.docs.clear()
+  h.role = 'admin'; h.uid = 'medico-sintetico'
   h.contador.lecturas = 0; h.contador.getDocs = 0; h.contador.getDoc = 0
   h.fallos.collectionGroup = false; h.fallos.lectura = false; h.fallos.lecturaEn = ''
   h.fallos.indiceAusenteSobre = ''
+})
+
+describe('el servidor filtra el expediente antes de recortar el worklist', () => {
+  it('encuentra el pendiente propio después de 201 ajenos sin devolver uno de ellos', async () => {
+    h.role = 'medico'
+    h.docs.set(`clinics/${CLINICA}/patients/p1`, { medicoTitularUid: 'otro-medico' })
+    h.docs.set(`clinics/${CLINICA}/patients/propio`, { medicoTitularUid: h.uid })
+    for (let i = 0; i < 201; i++) sembrar(`ajeno-${i}`, { prioridad: 'critica', pesoUrgencia: 0, creadaEn: '2026-01-01' })
+    sembrar('propio', { patientId: 'propio', prioridad: 'critica', pesoUrgencia: 0, creadaEn: '2026-09-11' })
+    const w = await tareasVivas(CLINICA, 10)
+    expect(w.tareas.map(t => t.titulo)).toEqual(['propio'])
+    expect(w.truncada).toBe(false)
+  })
+
+  it('un share sirve y revocarlo afecta la siguiente petición', async () => {
+    h.role = 'medico'
+    h.docs.set(`clinics/${CLINICA}/patients/p1`, { medicoTitularUid: 'otro-medico', compartidoCon: [h.uid] })
+    sembrar('compartido', { prioridad: 'critica', pesoUrgencia: 0, creadaEn: '2026-09-11' })
+    expect((await tareasVivas(CLINICA)).tareas).toHaveLength(1)
+    h.docs.set(`clinics/${CLINICA}/patients/p1`, { medicoTitularUid: 'otro-medico', compartidoCon: [] })
+    expect((await tareasVivas(CLINICA)).tareas).toEqual([])
+  })
+
+  it('recepción no amplía acceso enviando soloRecepcion=false', async () => {
+    h.role = 'secretaria'
+    sembrar('clinica', { area: 'clinica', prioridad: 'critica', pesoUrgencia: 0, creadaEn: '2026-09-11' })
+    sembrar('recepcion', { area: 'recepcion', prioridad: 'normal', pesoUrgencia: 20, creadaEn: '2026-09-11' })
+    expect((await tareasVivas(CLINICA, 10, { soloRecepcion: false })).tareas.map(t => t.titulo)).toEqual(['recepcion'])
+  })
 })
 
 describe('la escalera de urgencia es un número, y ordena como dice la palabra', () => {
@@ -370,7 +412,7 @@ describe('si el índice todavía no está, la pantalla no se rompe — y lo dice
      * seguridad, o una regla mal desplegada— se vería como una lista corta.
      */
     h.fallos.lectura = true
-    await expect(tareasVivas(CLINICA, 10)).rejects.toThrow(/UNAVAILABLE/)
+    await expect(tareasVivas(CLINICA, 10)).rejects.toThrow('No se pudieron cargar los pendientes.')
   })
 
   it('sin consultorio no inventa una lista vacía silenciosa', async () => {

@@ -532,7 +532,7 @@ describe('pruebas negativas — el arreglo no rompe lo que ya estaba bien', () =
   it('SIGUE HABIENDO PURGA: el arreglo no convierte el cierre de sesión en «nunca se borra»', () => {
     const SALIR = leer('src', 'lib', 'salir-seguro.ts')
     expect(SALIR).toContain('if (!r.audioSinTranscribir) limpiarAudioLocal()')
-    expect(SALIR).toContain('limpiarBorradoresLocales()')
+    expect(SALIR).toContain('limpiarBorradoresLocales(r.respaldosConfirmados)')
   })
 
   it('SIN PHI: ni el módulo ni sus casos traen un paciente real', () => {

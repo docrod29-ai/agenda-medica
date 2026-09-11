@@ -79,6 +79,10 @@ export const CAPACIDADES = [
   // ── operativas ───────────────────────────────────────────────────────────
   /** Citas, sync de calendario, lista de espera, magic-link del portal. */
   'agenda.gestionar',
+  /** Listar pendientes: el servidor restringe recepción y alcance del paciente. */
+  'tareas.leer',
+  /** Ficha administrativa; el servidor proyecta los campos según el alcance. */
+  'pacientes.directorio',
   /**
    * BORRAR una cita (no cancelarla) y agendar ENCIMA de otra.
    *
@@ -126,13 +130,13 @@ export const CAPACIDADES_POR_ROL: Readonly<Record<Rol, readonly Capacidad[]>> = 
     'clinico.leer', 'clinico.escribir', 'firmar', 'prescribir', 'medicamento.administrar',
     'pase.registrar', 'farmacia.verificar',
     'agenda.gestionar', 'agenda.destruir', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
-    'administrar', 'auditoria.registrar',
+    'administrar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio',
   ],
   medico: [
     'clinico.leer', 'clinico.escribir', 'firmar', 'prescribir', 'medicamento.administrar',
     'pase.registrar', 'farmacia.verificar',
     'agenda.gestionar', 'agenda.destruir', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer',
-    'administrar', 'auditoria.registrar',
+    'administrar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio',
   ],
   /**
    * La asistente del mostrador: agenda, WhatsApp, cobro, FACTURACIÓN y
@@ -145,14 +149,14 @@ export const CAPACIDADES_POR_ROL: Readonly<Record<Rol, readonly Capacidad[]>> = 
    *  · SE ESTRECHA quitando el borrado de citas y el sobreagendamiento
    *    (`agenda.destruir`), que destruyen registro o tiempo clínico.
    */
-  secretaria: ['agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer', 'auditoria.registrar'],
+  secretaria: ['agenda.gestionar', 'mensajeria.enviar', 'cobrar', 'facturar', 'equipo.leer', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
   // Rol declarado y todavía no asignable (ver ROLES_ASIGNABLES).
-  recepcion: ['agenda.gestionar', 'mensajeria.enviar', 'auditoria.registrar'],
-  facturacion: ['cobrar', 'facturar', 'auditoria.registrar'],
+  recepcion: ['agenda.gestionar', 'mensajeria.enviar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
+  facturacion: ['cobrar', 'facturar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
   // Staff clínico hospitalario: lee el pase de visita, no dicta ni firma.
-  enfermeria: ['clinico.leer', 'medicamento.administrar', 'pase.registrar', 'auditoria.registrar'],
-  farmacia: ['clinico.leer', 'farmacia.verificar', 'auditoria.registrar'],
-  laboratorio: ['clinico.leer', 'auditoria.registrar'],
+  enfermeria: ['clinico.leer', 'medicamento.administrar', 'pase.registrar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
+  farmacia: ['clinico.leer', 'farmacia.verificar', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
+  laboratorio: ['clinico.leer', 'auditoria.registrar', 'tareas.leer', 'pacientes.directorio'],
 }
 
 /**

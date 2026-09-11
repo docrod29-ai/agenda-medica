@@ -68,11 +68,11 @@ export function CompartirExpediente({ patient, onCambio }: { patient: Patient; o
       const ahora = new Date().toISOString()
       const r = await crearTareas(clinicId, [{
         clinicId, patientId: patient.id, patientNombre: patient.nombre,
-        tipo: 'otra', titulo: `${user?.displayName || user?.email || 'Un médico'} pide acceso al expediente`,
+        tipo: 'otra', area: 'medico', titulo: 'Solicitud de acceso al expediente',
         detalle: 'Compártelo desde el expediente si procede. Hasta entonces sólo ve la ficha.',
         prioridad: 'normal', pesoUrgencia: pesoDeUrgencia('normal'), estado: 'solicitada', creadaEn: ahora,
         origen: ORIGEN_PETICION_DE_ACCESO, origenId: `${patient.id}__${uid}`,
-        ownerUid: patient.medicoTitularUid, ownerNombre: titular?.nombre,
+        ownerUid: patient.medicoTitularUid,
       }])
       if (r.creadas === 0) throw new Error('la petición no se pudo escribir')
       logAudit({ evento: 'expediente_acceso_pedido', clinicId, patientId: patient.id, meta: { titular: patient.medicoTitularUid } }).catch(() => {})
@@ -111,7 +111,7 @@ export function CompartirExpediente({ patient, onCambio }: { patient: Patient; o
       <p style={{ margin: '6px 0 10px', color: 'var(--text2)', lineHeight: 1.5 }}>
         {patient.medicoTitularUid
           ? <>Titular: <b>{titular?.nombre ?? (patient.medicoTitularUid === uid ? 'tú' : 'médico del consultorio')}</b>.</>
-          : <>Sin médico titular todavía (paciente anterior a esta regla): lo ve todo el equipo médico.</>}
+          : <>Sin médico titular todavía. El administrador puede asignarlo.</>}
       </p>
       {!patient.medicoTitularUid && (
         <button type="button" onClick={() => escribir({ medicoTitularUid: uid }, 'expediente_titular_asignado', { titular: uid, por: uid })} disabled={!!ocupado} className="nx-acc-caja" style={boton}>

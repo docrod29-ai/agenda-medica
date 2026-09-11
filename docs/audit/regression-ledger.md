@@ -26177,3 +26177,65 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Prueba permanente:** `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`: seis negativos, A→B y A→sin sesión en los tres puntos, más continuidad al renovar Auth conservando el uid. El golden de descarte recibe una identidad sintética válida para seguir alcanzando su propia guarda dentro de la cola.
 
 **Límite:** no cancela una petición ya enviada al SDK ni certifica cambio de clínica con el mismo uid, cajones en memoria, recuperación en claro o permisos sobre PHI legada. No migra ni borra datos de producción.
+
+
+## REG-678 — misma clínica no abre datos derivados ni exportaciones ajenas (11-sep-2026)
+
+**Reproducción:** el emulador real del PR #491 (SHA 5bb6ab9, job 103229385587) permitió siete peticiones que debían fallar: cuatro subcolecciones de paciente, modificar alergias legacy, leer tarea ajena y leer bitácora ajena. Los cuatro comodines interiores `docId` ocultaban el ID del paciente; la guarda examinaba el recurso derivado como si fuera el paciente. Los handlers reales de CSV/Excel también consultaban subcolecciones ajenas. `administrar` se concedía al médico y no equivalía a rol admin.
+
+**Arreglo:** nombres de comodín únicos; alcance de paciente en lecturas derivadas y escritura clínica legacy; CSV/Excel autorizan antes de leer subcolecciones; operaciones globales exigen rol admin explícito. La misma colección de tareas se lee por una puerta HTTP que filtra antes del tope, con lectura de fichas en lote, presupuesto explícito y la red histórica de urgencia conservada. La vista de bitácora usa su endpoint existente y filtra por alcance; el CSV global queda administrativo.
+
+**Pruebas permanentes:** `emulator/privacidad-misma-clinica.emu.test.ts`, `src/__tests__/matriz-acceso.test.ts`, `src/__tests__/administrar-no-concede-todos-los-expedientes.test.ts`, `src/__tests__/exportar-no-abre-el-expediente-ajeno.test.ts`, `src/__tests__/el-worklist-recorta-por-urgencia-no-por-antiguedad.test.ts` y `src/__tests__/bitacora-filtro.test.ts`. Se conservan controles positivos, share/revocación y urgencia tras 201 tareas ajenas.
+
+**Límite:** este checkpoint no declara migrado el PHI legacy del documento administrativo, ni asignados los pacientes históricos, ni verificada producción. Esos datos requieren su cierre separado; no desplegar como aislamiento completo.
+
+## REG-679 — el evaluador no acepta una dosis o negación diferente (11-sep-2026)
+
+**Reproducción:** ocho fallos al ejecutar `src/__tests__/la-medicion-no-aprueba-cambios-clinicos.test.ts` contra la implementación anterior. La comparación por subcadena aceptaba 5 mg/15 mg, pérdida de negación, vía o lateralidad y otras alteraciones. El decimal podía perder su separador.
+
+**Arreglo:** comparación normalizada exacta y conservadora; se mantienen decimales, cifras, negaciones y tokens completos en el control de sustento. Una paráfrasis no idéntica requiere revisión humana; esto corrige el instrumento, no una decisión clínica. Se fortalecen `src/__tests__/ia-evaluacion.test.ts` y `src/__tests__/oro-alucinacion.test.ts`.
+
+**Validación:** cinco archivos dirigidos, 63 casos aprobados. No representa participación de revisores externos ni rendimiento de un proveedor de IA en producción.
+
+## REG-680 — guardar no acusa éxito cuando falla o cambia la sesión (11-sep-2026)
+
+**Reproducción:** cuatro negativos fallaron ejecutando `guardarBorrador` real mediante AST: fallo de red, conflicto, cuenta cambiada en la cola y cambio mientras se esperaba la nota inexistente.
+
+**Arreglo:** la promesa entregada al cierre conserva el rechazo; la cola permite reintentar después. La identidad de la nota se fija al montaje y se revalida antes de escribir/recrear. El contexto de consultorio reinicia sus proveedores existentes al cambiar de cuenta o clínica, sin afectar la navegación dentro del mismo consultorio.
+
+**Prueba permanente:** `src/__tests__/guardar-no-acusa-un-fallo-como-exito.test.ts`, con fallo/reintento y control positivo. Conserva `src/__tests__/consulta-descartada-no-resucita.test.ts` y `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`.
+
+**Límite:** este checkpoint aún no cambia las claves locales legacy, no purga copias de origen incierto ni demuestra un logout privado contra producción.
+
+
+## REG-681 — el acuse de guardado pertenece a una cuenta y un consultorio (11-sep-2026)
+
+**Reproducción:** el mismo uid podía adoptar el respaldo al cambiar de clínica; una salida exitosa también purgaba copias de otros encuentros sin haberlas guardado. La lectura local del listener podía lanzar SecurityError antes de iniciar el guardado.
+
+**Arreglo:** clave canónica por cuenta, clínica, paciente y episodio; montaje invalidado también al cambiar de rol; caché ligada a la cuenta. La purga exige clave y bytes exactos de un guardado confirmado. Se conserva una edición posterior y cualquier copia sin acuse. Fallar al leer almacenamiento local no impide guardar en servidor. La firma revalida la sesión tras esperas.
+
+**Pruebas permanentes:** `src/__tests__/el-respaldo-pertenece-al-consultorio.test.ts`, `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`, `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`. Retirar la guarda de purga produce tres fallos; restituirla conserva el control positivo. Datos sintéticos y callbacks reales; no acreditan cifrado del almacenamiento ni cancelan escrituras ya enviadas.
+
+## REG-682 — el directorio no descarga el expediente clínico de otro médico (11-sep-2026)
+
+**Reproducción:** la lectura raíz permitía a recepción y a otro médico obtener alergias y otros campos clínicos legados. El emulador de privacidad reproduce peticiones por ID conocido; el handler se comprueba con marcadores privados, también en campos futuros y objetos anidados.
+
+**Arreglo:** raíz bajo alcance clínico. La fachada existente de pacientes llama a un único directorio autenticado con proyección explícita, sin duplicar documentos. Lista, búsqueda y lectura individual conservan límites, cursores y errores. Titular, compartido y administrador conservan su expediente completo.
+
+**Pruebas permanentes:** `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts`, `src/__tests__/scale-342-lecturas-acotadas.test.ts`, `src/__tests__/ninguna-pantalla-recibe-una-lista-muda.test.ts`, `emulator/privacidad-misma-clinica.emu.test.ts`. Prueba inversa: retirar la proyección produce tres fallos con marcadores privados; restituirla pasa. No acredita despliegue: el hash confirmado de reglas sólo cambia después de publicar.
+
+## REG-683 — la falta de titular y los códigos de invitación no elevan privilegios (11-sep-2026)
+
+**Reproducción:** la ausencia de titular autorizaba lectura y apropiación por cualquier médico. El listado de invitaciones entregaba códigos administrativos a médicos aunque no pudieran emitirlos.
+
+**Arreglo:** sólo admin asigna un expediente sin titular; la petición de acceso acepta exclusivamente una tarea de contenido fijo, autor y destinatario comprobados. Cada médico ve y revoca sólo sus invitaciones de roles permitidos; admin conserva la gestión. El asignador histórico pagina y no se ejecuta automáticamente ni adivina propietarios.
+
+**Pruebas permanentes:** `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts`, `src/__tests__/cada-medico-ve-sus-pacientes.test.ts`, `emulator/privacidad-misma-clinica.emu.test.ts`. No se modificaron pacientes ni invitaciones reales.
+
+## REG-684 — proteger la ficha conserva la agenda y el rescate de notas (11-sep-2026)
+
+**Reproducción:** con la raíz privada, la transacción de cancelación de recepción fallaba al leer los contadores del paciente; el rescate de notas fallaba al listar pacientes sin autorización.
+
+**Arreglo:** PATCH de appointments ejecuta la misma decisión canónica y transacción atómica, con capacidad de agenda y compuerta de escritura del consultorio. No devuelve PHI. El rescate pide IDs autorizados al mismo directorio, conserva el techo y sondea sólo esos pacientes; no abre lecturas privadas para recuperar el funcionamiento.
+
+**Pruebas permanentes:** `emulator/gp9-transiciones-idempotentes.emu.test.ts` prueba recepción sin lectura clínica, concurrencia y suspensión; `src/__tests__/scale-342-lecturas-acotadas.test.ts` conserva rescate, ambigüedad y escala; `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts` comprueba los IDs y el recorte. Sólo datos sintéticos.

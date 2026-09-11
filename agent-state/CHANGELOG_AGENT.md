@@ -1,5 +1,14 @@
 # Bitácora del trabajo autónomo
 
+## 2026-09-11 — cierre de privacidad y preparación de v1197
+
+El dueño autorizó integrar y desplegar #487. Se recuperó el cierre pendiente de
+#491, se integró main y se corrigieron directorio, aislamiento, invitaciones,
+recuperación de borradores y continuidad de agenda. REG-678–684 y sus pruebas
+registran el alcance. Compilación correcta y lint sin aumento (93/93). El acceso
+a Google se usa para publicar reglas en Firebase; GitHub conserva la integración
+existente de Vercel. Publicación aún pendiente en este checkpoint.
+
 ## 2026-08-04 — INFRA-001 · el sistema operativo del programa
 
 - `CLAUDE.md` reescrito: misión, invariantes, comandos, mapa, seguridad clínica,

@@ -245,7 +245,7 @@ function poner(ruta: string, datos: Doc) { base.set(ruta, { ...(base.get(ruta) ?
 
 function sembrarPaciente(clinicId: string, patientId: string, datos: Doc = {}) {
   poner(`clinics/${clinicId}/patients/${patientId}`, {
-    nombre: 'Paciente Sintético', alergiasEstructuradas: [{ alergeno: 'penicilina', tipo: 'medicamento', severidad: 'grave' }], ...datos,
+    nombre: 'Paciente Sintético', medicoTitularUid: 'uid_dr_david', alergiasEstructuradas: [{ alergeno: 'penicilina', tipo: 'medicamento', severidad: 'grave' }], ...datos,
   })
 }
 

@@ -39,11 +39,10 @@
  * REG-674: si no se puede leer con el uid vivo, no se ofrece como destino.
  * Antes se admitía con ts=0 y otra cuenta recibía el paciente del respaldo
  * ajeno. Ignorarlo aquí NO borra la copia ni modifica su recuperación.
- * La ofuscación no acredita pertenencia a una clínica: los respaldos legados
- * no llevan clinicId. Este filtro no es autorización de acceso al expediente.
+ * REG-681: la clave exige cuenta y consultorio. Las copias legadas se conservan
+ * sin adoptarlas: no hay evidencia de su consultorio. El servidor autoriza el expediente.
  */
-import { PREFIJO_BORRADOR } from '@/lib/mobile/local-drafts'
-import { desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
+import { alcanceDelRespaldo, leerRespaldoConAlcance } from '@/lib/mobile/local-drafts'
 
 export interface EncuentroAbierto {
   patientId: string
@@ -63,20 +62,14 @@ export function rutaDelEncuentro(e: EncuentroAbierto): string {
 }
 
 /**
- * De `nx.consulta.bkp.<paciente>` o `nx.consulta.bkp.<paciente>.h.<episodio>`
- * a sus partes. Devuelve `null` si la clave no tiene esa forma — una clave
+ * De una clave con cuenta y consultorio a su paciente y episodio. Devuelve `null` si la clave no tiene esa forma — una clave
  * ajena no puede convertirse en un destino de navegación.
  */
 export function partesDeLaClave(clave: string): { patientId: string; internamientoId?: string } | null {
-  if (!clave.startsWith(PREFIJO_BORRADOR)) return null
-  const resto = clave.slice(PREFIJO_BORRADOR.length)
-  if (!resto) return null
-  const corte = resto.indexOf('.h.')
-  if (corte === -1) return { patientId: resto }
-  const patientId = resto.slice(0, corte)
-  const internamientoId = resto.slice(corte + 3)
-  if (!patientId || !internamientoId) return null
-  return { patientId, internamientoId }
+  const alcance = alcanceDelRespaldo(clave)
+  if (!alcance) return null
+  const { patientId, internamientoId } = alcance
+  return { patientId, ...(internamientoId ? { internamientoId } : {}) }
 }
 
 /**
@@ -86,8 +79,8 @@ export function partesDeLaClave(clave: string): { patientId: string; internamien
  * los legibles sin fecha (ts 0), gana el último que enumere el almacén.
  * Ese orden no demuestra cuál se escribió después.
  */
-export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
-  if (!uid || typeof window === 'undefined') return null
+export function encuentroAbierto(uid?: string | null, clinicId?: string | null): EncuentroAbierto | null {
+  if (!uid || !clinicId || typeof window === 'undefined') return null
   let almacen: Storage
   try {
     almacen = window.localStorage
@@ -95,7 +88,6 @@ export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
     return null   // navegación privada con almacenamiento bloqueado
   }
 
-  const secreto = secretoLocal(uid)
   let mejor: EncuentroAbierto | null = null
 
   for (let i = 0; i < almacen.length; i++) {
@@ -108,10 +100,8 @@ export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
     try {
       const crudo = almacen.getItem(clave)
       if (!crudo) continue
-      const claro = desofuscar(crudo, secreto)
-      if (!claro) continue
-      const respaldo: unknown = JSON.parse(claro)
-      if (!respaldo || typeof respaldo !== 'object' || Array.isArray(respaldo)) continue
+      const respaldo = leerRespaldoConAlcance(crudo, clave, uid, clinicId)
+      if (!respaldo) continue
       // Sólo el sello. El contenido clínico nunca se devuelve a la navegación.
       ts = Number((respaldo as { ts?: unknown }).ts) || 0
     } catch {
