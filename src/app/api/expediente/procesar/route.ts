@@ -33,9 +33,19 @@ import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-modelo-se-eligio'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
+import {
+  thinkingPara, velocidadPara, cabecerasDeVelocidad, cuerpoDeVelocidad,
+  modoRapidoHabilitado, ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, type Velocidad,
+} from '@/lib/ia/parametros-de-nota'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
+/**
+ * Modo rápido del proveedor (`NOTA_MODO_RAPIDO=1`): el MISMO modelo y el mismo
+ * razonamiento, servidos hasta 2.5× más rápido y cobrados más caros. Lo
+ * enciende el dueño; ver `parametros-de-nota.ts`.
+ */
+const MODO_RAPIDO = modoRapidoHabilitado()
 const ANTHROPIC_VERSION = '2023-06-01'
 // Versión del prompt/pipeline de la nota. Súbela al cambiar el prompt maestro:
 // queda registrada en el provenance inmutable de cada nota (trazabilidad SaMD).
@@ -69,11 +79,6 @@ const MODELOS_LIVE = [
 ]
 type Perfil = 'live' | 'pro' | 'premium'
 const CANDIDATOS: Record<Perfil, string[]> = { live: MODELOS_LIVE, pro: MODELOS_PRO, premium: MODELOS_PREMIUM }
-
-/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5/haiku no. */
-function soportaThinking(model: string): boolean {
-  return /opus-4|sonnet-5|sonnet-4|3-7-sonnet/.test(model)
-}
 
 // Errores transitorios de Anthropic (sobrecarga / rate-limit / 5xx). Reintentamos
 // con backoff antes de caer al parser local — son la causa #1 de "sigue fallando".
@@ -148,28 +153,44 @@ async function resolverModelo(key: string, perfil: Perfil): Promise<Eleccion> {
 function MODELO_OVERRIDE_OK() { return MODEL_OVERRIDE.length > 0 }
 
 async function llamarClaude(key: string, model: string, system: string, userMsg: string, conThinking = false, maxOverride?: number, msDisponibles = 90_000) {
-  const pienso = conThinking && soportaThinking(model)
+  /**
+   * LA FORMA DEL RAZONAMIENTO SALE DEL MODELO, NO DE UN LITERAL.
+   *
+   * Aquí decía `{ type: 'enabled', budget_tokens: 6000 }` para todo modelo que
+   * «soportara thinking». Opus 4.7+, Sonnet 5 y Fable rechazan esa forma con
+   * un 400, y el «modo seguro» de abajo repetía la llamada SIN razonamiento:
+   * la nota 💎 Máxima llevaba semanas redactándose sin el paso que la
+   * distingue, con un viaje de más al proveedor, y sólo lo decía un log.
+   * Ver `parametros-de-nota.ts` y la prueba `la-nota-maxima-si-razona`.
+   */
+  const thinking = conThinking ? thinkingPara(model) : null
   const esHaiku = /haiku/i.test(model)   // Haiku topa el output en ~8k
-  const body: Record<string, unknown> = {
+  /**
+   * BUG 2026-07 (JSON cortado): con "thinking" el max INCLUYE el razonamiento,
+   * así que 16000 dejaba solo ~10000 para el JSON y en notas complejas (1ª
+   * vez, infectología, muchas secciones) se truncaba. Sin thinking, 24000 en
+   * modelos grandes (Sonnet/Opus). Con razonamiento ADAPTATIVO el modelo decide
+   * cuánto piensa y ya no hay un presupuesto de 6000 que reservar: se le da
+   * el techo que ya usa el auto-reintento (32000) para que el JSON quepa
+   * detrás del razonamiento. Haiku se mantiene en 8000 (su límite real de
+   * salida). maxOverride: para el auto-reintento cuando aun así se corta
+   * (todo el presupuesto al JSON).
+   */
+  const maxTokens = maxOverride ?? (esHaiku ? 8000 : thinking ? 32000 : 24000)
+  const cuerpo = (velocidad: Velocidad): Record<string, unknown> => ({
     model,
-    // BUG 2026-07 (JSON cortado): con "thinking" el max INCLUYE el razonamiento,
-    // así que 16000 dejaba solo ~10000 para el JSON y en notas complejas
-    // (1ª vez, infectología, muchas secciones) se truncaba. Se sube el techo con
-    // amplio margen para el JSON: 24000 con thinking (razonamiento 6000 + ~18000
-    // de JSON) y 16000 sin thinking en modelos grandes (Sonnet/Opus). Haiku se
-    // mantiene en 8000 (su límite real de salida). maxOverride: para el
-    // auto-reintento cuando aun así se corta (todo el presupuesto al JSON).
-    max_tokens: maxOverride ?? (esHaiku ? 8000 : 24000),
+    max_tokens: maxTokens,
     // Prompt caching: el system (instrucciones clínicas, grande y fijo) se
     // cachea → desde la 2ª nota la IA lo reutiliza y responde más rápido y más
     // barato, sin cambiar el resultado.
     system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: userMsg }],
-  }
-  // Razonamiento extendido: la IA "piensa" el caso clínico antes de redactar
-  // (mejor diagnóstico diferencial, dosis, coherencia). Solo en modelos que lo
-  // soportan; el JSON final sale igual, solo mejor razonado.
-  if (pienso) body.thinking = { type: 'enabled', budget_tokens: 6000 }
+    // Razonamiento extendido: la IA "piensa" el caso clínico antes de redactar
+    // (mejor diagnóstico diferencial, dosis, coherencia). Solo en modelos que
+    // lo soportan; el JSON final sale igual, solo mejor razonado.
+    ...(thinking ? { thinking } : {}),
+    ...cuerpoDeVelocidad(velocidad),
+  })
   /**
    * EL TOPE DE ESPERA SALE DEL PRESUPUESTO QUE QUEDA, NO DE UN NÚMERO FIJO.
    *
@@ -185,12 +206,25 @@ async function llamarClaude(key: string, model: string, system: string, userMsg:
    * Un solo intento puede usar casi cuatro minutos si hace falta; y si ya no
    * queda tiempo, no se empieza uno que se sabe que no va a terminar.
    */
-  return fetch('https://api.anthropic.com/v1/messages', {
+  const enviar = (velocidad: Velocidad) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: headersAnthropic(key),
-    body: JSON.stringify(body),
+    headers: { ...headersAnthropic(key), ...cabecerasDeVelocidad(velocidad) },
+    body: JSON.stringify(cuerpo(velocidad)),
     signal: AbortSignal.timeout(msDisponibles),
   })
+  /**
+   * MODO RÁPIDO: mismo modelo, misma salida, hasta 2.5× más rápido. Sólo si el
+   * dueño lo encendió y el modelo lo sirve. Si el proveedor lo rechaza (400) o
+   * su cupo aparte está agotado (429), se repite en velocidad normal EN EL
+   * ACTO: la velocidad es un extra; la nota, no.
+   */
+  const velocidad = velocidadPara(model, MODO_RAPIDO)
+  const res = await enviar(velocidad)
+  if (velocidad === 'fast' && ESTADOS_QUE_RETIRAN_LA_VELOCIDAD.has(res.status)) {
+    safeLog.warn(`[expediente/procesar] el proveedor no sirvió el modo rápido (HTTP ${res.status}); se repite en velocidad normal`)
+    return enviar('standard')
+  }
+  return res
 }
 
 /**
@@ -483,6 +517,30 @@ export async function POST(req: NextRequest) {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA, { proponerHuecos: !rapido })
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
+    /**
+     * EL BORRADOR DE GPT ARRANCA A LA VEZ QUE CLAUDE, NO DESPUÉS.
+     *
+     * El ensamble 💎 (GPT redacta su versión, Claude fusiona) esperaba a que
+     * Claude terminara para PEDIR el borrador de GPT, y luego tenía 25 s para
+     * que GPT contestara Y la síntesis se escribiera. GPT solo, con 8 000
+     * tokens de salida, ya se come ese tiempo: en la práctica el ensamble
+     * gastaba sus 25 s y casi siempre se descartaba.
+     *
+     * El borrador sólo necesita el mismo prompt que Claude, así que se pide
+     * ahora y corre en paralelo. Cuando Claude termina, GPT ya contestó y los
+     * 25 s son para la síntesis. Nunca es más lento que antes; a menudo es la
+     * diferencia entre tener segunda redacción y no tenerla. Si Claude falla,
+     * el borrador se ignora (su `catch` ya lo deja en `null`).
+     */
+    const quiereEnsamble = perfil === 'premium' && !modoEconomico && !rapido
+    const borradorGPT: Promise<Record<string, unknown> | null> = quiereEnsamble
+      ? (async () => {
+          const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
+          if (!oai.key) return null
+          return generarNotaOpenAI(oai.key as string, system, userMsg)
+        })().catch(() => null)
+      : Promise.resolve(null)
+
     let eleccion = await resolverModelo(API_KEY, perfil)
     let model = eleccion.modelo ?? CANDIDATOS[perfil][0]
     let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
@@ -629,13 +687,13 @@ export async function POST(req: NextRequest) {
     const modelosNota: string[] = [model]
     /** Qué pasó con las citas al fusionar. `null` cuando no hubo ensamble. */
     let citasFusion: { revisadas: number; restauradas: number; descartadas: number } | null = null
-    if (perfil === 'premium' && !modoEconomico && !rapido) {
-      // Presupuesto de tiempo: si el ensamble (GPT + síntesis) no termina en 25s,
-      // se usa la nota de Claude — así NUNCA provoca un 504 en la generación.
+    if (quiereEnsamble) {
+      // Presupuesto de tiempo: si el ensamble (lo que falte de GPT + la
+      // síntesis) no termina en 25s, se usa la nota de Claude — así NUNCA
+      // provoca un 504 en la generación. El borrador de GPT se pidió ANTES de
+      // llamar a Claude (arriba), así que normalmente ya está aquí.
       const ensamble = (async (): Promise<Record<string, unknown> | null> => {
-        const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
-        if (!oai.key) return null
-        const notaGPT = await generarNotaOpenAI(oai.key as string, system, userMsg)
+        const notaGPT = await borradorGPT
         if (!notaGPT) return null
         const sysS = `${system}\n\n[MODO SÍNTESIS] Recibes además DOS borradores de esta nota (A=Claude, B=GPT) del MISMO caso. Combínalos en la MEJOR nota ÚNICA con EXACTAMENTE el mismo esquema JSON: toma lo más correcto y completo de cada uno, agrega lo que uno haya omitido, NO inventes nada que no esté en la transcripción, y prioriza la seguridad clínica (dosis, interacciones, alergias). Devuelve SOLO el JSON del esquema.`
         /**

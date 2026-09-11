@@ -1,7 +1,7 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
-  "generado": "2026-09-10",
-  "total": 130,
+  "generado": "2026-09-11",
+  "total": 131,
   "variables": [
     {
       "nombre": "ANCHOS",
@@ -1189,6 +1189,17 @@
         "src/lib/patient-token.ts",
         "src/lib/receta-diseno-token.ts",
         "src/lib/receta-token.ts"
+      ]
+    },
+    {
+      "nombre": "NOTA_MODO_RAPIDO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/parametros-de-nota.ts"
       ]
     },
     {
