@@ -57,7 +57,7 @@
 | `/cumplimiento/motores` | medico | ✅ | 206 | 1 | — | ✅ | — |
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
-| `/dashboard` | medico | ✅ | 385 | 5 | — | ✅ | — |
+| `/dashboard` | medico | ✅ | 378 | 5 | — | ✅ | — |
 | `/expediente/[patientId]` | medico | ✅ | 1267 | 15 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 896 | 0 | — | ✅ | — |
