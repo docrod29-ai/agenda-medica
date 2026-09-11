@@ -35,7 +35,7 @@ env:
   # exige que coincidan, así que el botón quedó SIN PODER DESPLEGAR, y sólo se
   # descubría pulsándolo. Es el mismo defecto que #413 cerró para el SHA, en la
   # otra mitad del par. Ver REG-504.
-  SHA_AUTORIZADO: 7179de46f8bd1f55a9dea1672838fdd566da15af
+  SHA_AUTORIZADO: 452184d403320ea9e0a9510116df053468029a59
   # PUBLICAR UN ÁRBOL ANTERIOR A PROPÓSITO (rollback) exige declararlo aquí con el
   # MISMO sha de arriba. Vacío = sólo se publica la cabeza de `main`. La excepción
   # vive en el archivo para que se vea en el diff, en vez de esconderse en un pin
