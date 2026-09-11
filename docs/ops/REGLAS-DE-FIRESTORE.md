@@ -1,7 +1,7 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
 > **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó con la
-> ejecución **#29** del botón de producción (8-sep-2026, v1188), y el sello lo
+> ejecución **#37** del botón de producción (11-sep-2026, v1197), y el sello lo
 > registra. Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
@@ -54,11 +54,25 @@ Que ese paso no se pueda borrar en silencio lo vigila
 
 ## PENDIENTE DE DESPLIEGUE
 
+**Hoy está vacía** (11-sep-2026, 19:22 UTC). La ejecución **#37** del botón,
+sobre el árbol `d6c247cc` (v1197, idéntico en todo publicable a la cabeza
+`47039dab`, el merge de #487), publicó `firestore.rules`: el log dice «released
+rules firestore.rules to cloud.firestore» y el sello `3129fc5d…` coincide con el
+sha256 del árbol.
+
 | Cambio | Qué NO rige hoy | Consecuencia hasta desplegar |
 |---|---|---|
-| REG-682: aislamiento del expediente | Lectura raíz y subcolecciones exigen titular, compartido o administrador. | Las reglas anteriores permiten leer campos clínicos desde otras cuentas del consultorio. |
-| REG-682: tareas y auditoría | Alcance por paciente y tareas administrativas de recepción. | El navegador puede consultar pendientes clínicos ajenos con las reglas anteriores. |
-| REG-683: pacientes sin titular | Asignación exclusiva del administrador y solicitud de acceso limitada. | Un médico puede reclamar expedientes sin asignación bajo la regla anterior. |
+
+**Las tres filas que hubo aquí, el 11-sep-2026**, eran el cierre de privacidad
+de #487 (REG-682 y REG-683): la lectura raíz de `patients` y de sus
+subcolecciones clínicas exigiendo titular, compartido o administrador; las
+tareas y la auditoría con alcance por paciente y las administrativas de
+recepción separadas; y el paciente sin titular asignable sólo por el
+administrador, con la solicitud de acceso limitada. Mientras no rigieron —unas
+horas, entre la fusión de #487 y la #37— las reglas anteriores permitían leer
+campos clínicos desde otras cuentas del consultorio, consultar pendientes
+clínicos ajenos y reclamar expedientes sin asignación. **Se cerraron con la
+ejecución #37.**
 
 ## PENDIENTE DE DESPLIEGUE · Storage
 
@@ -69,7 +83,8 @@ leer el bucket de Storage.
 **Hoy está vacía** (11-sep-2026). La ejecución **#36** del botón, sobre el mismo
 árbol `15b2b91` (v1196), publicó `storage.rules`: el log dice «released rules
 storage.rules to firebase.storage». Desde ese momento la subida de estudios
-desde el portal (D-058) rige en producción.
+desde el portal (D-058) rige en producción. La #37 (v1197) lo re-liberó sin
+cambios («already up to date, skipping upload»).
 
 | Qué NO rige en el bucket | Desde | Qué se rompe mientras tanto |
 |---|---|---|
