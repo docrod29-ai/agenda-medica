@@ -314,11 +314,45 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           set -euo pipefail
+          # La salida se guarda para que el paso siguiente pueda decir, si sale
+          # un 403, qué permiso falta — igual que con los índices (REG-433).
           if [ "$MODO" = "token" ]; then
-            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN"
+            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive --token "$FIREBASE_TOKEN" 2>&1 | tee "$RUNNER_TEMP/storage.log"
           else
             export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
-            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive
+            npx --no-install firebase deploy --only storage --project "$FIREBASE_PROJECT" --non-interactive 2>&1 | tee "$RUNNER_TEMP/storage.log"
+          fi
+
+      # Ejecución #35 (11-sep-2026, v1196): el paso de arriba salió 403 en
+      # `firebasestorage.defaultBucket.get` y el acta imprimió
+      # PRODUCTION_RELEASE=SUCCESS porque no lo contaba (REG-668). Ahora se
+      # cuenta, y si fue permiso se dice cuál, para que el acta no mande a
+      # buscarlo en el código.
+      - name: 'Storage · si fue permiso, decir cuál falta'
+        if: always() && steps.storage_rules.outcome == 'failure'
+        run: |
+          set -uo pipefail
+          if grep -q 'HTTP Error: 403' "$RUNNER_TEMP/storage.log" 2>/dev/null; then
+            {
+              echo "## Las reglas de Storage no se publicaron: falta un permiso"
+              echo
+              echo "Cloud Storage for Firebase contestó **403** al pedir el bucket por"
+              echo "defecto (\`firebasestorage.defaultBucket.get\`). Publicar reglas de"
+              echo "Firestore y leer el bucket de Storage son dos permisos distintos, y la"
+              echo "credencial de este despliegue tiene el primero y no el segundo."
+              echo
+              echo "Se arregla en la consola de Google Cloud, **no en este repositorio**:"
+              echo
+              echo "1. IAM del proyecto \`$FIREBASE_PROJECT\`"
+              echo "2. la cuenta de servicio que usa este botón"
+              echo "3. rol **Firebase Storage Admin** (\`roles/firebasestorage.admin\`)"
+              echo
+              echo "Si el rol ya está y el 403 sigue, el mensaje añade «or it may not"
+              echo "exist»: el bucket por defecto no está vinculado a Firebase. Se vincula"
+              echo "en la consola de Firebase → Storage → Comenzar, una sola vez."
+              echo
+              echo "Las reglas de Firestore NO son el problema: mira \`FIRESTORE_RULES\` en el acta."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # Se intenta AUNQUE las reglas hayan fallado: son dos permisos distintos y
@@ -448,13 +482,14 @@ jobs:
           R_VERSION: ${{ steps.version.outcome }}
           R_RULES: ${{ steps.rules.outcome }}
           R_INDICES: ${{ steps.indices.outcome }}
+          R_STORAGE: ${{ steps.storage_rules.outcome }}
           SELLO_REGLAS: ${{ steps.sello.outputs.hash }}
           R_SECURITY: ${{ steps.security.outcome }}
           R_SMOKE: ${{ steps.smoke.outcome }}
           R_PORTAL: ${{ steps.portal.outcome }}
         run: |
           set -euo pipefail
-          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_INDICES" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
+          if [ "$R_VERSION" = success ] && [ "$R_RULES" = success ] && [ "$R_INDICES" = success ] && [ "$R_STORAGE" = success ] && [ "$R_SECURITY" = success ] && [ "$R_SMOKE" = success ] && [ "$R_PORTAL" = success ]; then
             RESULTADO=SUCCESS
           else
             RESULTADO=FAILED
@@ -470,6 +505,7 @@ jobs:
             echo "FIRESTORE_RULES=$R_RULES"
             echo "FIRESTORE_INDICES=$R_INDICES"
             echo "FIRESTORE_RULES_SHA256=${SELLO_REGLAS:-no-emitido}"
+            echo "STORAGE_RULES=$R_STORAGE"
             echo "SECURITY_E2E=$R_SECURITY"
             echo "SMOKE=$R_SMOKE"
             echo "SMOKE_PORTAL=$R_PORTAL"

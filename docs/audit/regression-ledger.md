@@ -26057,3 +26057,31 @@ borra el id recién recibido. Los 14 casos del archivo pasan.
 
 **Qué NO cubre:** borrado rechazado, sesiones simultáneas en otros dispositivos
 ni recuperación de una escritura cuya respuesta de red se perdió.
+
+## REG-668 — el acta del despliegue dijo SUCCESS con las reglas de Storage en rojo
+
+**Descubrimiento:** verificando la ejecución #35 del botón de producción
+(11-sep-2026, v1196) paso por paso. El paso nuevo «Storage · desplegar REGLAS»
+(D-058) salió 403 —`firebasestorage.defaultBucket.get` denegado a la cuenta de
+servicio— y el job terminó en rojo; el acta final imprimió
+`PRODUCTION_RELEASE=SUCCESS`.
+
+**Causa raíz:** el acta enumera a mano lo que publica, y el paso de Storage se
+añadió al despliegue sin añadirlo al acta: seis variables en el cálculo del
+resultado, ninguna de Storage. El paso tampoco guardaba su salida, así que, a
+diferencia de los índices (REG-433), no podía decir qué permiso faltaba.
+
+**Arreglo:** `R_STORAGE` entra en el acta (línea `STORAGE_RULES=` y condición
+de `PRODUCTION_RELEASE`); el paso guarda su salida en `storage.log` y le sigue
+«Storage · si fue permiso, decir cuál falta», que nombra el permiso denegado, el
+rol (`roles/firebasestorage.admin`), la lectura alternativa del «or it may not
+exist» (bucket sin vincular) y deja claro que las reglas de Firestore no fueron
+el problema.
+
+**Prueba permanente:** `src/__tests__/el-acta-dijo-success-con-storage-rojo.test.ts`
+(8 casos). Probada al revés contra el YAML de la #35: los ocho en rojo sin el
+arreglo.
+
+**Qué NO cubre:** no despliega nada ni confirma que el rol sea el que falta —eso
+lo dice la siguiente ejecución del botón—; no cubre publicables futuros
+(`hosting`), que habrá que añadir al acta a mano.
