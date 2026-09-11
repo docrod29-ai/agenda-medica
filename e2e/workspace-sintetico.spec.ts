@@ -23,6 +23,13 @@ test.beforeEach(async ({ context, baseURL }) => {
   )
 })
 
+test.afterEach(async ({ page }, info) => {
+  if (info.status !== info.expectedStatus && process.env.AUSCULTA_WORKSPACE_QA === '1') {
+    console.log('WORKSPACE_QA_URL', page.url())
+    console.log('WORKSPACE_QA_FALLO', await page.locator('body').innerText().catch(() => 'Página cerrada'))
+  }
+})
+
 async function sinDesborde(page: Page) {
   const medida = await page.evaluate(() => ({
     ancho: document.documentElement.clientWidth,
@@ -136,6 +143,7 @@ test('cambiar de paciente conserva cada borrador en su propio expediente', async
   test.setTimeout(120_000)
   await entrar(page)
   await page.goto('/consulta/pac-001')
+  await contenidoListo(page, '/consulta/pac-001')
   const campo = page.locator('#consulta-nota textarea[aria-label]').first()
   await expect(campo).toBeEditable()
   const etiqueta = await campo.getAttribute('aria-label')
@@ -148,10 +156,15 @@ test('cambiar de paciente conserva cada borrador en su propio expediente', async
     // Navegación real dentro de la app: conserva los proveedores en memoria.
     // page.goto entre pacientes recargaría todo y ocultaría una contaminación.
     await page.locator('a[href="/pacientes"]:visible').first().click()
+    await expect(page).toHaveURL(/\/pacientes$/)
+    // El directorio abre en Recientes: un paciente sin consulta atendida puede
+    // no estar ahí. Buscarlo usa el flujo real, sin alterar la siembra.
+    await page.getByRole('textbox', { name: 'Buscar un paciente por nombre, teléfono, correo o CURP' }).fill(nombre)
     await page.getByRole('button', { name: `Abrir el expediente de ${nombre}`, exact: true }).first().click()
     await expect(page).toHaveURL(new RegExp(`/expediente/${id}$`))
     await page.getByRole('button', { name: 'Nueva consulta', exact: true }).click()
     await expect(page).toHaveURL(new RegExp(`/consulta/${id}$`))
+    await expect(page.locator('h1.nx-vt-paciente')).toHaveText(nombre)
     return page.locator('#consulta-nota').getByRole('textbox', { name: etiqueta!, exact: true })
   }
 

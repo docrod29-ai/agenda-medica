@@ -108,7 +108,12 @@ export const db = typeof window !== 'undefined' && !USAR_EMULADORES
   ? initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     })
-  : getFirestore(app)
+  : USAR_EMULADORES
+    // WebKit del arnés agotó la espera de snapshots locales (CI #1783).
+    // Probar respuestas cerradas en vez del stream persistente, sólo demo-*.
+    // https://firebase.google.com/docs/reference/js/firestore.firestoresettings
+    ? initializeFirestore(app, { experimentalForceLongPolling: true })
+    : getFirestore(app)
 
 if (USAR_EMULADORES) {
   // EL ÚNICO bloque de conexión a emulador del proyecto — así lo exige
