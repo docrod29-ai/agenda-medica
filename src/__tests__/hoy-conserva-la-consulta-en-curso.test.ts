@@ -4,9 +4,11 @@
  * o una URL sin paciente. Se ejecutó primero la selección original: fallaron
  * los casos de consulta iniciada, sala, estados cerrados y destino por rol.
  * La prioridad usa estados guardados, no deduce atención por la hora.
- * Sólo mide selección y destino: no certifica permisos, Firestore ni iOS.
+ * Incluye el rótulo de fecha y el saludo, que deben seguir ese mismo reloj.
+ * No certifica permisos, Firestore ni iOS.
  */
 import { describe, expect, it } from 'vitest'
+import { presentacionDelDia } from '@/lib/hoy/saludo'
 import type { AppointmentStatus } from '@/types'
 import { accionDeCitaEnFoco, citaEnFoco } from '@/lib/hoy/cita-en-foco'
 
@@ -39,6 +41,17 @@ describe('Hoy conserva la cita que sigue necesitando atención', () => {
   })
   it('espera el reloj del consultorio y no arrastra citas de otro día', () => {
     expect(citaEnFoco([cita('uno', '11:00')], dia, null)).toBeNull()
+    // En la captura de CI, el equipo ya decía viernes 11 mientras la clínica
+    // seguía en jueves 10 a las 18 h. El encabezado no puede adelantar la agenda.
+    expect(presentacionDelDia(dia, 18 * 60)).toEqual({
+      fecha: 'jueves, 10 de septiembre de 2026', saludo: 'Buenas tardes',
+    })
+    expect(presentacionDelDia(dia, null).saludo).toBe('Buen día')
+    for (const [minutos, saludo] of [
+      [0, 'Buenos días'], [719, 'Buenos días'], [720, 'Buenas tardes'],
+      [1139, 'Buenas tardes'], [1140, 'Buenas noches'],
+    ] as const) expect(presentacionDelDia(dia, minutos).saludo).toBe(saludo)
+
     expect(citaEnFoco([{ ...cita('ayer', '11:00', 'en-consulta'), fechaHora: '2026-09-09 11:00' }], dia, 10 * 60)).toBeNull()
   })
   it('recepción abre la cita y nunca un editor clínico', () => {

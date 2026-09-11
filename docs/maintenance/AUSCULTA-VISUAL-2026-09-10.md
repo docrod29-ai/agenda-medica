@@ -41,3 +41,20 @@ El entorno de ejecución local se desconectó durante la comprobación de tipos.
 El entorno se recuperó: se compararon los seis archivos de código locales contra `8057a8d` y coincidieron. La nueva comprobación de tipos terminó correctamente y lint permaneció en 93/93. CI #1781 detectó dieciséis fallos: ocho de documentación derivada y ocho guardianes de presentación/rutas que aún exigían literales anteriores. Se regeneraron los censos con sus scripts, se redujo el trinquete de diseño (degradados 10 → 9) y se actualizaron los guardianes para comprobar la clase conectada y el destino por rol; no se retiraron casos. Los once archivos afectados, incluidos los nueve casos de REG-669, pasaron: 129 casos.
 
 Se añade `workspace-sintetico` a CI: build de esta rama, emuladores Auth/Firestore con las reglas reales y siembra canónica ficticia; Chromium de escritorio y WebKit con perfil de iPhone, temas claro/oscuro, login/Hoy/pacientes/calendario/consulta, 390 y 320 px, teclado y movimiento reducido. Bloquea conexiones externas desde el navegador y adjunta capturas de datos sintéticos. Se declara añadido, todavía no ejecutado; no sustituye la cuenta privada de Vercel, la prueba en dispositivo físico ni el aislamiento entre médicos.
+
+## Evidencia remota del 11-sep-2026
+
+[CI sobre 54bcd44](https://github.com/docrod29-ai/agenda-medica/actions/runs/34545520231) completó los seis jobs, incluido workspace-sintetico. Los nueve recorridos pasaron sin reintentos: Chromium, WebKit emulado con perfil de iPhone, temas claro/oscuro, 390/320 px, regiones de consulta, foco de teclado y movimiento reducido. El caso de escritura cambia de paciente mediante el directorio y comprueba el borrador de A, el de B y el regreso a A. Su copia WebKit queda omitida expresamente para mantener una sola sesión de escritura; los recorridos visuales de ambos motores sí se ejecutan.
+
+La espera intermitente de snapshots del emulador en WebKit se resolvió usando long polling sólo dentro del candado demo-*. La configuración de producción conserva su transporte y caché. El segundo recorrido [sobre a3d47bb](https://github.com/docrod29-ai/agenda-medica/actions/runs/34545710655) también completó nueve casos, sin reintentos. Su único fallo de unidad fue que el informe de dependencias aún decía once avisos cuando el audit ya medía cero; el informe se regeneró con su script, sin retirar la prueba.
+
+Se inspeccionaron ocho capturas con datos cargados. La consulta separa contexto, nota y asistente en escritorio; directorio y calendario conservan su legibilidad y acciones en móvil. La inspección encontró además una discrepancia entre la fecha de Hoy y la agenda, corregida como ampliación de REG-669. Las capturas adjuntas de consulta, directorio y calendario proceden de a3d47bb, con datos enteramente ficticios:
+
+- [Consulta de escritorio](../audit/ausculta-visual-2026-09-11/consulta-escritorio.jpg)
+- [Consulta móvil](../audit/ausculta-visual-2026-09-11/consulta-movil.jpg)
+- [Calendario móvil](../audit/ausculta-visual-2026-09-11/calendario-movil.jpg)
+- [Pacientes móvil](../audit/ausculta-visual-2026-09-11/pacientes-movil.jpg)
+
+Dependencias: [verificación sobre el lock publicado](https://github.com/docrod29-ai/agenda-medica/actions/runs/34546034255), UUID/CommonJS y multipart de Gaxios/teeny-request correctos; producción cero avisos, árbol completo cinco moderados del CLI de Firebase, cero high/critical. Se actualizó Vitest/coverage-v8 a 4.1.11. Se elimina el workflow temporal que generó el candidato y el informe durante la desconexión del entorno local.
+
+El commit que incorpora este informe y el arreglo de fecha necesita sus propios resultados de CI; los verdes de sus padres no lo sustituyen. La PR #487 permanece en borrador, sin merge ni despliegue de producción. Siguen pendientes la cuenta privada, Safari físico y el aislamiento entre médicos de una misma clínica (incluidos los metadatos clínicos de la ficha, el legado y todas las rutas de exportación). El trabajo concurrente de #488 no está integrado ni se declara validado aquí. La prueba entre dos borradores no demuestra ese aislamiento de permisos.

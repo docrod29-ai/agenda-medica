@@ -41,7 +41,15 @@ async function sinDesborde(page: Page) {
 async function contenidoListo(page: Page, ruta: string) {
   // El contenedor aparece antes que los datos: capturarlo entonces sólo
   // demostraría que existe un spinner, no que la agenda/identidad se cargaron.
-  if (ruta === '/dashboard') await expect(page.locator('.hoy .cita-fila').first()).toBeVisible({ timeout: 30_000 })
+  if (ruta === '/dashboard') {
+    await expect(page.locator('.hoy .cita-fila').first()).toBeVisible({ timeout: 30_000 })
+    // La siembra canónica fija Mexico_City; CI y los dispositivos pueden estar
+    // en otro día. La fecha que se lee debe ser la del consultorio.
+    const fecha = new Intl.DateTimeFormat('es-MX', {
+      timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    }).format(new Date())
+    await expect(page.locator('.hoy-head .t-overline')).toHaveText(fecha)
+  }
   if (ruta === '/calendario') await expect(page.locator('.nx-agenda-bloque').first()).toBeVisible({ timeout: 30_000 })
   if (ruta === '/consulta/pac-001') await expect(page.locator('h1.nx-vt-paciente')).toHaveText('Rosalía Mendieta Cuevas', { timeout: 30_000 })
   await page.evaluate(() => document.fonts.ready)
@@ -99,13 +107,6 @@ for (const tema of ['light', 'dark']) {
         await contenidoListo(page, ruta)
         await sinDesborde(page)
         await info.attach(`${ruta.replaceAll('/', '-')}-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
-        // Exportación opcional para revisión visual cuando el entorno local no responde.
-        // Únicamente esta cuenta ficticia, ya verificada y encerrada en localhost.
-        if (process.env.AUSCULTA_QA_LOG_IMAGES === '1' && tema === 'light') {
-          const nombre = `${info.project.name}-${ruta.replaceAll('/', '-')}`
-          const imagen = await page.screenshot({ type: 'jpeg', quality: 70, animations: 'disabled' })
-          console.log(`QA_IMAGE:${nombre}:${imagen.toString('base64')}`)
-        }
         if (info.project.name === 'iphone-safari') {
           await page.setViewportSize({ width: 320, height: 740 })
           await sinDesborde(page)

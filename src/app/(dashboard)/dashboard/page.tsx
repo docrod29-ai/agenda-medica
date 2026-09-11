@@ -57,7 +57,7 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { hoyISO, sumarDiasISO } from '@/lib/timezone'
 import { resumenDelDia, type ConteoDelDia } from '@/lib/hoy/resumen-del-dia'
-import { nombreSaludo } from '@/lib/hoy/saludo'
+import { nombreSaludo, presentacionDelDia } from '@/lib/hoy/saludo'
 import { accionDeCitaEnFoco, citaEnFoco } from '@/lib/hoy/cita-en-foco'
 import { navegarConContinuidad, esClickDeNavegacionSimple } from '@/lib/ui/continuidad'
 
@@ -67,13 +67,6 @@ function todayStr() {
 
 function tomorrowStr() {
   return sumarDiasISO(hoyISO(), 1)
-}
-
-function greet() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Buenos días'
-  if (h < 19) return 'Buenas tardes'
-  return 'Buenas noches'
 }
 
 /**
@@ -122,8 +115,8 @@ export default function DashboardPage() {
     return { total: ta.length, confirmadas, pendientes, noShow, canceladas, manana, prox }
   }, [todayAppts, appointments, today, tomorrow, ahoraMinutos])
 
-  const now = new Date()
-  const fechaLabel = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  // La fecha visible y el saludo siguen el MISMO día/reloj que la agenda.
+  const { fecha: fechaLabel, saludo: saludoHora } = presentacionDelDia(today, ahoraMinutos)
   const saludo = nombreSaludo(role, config.nombreMedico, user?.displayName, user?.email)
 
   return (
@@ -147,7 +140,7 @@ export default function DashboardPage() {
         <div>
           <p className="t-overline" style={{ color: 'var(--text3)', textTransform: 'uppercase' }}>{fechaLabel}</p>
           <h1 className="hoy-saludo">
-            {greet()}
+            {saludoHora}
             {saludo && <>, <span style={{ fontStyle: 'italic' }}>{saludo}</span></>}
           </h1>
         </div>
