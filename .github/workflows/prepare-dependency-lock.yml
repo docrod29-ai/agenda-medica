@@ -78,7 +78,7 @@ jobs:
               const url = 'http://127.0.0.1:' + server.address().port
               await new Gaxios().request({ url, method: 'POST', multipart: [{ headers: { 'Content-Type': 'text/plain' }, content: 'synthetic-gaxios' }] })
               await new Promise((resolve, reject) => teenyRequest({
-                uri: url, method: 'POST',
+                uri: url, method: 'POST', headers: {},
                 multipart: [{ 'Content-Type': 'application/json', body: '{"qa":"synthetic"}' }, { body: Readable.from('synthetic-teeny') }],
               }, (error, response) => error ? reject(error) : (response.statusCode === 200 ? resolve() : reject(new Error(String(response.statusCode))))))
               assert.equal(bodies.length, 2)
