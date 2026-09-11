@@ -42,6 +42,10 @@
  *   · guardado durable — se relee y se compara
  *   · recuperación — una secuencia cortada no deja media nota
  *
+ * La lectura medida es la ficha individual del paciente propio. El directorio
+ * administrativo paginado ahora pasa por la API y no se mide en este arnés de
+ * SDK; sus pruebas de integración cubren esa proyección por separado.
+ *
  * ── LO QUE NO PUEDE MEDIR AQUÍ, DICHO ───────────────────────────────────────
  *
  * Pantalla en blanco, borrador perdido y fallo silencioso de proveedor son de
@@ -392,7 +396,7 @@ async function main() {
       const c = consultorios[i % consultorios.length]
       lote.set(
         dbAdmin.doc(`clinics/${c.clinicId}/patients/residente_${corrida}_${String(i).padStart(8, '0')}`),
-        { creadoPor: c.medicos[0].uid, syntheticNonPhi: true },
+        { creadoPor: c.medicos[0].uid, medicoTitularUid: c.medicos[0].uid, syntheticNonPhi: true },
       )
       enLote += 1
       if (enLote === POR_LOTE) {
@@ -443,7 +447,7 @@ async function main() {
         const refNota = fs.doc(s.db, `clinics/${s.clinicId}/patients/${patientId}/notas/${notaId}`)
 
         await midiendo(async () => {
-          await fs.setDoc(refPaciente, { creadoPor: s.uid, syntheticNonPhi: true }); firestoreOps.escrituras += 1
+          await fs.setDoc(refPaciente, { creadoPor: s.uid, medicoTitularUid: s.uid, syntheticNonPhi: true }); firestoreOps.escrituras += 1
         })
         await midiendo(async () => {
           await fs.setDoc(refNota, notaBorrador(s.uid)); firestoreOps.escrituras += 1
@@ -453,10 +457,11 @@ async function main() {
           await fs.updateDoc(refNota, { estado: 'firmada', secuencia: 2 }); firestoreOps.escrituras += 1
         })
         await midiendo(async () => {
-          const snap = await fs.getDocs(fs.query(
-            fs.collection(s.db, `clinics/${s.clinicId}/patients`), fs.limit(20),
-          ))
-          firestoreOps.lecturas += snap.size
+          // La regla comprueba el titular de una ficha concreta. El directorio
+          // paginado ya no se consulta directamente desde el SDK del navegador.
+          const snap = await fs.getDoc(refPaciente)
+          firestoreOps.lecturas += 1
+          if (!snap.exists()) throw new Error('La ficha recién creada no se pudo releer')
         })
         notasEscritas.push({ sesion: s, refNota, patientId, notaId })
       })
@@ -524,7 +529,7 @@ async function main() {
     const patientId = `${s.uid}_${corrida}_recuperacion`
     const refPaciente = fs.doc(s.db, `clinics/${s.clinicId}/patients/${patientId}`)
     const refNota = fs.doc(s.db, `clinics/${s.clinicId}/patients/${patientId}/notas/n1`)
-    await fs.setDoc(refPaciente, { creadoPor: s.uid, syntheticNonPhi: true })
+    await fs.setDoc(refPaciente, { creadoPor: s.uid, medicoTitularUid: s.uid, syntheticNonPhi: true })
     await fs.setDoc(refNota, notaBorrador(s.uid))
     // Se corta aquí: la nota queda en borrador. Reanudar tiene que llevarla a
     // firmada UNA vez, sin duplicar y sin perder lo que ya había.

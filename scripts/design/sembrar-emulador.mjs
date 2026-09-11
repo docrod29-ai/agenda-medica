@@ -505,6 +505,7 @@ async function main() {
   // ── Pacientes ─────────────────────────────────────────────────────────────
   for (const p of PACIENTES) {
     await escribir(`clinics/${CLINICA}/patients/${p.id}`, {
+      medicoTitularUid: uid,
       nombre: p.nombre,
       telefono: p.telefono,
       fechaNacimiento: p.fechaNacimiento,
@@ -760,6 +761,7 @@ async function main() {
     medicamentos,
   })
   await escribir(`clinics/${CLINICA}/patients/pac-006`, {
+    medicoTitularUid: uid,
     nombre: 'Benjamín Sotomayor Uriarte',
     telefono: '5555010606',
     sexo: 'Masculino',
