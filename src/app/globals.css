@@ -4442,7 +4442,7 @@ html:has(.mi-barra-destinos) .theme-toggle {
 .nx-calendario-vistas { display: flex; background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; gap: 2px; }
 .nx-calendario-vistas .nx-segmento { min-height: 36px; padding: 6px 14px; border: none; border-radius: var(--r-sm); color: var(--text2); font: inherit; font-size: 13px; cursor: pointer; }
 .nx-calendario-vistas .nx-segmento[aria-pressed='true'] { background: var(--nexus-solido); color: white; font-weight: 600; }
-.nx-calendario-periodo { display: flex; align-items: center; gap: 4px; }
+.nx-calendario-periodo { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .nx-calendario-periodo .btn-secondary { min-width: 180px; }
 .nx-calendario-semana { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid var(--nexus-borde); position: sticky; top: 0; z-index: 10; background: var(--s2); }
 .nx-calendario-dia { padding: 12px 6px; text-align: center; border-left: 1px solid var(--border); }
@@ -4457,7 +4457,7 @@ html:has(.mi-barra-destinos) .theme-toggle {
   .nx-calendario-vistas { flex: 1 1 100%; }
   .nx-calendario-vistas .nx-segmento { flex: 1; min-height: 44px; }
   .nx-calendario-periodo { flex: 1 1 100%; }
-  .nx-calendario-periodo .btn-secondary { flex: 1; min-width: 0; }
+  .nx-calendario-periodo .btn-secondary { flex: 1; min-width: 0; white-space: normal; }
 }
 
 /* ACCIÓN TEÑIDA, con el tinte como parámetro.

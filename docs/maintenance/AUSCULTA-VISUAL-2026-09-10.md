@@ -125,3 +125,33 @@ y ahora guarda video también al pasar, para mostrar movimiento real junto a las
 capturas. Esta ampliación no cambia los pendientes de Storage, aislamiento del
 legado, QA privada ni Safari físico. Las imágenes enlazadas en las secciones
 anteriores corresponden al diseño anterior, no a esta ampliación.
+
+### Revisión del resultado publicado
+
+Los seis trabajos de [CI de 25172c4](https://github.com/docrod29-ai/agenda-medica/actions/runs/34561503990)
+y dependencias terminaron correctamente. Su recorrido sintético pasó nueve casos,
+sin reintentos, y produjo capturas y videos. La revisión independiente de catorce
+capturas nuevas encontró dos ajustes pendientes a 320 px: «Asistente» salía de
+la barra azul y la flecha derecha del calendario invadía su margen. Se corrigen
+poniendo el número encima del rótulo en la navegación estrecha, sin reducir letra,
+y permitiendo que la fecha del calendario se distribuya en varias líneas.
+
+El detector de desbordamiento ahora mide también el main interior y la barra;
+antes sólo miraba documentElement. El recorrido estrecho repone temporalmente
+las declaraciones anteriores y exige detectar su desborde; restaura el estilo
+antes de capturar. Este control inverso sólo existe en el arnés demo-* y no se
+ejecuta en producción. Se añade una pausa de lectura de 800 ms al video para
+que se distingan las pantallas y sus entradas. El ajuste requiere sus resultados
+remotos propios; los verdes de 25172c4 son evidencia anterior.
+
+El bloqueo de Storage ya cambió por trabajo concurrente del dueño. La
+[ejecución #36](https://github.com/docrod29-ai/agenda-medica/actions/runs/34559024430)
+publicó Storage correctamente («released rules storage.rules to firebase.storage»).
+Revisión independiente comparó los seis publicables del pin 15b2b91 y main
+9a20b06: idénticos. El 403 de #35 queda cerrado. Este resultado no demuestra
+subida privada completa ni índices Enabled. Producción continúa en v1196.
+
+Se abrió el preview nuevo con la sesión de Vercel. Google devolvió «Este dominio
+no está autorizado en Firebase» tanto en su URL individual como en el alias
+estable de la rama. La QA privada de Ausculta sigue pendiente por esa configuración;
+no se cambiaron dominios autorizados, IAM ni datos de pacientes desde esta sesión.

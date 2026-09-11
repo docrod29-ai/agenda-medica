@@ -18,6 +18,7 @@
 
 .navigation a {
   display: inline-flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   min-height: 44px;
@@ -125,6 +126,12 @@
   .noteHeader { gap: 8px; padding: 12px; margin-bottom: 20px; }
   .noteHeader h2 { font-size: 20px; }
   .navigation a { padding-inline: 8px; gap: 6px; }
+}
+
+/* A 320 px los tres números y rótulos no caben en una sola fila. Conservar
+   el tamaño de letra y poner el número arriba evita esconder «Asistente». */
+@media (max-width: 360px) {
+  .navigation a { flex-direction: column; gap: 2px; padding: 4px; overflow-wrap: anywhere; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

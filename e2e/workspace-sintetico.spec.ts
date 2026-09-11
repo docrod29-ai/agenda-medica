@@ -33,11 +33,13 @@ test.afterEach(async ({ page }, info) => {
 })
 
 async function sinDesborde(page: Page) {
-  const medida = await page.evaluate(() => ({
-    ancho: document.documentElement.clientWidth,
-    contenido: document.documentElement.scrollWidth,
-  }))
-  expect.soft(medida.contenido, `La página se sale ${medida.contenido - medida.ancho}px`).toBeLessThanOrEqual(medida.ancho + 1)
+  // El dashboard desplaza un main interior. Medir sólo documentElement dejó
+  // pasar «Asistente» fuera de su fondo azul a 320 px (capturas de 25172c4).
+  const medidas = await page.evaluate(() => [document.documentElement, ...document.querySelectorAll('main')]
+    .map(el => ({ nombre: el.tagName, ancho: el.clientWidth, contenido: el.scrollWidth })))
+  for (const medida of medidas) {
+    expect.soft(medida.contenido, `${medida.nombre} se sale ${medida.contenido - medida.ancho}px`).toBeLessThanOrEqual(medida.ancho + 1)
+  }
 }
 
 async function contenidoListo(page: Page, ruta: string) {
@@ -108,10 +110,32 @@ for (const tema of ['light', 'dark']) {
         await expect(page.locator(selector).first()).toBeVisible({ timeout: 30_000 })
         await contenidoListo(page, ruta)
         await sinDesborde(page)
+        // Pausa de lectura para el video solicitado; no sustituye las esperas
+        // de datos anteriores. Permite ver la entrada antes de la captura fija.
+        await page.waitForTimeout(800)
         await info.attach(`${ruta.replaceAll('/', '-')}-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
         if (info.project.name === 'iphone-safari') {
           await page.setViewportSize({ width: 320, height: 740 })
           await sinDesborde(page)
+          if (ruta === '/consulta/pac-001') {
+            const barra = page.locator('nav').filter({ has: page.locator('a[href="#consulta-asistente"]') })
+            const ancho = await barra.evaluate(el => ({ visible: el.clientWidth, contenido: el.scrollWidth }))
+            expect(ancho.contenido).toBeLessThanOrEqual(ancho.visible + 1)
+            // Control inverso del detector, limitado al arnés sintético: repone
+            // las declaraciones anteriores y confirma que sí ve su desborde.
+            // Restaura todo antes de capturar; no prueba teclado físico ni PHI.
+            const antes = await barra.evaluate(el => {
+              const enlaces = [...el.querySelectorAll('a')]
+              const estilos = enlaces.map(a => a.getAttribute('style'))
+              try {
+                enlaces.forEach(a => Object.assign(a.style, { minWidth: 'auto', flexDirection: 'row', gap: '6px', padding: '8px', overflowWrap: 'normal' }))
+                return el.scrollWidth - el.clientWidth
+              } finally {
+                enlaces.forEach((a, i) => estilos[i] === null ? a.removeAttribute('style') : a.setAttribute('style', estilos[i]!))
+              }
+            })
+            expect(antes, 'El detector debe reconocer el desborde de la navegación anterior').toBeGreaterThan(1)
+          }
           await info.attach(`${ruta.replaceAll('/', '-')}-320-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
           await page.setViewportSize({ width: 390, height: 844 })
         }
