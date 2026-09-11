@@ -1025,7 +1025,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la vez leían «libre» los dos. Aislamiento que dependía de que dos
      * peticiones no coincidieran.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648, 671, 674, 675],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648, 671, 674, 675, 677],
   },
   {
     clave: 'charter_vacio',
@@ -1256,7 +1256,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * y una publicación nueva no entra sola. La cierra la misma idea (cada
      * acto, su casilla) y un golden que se pone rojo contra el YAML de la #35.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663, 668],
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663, 668, 676],
   },
   {
     clave: 'decision_del_dueno',

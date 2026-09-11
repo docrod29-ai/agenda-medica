@@ -26157,3 +26157,23 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Prueba permanente:** `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`, ocho casos, ejecutando callbacks reales de la pantalla. Cinco fallaron antes; pasan después: A→B/null en ambos caminos, dueño legítimo, purga y copia conservada antes de un fallo rápido de red. Revisión independiente del diff sin regresión concreta en ese alcance.
 
 **Límite:** no ejecuta Firebase real ni cubre separación por clínica, cajón en memoria, recuperación del legado o autoguardado al servidor. No migra ni borra datos.
+
+## REG-676 — un guardado rechazado no autoriza purgar el respaldo al salir (11-sep-2026)
+
+**Descubrimiento:** al continuar la QA de PR #487, la revisión independiente ejecutó `guardarBorrador` y `alGuardarTodo` reales con `createNota` rechazando. El catch absorbía el fallo: el acuse quedaba fulfilled y `salirSeguro` borraba la copia local recién conservada por REG-675. El caso de REG-675 comprobaba el flush con un doble de guardado que sí rechazaba; no recorría ese catch.
+
+**Arreglo:** `confirmarPersistencia`, activado sólo por el listener de salida, rechaza la ausencia de clínica, lecturas fallidas de nota/paciente, conflicto de versión y excepciones de persistencia. El botón y autoguardado conservan su manejo de errores. Se devuelve la promesa original al acuse y se sanea sólo la cadena interna para permitir el siguiente intento. Firmar o descartar a propósito siguen siendo salidas sin nueva escritura.
+
+**Prueba permanente:** `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`, con los tres callbacks reales extraídos por AST y `salirSeguro` importado. La prueba recorre el borrado del Map de almacenamiento, la conservación de la última tecla, el aviso de salida, el éxito legítimo y un segundo intento tras fallo. En conjunto con REG-677: trece casos fallaron antes y seis pasaron; los diecinueve pasan tras reparar. La construcción clínica y el audio usan dobles y quedan fuera de esta prueba.
+
+**Límite:** no usa Firebase ni pacientes reales. No acredita el resto de borradores guardados en otras pantallas ni la recuperación legada. Completa la protección de la copia previa al logout de REG-675 frente a este acuse falso; no equivale a aislamiento completo.
+
+## REG-677 — el guardado en cola conserva la identidad del montaje (11-sep-2026)
+
+**Descubrimiento:** la misma revisión reprodujo tres llamadas nuevas a `createNota` bajo la identidad siguiente: entrar al callback después de cambiar cuenta; liberar su cola después del cambio; y recibir `nota-inexistente` tras cambiar cuenta mientras esperaba `updateNota`.
+
+**Arreglo:** reutilizar `uidDelMontaje` de REG-675 y comprobarlo al entrar, al ejecutar la cola y antes de recrear la nota perdida. Si cambia la sesión, no se inicia esa escritura. El acuse de salida rechaza también este bloqueo y conserva el respaldo; no se desmontan almacenes ni se modifica el formato de claves.
+
+**Prueba permanente:** `src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts`: seis negativos, A→B y A→sin sesión en los tres puntos, más continuidad al renovar Auth conservando el uid. El golden de descarte recibe una identidad sintética válida para seguir alcanzando su propia guarda dentro de la cola.
+
+**Límite:** no cancela una petición ya enviada al SDK ni certifica cambio de clínica con el mismo uid, cajones en memoria, recuperación en claro o permisos sobre PHI legada. No migra ni borra datos de producción.

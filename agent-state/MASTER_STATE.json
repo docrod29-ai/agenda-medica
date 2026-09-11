@@ -25,12 +25,13 @@
   "trabajoLocalSinSubir": [
     "M docs/audit/regression-ledger.md",
     " M docs/maintenance/AUSCULTA-VISUAL-2026-09-10.md",
-    " M src/__tests__/v15-rtc08-encuentro-es-un-lugar.test.ts",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/consulta-descartada-no-resucita.test.ts",
+    " M src/__tests__/un-flush-no-cambia-de-dueno.test.ts",
     " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
     " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    " M src/lib/nav/encuentro-abierto.ts",
-    "?? src/__tests__/un-flush-no-cambia-de-dueno.test.ts"
+    "?? src/__tests__/el-guardado-fallido-no-autoriza-la-purga.test.ts"
   ],
   "actualizado": "2026-09-10",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +67,10 @@
   ],
   "ramaActual": "codex/ausculta-v1197-verified",
   "derivado": {
-    "regsEnElLedger": 460,
-    "ultimaREG": "REG-675",
-    "archivosDePrueba": 1116,
-    "casosDePrueba": 13276,
+    "regsEnElLedger": 462,
+    "ultimaREG": "REG-677",
+    "archivosDePrueba": 1117,
+    "casosDePrueba": 13286,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1197"

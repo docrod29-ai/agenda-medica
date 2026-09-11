@@ -9,6 +9,8 @@
  * El UID queda vinculado al montaje y se revalida justo antes de escribir.
  * Antes del logout se respalda síncronamente: bloquear el flush tardío sin
  * esto perdería la última tecla si el servidor falla antes del debounce.
+ * El caso final comprueba ese orden con un doble de guardado; REG-676 ejecuta
+ * además guardarBorrador y salirSeguro reales para verificar que no se purga.
  *
  * No prueba transiciones Firebase en navegador, clínica, memoria compartida,
  * recuperación legada ni cifrado fuerte. No borra ni migra respaldos reales.

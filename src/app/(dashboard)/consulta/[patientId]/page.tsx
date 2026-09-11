@@ -3542,17 +3542,36 @@ export default function ConsultaActivaPage() {
 
   // ── Guardar borrador ───────────────────────────────────────────
   // silencioso=true para el autoguardado (no muestra toast)
-  const guardarBorrador = useCallback((silencioso = false): Promise<void> => {
-    if (!clinicId || firmada) return Promise.resolve()
+  // REG-676: sólo el acuse de salida exige que los fallos rechacen la promesa.
+  // El botón/autoguardado conservan su manejo de errores sin rechazos sueltos.
+  const guardarBorrador = useCallback((silencioso = false, confirmarPersistencia = false): Promise<void> => {
+    if (firmada) return Promise.resolve()
     // Descartada a propósito: ni se guarda ni se recrea. Ver `descartadaRef`.
     if (descartadaRef.current) return Promise.resolve()
+    if (!clinicId) return confirmarPersistencia
+      ? Promise.reject(new Error('No se confirmó el consultorio para guardar la nota.'))
+      : Promise.resolve()
+    // REG-677: la nota pertenece al montaje, no a quien entre después.
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) {
+      const mensaje = 'La sesión cambió. Abre de nuevo la consulta para guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+    }
     // Nota que no se pudo leer: escribir sería sustituirla por lo que haya en
     // pantalla, que es la plantilla vacía. Se bloquea hasta recargar. En el
     // guardado MANUAL (no silencioso) se avisa; antes fallaba mudo.
-    if (errorCargaNota) { if (!silencioso) toast('No se pudo abrir la nota; recárgala antes de guardar.', 'error'); return Promise.resolve() }
+    if (errorCargaNota) {
+      const mensaje = 'No se pudo abrir la nota; recárgala antes de guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+    }
     // Paciente que no se pudo leer: guardar escribiría nombre y alergias vacíos
     // encima de la nota. Se bloquea hasta que la lectura del paciente tenga éxito.
-    if (pacienteError) { if (!silencioso) toast('No se pudieron leer los datos del paciente; recarga antes de guardar.', 'error'); return Promise.resolve() }
+    if (pacienteError) {
+      const mensaje = 'No se pudieron leer los datos del paciente; recarga antes de guardar.'
+      if (!silencioso) toast(mensaje, 'error')
+      return confirmarPersistencia ? Promise.reject(new Error(mensaje)) : Promise.resolve()
+    }
     // Serializa: cada guardado espera al anterior. Así dos autoguardados no
     // crean la nota dos veces (usa notaIdRef, que es síncrona).
     const tarea = cadenaGuardadoRef.current.then(async () => {
@@ -3560,6 +3579,7 @@ export default function ConsultaActivaPage() {
       if (descartadaRef.current || firmadaRef.current) return
       setGuardando(true)
       try {
+        if (auth.currentUser?.uid !== uidDelMontaje) throw new Error('La sesión cambió antes de guardar la nota.')
         const nota = construirNota('borrador')
         const idActual = notaIdRef.current
         if (idActual) {
@@ -3605,6 +3625,7 @@ export default function ConsultaActivaPage() {
             if ((e as { code?: string })?.code !== 'nota-inexistente') throw e
             // Si se descartó queriendo, no se recrea. Ver `descartadaRef`.
             if (descartadaRef.current) return
+            if (auth.currentUser?.uid !== uidDelMontaje) throw new Error('La sesión cambió antes de recuperar la nota.')
             const nuevo = await createNota(clinicId, patientId, { ...nota, estado: 'borrador' })
             notaIdRef.current = nuevo
             setNotaId(nuevo)
@@ -3633,6 +3654,7 @@ export default function ConsultaActivaPage() {
          */
         if ((e as { code?: string })?.code === 'conflicto-de-version') {
           toast('Otra sesión modificó esta nota. NO se guardó, para no pisar su trabajo. Copia lo tuyo y vuelve a abrirla.', 'error')
+          if (confirmarPersistencia) throw e
           return
         }
         /**
@@ -3665,13 +3687,15 @@ export default function ConsultaActivaPage() {
             'error',
           )
         }
+        // La salida debe conservar el respaldo cuando Firestore no confirmó.
+        if (confirmarPersistencia) throw e
       } finally {
         setGuardando(false)
       }
     })
     cadenaGuardadoRef.current = tarea.catch(() => {})
     return tarea
-  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro])
+  }, [errorCargaNota, pacienteError, clinicId, patientId, firmada, construirNota, toast, claveEncuentro, uidDelMontaje])
 
   // ── Descartar borrador ─────────────────────────────────────────
   const descartar = useCallback(async () => {
@@ -4222,7 +4246,7 @@ export default function ConsultaActivaPage() {
       // si el servidor falla antes del debounce, el flush posterior al logout
       // ya estará bloqueado. No crear una tercera forma de armar el respaldo.
       flushRespaldo()
-      const p = guardarBorrador(true)
+      const p = guardarBorrador(true, true)
       const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>) => void }>).detail
       if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p))
     }

@@ -184,3 +184,40 @@ Esto no cierra aislamiento total: faltan scope de clínica/usuario en el cajón 
 el legado, PHI en ficha raíz y transición D-057 sin titular, además de QA privada,
 subida real de prueba y Safari físico/teclado real. Producción sigue en v1196;
 las capturas y videos actuales corresponden al diseño d4b34c7 ya validado.
+
+### Continuación del 11-sep: acceso privado completado y salida verificable
+
+El dueño registró el URI de retorno indicado. Desapareció `redirect_uri_mismatch`
+y, tras completar la verificación de Google, se abrió `/dashboard` en el alias
+estable de PR #487, deployment READY `dpl_6ZjomDxfKfnCQ9kGj1e1nnBRkDNx`,
+SHA `3e1ac0f`. Una pestaña nueva abrió el dashboard con la misma sesión. El
+bloqueo de acceso privado queda cerrado; no se cambió la autenticación del código.
+
+Recorrido privado de lectura en Chrome, ancho 1363 px: Hoy, Operaciones,
+calendario en Día/Semana/Mes, directorio de pacientes y apertura/cierre del
+formulario Nuevo paciente. La búsqueda y el formulario conservan el foco dentro
+con Tab/Shift+Tab y lo devuelven al disparador con Escape. No hubo desborde en
+las superficies medidas ni nuevos errores/avisos de consola durante el recorrido.
+El directorio muestra correctamente el estado sin citas recientes junto a su
+total de expedientes. No se abrieron ni modificaron expedientes, citas, recetas,
+mensajes o archivos clínicos reales. La captura de Hoy no contiene pacientes.
+
+Este recorrido no acredita Safari físico ni teclado virtual. Tampoco ejercita
+escritura clínica, subida privada de archivos, roles adicionales ni aislamiento
+entre médicos. La sesión de una cuenta es evidencia de acceso y navegación.
+
+La reproducción sintética adicional encontró un acuse falso de guardado al
+cerrar sesión y tres puntos de guardado que podían adoptar el uid siguiente.
+REG-676/677 los reparan en el callback existente, sin remontar proveedores ni
+migrar claves: el acuse de salida rechaza el fallo real y las escrituras nuevas
+revalidan el uid del montaje. Se conserva la copia local y el aviso cuando no
+se confirma el servidor. Trece negativos fallaban antes; los diecinueve casos
+del nuevo golden y los 47 del grupo dirigido pasan después. Revisión independiente
+del diff sin regresión concreta. La suite completa pasa 14.770 casos en 1.117
+archivos; lint 93/93 sin deuda nueva; build correcto con 170 rutas y cuatro
+comprobaciones CSP posteriores sobre el artefacto. El build usa los rellenos
+Firebase sintéticos de CI. Los resultados remotos del commit se registran en PR.
+
+La memoria compartida, restauración legada, cambio de clínica bajo el mismo uid
+y solicitudes ya entregadas al SDK permanecen fuera de este cierre. También
+siguen los límites de PHI en ficha raíz y D-057. Producción no se publicó.
