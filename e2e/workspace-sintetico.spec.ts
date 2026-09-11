@@ -99,6 +99,13 @@ for (const tema of ['light', 'dark']) {
         await contenidoListo(page, ruta)
         await sinDesborde(page)
         await info.attach(`${ruta.replaceAll('/', '-')}-${tema}`, { body: await page.screenshot({ animations: 'disabled' }), contentType: 'image/png' })
+        // Exportación opcional para revisión visual cuando el entorno local no responde.
+        // Únicamente esta cuenta ficticia, ya verificada y encerrada en localhost.
+        if (process.env.AUSCULTA_QA_LOG_IMAGES === '1' && tema === 'light') {
+          const nombre = `${info.project.name}-${ruta.replaceAll('/', '-')}`
+          const imagen = await page.screenshot({ type: 'jpeg', quality: 70, animations: 'disabled' })
+          console.log(`QA_IMAGE:${nombre}:${imagen.toString('base64')}`)
+        }
         if (info.project.name === 'iphone-safari') {
           await page.setViewportSize({ width: 320, height: 740 })
           await sinDesborde(page)
