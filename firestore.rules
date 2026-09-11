@@ -50,6 +50,12 @@ service cloud.firestore {
     function esMedicoDelPaciente(clinicId, patientId) {
       return isMedico(clinicId) && (
         isAdmin(clinicId)
+        // Sin ficha (una nota que nace antes que el documento del paciente, o
+        // un expediente antiguo) no hay titular que comprobar: se lee como
+        // «sin titular», nunca como error. `get()` sobre un doc ausente da null
+        // y `.get()` sobre null revienta la regla entera (lo cazó el golden
+        // flow del emulador).
+        || !exists(/databases/$(database)/documents/clinics/$(clinicId)/patients/$(patientId))
         || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == null
         || fichaDelPaciente(clinicId, patientId).get('medicoTitularUid', null) == request.auth.uid
         || request.auth.uid in fichaDelPaciente(clinicId, patientId).get('compartidoCon', [])
