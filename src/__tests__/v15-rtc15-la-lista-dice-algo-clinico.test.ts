@@ -207,7 +207,8 @@ describe('RTC-15 — y la fila lo pinta', () => {
   it('10 · la lectura del worklist no bloquea la lista de pacientes', () => {
     // Dos efectos distintos: `load()` pinta los pacientes, `tareasVivas` aterriza
     // encima. Encadenarlos haría que la pantalla más visitada esperase al worklist.
-    expect(PAGINA).toMatch(/useEffect\(\(\) => \{ load\(\) \}, \[clinicId\]\)/)
+    // D-057: la carga espera al rol (sin él no se sabe si filtrar); sigue sin esperar al worklist.
+    expect(PAGINA).toMatch(/useEffect\(\(\) => \{ if \(role\) load\(\) \}, \[clinicId, role, user\?\.uid\]\)/)
     expect(PAGINA).toContain('tareasVivas(clinicId)')
     expect(PAGINA).not.toMatch(/await tareasVivas/)
   })

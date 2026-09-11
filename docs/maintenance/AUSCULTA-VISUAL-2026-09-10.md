@@ -8,11 +8,11 @@ Base: `b8cd736`, después de la integración concurrente del PR #478 y el pin de
 - Navegación activa con tinte de marca; encabezados compartidos con mejor separación, subtítulo legible y entrada breve, desactivada con movimiento reducido.
 - Consulta: navegación por tres regiones más distinguible, indicadores de sección, estado del documento y transiciones breves. Se mantienen las regiones montadas y las correcciones de 1440/1280/móvil del PR #478.
 - Tarjeta social alineada con el nuevo tema oscuro.
-- REG-668: autoría persistida del medicamento para que el eco de una IA no convierta una decisión médica en contenido eliminable. Edición, aceptación, restauración y estado manuales marcan autoría médica. La IA no puede atribuirse esa marca. Reproyección/corrección conservan capturas explícitas.
+- REG-670: autoría persistida del medicamento para que el eco de una IA no convierta una decisión médica en contenido eliminable. Edición, aceptación, restauración y estado manuales marcan autoría médica. La IA no puede atribuirse esa marca. Reproyección/corrección conservan capturas explícitas.
 
 ## Evidencia
 
-La reproducción del defecto falló antes de repararlo en primer plano y recuperación. Tras la reparación, el grupo inicial de 44 casos pasó. La suite completa ejecutó 14 635 casos: 14 632 pasaron; fallaron tres guardianes de referencias de paleta/clasificación que se actualizaron con la nueva paleta y REG-668. La comprobación posterior de esos guardianes y regresiones clínicas pasó: 100 casos, seis archivos. Lint: 93/93; trinquete de diseño sin incremento; build equivalente a Preview compiló y terminó correctamente.
+La reproducción del defecto falló antes de repararlo en primer plano y recuperación. Tras la reparación, el grupo inicial de 44 casos pasó. La suite completa ejecutó 14 635 casos: 14 632 pasaron; fallaron tres guardianes de referencias de paleta/clasificación que se actualizaron con la nueva paleta y REG-670. La comprobación posterior de esos guardianes y regresiones clínicas pasó: 100 casos, seis archivos. Lint: 93/93; trinquete de diseño sin incremento; build equivalente a Preview compiló y terminó correctamente.
 
 Contraste determinista, medido con el comprobador WCAG existente: blanco sobre azul sólido 6.22:1; acento oscuro sobre superficie oscura más clara 7.85:1; acento claro sobre superficie clara más oscura 5.37:1. Rojo y verde clínicos sobre la nueva superficie oscura: 4.80 y 4.82:1.
 
@@ -57,4 +57,38 @@ Se inspeccionaron ocho capturas con datos cargados. La consulta separa contexto,
 
 Dependencias: [verificación sobre el lock publicado](https://github.com/docrod29-ai/agenda-medica/actions/runs/34546034255), UUID/CommonJS y multipart de Gaxios/teeny-request correctos; producción cero avisos, árbol completo cinco moderados del CLI de Firebase, cero high/critical. Se actualizó Vitest/coverage-v8 a 4.1.11. Se elimina el workflow temporal que generó el candidato y el informe durante la desconexión del entorno local.
 
-El commit que incorpora este informe y el arreglo de fecha necesita sus propios resultados de CI; los verdes de sus padres no lo sustituyen. La PR #487 permanece en borrador, sin merge ni despliegue de producción. Siguen pendientes la cuenta privada, Safari físico y el aislamiento entre médicos de una misma clínica (incluidos los metadatos clínicos de la ficha, el legado y todas las rutas de exportación). El trabajo concurrente de #488 no está integrado ni se declara validado aquí. La prueba entre dos borradores no demuestra ese aislamiento de permisos.
+En ese checkpoint, el commit que incorporaba este informe y el arreglo de fecha necesitaba sus propios resultados de CI; los verdes de sus padres no lo sustituyen. La PR #487 permanece en borrador, sin merge ni despliegue de producción. Siguen pendientes la cuenta privada, Safari físico y el aislamiento entre médicos de una misma clínica (incluidos los metadatos clínicos de la ficha, el legado y todas las rutas de exportación). El trabajo concurrente de #488 no está integrado ni se declara validado aquí. La prueba entre dos borradores no demuestra ese aislamiento de permisos.
+
+
+## Integración y cierre de accesos — 11-sep-2026
+
+Producción avanzó por otra sesión a **v1196**, main `9a20b06`. La ejecución
+[35](https://github.com/docrod29-ai/agenda-medica/actions/runs/34548993430)
+publicó Firestore y envió índices, pero **Storage falló con 403
+`firebasestorage.defaultBucket.get`**. El sitio READY y el acta SUCCESS no
+cerraban el release: el job quedó en rojo. Se integran main y #490 completos
+en #487, preservando el trabajo concurrente y su historial. La anterior REG-668
+de autoría médica queda renumerada **REG-670** para no colisionar con el acta.
+
+La revisión independiente encontró tres puertas Admin SDK que aún permitían
+el paciente ajeno por rol. **REG-671** conecta el guardián canónico por paciente
+al paquete de visita, enlace clínico del portal y sala de teleconsulta. Nueve
+casos reales de POST con datos ficticios: cinco fallaron antes y nueve pasaron
+tras el arreglo, incluidos titular/compartidos/admin y el enlace de recepción.
+Se conserva la prioridad del token del paciente y el 404 de sala.
+
+**REG-672** incluye `storage.rules` y `firebase.json` en la comparación del árbol;
+el guardián ya detecta `--only storage` y su falta de declaración. Tres casos
+fallaron antes. La recomendación del 403 se ajustó al permiso observado: Viewer
+lo contiene; el error no demuestra que el bucket falte ni justifica crearlo.
+
+**Validación local de esta integración:** suite completa 14 717 casos correctos,
+tipos correctos, lint 93/93, build de producción completo y CSP posterior al build.
+Tras regenerar versión/documentación, sus guardianes se volvieron a ejecutar.
+Audit de producción: 0. Las nuevas pruebas no reemplazan la QA privada.
+
+Se prepara **v1197** y su pin; no se ha publicado esta versión. Los recorridos
+móvil/teclado del árbol integrado requieren su CI nuevo. El cambio no declara
+cerrada la lectura de PHI legada en la ficha raíz, la asignación de pacientes sin
+titular ni pruebas físicas de Safari. Resolver el permiso externo de Storage y
+repetir el cierre de producción sigue pendiente; ningún permiso se ha cambiado.

@@ -41,6 +41,7 @@
 export const PREFIJOS_DE_OBJETO: Readonly<Record<string, string>> = {
   'receta-diseno/': 'Membrete, firma y formato de receta del médico — Y TAMBIÉN las fotografías clínicas, que se cuelan aquí porque `subirImagen` usa la misma ruta. Enraizado por `uid` de médico.',
   'consultas-audio/': 'Audio de consulta para diarizar. Efímero por diseño: lo borra el hook y, si la pestaña muere, el cron `limpiar-audio`.',
+  'estudios-paciente/': 'Estudios (PDF o foto) que el paciente sube desde el portal (D-058). Parte del expediente: se referencia desde `patients/{id}/estudios_aportados` y NO se borra solo.',
 }
 
 /** El metadato tal como vive en Firestore. */

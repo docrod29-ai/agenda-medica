@@ -58,6 +58,26 @@ service firebase.storage {
       allow read: if request.auth != null && request.auth.uid == uid;
     }
     // Todo lo demás: denegado.
+    /**
+     * ESTUDIOS QUE SUBE EL PACIENTE — D-058.
+     *
+     * El paciente no tiene sesión de Firebase: el portal le acuña un token
+     * personalizado con `portal: true`, su consultorio y su expediente, y sólo
+     * con ESE token puede escribir bajo su propia carpeta. Tipos y tamaño son
+     * los de `lib/portal/estudios-aportados.ts`. Nunca lee ni borra desde aquí:
+     * el médico lo abre por el servidor (URL firmada) y borrar es del
+     * consultorio con bitácora.
+     */
+    match /estudios-paciente/{clinicId}/{patientId}/{archivo} {
+      allow create: if request.auth != null
+        && request.auth.token.portal == true
+        && request.auth.token.clinicId == clinicId
+        && request.auth.token.patientId == patientId
+        && request.resource.size > 0
+        && request.resource.size <= 20 * 1024 * 1024
+        && request.resource.contentType in ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+      allow update, delete, read: if false;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }

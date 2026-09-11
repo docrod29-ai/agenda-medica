@@ -12,7 +12,7 @@
  * Todos los datos y marcadores son sintéticos; no expresan criterios clínicos.
  *
  * NO cubre navegador, Firestore, cambios de paciente, nota firmada, reproyección
- * de texto libre ni alucinaciones del proveedor. REG-668 añade identidad de
+ * de texto libre ni alucinaciones del proveedor. REG-670 añade identidad de
  * captura persistida: una coincidencia de contenido no cambia la autoría.
  */
 import { describe, expect, it } from 'vitest'

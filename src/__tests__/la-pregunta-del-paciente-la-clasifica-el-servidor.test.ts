@@ -233,7 +233,8 @@ describe('LA COLECCIÓN NUEVA ESTÁ DECLARADA EN LOS TRES SITIOS', () => {
     const bloque = /match \/preguntas_paciente\/\{docId\} \{[\s\S]*?\}/.exec(reglas)?.[0] ?? ''
     expect(bloque, 'la colección no está en las reglas').not.toBe('')
     expect(bloque).toContain('allow write: if false')
-    expect(bloque).toContain('isMedico(clinicId)')
+    // D-057: la lee el médico DEL paciente (isMedico + titular/compartido/admin).
+    expect(bloque).toContain('esMedicoDelPaciente(clinicId, docId)')
   })
 
   it('la matriz de acceso, como CLÍNICO y escrito por el servidor', () => {
@@ -278,11 +279,11 @@ describe('ESTOS GUARDIANES SE CAEN CON LA RUTA ROTA', () => {
 
   it('CAE si el motivo se le devuelve al paciente', () => {
     // Se muta la RESPUESTA, no el documento que se guarda: los dos llevan
-    // `escalada: r.avisarAlConsultorio,` y `replace` toca el primero, que es el
-    // documento — donde el motivo SÍ debe estar.
+    // `escalada: r.avisarAlConsultorio || paraRecepcion,` (D-056) y `replace`
+    // toca el primero, que es el documento — donde el motivo SÍ debe estar.
     const roto = accion('preguntar').replace(
-      'escalada: r.avisarAlConsultorio,\n        })',
-      'escalada: r.avisarAlConsultorio,\n          motivo: r.motivo,\n        })',
+      'escalada: r.avisarAlConsultorio || paraRecepcion,\n        })',
+      'escalada: r.avisarAlConsultorio || paraRecepcion,\n          motivo: r.motivo,\n        })',
     )
     const respuesta = /return NextResponse\.json\(\{\n\s+id: ref\.id,[\s\S]*?\}\)/.exec(roto)?.[0] ?? ''
     expect(respuesta).toContain('motivo')

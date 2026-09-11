@@ -35,7 +35,7 @@ Eso cambia dónde conviene mirar mañana.
 | Estorba al médico | 9 | Correcto por dentro, insoportable por fuera |
 | Pérdida de datos | 20 | Trabajo del médico que desaparece o reaparece solo |
 | Llega tarde para servir | 2 | El aviso es correcto y aparece **después** del momento en que habría servido |
-| El mensaje mentía sobre la causa | 8 | Falla algo y el sistema culpa a otra cosa |
+| El mensaje mentía sobre la causa | 12 | Falla algo y el sistema culpa a otra cosa |
 | *Decisión del médico dueño, no defecto* | 4 | Cambiaron el comportamiento, pero nada estaba roto |
 | Al modelo de datos le faltaba un eje | 3 | El dato se guardaba entero y correcto, pero sin la distinción que lo hace utilizable |
 
@@ -43,7 +43,7 @@ Eso cambia dónde conviene mirar mañana.
 
 ## Lo que dice el número grande
 
-**«Escrito, probado y sin conectar» — 130 de 454, y el 7-ago-2026 volvió a ser la
+**«Escrito, probado y sin conectar» — 130 de 457, y el 7-ago-2026 volvió a ser la
 familia más grande.**
 
 El miembro más reciente es **REG-604** (5-sep-2026), y es la subespecie en la que

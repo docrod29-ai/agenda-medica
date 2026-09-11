@@ -72,7 +72,8 @@ describe('E0-06 · el inventario de campos clínicos del paciente', () => {
     )
     expect(r, 'la subcolección `clinico` no está en la matriz de acceso').toBeTruthy()
     expect(r!.clase).toBe('clinico')
-    expect(r!.guardaLectura).toBe('isMedico')
+    // D-057: la guarda es isMedico Y el alcance del paciente.
+    expect(r!.guardaLectura).toBe('esMedicoDelPaciente')
   })
 })
 

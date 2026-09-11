@@ -170,6 +170,11 @@ export interface Doctor {
   duraciones?: ClinicConfig['duraciones']
   intervaloMinutos?: number
   zonaHoraria?: string
+  /**
+   * Preferencia PROPIA de este médico sobre quién confirma sus citas (D-054).
+   * Ausente → manda la del consultorio. No depende de `horarioPropio`.
+   */
+  confirmacionDeCitas?: 'manual' | 'directa'
   activo: boolean
   // Onboarding para el bot
   botConfig?: {
@@ -309,6 +314,14 @@ export interface Patient {
    * valiendo hasta que alguien revoque.
    */
   portalTokenVersion?: number
+  /**
+   * DE QUIÉN ES EL PACIENTE — D-057. Uid del médico titular; ausente en los
+   * pacientes anteriores a la decisión (se ven como siempre hasta asignarlos).
+   * `compartidoCon`: uids a los que el titular abrió el expediente. Ver
+   * `lib/authz/alcance-del-paciente.ts`.
+   */
+  medicoTitularUid?: string
+  compartidoCon?: string[]
   noShowCount: number
   cancelacionCount: number
   // === Cumplimiento NOM-024 + LFPDPPP ===
@@ -589,6 +602,13 @@ export interface ClinicConfig {
   publicBookingEnabled?: boolean   // Si true, el portal /reservar/[clinicId] acepta citas
   publicBookingNote?: string       // Mensaje opcional para pacientes ("solo nuevas consultas, etc.")
   /**
+   * QUIÉN CONFIRMA LAS CITAS QUE PIDE EL PACIENTE — D-054.
+   * `manual` (o ausente): nacen `solicitada` y el consultorio confirma.
+   * `directa`: nacen `confirmada`. El médico puede pisarlo en su propio
+   * documento (`Doctor.confirmacionDeCitas`). Ver `lib/agenda/estado-inicial-de-cita.ts`.
+   */
+  confirmacionDeCitas?: 'manual' | 'directa'
+  /**
    * Firma + sello del médico (imagen). Si está presente, se renderiza encima de la
    * línea de firma en notas firmadas, recetas y órdenes. Se guarda como data URL
    * base64 ya redimensionado.
@@ -792,6 +812,7 @@ export const DEFAULT_CONFIG: ClinicConfig = {
   googleCalendarId: '',
   publicBookingEnabled: true,
   publicBookingNote: '',
+  confirmacionDeCitas: 'manual',
   recetaConfig: {
     paperSize: 'media-carta',
     estilo: 'minimalista',

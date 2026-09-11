@@ -887,7 +887,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * y la guardia de membresía de la que cuelgan las 99 rutas, sin una sola
      * prueba que la ejecutara contra un doble que distinga ids.
      */
-    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 522, 529, 530, 531, 543, 549, 550, 551, 552, 553, 554, 555, 562, 565, 566, 573, 578, 580, 615, 623, 629, 646],
+    regs: [159, 166, 168, 185, 197, 213, 235, 237, 240, 245, 246, 247, 248, 254, 255, 260, 263, 265, 267, 274, 299, 306, 308, 331, 342, 355, 362, 365, 397, 399, 402, 406, 408, 409, 413, 414, 415, 418, 421, 422, 428, 430, 437, 438, 439, 440, 441, 442, 443, 512, 513, 514, 522, 529, 530, 531, 543, 549, 550, 551, 552, 553, 554, 555, 562, 565, 566, 573, 578, 580, 615, 623, 629, 646, 672],
   },
   {
     clave: 'hueco_como_dato',
@@ -1025,7 +1025,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la vez leían «libre» los dos. Aislamiento que dependía de que dos
      * peticiones no coincidieran.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648, 671],
   },
   {
     clave: 'charter_vacio',
@@ -1184,7 +1184,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * largas el hash y el folio se iban a `null` sin ningún error. Se acota
      * por campo y lo omitido se declara en el propio asiento.
      */
-    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665, 668],
+    regs: [157, 193, 195, 215, 216, 219, 283, 287, 294, 295, 297, 300, 302, 323, 329, 330, 391, 392, 395, 411, 525, 561, 567, 624, 640, 641, 643, 657, 660, 665, 670],
   },
   {
     clave: 'tarde',
@@ -1241,7 +1241,22 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * distinga «no hay horario» de «ese día no se abre», que son dos cosas
      * distintas y mandan a sitios distintos.
      */
-    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663],
+    /**
+     * 668 es 433 repetida con el tercer acto del mismo botón. El despliegue
+     * ganó un paso —las reglas de Storage, D-058— y el paso ganó su `--only`,
+     * su `id` y su comentario; lo que no ganó fue su casilla en el acta. En la
+     * ejecución #35 ese paso salió 403 y el job en rojo, y el acta imprimió
+     * `PRODUCTION_RELEASE=SUCCESS`: seis variables en la suma, ninguna de
+     * Storage. Quien lee el acta —que existe para no leer el log— cree que el
+     * paciente ya puede subir estudios; el bucket sigue cerrado.
+     *
+     * Lo que la mete aquí y no en `depende_de_recordar` es que el acta no se
+     * olvidó de decir algo: DIJO algo falso, con la palabra más fuerte que
+     * tiene. La raíz es la de 433: un acta que enumera a mano lo que publica,
+     * y una publicación nueva no entra sola. La cierra la misma idea (cada
+     * acto, su casilla) y un golden que se pone rojo contra el YAML de la #35.
+     */
+    regs: [155, 156, 251, 317, 327, 328, 433, 510, 605, 634, 663, 668],
   },
   {
     clave: 'decision_del_dueno',

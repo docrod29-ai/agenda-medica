@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verificarMiembro } from '@/lib/auth-server'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { adminDb } from '@/lib/firebase-admin'
 import { linkPortalPaciente, type AlcanceToken } from '@/lib/patient-token'
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
    */
   const pideClinico = String(body.alcance ?? '') === 'clinico'
   const acc = pideClinico
-    ? await verificarCapacidad(req, body.clinicId, 'firmar')
+    ? await verificarCapacidadSobrePaciente(req, body.clinicId, body.patientId, 'firmar')
     : await verificarMiembro(req, body.clinicId)
   if (!acc.ok) return acc.response
   const alcance: AlcanceToken = pideClinico ? 'clinico' : 'agenda'

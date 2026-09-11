@@ -43,8 +43,9 @@
  * real —no una lista escrita a mano— y exige que cada uno esté declarado, y que
  * el archivo que declara exista.
  *
- * Es genérico a propósito: el día que alguien añada `storage` o `hosting` al
- * `--only`, este caso lo exige declarado sin que nadie se acuerde de ampliarlo.
+ * También lee el producto completo `storage`, cuyo archivo es `rules`.
+ * Un producto completo desconocido falla explícitamente y exige ampliar el
+ * lector: ignorarlo hizo que Storage quedara sin vigilancia (REG-672).
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
@@ -79,6 +80,8 @@ function objetivosDelDespliegue(yml: string): { producto: string; clave: string 
     for (const objetivo of m[1].split(',')) {
       const [producto, clave] = objetivo.split(':')
       if (producto && clave) salida.push({ producto, clave })
+      else if (producto === 'storage') salida.push({ producto, clave: 'rules' })
+      else if (producto) throw new Error(`Producto completo sin lector: ${producto}`)
     }
   }
   return [...new Map(salida.map(o => [`${o.producto}:${o.clave}`, o])).values()]
@@ -94,6 +97,8 @@ describe('lo que el despliegue dice publicar está declarado en firebase.json', 
        bueno — el mismo que tuvo el guardián de índices en REG-421. */
     expect(objetivos.length).toBeGreaterThanOrEqual(2)
     expect(objetivos).toContainEqual({ producto: 'firestore', clave: 'indexes' })
+    // REG-672: --only storage no lleva ':' y antes desaparecía del censo.
+    expect(objetivos).toContainEqual({ producto: 'storage', clave: 'rules' })
   })
 
   it('cada objetivo del `--only` está declarado, y su archivo existe', () => {
@@ -126,6 +131,13 @@ describe('lo que el despliegue dice publicar está declarado en firebase.json', 
       ({ producto, clave }) => !(comoEstaba as Record<string, Record<string, string>>)[producto]?.[clave],
     )
     expect(huerfanos).toContainEqual({ producto: 'firestore', clave: 'indexes' })
+  })
+
+  it('al revés: quitar Storage deja huérfana la publicación completa del producto', () => {
+    const sinStorage = { ...firebaseJson, storage: {} }
+    const huerfanos = objetivos.filter(({ producto, clave }) =>
+      !(sinStorage as Record<string, Record<string, string>>)[producto]?.[clave])
+    expect(huerfanos).toContainEqual({ producto: 'storage', clave: 'rules' })
   })
 
   it('y el archivo de índices declarado es el que vigila el otro guardián', () => {

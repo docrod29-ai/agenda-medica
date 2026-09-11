@@ -15,7 +15,7 @@ import { adminDb } from '@/lib/firebase-admin'
 import { limitarOResponder } from '@/lib/rate-limit'
 import { verificarTokenPaciente } from '@/lib/patient-token'
 import { bloquearSiNoVigente } from '@/lib/portal/vigencia-del-enlace'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { instanteMX, TZ_DEFAULT } from '@/lib/timezone'
 
 const DAILY_API_KEY = process.env.DAILY_API_KEY ?? ''
@@ -88,8 +88,11 @@ export async function POST(req: NextRequest) {
     }
     let autorizadoPorMiembro = false
     if (!autorizadoPorToken) {
-      const acc = await verificarCapacidad(req, clinicId, 'clinico.leer')
-      autorizadoPorMiembro = acc.ok
+      // La cita aporta la identidad: el cuerpo no puede elegir otro paciente.
+      if (typeof cita.pacienteId === 'string' && cita.pacienteId) {
+        const acc = await verificarCapacidadSobrePaciente(req, clinicId, cita.pacienteId, 'clinico.leer')
+        autorizadoPorMiembro = acc.ok
+      }
     }
     if (!autorizadoPorToken && !autorizadoPorMiembro) {
       // Sin prueba de titularidad → se responde como si la cita no existiera (no

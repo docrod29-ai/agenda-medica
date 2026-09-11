@@ -35,7 +35,7 @@
 | Ruta | Superficie | Cli | Líneas | Nav | Resp | Tok | Est |
 |---|---|---|---|---|---|---|---|
 | `/dr/[clinicId]` | paciente | — | 259 | 1 | — | ✅ | — |
-| `/mi/[token]` | paciente | ✅ | 1884 | 0 | — | ✅ | — |
+| `/mi/[token]` | paciente | ✅ | 1951 | 0 | — | ✅ | — |
 | `/pago/cancelado` | paciente | ✅ | 19 | 1 | — | ✅ | — |
 | `/pago/exito` | paciente | ✅ | 32 | 0 | — | ✅ | — |
 | `/privacidad/[clinicId]` | paciente | ✅ | 400 | 0 | — | ✅ | — |
@@ -48,8 +48,8 @@
 | `/calendario` | medico | ✅ | 1232 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2902 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 8394 | 8 | — | ✅ | ✅ |
+| `/configuracion` | medico | ✅ | 2975 | 1 | — | ✅ | — |
+| `/consulta/[patientId]` | medico | ✅ | 8408 | 9 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 409 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 278 | 1 | — | ✅ | — |
@@ -58,7 +58,7 @@
 | `/cumplimiento/retencion` | medico | ✅ | 354 | 2 | — | ✅ | — |
 | `/cumplimiento/seguridad` | medico | ✅ | 316 | 1 | — | ✅ | — |
 | `/dashboard` | medico | ✅ | 378 | 5 | — | ✅ | — |
-| `/expediente/[patientId]` | medico | ✅ | 1267 | 15 | — | ✅ | — |
+| `/expediente/[patientId]` | medico | ✅ | 1284 | 15 | — | ✅ | — |
 | `/expedientes` | medico | ✅ | 18 | 1 | — | — | — |
 | `/farmacia` | medico | ✅ | 896 | 0 | — | ✅ | — |
 | `/finanzas` | medico | ✅ | 758 | 0 | — | ✅ | — |
@@ -71,8 +71,8 @@
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1051 | 2 | — | ✅ | — |
 | `/operaciones` | medico | ✅ | 568 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 1040 | 3 | — | ✅ | — |
-| `/pacientes` | medico | ✅ | 1481 | 4 | — | ✅ | — |
-| `/pendientes` | medico | ✅ | 994 | 3 | — | ✅ | ✅ |
+| `/pacientes` | medico | ✅ | 1494 | 4 | — | ✅ | — |
+| `/pendientes` | medico | ✅ | 997 | 3 | — | ✅ | ✅ |
 | `/reactivacion` | medico | ✅ | 365 | 0 | — | ✅ | — |
 | `/receta/[patientId]/[notaId]` | medico | ✅ | 1363 | 3 | — | ✅ | — |
 | `/referencia/[patientId]` | medico | ✅ | 400 | 0 | — | ✅ | — |

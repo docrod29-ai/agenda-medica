@@ -1,4 +1,5 @@
 'use client'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Patient, type ClinicConfig } from '@/types'
 import { listarPacientesCompat, buscarPacientes, TECHO_COMPAT_PACIENTES, createPatient, updatePatient, getConfig } from '@/lib/firestore'
@@ -34,7 +35,7 @@ import { fechaCorta } from '@/lib/formato/fecha'
 export default function PacientesPage() {
   const { toast } = useToast()
   const { user } = useAuth()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const { mode } = useMode()
   const router = useRouter()
   const [patients, setPatients] = useState<Patient[]>([])
@@ -75,7 +76,15 @@ export default function PacientesPage() {
     if (!clinicId) return
     try {
       const lista = await listarPacientesCompat(clinicId)
-      setPatients(lista.pacientes)
+      /**
+       * D-057: un médico ve SUS pacientes (titular, compartidos y los que aún
+       * no tienen titular); admin y recepción ven el directorio entero —
+       * recepción agenda con él, y la ficha nunca fue el expediente.
+       */
+      const propios = role === 'medico'
+        ? lista.pacientes.filter(p => puedeVerExpediente(p, user?.uid, role))
+        : lista.pacientes
+      setPatients(propios)
       setListaTruncada(lista.truncada)
       getCenso(clinicId).then(c => setInternados(new Set(c.map(i => i.pacienteId)))).catch(() => {})
     } catch (e) {
@@ -88,7 +97,8 @@ export default function PacientesPage() {
     }
   }
 
-  useEffect(() => { load() }, [clinicId])
+  // Se espera al rol: sin él no se sabe si filtrar, y filtrar «por si acaso» vacía la lista.
+  useEffect(() => { if (role) load() }, [clinicId, role, user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * RTC-15 — LA LISTA TIENE QUE DECIR ALGO CLÍNICO DE CADA PACIENTE.
@@ -998,7 +1008,7 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
   onAbrirExistente: (p: Patient) => void
 }) {
   const { toast, confirm } = useToast()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
   const { mode } = useMode()
   const [saving, setSaving] = useState(false)
   /**
@@ -1246,7 +1256,10 @@ function PatientModal({ patient, onClose, onSaved, userEmail, existentes, onAbri
          * sería peor que no tenerlo.
          */
         const consentimiento = await pedirAviso()
-        const nuevoId = await createPatient(clinicId!, consentimiento ? { ...payload, avisoPrivacidad: consentimiento } : payload)
+        // D-057: el médico que da de alta al paciente es su titular; recepción lo
+        // deja sin titular y lo hereda la primera cita o el médico que lo reclame.
+        const titular = (role === 'medico' || role === 'admin') && auth.currentUser?.uid ? { medicoTitularUid: auth.currentUser.uid } : {}
+        const nuevoId = await createPatient(clinicId!, consentimiento ? { ...payload, ...titular, avisoPrivacidad: consentimiento } : { ...payload, ...titular })
         /**
          * BITÁCORA DEL CONSENTIMIENTO.
          *

@@ -127,7 +127,7 @@ describe('E0-06 · el emisor de magic-links no puede regalar alcance clínico', 
      * expediente dentro — que es EXACTAMENTE la P0 que E0-06 cerró.
      */
     const src = codigo(LINK)
-    expect(src).toMatch(/pideClinico\s*\r?\n?\s*\?\s*await verificarCapacidad\(req, body\.clinicId, 'firmar'\)/)
+    expect(src).toMatch(/pideClinico\s*\r?\n?\s*\?\s*await verificarCapacidadSobrePaciente\(req, body\.clinicId, body\.patientId, 'firmar'\)/)
   })
 
   it('la capacidad que abre esa rama es exactamente {medico, admin}', () => {
@@ -191,7 +191,7 @@ describe('E0-06 · el emisor de magic-links no puede regalar alcance clínico', 
      * Ahora se fija sobre el ARGUMENTO real del handler, que es lo que corre.
      */
     const a = analizarRuta(readFileSync(TELESALUD, 'utf8'))
-    const exige = (a.porMetodo.POST ?? []).filter(l => l.guardia === 'verificarCapacidad')
+    const exige = (a.porMetodo.POST ?? []).filter(l => l.guardia === 'verificarCapacidad' || l.guardia === 'verificarCapacidadSobrePaciente')
     expect(exige.length, 'el POST de telesalud/token debe exigir una capacidad').toBeGreaterThan(0)
     expect(exige.some(l => l.literales.includes('clinico.escribir')),
       `el código exige '${exige.flatMap(l => l.literales).join('|')}', no 'clinico.escribir'`).toBe(true)

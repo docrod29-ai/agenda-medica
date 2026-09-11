@@ -26058,8 +26058,37 @@ borra el id recién recibido. Los 14 casos del archivo pasan.
 **Qué NO cubre:** borrado rechazado, sesiones simultáneas en otros dispositivos
 ni recuperación de una escritura cuya respuesta de red se perdió.
 
+## REG-668 — el acta del despliegue dijo SUCCESS con las reglas de Storage en rojo
 
-## REG-668 — una respuesta IA no se apropia de una edición médica (10-sep-2026)
+**Descubrimiento:** verificando la ejecución #35 del botón de producción
+(11-sep-2026, v1196) paso por paso. El paso nuevo «Storage · desplegar REGLAS»
+(D-058) salió 403 —`firebasestorage.defaultBucket.get` denegado a la cuenta de
+servicio— y el job terminó en rojo; el acta final imprimió
+`PRODUCTION_RELEASE=SUCCESS`.
+
+**Causa raíz:** el acta enumera a mano lo que publica, y el paso de Storage se
+añadió al despliegue sin añadirlo al acta: seis variables en el cálculo del
+resultado, ninguna de Storage. El paso tampoco guardaba su salida, así que, a
+diferencia de los índices (REG-433), no podía decir qué permiso faltaba.
+
+**Arreglo:** `R_STORAGE` entra en el acta (línea `STORAGE_RULES=` y condición
+de `PRODUCTION_RELEASE`); el paso guarda su salida en `storage.log` y le sigue
+«Storage · si fue permiso, decir cuál falta», que nombra el permiso denegado, el
+permiso que ya incluye `roles/firebasestorage.viewer` y deja claro que las
+reglas de Firestore no fueron el problema. La revisión de integración corrigió
+la recomendación inicial de Admin: un 403 no demuestra que falte el bucket ni
+autoriza a crearlo o vincularlo. Se comprueba el principal y el acceso efectivo.
+
+**Prueba permanente:** `src/__tests__/el-acta-dijo-success-con-storage-rojo.test.ts`
+(8 casos). Probada al revés contra el YAML de la #35: los ocho en rojo sin el
+arreglo.
+
+**Qué NO cubre:** no despliega nada ni confirma que el rol sea el que falta —eso
+lo dice la siguiente ejecución del botón—; no cubre publicables futuros
+(`hosting`), que habrá que añadir al acta a mano.
+
+
+## REG-670 — una respuesta IA no se apropia de una edición médica (10-sep-2026)
 
 La revisión del PR #478 reprodujo pérdida de una dosis editada: la IA la repetía y una respuesta vacía posterior eliminaba el renglón. La comparación del contenido no prueba autoría. Se añade `Medicamento.origenCaptura`, sellado como `ia` al entrar por extracción y como `medico` al editar, añadir, aceptar, restaurar una versión o cambiar el estado desde la consulta. Reproyección y corrección conservan las capturas explícitas. El campo viaja con la nota y el borrador; no cambia la intención terapéutica ni activa órdenes.
 
@@ -26077,3 +26106,24 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Qué NO cubre:** autorización efectiva de servidor, aislamiento entre médicos, concurrencia de Firestore, cuenta privada, layout en navegador ni Safari real. No es una prueba de que el paciente esté siendo atendido por la hora.
 
 **Ampliación de REG-669 (11-sep-2026).** Las capturas reales del nuevo recorrido de CI mostraron viernes 11 y «Buenos días» en Hoy, mientras el calendario y las citas seguían correctamente en jueves 10, a las 18 h del consultorio. El encabezado usaba dos lecturas del reloj del dispositivo. Ahora `presentacionDelDia` recibe el día ya utilizado para filtrar citas y los minutos canónicos; no vuelve a decidir la zona. Se amplía el caso existente de reloj/día con las fronteras del saludo y una fecha fija; el E2E compara además la fecha visible contra la zona de la siembra. No aumenta el número de casos ni declara QA de la cuenta privada.
+
+
+## REG-671 — tres puertas clínicas del Admin SDK también exigen acceso al paciente (11-sep-2026)
+
+**Descubrimiento:** revisión independiente al integrar #487 con v1196. `expediente/paquete-de-visita`, la rama clínica de `portal/link` y la rama del equipo de `telesalud/sala` sólo pedían capacidad de rol. Un médico ajeno del mismo consultorio superaba ese filtro. Las dos rutas de URL reprodujeron HTTP 200 con un paciente de otro titular.
+
+**Arreglo:** las tres llaman al guardián canónico `verificarCapacidadSobrePaciente`. Se conserva `firmar` para paquetes/enlaces, `clinico.leer` para sala, la membresía del enlace administrativo, la precedencia del token del paciente y el 404 de sala cuando nada autoriza. La identidad de la sala viene de la cita leída, no del cuerpo de la petición.
+
+**Prueba:** `src/__tests__/paciente-ajeno-no-abre-puertas-clinicas.test.ts`: nueve casos ejecutados; cinco negativos fallaron antes, y los nueve pasan después. Se ejecutan POST reales con Admin SDK sintético y autorización real de capacidad/paciente. Se comprueban las tres acciones de paquete sin lectura clínica ni escritura, enlace/sala sin URL y positivos para titular, compartido y admin; recepción conserva agenda. Los casos existentes de revocación y paquete distinguen ahora la lectura de ACL de la lectura clínica posterior.
+
+**Límites:** no despliega reglas ni migra datos. La ficha raíz aún contiene PHI legada accesible a miembros y D-057 permite pacientes sin titular hasta asignarlos; este arreglo no acredita aislamiento completo ni QA privada. No usa pacientes reales.
+
+## REG-672 — Storage entra en la comparación del árbol y en el lector de objetivos (11-sep-2026)
+
+**Descubrimiento:** la revisión del run #35 y de #490 encontró dos omisiones: Compuerta 0 no comparaba `storage.rules` ni `firebase.json`, y el lector de `--only` ignoraba `storage` por no llevar dos puntos. Un pin podía parecer equivalente aun publicando otras reglas/configuración.
+
+**Arreglo:** los dos archivos entran en `PUBLICABLES`. El lector reconoce la publicación completa de Storage y exige su archivo de reglas; un producto completo desconocido falla explícitamente. El aviso del 403 no prescribe crear/vincular buckets ni ampliar a Admin sin evidencia: Viewer contiene el permiso de lectura observado; el acceso efectivo se verifica fuera.
+
+**Pruebas:** `src/__tests__/el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts` inspecciona la variable que realmente se compara, no cualquier mención en el YAML; `src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts` exige Storage y quita su declaración como control negativo. Tres casos fallaron antes. Tras el arreglo, la suite completa pasa.
+
+**Límites:** no prueba IAM, existencia del bucket ni construcción de índices; Storage continúa pendiente del acceso externo y de un despliegue correcto. No modifica reglas de datos.

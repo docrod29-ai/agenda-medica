@@ -3,6 +3,21 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1197 — rediseño integrado y puertas clínicas por paciente
+
+**Preparada en #487; no desplegada.** Integra main v1196 y el acta de #490,
+conserva el rediseño, agenda segura y dependencias de #487. Cierra tres rutas
+Admin SDK sobre pacientes ajenos (REG-671) y compara también Storage/configuración
+al cerrar producción (REG-672). La reparación de autoría médica de #487 pasa de
+REG-668 a REG-670 para conservar el REG-668 concurrente del acta sin colisión.
+
+Typecheck y lint93/93 correctos; suite local 14 717 casos correctos antes de
+regenerar documentación/versión, con CSP pendiente del build. La publicación
+sigue condicionada por el permiso externo de Storage y las validaciones privadas.
+La versión pública cambia sólo al integrar/desplegar: no confundir esta preparación
+con lo que sirve Vercel (v1196).
+
+
 ## v1191 — el RCE sin autenticar de Next, y las dos `high` que lo acompañaban
 
 **3 archivos · 0 código de producto · 0 pantallas nuevas · `firestore.rules` NO
@@ -3921,6 +3936,44 @@ La siembra del arnés escribía `horaInicio`/`horaFin` (los campos de la pantall
 de configuración) y no `horario`, que es el que lee el motor: era ella misma un
 «escrito y sin conectar», y por eso nadie había pisado ese camino. Ahora siembra
 una jornada partida por la comida, que es el caso del acta del dueño.
+
+## v1196 — 11-sep-2026
+
+**PR #488 · cada médico ve sus pacientes (D-057), el paciente sube estudios
+(D-058) y los pendientes de agenda y portal (D-053…D-056)** — con autorización
+del dueño, tras contestar él las preguntas abiertas del 10-sep.
+
+- **Cada médico ve sus pacientes.** `medicoTitularUid` y `compartidoCon` en la
+  ficha; la regla vive en un solo módulo y las reglas de Firestore la
+  transcriben (`esMedicoDelPaciente`) en todas las subcolecciones clínicas.
+  Los pacientes de antes no tienen titular y se ven como siempre hasta
+  asignarlos (Configuración → Médicos, desde su última cita). La asistente ve
+  el equipo, la agenda y sólo los pendientes de recepción. El titular comparte
+  y revoca; otro médico pide acceso. Sin acceso de emergencia: no se decidió.
+- **El paciente sube estudios desde el portal.** PDF y fotos (incluido HEIC),
+  20 MB, 5 por envío, 12 al mes; entran «sin revisar» con tarea para el
+  médico, que los abre por URL firmada, los lee con la IA o los marca
+  revisados. Primer despliegue de `storage.rules` por el botón de producción.
+- **Agenda y portal.** Lista de espera avisa a todos los compatibles;
+  confirmación directa o manual configurable; dentro de las 12 h el paciente
+  pide el cambio desde el portal; lo administrativo va a recepción.
+- **Lo que este despliegue publica además del código**: reglas de Firestore,
+  un índice nuevo (`tareas_clinicas · area · estado · pesoUrgencia · creadaEn`)
+  y las reglas de Storage. Hasta que el botón corra, recepción no ve sus
+  pendientes y la subida de estudios falla. `docs/ops/REGLAS-DE-FIRESTORE.md`.
+- **Confirmado que no hay «mezcla de pacientes»** por respuesta tardía de la
+  IA al cambiar de paciente (sonda con control positivo), y el ensayo de
+  100 000 activos nombrado con mezcla de roles.
+
+**Acta de la ejecución #35 del botón (11-sep-2026, 01:02 UTC)**: Compuerta 3
+en `nexusmed-v1196` al primer intento; `FIRESTORE_RULES=success`
+(sello `dca8f9d3…`, coincide con el árbol `15b2b91`); `FIRESTORE_INDICES=success`
+(el catorce, enviado); seguridad 57/57; smoke 10/10; portal 401 sin enlace.
+**`Storage · desplegar REGLAS` salió 403** (`firebasestorage.defaultBucket.get`
+denegado a la cuenta de servicio): `storage.rules` NO rige y la subida desde el
+portal falla en producción hasta que el dueño dé el rol
+`roles/firebasestorage.admin` y se vuelva a pulsar el botón. El acta dijo
+`SUCCESS` sin contar ese paso — REG-668, corregido en el árbol siguiente.
 
 ## v1195 — 10-sep-2026
 

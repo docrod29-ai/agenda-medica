@@ -1,8 +1,8 @@
 {
- "sellado": "2026-09-10",
+ "sellado": "2026-09-11",
  "porQue": "Trinquete E0-11: la cobertura de invariantes clinicos y de seguridad puede SUBIR, nunca bajar en silencio. Derivado de CLINICAL_ENGINE_REGISTRY[].goldenTests, del regression-ledger y de los 3 metagates. NO se edita a mano para pasar el CI: ver docs/ci/clinical-safety-gate.md.",
  "comoSeRegenera": "Los conteos son medidos del repo, no criterios clinicos. minCasos = cota inferior de casos declarados (it/test al inicio de linea).",
- "totalCasos": 8197,
+ "totalCasos": 8225,
  "archivos": [
   {
    "archivo": "src/__tests__/a11y-el-detector-si-puede-fallar.test.ts",
@@ -405,6 +405,10 @@
    "minCasos": 8
   },
   {
+   "archivo": "src/__tests__/el-acta-dijo-success-con-storage-rojo.test.ts",
+   "minCasos": 8
+  },
+  {
    "archivo": "src/__tests__/el-ajuste-renal-de-la-receta-ve-lo-vigente.test.ts",
    "minCasos": 2
   },
@@ -447,6 +451,10 @@
   {
    "archivo": "src/__tests__/el-borrador-no-se-pierde.test.ts",
    "minCasos": 18
+  },
+  {
+   "archivo": "src/__tests__/el-boton-de-produccion-no-publica-un-arbol-viejo.test.ts",
+   "minCasos": 14
   },
   {
    "archivo": "src/__tests__/el-boton-del-backfill-no-escribe-por-defecto.test.ts",
@@ -1482,7 +1490,7 @@
   },
   {
    "archivo": "src/__tests__/lo-que-el-despliegue-dice-publicar-esta-declarado.test.ts",
-   "minCasos": 4
+   "minCasos": 5
   },
   {
    "archivo": "src/__tests__/lo-que-el-medico-descarto-no-es-un-diagnostico.test.ts",
@@ -1715,6 +1723,10 @@
   {
    "archivo": "src/__tests__/origen-del-dictado.test.ts",
    "minCasos": 13
+  },
+  {
+   "archivo": "src/__tests__/paciente-ajeno-no-abre-puertas-clinicas.test.ts",
+   "minCasos": 5
   },
   {
    "archivo": "src/__tests__/paciente-equivocado-guardia.test.ts",

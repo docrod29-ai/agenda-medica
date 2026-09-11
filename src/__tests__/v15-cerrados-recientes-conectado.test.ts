@@ -74,7 +74,8 @@ describe('/pendientes — closed recently conectado, no huérfano', () => {
      * lista, no la propiedad. Ahora se busca el efecto que CARGA `tareasVivas`,
      * que es de lo que hablaba desde el principio.
      */
-    const inicioEffect = PAGINA.indexOf('tareasVivas(clinicId)')
+    // D-057 añadió argumentos a la llamada (`tareasVivas(clinicId, 200, { soloRecepcion })`): se ancla al prefijo.
+    const inicioEffect = PAGINA.indexOf('tareasVivas(clinicId')
     expect(inicioEffect, 'no se localizó la carga del worklist').toBeGreaterThan(-1)
     const finEffect = PAGINA.indexOf('  }, [', inicioEffect)
     expect(finEffect).toBeGreaterThan(inicioEffect)

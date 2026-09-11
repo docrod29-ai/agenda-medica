@@ -200,13 +200,22 @@ describe('REG-521 · la escalación abre una tarea en el worklist', () => {
     expect(estadoDeAccion(t!.datos as never, Date.now())).toBe('necesita_revision')
   })
 
-  it('3 · una pregunta administrativa NO abre tarea: el worklist no se llena de lo que el paciente resuelve solo', async () => {
+  /**
+   * INVERTIDO el 10-sep-2026 por D-056: lo administrativo va a RECEPCIÓN. Antes
+   * este caso afirmaba que una pregunta administrativa NO abría tarea («el
+   * paciente lo resuelve solo»), y «¿cuánto cuesta la consulta?» no lo resolvía
+   * nadie. Ahora abre una tarea de recepción, con prioridad normal para que no
+   * compita con lo clínico. El detalle vive en `lo-administrativo-va-a-recepcion`.
+   */
+  it('3 · una pregunta administrativa abre una tarea de RECEPCIÓN, no del médico (D-056)', async () => {
     const res = await preguntar('¿Cuándo es mi cita?')
     const cuerpo = await res.json()
     expect(cuerpo.clase).toBe('ADMINISTRATIVE_ACTION')
-    expect(cuerpo.escalada).toBe(false)
+    expect(cuerpo.escalada).toBe(true)
     expect(preguntasEscritas).toHaveLength(1)
-    expect(tareasEscritas.size).toBe(0)
+    const t = tareasEscritas.get(idDeTareaDePregunta('preg-1'))
+    expect(t).toBeDefined()
+    expect(t!.datos).toMatchObject({ area: 'recepcion', prioridad: 'normal', tipo: 'pregunta_paciente' })
   })
 
   it('4 · la tarea se escribe ANTES de intentar el WhatsApp, y con teléfono se escriben las dos cosas', async () => {

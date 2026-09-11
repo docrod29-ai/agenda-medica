@@ -54,8 +54,7 @@ import { tareasVivas, tareasCerradasRecientes, cambiarEstado } from '@/lib/tarea
 import {
   ordenWorklist, debeEscalar, estaVencida, ETIQUETA_TIPO, preguntasAlCerrar,
   COMO_SE_AVISO_ETIQUETA,
-  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente, type ComoSeAviso,
-} from '@/lib/tareas-clinicas/modelo'
+  type TareaClinica, type EstadoTarea, type CierreDeTarea, type AvisoAlPaciente, type ComoSeAviso, ETIQUETA_AREA } from '@/lib/tareas-clinicas/modelo'
 import { esTareaDeResultado } from '@/lib/tareas-clinicas/progreso-resultado'
 import {
   leerPerdidos, perdidosDe, olvidar, LLAVE as LLAVE_PERDIDOS, type Perdido,
@@ -189,6 +188,7 @@ function Tarjeta({ t, cita, ahora, porQueId, onAbrirPorQue, onMover, onAgendar, 
             )}
             {t.patientNombre && !t.patientId && <span className="nx-ident">{t.patientNombre}</span>}
             <span className="nx-estado">{ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}</span>
+            {t.area === 'recepcion' && <span className="nx-estado">{ETIQUETA_AREA.recepcion}</span>}
           </div>
           <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
         </div>
@@ -313,6 +313,7 @@ function TarjetaCerrada({ t, porQueId, onAbrirPorQue, onIrAlExpediente }: {
           <span className="nx-estado" style={{ ['--estado-tono' as string]: 'var(--green)' }}>
             {ETIQUETA_TIPO[t.tipo] ?? 'Pendiente'}
           </span>
+          {t.area === 'recepcion' && <span className="nx-estado">{ETIQUETA_AREA.recepcion}</span>}
         </div>
         <strong style={{ color: 'var(--text)', fontSize: 14, fontWeight: 500 }}>{t.titulo}</strong>
       </div>
@@ -329,7 +330,9 @@ function TarjetaCerrada({ t, porQueId, onAbrirPorQue, onIrAlExpediente }: {
 
 export default function PendientesPage() {
   const { toast } = useToast()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
+  // D-057: recepción sólo ve (y sólo puede leer) las tareas de su área.
+  const soloRecepcion = role !== null && role !== 'medico' && role !== 'admin'
   const router = useRouter()
   const [tareas, setTareas] = useState<TareaClinica[]>([])
   const [cargando, setCargando] = useState(true)
@@ -462,7 +465,7 @@ export default function PendientesPage() {
   useEffect(() => {
     if (!clinicId) return
     let vivo = true
-    tareasVivas(clinicId)
+    tareasVivas(clinicId, 200, { soloRecepcion })
       .then(w => {
         if (!vivo) return
         setTareas(w.tareas); setTruncado(w.truncada ? w.tope : 0)
@@ -496,7 +499,7 @@ export default function PendientesPage() {
       })
       .finally(() => { if (vivo) setCargando(false) })
     return () => { vivo = false }
-  }, [clinicId, leerAlmacen, recarga])
+  }, [clinicId, leerAlmacen, recarga, soloRecepcion])
 
   const visibles = useMemo(() => {
     const base = soloMias ? tareas.filter(t => t.ownerUid === uid) : tareas

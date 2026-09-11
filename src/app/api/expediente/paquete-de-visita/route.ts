@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from '@/lib/firebase-admin'
-import { verificarCapacidad } from '@/lib/authz/verificar'
+import { verificarCapacidadSobrePaciente } from '@/lib/authz/verificar-paciente'
 import { safeLog } from '@/lib/security/sanitize'
 import { alergiasParaImpreso } from '@/lib/seguridad/alergias'
 import { medicamentosDeLaReceta } from '@/lib/expediente/que-va-en-la-receta'
@@ -133,7 +133,8 @@ export async function POST(req: NextRequest) {
    * cuerpo se contrasta contra la membresía real de quien firma la petición, así
    * que un médico del consultorio A no puede liberar en el B ni sabiendo su id.
    */
-  const acceso = await verificarCapacidad(req, clinicId, 'firmar')
+  // D-057 / REG-671: pertenecer al consultorio no autoriza el paciente ajeno.
+  const acceso = await verificarCapacidadSobrePaciente(req, clinicId, patientId, 'firmar')
   if (!acceso.ok) return acceso.response
 
   const notaRef = adminDb

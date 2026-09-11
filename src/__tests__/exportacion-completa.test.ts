@@ -132,7 +132,8 @@ describe('la ruta arma el expediente y declara lo que falta', () => {
 
   it('exige el permiso del MÉDICO, no el del mostrador', () => {
     // Baja diagnósticos, medicamentos y alergias: NOM-004 los reserva al médico.
-    expect(ruta).toContain("verificarCapacidad(req, clinicId, 'clinico.escribir')")
+    // D-057: capacidad Y alcance del paciente (titular/compartido/admin) — más estrecha, no más ancha.
+    expect(ruta).toContain("verificarCapacidadSobrePaciente(req, clinicId, patientId, 'clinico.escribir')")
   })
 
   it('recorre el manifiesto, no una lista escrita a mano', () => {

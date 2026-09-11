@@ -104,6 +104,7 @@ const EXENTAS: Record<string, string> = {
   'laboratorio-vision': 'manda una IMAGEN/PDF de laboratorio',
   'paquete-de-visita': 'no llama a ningún modelo',
   'pregunta-atendida': 'no llama a ningún modelo',
+  'estudio-aportado': 'no llama a ningún modelo (firma una URL de lectura, D-058)',
   'exportar': 'no llama a ningún modelo',
 }
 

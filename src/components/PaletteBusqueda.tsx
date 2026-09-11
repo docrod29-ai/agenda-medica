@@ -1,4 +1,6 @@
 'use client'
+import { useAuth } from '@/hooks/useAuth'
+import { puedeVerExpediente } from '@/lib/authz/alcance-del-paciente'
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClinic } from '@/context/ClinicContext'
@@ -26,7 +28,10 @@ const ACCIONES: { label: string; icon: LucideIcon; route: string }[] = [
  */
 export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
   const router = useRouter()
-  const { clinicId } = useClinic()
+  const { clinicId, role } = useClinic()
+  const { user } = useAuth()
+  // D-057: el médico sólo encuentra a SUS pacientes; admin ve todos.
+  const mios = (lista: Patient[]) => (role === 'medico' ? lista.filter(p => puedeVerExpediente(p, user?.uid, role)) : lista)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [pacientes, setPacientes] = useState<Patient[]>([])
@@ -87,7 +92,7 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
   useEffect(() => {
     if (open && clinicId && pacientes.length === 0) {
       listarPacientesPagina(clinicId, { limite: 6 })
-        .then(p => setPacientes(p.pacientes))
+        .then(p => setPacientes(mios(p.pacientes)))
         .catch(() => {})
     }
     if (open) { setActivo(0); setTimeout(() => inputRef.current?.focus(), 30) }
@@ -102,7 +107,7 @@ export function PaletteBusqueda({ enabled }: { enabled: boolean }) {
     let vivo = true
     const t = setTimeout(() => {
       buscarPacientes(clinicId, q, { ventana: 20 })
-        .then(r => { if (vivo) setBusqueda({ q, pacientes: r.pacientes, truncada: r.truncada }) })
+        .then(r => { if (vivo) setBusqueda({ q, pacientes: mios(r.pacientes), truncada: r.truncada }) })
         .catch(() => { /* sin red, quedan las sugerencias en frío */ })
     }, 180)
     return () => { vivo = false; clearTimeout(t) }

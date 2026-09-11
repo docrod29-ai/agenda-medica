@@ -106,7 +106,16 @@ describe('E0-06 · la matriz y firestore.rules no divergen', () => {
       expect(i, `no se encontró function ${g}(`).toBeGreaterThan(-1)
       const cuerpo = reglas.slice(i, reglas.indexOf('\n    }', i))
       const literales = [...cuerpo.matchAll(/'([a-z]+)'/g)].map(m => m[1])
-      const rolesEnReglas = [...new Set(literales.filter(l => (ROLES as readonly string[]).includes(l)))]
+      /**
+       * D-057: `esMedicoDelPaciente` no nombra roles — DELEGA en `isMedico` e
+       * `isAdmin` y añade el alcance del paciente. Sus roles son los de las
+       * guardas que llama; si alguien la reescribiera sin delegar y sin roles,
+       * caería al `expect(g).toBe('isMember')` de abajo y se pondría roja.
+       */
+      const delegadas = [...cuerpo.matchAll(/\b(is[A-Z]\w+)\(/g)].map(m => m[1])
+        .filter((h): h is Guarda => h !== g && (GUARDAS_EN_REGLAS as readonly string[]).includes(h))
+      const heredados = delegadas.flatMap(h => [...rolesDe(h)])
+      const rolesEnReglas = [...new Set([...literales.filter(l => (ROLES as readonly string[]).includes(l)), ...heredados])]
       if (!rolesEnReglas.length) {
         // isMember no nombra roles: pertenecer a la clínica basta → todos.
         expect(g).toBe('isMember')

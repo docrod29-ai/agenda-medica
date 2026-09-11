@@ -52,7 +52,7 @@ describe('EL SERVIDOR TIENE RAZÓN AL RECHAZAR', () => {
      * No se toca la regla: es la que le da valor legal al expediente. El fallo
      * estaba en el cliente, que le pedía algo imposible.
      */
-    expect(reglas).toContain("allow update: if isMedico(clinicId) && resource.data.estado != 'firmada'")
+    expect(reglas).toContain("allow update: if esMedicoDelPaciente(clinicId, docId) && resource.data.estado != 'firmada'")
   })
 })
 

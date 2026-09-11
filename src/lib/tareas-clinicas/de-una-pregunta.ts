@@ -142,3 +142,66 @@ export function tareaDeUnaPregunta(p: PreguntaEscalada): Omit<TareaClinica, 'id'
   }
   return tarea
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   LO ADMINISTRATIVO VA A RECEPCIÓN — D-055 (cambio de cita dentro de las 12 h)
+   y D-056 (mensajes administrativos del portal).
+
+   Hasta hoy una pregunta administrativa recibía un texto enlatado y NO abría
+   tarea: «el paciente lo resuelve solo». Pero «quiero mover mi cita de mañana»
+   dentro de la ventana de 12 h no lo resuelve solo —el portal se lo prohíbe— y
+   «¿cuánto cuesta la consulta?» tampoco lo contesta el texto enlatado. El dueño
+   decidió: administrativo → recepción; clínico → médico.
+
+   Es una tarea `pregunta_paciente` con `area: 'recepcion'` y prioridad normal:
+   nace con el mismo id derivado que las clínicas, así que la misma pregunta
+   nunca es dos tareas, y se cierra por la misma puerta
+   (`/api/expediente/pregunta-atendida`), que es lo que el portal le enseña al
+   paciente como «tu consultorio ya la revisó».
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export const ORIGEN_SOLICITUD_DE_CAMBIO = 'portal:solicitud-cambio'
+
+export interface SolicitudAdministrativa {
+  clinicId: string
+  patientId: string
+  patientNombre?: string
+  preguntaId: string
+  texto: string
+  ahoraIso: string
+  /** Qué cita se quiere cambiar, cuando la solicitud es un cambio de cita. */
+  citaId?: string
+  /** «Cambio de cita» o «Pregunta administrativa». */
+  asunto: 'cambio_de_cita' | 'administrativa'
+  origen?: string
+}
+
+export function tituloDeUnaSolicitud(s: Pick<SolicitudAdministrativa, 'asunto' | 'texto'>): string {
+  if (s.asunto === 'cambio_de_cita') return 'Pide cambiar su cita'
+  return tituloDeLaPregunta(s.texto)
+}
+
+export function tareaDeUnaSolicitudAdministrativa(
+  s: SolicitudAdministrativa,
+): Omit<TareaClinica, 'id'> & { pesoUrgencia: number } {
+  const prioridad: Prioridad = 'normal'
+  const tarea: Omit<TareaClinica, 'id'> & { pesoUrgencia: number } = {
+    clinicId: s.clinicId,
+    patientId: s.patientId,
+    tipo: 'pregunta_paciente',
+    area: 'recepcion',
+    titulo: tituloDeUnaSolicitud(s),
+    detalle: s.asunto === 'cambio_de_cita'
+      ? `Faltan menos de ${'12'} h para la cita y el portal ya no deja moverla. Dice: ${s.texto.replace(/\s+/g, ' ').trim() || '(sin motivo)'}`
+      : 'Mensaje administrativo del paciente: lo contesta recepción, no el médico.',
+    prioridad,
+    pesoUrgencia: pesoDeUrgencia(prioridad),
+    estado: 'solicitada',
+    creadaEn: s.ahoraIso,
+    origen: s.origen || (s.asunto === 'cambio_de_cita' ? ORIGEN_SOLICITUD_DE_CAMBIO : ORIGEN_PREGUNTA),
+    preguntaId: s.preguntaId,
+  }
+  if (s.patientNombre) tarea.patientNombre = s.patientNombre
+  if (s.citaId) tarea.citaId = s.citaId
+  return tarea
+}
