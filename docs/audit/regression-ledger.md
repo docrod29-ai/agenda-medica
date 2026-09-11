@@ -26137,3 +26137,23 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Prueba permanente:** `src/__tests__/las-iniciales-del-paciente-se-leen.test.ts` mide los colores resueltos y su transparencia sobre cinco superficies, en oscuro, claro y automático claro. Reproducción inversa antes de cambiar el helper: doce casos fallan y seis pasan; después, los dieciocho pasan.
 
 **Límite:** comprueba pares de tokens, no toda composición del navegador, autorización ni aislamiento del expediente.
+
+## REG-674 — Retomar no ofrece un respaldo ilegible de otra cuenta (11-sep-2026)
+
+**Descubrimiento:** auditoría independiente del PR #487 con el lector real y dos usuarios sintéticos. `encuentroAbierto` devolvía el paciente de A a B, y también sin sesión, con `ts=0`. El antiguo caso 4 de RTC-08 fijaba esa conducta incorrecta: confundía conservar una copia con ofrecerla como destino.
+
+**Arreglo:** exigir uid vivo antes de leer almacenamiento y un objeto JSON desofuscable con ese uid antes de ofrecer el encuentro. No borrar ni convertir respaldos ilegibles, corruptos o legados en claro. El propietario sigue encontrando su copia original.
+
+**Prueba permanente:** `src/__tests__/v15-rtc08-encuentro-es-un-lugar.test.ts`, catorce casos. Cinco negativos fallaron con el lector original; los catorce pasan después. El doble de Storage es mutable para que intentar borrar la copia rompa la comprobación de conservación.
+
+**Límite:** ofuscación no es autenticación criptográfica. Esto cierra el destino derivado de respaldos ilegibles; no acredita clínica, memoria, recuperación legada ni permisos de servidor. Las claves antiguas siguen sin clinicId/uid.
+
+## REG-675 — un respaldo tardío no adopta el uid de la cuenta siguiente (11-sep-2026)
+
+**Descubrimiento:** auditoría independiente ejecutando `flushRespaldo` real, extraído por AST. Al cambiar auth de A a B antes de ejecutarlo, el contenido vivo de A quedaba escrito con el uid de B. El debounce tenía la misma lectura tardía; reabrir el pestillo para B no distinguía quién escribió el contenido.
+
+**Arreglo:** fijar el uid al montar consulta, comprobar identidad al ejecutar cada callback y usar sólo ese uid para ofuscar. El cierre solicita primero el flush síncrono mientras A sigue autenticado, antes del guardado al servidor: así un fallo de red anterior al debounce no pierde la última tecla. Se mantienen las dos formas canónicas de guardar, el pestillo y la declaración de audio.
+
+**Prueba permanente:** `src/__tests__/un-flush-no-cambia-de-dueno.test.ts`, ocho casos, ejecutando callbacks reales de la pantalla. Cinco fallaron antes; pasan después: A→B/null en ambos caminos, dueño legítimo, purga y copia conservada antes de un fallo rápido de red. Revisión independiente del diff sin regresión concreta en ese alcance.
+
+**Límite:** no ejecuta Firebase real ni cubre separación por clínica, cajón en memoria, recuperación del legado o autoguardado al servidor. No migra ni borra datos.

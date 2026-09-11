@@ -1025,7 +1025,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * la vez leían «libre» los dos. Aislamiento que dependía de que dos
      * peticiones no coincidieran.
      */
-    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648, 671],
+    regs: [153, 161, 162, 163, 224, 349, 419, 503, 533, 608, 630, 631, 632, 647, 648, 671, 674, 675],
   },
   {
     clave: 'charter_vacio',

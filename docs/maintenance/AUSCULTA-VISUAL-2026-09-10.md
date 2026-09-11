@@ -155,3 +155,32 @@ Se abrió el preview nuevo con la sesión de Vercel. Google devolvió «Este dom
 no está autorizado en Firebase» tanto en su URL individual como en el alias
 estable de la rama. La QA privada de Ausculta sigue pendiente por esa configuración;
 no se cambiaron dominios autorizados, IAM ni datos de pacientes desde esta sesión.
+
+### Continuación del 11-sep: dominio aprobado y guardados locales
+
+El dueño autorizó expresamente el alias estable del PR. Se añadió en Firebase
+Authentication de `nexomed-agenda` y se verificó en la tabla de dominios:
+`agenda-medica-git-codex-ausculta-v-7f154b-docrod29-ais-projects.vercel.app`.
+Esta confirmación sustituye el bloqueo descrito arriba; no acredita acceso privado.
+
+Google pasó a devolver `Error 400: redirect_uri_mismatch`. El detalle visible
+identifica el retorno que falta registrar en el cliente OAuth de Google Cloud:
+`https://agenda-medica-git-codex-ausculta-v-7f154b-docrod29-ais-projects.vercel.app/__/auth/handler`.
+La consola de Google Cloud abrió `Site Unavailable` desde esta sesión; no se
+modificó el cliente OAuth. La cuenta privada de Ausculta sigue sin abrirse.
+
+Los catorce índices de Firestore se comprobaron en las dos páginas de la consola:
+todos **Habilitado**. El cierre de Storage #36 sigue válido. No se realizó una
+subida privada ni se usaron datos reales en pruebas o imágenes.
+
+La auditoría independiente encontró dos defectos locales adicionales: Retomar
+ofrecía pacientes de respaldos ilegibles de otro uid, y un flush de A podía usar
+el uid recién abierto de B. REG-674/675 cierran esos caminos, conservando los
+archivos originales y respaldando antes del logout cuando falla la red. Cinco
+casos negativos por defecto fallaron antes; los 68 casos dirigidos pasan tras
+el arreglo. La suite completa, build y CI del nuevo commit se registrarán en PR.
+
+Esto no cierra aislamiento total: faltan scope de clínica/usuario en el cajón y
+el legado, PHI en ficha raíz y transición D-057 sin titular, además de QA privada,
+subida real de prueba y Safari físico/teclado real. Producción sigue en v1196;
+las capturas y videos actuales corresponden al diseño d4b34c7 ya validado.

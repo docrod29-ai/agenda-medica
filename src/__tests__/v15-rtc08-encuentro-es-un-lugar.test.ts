@@ -37,15 +37,19 @@
  *    guarda; no abre una fuente de verdad nueva.
  * 2. Saca IDs y sello de tiempo — **ni un dato clínico**. La barra de
  *    navegación no es sitio para PHI.
- * 3. Un respaldo ilegible NO borra el encuentro: la clave existe, así que hay
- *    algo abierto. Ante la duda se enseña, porque el caso que duele es la
- *    consulta a medias que se pierde de vista.
+ * 3. REG-674: un respaldo ilegible se CONSERVA, pero no se ofrece como destino.
+ *    La auditoría del PR #487 ejecutó el lector con dos usuarios sintéticos:
+ *    el segundo recibía el patientId del primero, incluso sin uid activo.
+ *    Confundir existencia con pertenencia exponía una consulta ajena. Sólo se
+ *    ofrece un objeto que se pueda desofuscar con el uid vivo. Esto no prueba
+ *    pertenencia al consultorio: los respaldos legados no incluyen clinicId.
  * 4. El riel tiene tres respuestas y ninguna es el silencio: estás dentro ·
  *    hay uno y lo retomo · no hay ninguno y lo digo.
  *
  * Probado al revés: devolviendo `encounterHref` a `'/pacientes'` fijo fallan
- * los casos 7 y 8; quitando el nombre accesible falla el 9; haciendo que un
- * respaldo ilegible devuelva `null` falla el 4.
+ * los casos 7 y 8; quitando el nombre accesible falla el 9. REG-674 conserva
+ * el lector anterior como control inverso: fallan los negativos de cuenta,
+ * sesión ausente y contenido ilegible; el respaldo del dueño sigue intacto.
  *
  * ── QUÉ NO CUBRE ────────────────────────────────────────────────────────────
  *
@@ -76,14 +80,17 @@ const CSS = readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8')
  * esa superficie tan estrecha en vez de esconderla tras un entorno completo.
  */
 function conAlmacen(entradas: Record<string, string>) {
-  const claves = Object.keys(entradas)
+  const datos = new Map(Object.entries(entradas))
   const almacen = {
-    length: claves.length,
-    key: (i: number) => claves[i] ?? null,
-    getItem: (k: string) => entradas[k] ?? null,
-    setItem: () => {}, removeItem: () => {}, clear: () => {},
-  } as unknown as Storage
+    get length() { return datos.size },
+    key: (i: number) => [...datos.keys()][i] ?? null,
+    getItem: (k: string) => datos.get(k) ?? null,
+    setItem: (k: string, v: string) => { datos.set(k, v) },
+    removeItem: (k: string) => { datos.delete(k) },
+    clear: () => { datos.clear() },
+  } satisfies Storage
   vi.stubGlobal('window', { localStorage: almacen })
+  return almacen
 }
 
 const UID = 'medico-1'
@@ -112,15 +119,13 @@ describe('RTC-08 — la lectura del encuentro abierto', () => {
     expect(encuentroAbierto(UID)?.patientId).toBe('pac-nuevo')
   })
 
-  it('4 · un respaldo ILEGIBLE sigue contando como encuentro abierto', () => {
-    // Ofuscado con otro uid: no se puede leer el sello. Devolver null aquí
-    // escondería una consulta a medio escribir — el caso que más duele.
-    conAlmacen({
-      'nx.consulta.bkp.pac-9': ofuscar(JSON.stringify({ ts: 5 }), secretoLocal('otro-uid')),
-    })
-    const e = encuentroAbierto(UID)
-    expect(e?.patientId).toBe('pac-9')
-    expect(e?.ts).toBe(0)
+  it('4 · otro usuario no recibe el destino; el dueño conserva su recuperación', () => {
+    const clave = 'nx.consulta.bkp.pac-9'
+    const respaldo = ofuscar(JSON.stringify({ ts: 5 }), 'otro-uid')
+    const almacen = conAlmacen({ [clave]: respaldo })
+    expect(encuentroAbierto(UID)).toBeNull()
+    expect(almacen.getItem(clave)).toBe(respaldo)
+    expect(encuentroAbierto('otro-uid')).toEqual({ patientId: 'pac-9', ts: 5 })
   })
 
   it('5 · el episodio hospitalario viaja en la ruta que retoma', () => {
@@ -136,6 +141,39 @@ describe('RTC-08 — la lectura del encuentro abierto', () => {
     expect(partesDeLaClave('nx.uci.lecturas.abc')).toBeNull()
     expect(partesDeLaClave('nx.consulta.bkp.')).toBeNull()
     expect(partesDeLaClave('nx.consulta.bkp.pac.h.')).toBeNull()
+  })
+
+  it('REG-674 · sin sesión activa no se reutiliza el uid recordado', () => {
+    conAlmacen({ 'nx.consulta.bkp.pac-7': conSello(1000) })
+    expect(encuentroAbierto(UID)?.patientId).toBe('pac-7')
+    for (const uid of [undefined, null, '']) expect(encuentroAbierto(uid)).toBeNull()
+  })
+
+  it('REG-674 · texto plano, corrupción y JSON que no es objeto se conservan sin ofrecerlos', () => {
+    const clave = 'nx.consulta.bkp.pac-7'
+    for (const respaldo of [
+      JSON.stringify({ ts: 1000 }), 'NXO1:inválido',
+      ofuscar('null', UID), ofuscar('[]', UID), ofuscar('"texto"', UID),
+    ]) {
+      const almacen = conAlmacen({ [clave]: respaldo })
+      expect(encuentroAbierto(UID)).toBeNull()
+      expect(almacen.getItem(clave)).toBe(respaldo)
+    }
+  })
+
+  it('REG-674 · un respaldo ajeno no sustituye el propio sin fecha', () => {
+    conAlmacen({
+      'nx.consulta.bkp.propio': ofuscar(JSON.stringify({ resumen: 'Borrador sintético' }), UID),
+      'nx.consulta.bkp.ajeno': ofuscar(JSON.stringify({ ts: 9000 }), 'otro-uid'),
+    })
+    expect(encuentroAbierto(UID)).toEqual({ patientId: 'propio', ts: 0 })
+  })
+
+  it('REG-674 · sin uid no se consulta siquiera el almacenamiento sensible', () => {
+    const leer = vi.fn(() => { throw new Error('no debe leer') })
+    vi.stubGlobal('window', Object.defineProperty({}, 'localStorage', { get: leer }))
+    expect(encuentroAbierto(null)).toBeNull()
+    expect(leer).not.toHaveBeenCalled()
   })
 })
 

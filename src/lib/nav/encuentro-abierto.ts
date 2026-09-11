@@ -36,11 +36,11 @@
  * obtiene. La barra de navegación no es sitio para PHI, y un módulo que
  * devuelve «el paciente y la hora» no puede filtrar lo que nunca sostiene.
  *
- * Si el respaldo no se puede desofuscar (uid distinto, dato corrupto, versión
- * vieja), el encuentro **sigue contando**: la clave existe, así que hay algo
- * abierto. Sólo se pierde el orden entre varios, y para eso hay un desempate
- * declarado abajo. Preferir «no hay nada» ante la duda escondería una consulta
- * a medio escribir, que es el caso que más duele.
+ * REG-674: si no se puede leer con el uid vivo, no se ofrece como destino.
+ * Antes se admitía con ts=0 y otra cuenta recibía el paciente del respaldo
+ * ajeno. Ignorarlo aquí NO borra la copia ni modifica su recuperación.
+ * La ofuscación no acredita pertenencia a una clínica: los respaldos legados
+ * no llevan clinicId. Este filtro no es autorización de acceso al expediente.
  */
 import { PREFIJO_BORRADOR } from '@/lib/mobile/local-drafts'
 import { desofuscar, secretoLocal } from '@/lib/seguridad/ofuscar-local'
@@ -50,8 +50,7 @@ export interface EncuentroAbierto {
   /** Episodio hospitalario, cuando la consulta cuelga de un internamiento. */
   internamientoId?: string
   /**
-   * Último autoguardado, en ms. `0` cuando el respaldo no se pudo leer — el
-   * encuentro cuenta igual, sólo pierde prioridad en el desempate.
+   * Último autoguardado, en ms. `0` cuando un respaldo legible no trae fecha.
    */
   ts: number
 }
@@ -84,13 +83,11 @@ export function partesDeLaClave(clave: string): { patientId: string; internamien
  * El encuentro abierto más reciente, o `null` si no hay ninguno.
  *
  * DESEMPATE, declarado a propósito: gana el sello de tiempo más alto; entre
- * los que no se pudieron leer (ts 0), gana el ÚLTIMO que enumere el almacén,
- * que en todos los navegadores es el más recientemente escrito. Es una
- * heurística y por eso está escrita: lo que no se puede saber con certeza se
- * dice, no se disfraza.
+ * los legibles sin fecha (ts 0), gana el último que enumere el almacén.
+ * Ese orden no demuestra cuál se escribió después.
  */
 export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
-  if (typeof window === 'undefined') return null
+  if (!uid || typeof window === 'undefined') return null
   let almacen: Storage
   try {
     almacen = window.localStorage
@@ -110,13 +107,15 @@ export function encuentroAbierto(uid?: string | null): EncuentroAbierto | null {
     let ts = 0
     try {
       const crudo = almacen.getItem(clave)
-      if (crudo) {
-        const claro = desofuscar(crudo, secreto)
-        // Sólo el sello. El contenido clínico no sale de esta línea.
-        if (claro) ts = Number((JSON.parse(claro) as { ts?: unknown }).ts) || 0
-      }
+      if (!crudo) continue
+      const claro = desofuscar(crudo, secreto)
+      if (!claro) continue
+      const respaldo: unknown = JSON.parse(claro)
+      if (!respaldo || typeof respaldo !== 'object' || Array.isArray(respaldo)) continue
+      // Sólo el sello. El contenido clínico nunca se devuelve a la navegación.
+      ts = Number((respaldo as { ts?: unknown }).ts) || 0
     } catch {
-      /* respaldo ilegible: el encuentro cuenta igual, con ts 0 */
+      continue // ilegible o de otra cuenta: conservar sus bytes, no ofrecerlo
     }
 
     if (!mejor || ts >= mejor.ts) mejor = { ...partes, ts }

@@ -382,6 +382,9 @@ const CLAVES_DE_INDICACIONES: readonly string[] = ['planPostop', 'signosAlarma',
 
 export default function ConsultaActivaPage() {
   const { patientId } = useParams<{ patientId: string }>()
+  // REG-675: el contenido de este montaje pertenece a esta sesión. Un flush
+  // tardío no puede adoptar el uid de quien acaba de entrar en el dispositivo.
+  const [uidDelMontaje] = useState(() => auth.currentUser?.uid ?? null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const notaIdParam = searchParams.get('nota')
@@ -3763,10 +3766,11 @@ export default function ConsultaActivaPage() {
     }
     if (!hayAlgoQuePerder(vivo)) return
     const id = setTimeout(() => {
+      if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) return
       const r = guardarRespaldoLocal(
         vivo,
         { notaId: notaIdRef.current, ts: Date.now(), bloqueado: borradoresBloqueados() },
-        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+        cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), uidDelMontaje)),
       )
       /**
        * Y si no cupo, **se dice**. Antes esto era `catch { /* no es crítico *\/ }`
@@ -3785,7 +3789,7 @@ export default function ConsultaActivaPage() {
     // orden o llenar el bloque preoperatorio, sin tocar nada más, no re-armaba
     // el debounce y el respaldo local se quedaba en la versión anterior. Con un
     // cierre forzado del navegador (sin desmonte, sin `pagehide`) eso se pierde.
-  }, [firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
+  }, [uidDelMontaje, firmada, tipo, resumen, secciones, signos, diagnosticos, medicamentos, estudiosOrden, preop, proximoSeguimiento, voz.transcripcion, respaldoKey, toast])
 
   // Al abrir: si hay respaldo local, RESTÁURALO SOLO (sin que tengas que ver un
   // banner) — salvo que estés abriendo otra nota (?nota=) o que el formulario ya
@@ -4123,6 +4127,7 @@ export default function ConsultaActivaPage() {
   const flushRespaldo = useCallback(() => {
     const e = estadoVivoRef.current
     if (e.firmada) return
+    if (!uidDelMontaje || auth.currentUser?.uid !== uidDelMontaje) return
     // Tras cerrar sesión, el desmonte dispara este flush. Escribir aquí resucitaba
     // el borrador que se acababa de purgar, y encima con la clave equivocada.
     if (borradoresBloqueados()) return
@@ -4135,13 +4140,13 @@ export default function ConsultaActivaPage() {
     const r = guardarRespaldoLocal(
       e,
       { notaId: notaIdRef.current, ts: Date.now(), bloqueado: false },
-      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), secretoLocal(auth.currentUser?.uid))),
+      cuerpo => localStorage.setItem(respaldoKey, ofuscar(JSON.stringify(cuerpo), uidDelMontaje)),
     )
     if ((r === 'sin_espacio' || r === 'no_se_pudo') && !avisoRespaldoRef.current) {
       avisoRespaldoRef.current = true
       toast(AVISO_SIN_ESPACIO, 'error')
     }
-  }, [respaldoKey, toast])
+  }, [respaldoKey, toast, uidDelMontaje])
   useEffect(() => {
     const onHide = () => { if (document.visibilityState === 'hidden') flushRespaldo() }
     window.addEventListener('pagehide', flushRespaldo)
@@ -4213,13 +4218,17 @@ export default function ConsultaActivaPage() {
        *
        * Ahora quien cierra sabe si esto terminó, y si no terminó NO purga.
        */
+      // Antes de perder la sesión, conservar también la última tecla local:
+      // si el servidor falla antes del debounce, el flush posterior al logout
+      // ya estará bloqueado. No crear una tercera forma de armar el respaldo.
+      flushRespaldo()
       const p = guardarBorrador(true)
       const detalle = (ev as CustomEvent<{ esperar?: (q: Promise<unknown>) => void }>).detail
       if (p && typeof detalle?.esperar === 'function') detalle.esperar(Promise.resolve(p))
     }
     window.addEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
     return () => window.removeEventListener(EVENTO_GUARDAR_TODO, alGuardarTodo)
-  }, [guardarBorrador])
+  }, [guardarBorrador, flushRespaldo])
 
   const restaurarRespaldo = async () => {
     try {
