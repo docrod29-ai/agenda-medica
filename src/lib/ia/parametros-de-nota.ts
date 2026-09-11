@@ -47,6 +47,9 @@
  *   sin avisar, y eso está decidido en `CLAUDE.md`.
  * · Haiku no lleva razonamiento aquí (el perfil `live` nunca lo pidió); si un
  *   día se quisiera, se declara en este módulo y no en la ruta.
+ * · `budgetLegado` es por ruta (la nota 6000, la corrección 4000, la evidencia
+ *   5000) porque cada una tiene su propio `max_tokens`; sólo importa en los
+ *   modelos 3.7–4.5, que son los únicos que todavía lo leen.
  */
 
 export type Thinking =
@@ -101,15 +104,26 @@ export function versionDe(model: string): { familia: string; version: number } |
  * · Opus y Sonnet de 3.7 a 4.5: la forma antigua con presupuesto en tokens.
  * · Haiku y cualquier cosa desconocida: sin razonamiento (como hasta ahora).
  */
-export function thinkingPara(model: string): Thinking | null {
+export function thinkingPara(model: string, budgetLegado: number = BUDGET_LEGADO): Thinking | null {
   const v = versionDe(model)
   if (!v) return null
   if (v.familia === 'fable' || v.familia === 'mythos') return { type: 'adaptive' }
   if (v.familia !== 'opus' && v.familia !== 'sonnet') return null
   if (v.version >= 4.6) return { type: 'adaptive' }
-  if (v.version >= 3.7) return { type: 'enabled', budget_tokens: BUDGET_LEGADO }
+  if (v.version >= 3.7) return { type: 'enabled', budget_tokens: budgetLegado }
   return null
 }
+
+/**
+ * Lo que se le dice al médico cuando pidió la nota Máxima y el razonamiento
+ * NO se hizo (el proveedor rechazó el parámetro, o el JSON se cortó y el
+ * reintento fue sin razonar). Regla 3 de seguridad clínica: nada cambia en
+ * silencio. Hallazgo B-003 del panel de sep-2026.
+ */
+export const AVISO_SIN_RAZONAMIENTO =
+  'La nota se redactó con el modelo Máximo pero SIN el razonamiento extendido: ' +
+  'el proveedor no lo aceptó en esta llamada. El texto es válido; revisa con más ' +
+  'cuidado el diagnóstico diferencial y las dosis, que es lo que ese paso mejora.'
 
 /** Sólo Opus 4.8 y Opus 5 sirven el modo rápido; y sólo si el dueño lo encendió. */
 export function admiteModoRapido(model: string): boolean {

@@ -1433,7 +1433,7 @@ export default function ConsultaActivaPage() {
   // no lo elige (D-047): se persiste para procedencia, no para un menú.
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
-  const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
+  const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string; razonamientoExtendido?: boolean } | null>(null)
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
@@ -1448,6 +1448,8 @@ export default function ConsultaActivaPage() {
    * pantalla lo enseña, no lo juzga.
    */
   const [avisoModelo, setAvisoModelo] = useState('')
+  /** REG-686: se pidió la nota Máxima y el razonamiento extendido NO se hizo. Se dice, no se calla. */
+  const [avisoRazonamiento, setAvisoRazonamiento] = useState('')
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   /**
    * REG-581 · el DOI y la abreviatura ISO YA venían en la respuesta —
@@ -2819,8 +2821,9 @@ export default function ConsultaActivaPage() {
       }
       if (!enVivo) {
         setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
-        if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
+        if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString(), razonamientoExtendido: data._razonamientoExtendido === true })
         setAvisoModelo(data._modeloDegradado ? String(data._avisoModelo ?? '') : '')
+        setAvisoRazonamiento(data._sinRazonamiento ? String(data._avisoRazonamiento ?? '') : '')
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
@@ -3023,7 +3026,7 @@ export default function ConsultaActivaPage() {
         safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
         // La nota la produjo el parser local: que la procedencia lo diga en vez
         // de arrastrar el modelo del procesamiento anterior.
-        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })
+        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString(), razonamientoExtendido: false })
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
@@ -3487,6 +3490,9 @@ export default function ConsultaActivaPage() {
           promptVersion: provenanceIA.promptVersion,
           apiVersion: provenanceIA.apiVersion,
           generadoEn: provenanceIA.generadoEn,
+          // REG-686: si el razonamiento extendido se hizo o no. Una nota Máxima
+          // sin razonar se firma igual, pero el expediente lo dice.
+          razonamientoExtendido: provenanceIA.razonamientoExtendido,
           // La verdad, no una tautología: firmar ya NO cuenta como revisar.
           // No se bloquea firmar sin revisar — a veces la nota está bien y no hay
           // nada que aceptar — pero el expediente registra lo que de verdad pasó.
@@ -6544,6 +6550,17 @@ export default function ConsultaActivaPage() {
             <AlertTriangle size={16} /> Esta nota no usó el nivel de IA que pediste
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoModelo}</div>
+        </div>
+      )}
+      {avisoRazonamiento && !avisoModelo && !sinCreditos && !grabandoAhora() && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>
+            <AlertTriangle size={16} /> Esta nota se redactó sin el razonamiento extendido
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoRazonamiento}</div>
         </div>
       )}
       {modoEco && !sinCreditos && !grabandoAhora() && (

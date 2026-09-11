@@ -58,11 +58,12 @@
  *   LLEGAR»); aquí sólo se garantiza que la forma rechazada no vuelva.
  * · No mide cuánto tarda la nota ni cuántas veces aterriza el ensamble: eso
  *   son `_modelosNota` y el libro de costos en producción.
- * · No cubre `corregir` ni `evidencia`, que llevan el mismo literal antiguo
- *   con sus propios presupuestos. Declarado como pendiente en el ledger.
- * · El modo seguro (400 con thinking → sin thinking) sigue sin avisar al
- *   médico en la respuesta (B-003). Con la forma correcta ya no debería
- *   dispararse; si se dispara, sigue siendo silencioso. Abierto.
+ * · `corregir` y `evidencia` llevaban el mismo literal antiguo con sus propios
+ *   presupuestos (4000 y 5000): se cubren abajo, con la misma función.
+ * · REG-686 (B-003): si el modo seguro se dispara de todos modos, la respuesta
+ *   lo DICE (`_sinRazonamiento` + aviso), la pantalla lo pinta y la
+ *   procedencia sellada lo guarda (`razonamientoExtendido`). No cubre que el
+ *   aviso se lea: eso es la pantalla, y se recorre a mano.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -70,12 +71,14 @@ import { join } from 'node:path'
 import {
   thinkingPara, versionDe, velocidadPara, admiteModoRapido, cabecerasDeVelocidad,
   cuerpoDeVelocidad, modoRapidoHabilitado, BUDGET_LEGADO, BETA_MODO_RAPIDO,
-  ESTADOS_QUE_RETIRAN_LA_VELOCIDAD,
+  ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, AVISO_SIN_RAZONAMIENTO,
 } from '@/lib/ia/parametros-de-nota'
 
-const ruta = readFileSync(join(process.cwd(), 'src/app/api/expediente/procesar/route.ts'), 'utf8')
+const leer = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
+const sinComentarios = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+const ruta = leer('src/app/api/expediente/procesar/route.ts')
 /** El CÓDIGO de la ruta, sin comentarios: la historia puede nombrar la forma vieja; el código no. */
-const codigo = ruta.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+const codigo = sinComentarios(ruta)
 
 /** La cascada tal como la declara la ruta, leída del archivo para no desfasarse. */
 function cascadaDeLaRuta(nombre: 'MODELOS_PREMIUM' | 'MODELOS_PRO' | 'MODELOS_LIVE'): string[] {
@@ -140,6 +143,55 @@ describe('REG-685 · la forma del razonamiento sale del modelo', () => {
 
   it('con razonamiento adaptativo el JSON tiene el techo del auto-reintento, no 24000 − 6000', () => {
     expect(ruta).toContain('thinking ? 32000 : 24000')
+  })
+
+  it('`corregir` y `evidencia` piden la forma por modelo, con su presupuesto legado propio', () => {
+    for (const [archivo, presupuesto] of [['src/app/api/expediente/corregir/route.ts', 'BUDGET_CORRECCION'], ['src/app/api/expediente/evidencia/route.ts', '5000']] as const) {
+      const src = leer(archivo)
+      expect(src, archivo).toContain("from '@/lib/ia/parametros-de-nota'")
+      expect(src, archivo).toContain(`thinkingPara(model, ${presupuesto})`)
+      expect(sinComentarios(src), `${archivo} conserva el literal viejo`).not.toContain('budget_tokens')
+      expect(sinComentarios(src), `${archivo} conserva la regex vieja`).not.toMatch(/opus-4\|sonnet-5\|sonnet-4/)
+    }
+    // El presupuesto por ruta sólo cambia la forma vieja; la nueva no lo lleva.
+    expect(thinkingPara('claude-sonnet-4-5', 4000)).toEqual({ type: 'enabled', budget_tokens: 4000 })
+    expect(thinkingPara('claude-opus-4-8', 4000)).toEqual({ type: 'adaptive' })
+  })
+})
+
+describe('REG-686 · si la nota Máxima no razonó, se DICE (hallazgo B-003)', () => {
+  const consulta = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
+
+  it('la ruta lleva la cuenta de si razonó, y la pierde en los dos caminos que degradan', () => {
+    expect(ruta).toContain('let razono = conThinking && thinkingPara(model) !== null')
+    // Modo seguro (400 con razonamiento) y reintento por JSON cortado.
+    expect([...ruta.matchAll(/razono = false/g)]).toHaveLength(2)
+    expect(ruta).toMatch(/res = await llamarClaudeConReintentos\(API_KEY, model, system, userMsg, false\)\s*\n\s*razono = false/)
+    expect(ruta).toContain('if (p2) { parsed = p2; razono = false }')
+  })
+
+  it('la respuesta lo dice en las DOS salidas (válida y con aviso de esquema), y el parser local no presume razonamiento', () => {
+    expect([...ruta.matchAll(/_razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono \? AVISO_SIN_RAZONAMIENTO : ''/g)]).toHaveLength(2)
+    expect(ruta).toContain("_modelo: 'parser-local', _razonamientoExtendido: false")
+  })
+
+  it('el aviso existe, habla al médico y no culpa a otra cosa', () => {
+    expect(AVISO_SIN_RAZONAMIENTO).toMatch(/SIN el razonamiento extendido/)
+    expect(AVISO_SIN_RAZONAMIENTO).toMatch(/revisa/i)
+    expect(AVISO_SIN_RAZONAMIENTO).not.toMatch(/créditos|saldo|tarjeta/i)
+  })
+
+  it('la pantalla lo pinta con el mismo peso que la degradación de modelo', () => {
+    expect(consulta).toContain("setAvisoRazonamiento(data._sinRazonamiento ? String(data._avisoRazonamiento ?? '') : '')")
+    expect(consulta).toContain('Esta nota se redactó sin el razonamiento extendido')
+    expect(consulta).toContain('{avisoRazonamiento && !avisoModelo && !sinCreditos && !grabandoAhora() && (')
+  })
+
+  it('y la procedencia sellada lo guarda: una nota Máxima sin razonar se firma igual, pero el expediente lo dice', () => {
+    expect(consulta).toContain('razonamientoExtendido: data._razonamientoExtendido === true')
+    expect(consulta).toContain('razonamientoExtendido: provenanceIA.razonamientoExtendido')
+    expect(consulta).toContain("modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString(), razonamientoExtendido: false")
+    expect(leer('src/types/expediente.ts')).toContain('razonamientoExtendido?: boolean')
   })
 })
 

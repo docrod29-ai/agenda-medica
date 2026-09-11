@@ -23,15 +23,18 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M .env.example",
-    " M docs/audit/regression-ledger.md",
+    "M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
-    " M docs/ops/inventario-de-entorno.json",
-    " M src/__tests__/el-reloj-de-la-nota.test.ts",
+    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
+    " M src/__tests__/la-nota-maxima-si-razona.test.ts",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/api/expediente/corregir/route.ts",
+    " M src/app/api/expediente/evidencia/route.ts",
     " M src/app/api/expediente/procesar/route.ts",
+    " M src/lib/calidad/familias-de-defecto.ts",
     " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-nota-maxima-si-razona.test.ts",
-    "?? src/lib/ia/parametros-de-nota.ts"
+    " M src/lib/ia/parametros-de-nota.ts",
+    " M src/types/expediente.ts"
   ],
   "actualizado": "2026-09-11",
   "resumenDesdeElUltimoEstado": {
@@ -67,10 +70,10 @@
   ],
   "ramaActual": "claude/faster-note-processing-ia2m69",
   "derivado": {
-    "regsEnElLedger": 470,
-    "ultimaREG": "REG-685",
+    "regsEnElLedger": 471,
+    "ultimaREG": "REG-686",
     "archivosDePrueba": 1124,
-    "casosDePrueba": 13332,
+    "casosDePrueba": 13338,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1197"

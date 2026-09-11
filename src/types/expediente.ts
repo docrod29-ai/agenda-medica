@@ -390,6 +390,12 @@ export interface NotaMedica {
       apiVersion?: string      // versión de la API del proveedor
       generadoEn?: string      // ISO timestamp de la generación
       /**
+       * REG-686 · ¿se hizo el razonamiento extendido? `false` cuando se pidió
+       * (motor Máxima) y el proveedor lo rechazó o el reintento fue sin él.
+       * Ausente en notas anteriores a sep-2026: ausencia de dato no es dato.
+       */
+      razonamientoExtendido?: boolean
+      /**
        * ¿El médico revisó de verdad lo que generó la IA antes de firmar?
        *
        * Antes se calculaba como `aprobados.size > 0 || estado === 'firmada'`, es

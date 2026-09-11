@@ -35,7 +35,7 @@ import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-model
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 import {
   thinkingPara, velocidadPara, cabecerasDeVelocidad, cuerpoDeVelocidad,
-  modoRapidoHabilitado, ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, type Velocidad,
+  modoRapidoHabilitado, ESTADOS_QUE_RETIRAN_LA_VELOCIDAD, AVISO_SIN_RAZONAMIENTO, type Velocidad,
 } from '@/lib/ia/parametros-de-nota'
 
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
@@ -359,7 +359,7 @@ function fallbackVisible(transcripcion: string, tipo: TipoNota, aviso: string, c
    */
   return NextResponse.json({
     ...fallback, _aviso: aviso, _causaFallback: causa, _detalleDebug: debug,
-    _modelo: 'parser-local', _promptVersion: 'n/a', _apiVersion: 'n/a',
+    _modelo: 'parser-local', _razonamientoExtendido: false, _promptVersion: 'n/a', _apiVersion: 'n/a',
   })
 }
 
@@ -544,6 +544,15 @@ export async function POST(req: NextRequest) {
     let eleccion = await resolverModelo(API_KEY, perfil)
     let model = eleccion.modelo ?? CANDIDATOS[perfil][0]
     let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
+    /**
+     * ¿LA NOTA RAZONÓ DE VERDAD? (REG-686, hallazgo B-003)
+     *
+     * Se pidió razonamiento y el modelo lo admite → `true`. Si el proveedor
+     * lo rechaza (modo seguro) o el JSON se corta y el reintento es sin
+     * razonar, pasa a `false`. Viaja en la respuesta y se sella en la
+     * procedencia: degradar está bien, degradar callado no.
+     */
+    let razono = conThinking && thinkingPara(model) !== null
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
     if (res.status === 404) {
@@ -551,6 +560,7 @@ export async function POST(req: NextRequest) {
       eleccion = await resolverModelo(API_KEY, perfil)
       model = eleccion.modelo ?? CANDIDATOS[perfil][0]
       res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
+      razono = conThinking && thinkingPara(model) !== null
     }
 
     // MODO SEGURO: un 400 con "extended thinking" (o max_tokens alto) tumbaba la
@@ -562,6 +572,7 @@ export async function POST(req: NextRequest) {
       const errTxt = await res.clone().text().catch(() => '')
       safeLog.error('[expediente/procesar] 400 con thinking, reintento modo seguro:', redactarString(errTxt.slice(0, 300)))
       res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false)
+      razono = false
     }
 
     if (!res.ok) {
@@ -631,7 +642,8 @@ export async function POST(req: NextRequest) {
         const b2: { type?: string; text?: string }[] = Array.isArray(data2?.content) ? data2.content : []
         const t2: string = b2.find(x => x?.type === 'text')?.text ?? b2[0]?.text ?? ''
         const p2 = parseJSON(t2)
-        if (p2) parsed = p2
+        // La nota que sale es la del reintento SIN razonar: se dice.
+        if (p2) { parsed = p2; razono = false }
       }
     }
 
@@ -674,7 +686,7 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono ? AVISO_SIN_RAZONAMIENTO : '', _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
     }
 
     void registrarUso(clinicId, fuente)
@@ -768,7 +780,7 @@ export async function POST(req: NextRequest) {
      * su nota se redactó con el criterio de ninguna rama. Se dice.
      */
     const conGuia = tieneGuia(contexto.especialidad)
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono ? AVISO_SIN_RAZONAMIENTO : '', _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

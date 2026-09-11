@@ -14,6 +14,7 @@
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { thinkingPara } from '@/lib/ia/parametros-de-nota'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -338,7 +339,9 @@ export async function POST(req: NextRequest) {
         system: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: usr }],
       }
-      if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
+      // REG-685: la forma sale del modelo; la vieja (`budget_tokens`) da 400 en 4.7+.
+      const forma = conThinking ? thinkingPara(model, 5000) : null
+      if (forma) payload.thinking = forma
       return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(msParaElModelo()) })
     }
     try {
