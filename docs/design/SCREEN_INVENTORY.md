@@ -48,8 +48,8 @@
 | `/calendario` | medico | ✅ | 1232 | 1 | — | ✅ | — |
 | `/chat` | medico | ✅ | 364 | 0 | — | ✅ | — |
 | `/citas` | medico | ✅ | 1280 | 6 | — | ✅ | — |
-| `/configuracion` | medico | ✅ | 2975 | 1 | — | ✅ | — |
-| `/consulta/[patientId]` | medico | ✅ | 8469 | 9 | — | ✅ | ✅ |
+| `/configuracion` | medico | ✅ | 2977 | 1 | — | ✅ | — |
+| `/consulta/[patientId]` | medico | ✅ | 8523 | 10 | — | ✅ | ✅ |
 | `/consultor` | medico | ✅ | 409 | 0 | — | ✅ | — |
 | `/corte-caja` | medico | ✅ | 338 | 0 | — | ✅ | — |
 | `/crm` | medico | ✅ | 278 | 1 | — | ✅ | — |
@@ -69,7 +69,7 @@
 | `/motores` | medico | ✅ | 208 | 0 | — | ✅ | — |
 | `/nota/[patientId]` | medico | ✅ | 82 | 2 | — | ✅ | — |
 | `/nota/[patientId]/[notaId]` | medico | ✅ | 1051 | 2 | — | ✅ | — |
-| `/operaciones` | medico | ✅ | 568 | 1 | — | ✅ | — |
+| `/operaciones` | medico | ✅ | 570 | 1 | — | ✅ | — |
 | `/orden/[patientId]/[notaId]` | medico | ✅ | 1040 | 3 | — | ✅ | — |
 | `/pacientes` | medico | ✅ | 1494 | 4 | — | ✅ | — |
 | `/pendientes` | medico | ✅ | 997 | 3 | — | ✅ | ✅ |
@@ -87,7 +87,7 @@
 | `/uci/benchmark` | alpha | ✅ | 277 | 0 | — | ✅ | — |
 | `/uci/dosificacion` | alpha | ✅ | 585 | 0 | — | ✅ | — |
 | `/uci/enfermeria` | alpha | ✅ | 206 | 1 | — | ✅ | — |
-| `/` | publica | ✅ | 418 | 13 | — | — | — |
+| `/` | publica | ✅ | 419 | 13 | — | — | — |
 | `/arquitectura` | publica | — | 131 | 2 | — | ✅ | — |
 | `/contacto` | publica | — | 83 | 1 | — | ✅ | — |
 | `/demo` | publica | — | 510 | 4 | — | ✅ | — |
@@ -98,7 +98,7 @@
 | `/login` | publica | ✅ | 380 | 5 | — | ✅ | — |
 | `/operacion` | publica | — | 129 | 2 | — | ✅ | — |
 | `/paquetes` | publica | — | 111 | 3 | — | ✅ | — |
-| `/precios` | publica | — | 213 | 1 | — | ✅ | — |
+| `/precios` | publica | — | 212 | 1 | — | ✅ | — |
 | `/privacidad` | publica | — | 172 | 0 | — | ✅ | — |
 | `/registro` | publica | ✅ | 459 | 3 | — | ✅ | — |
 | `/seguridad` | publica | — | 175 | 1 | — | ✅ | — |

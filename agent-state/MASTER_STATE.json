@@ -22,29 +22,8 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34054755373",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M agent-state/CHANGELOG_AGENT.md",
-    " M agent-state/MASTER_STATE.json",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/design/SCREEN_INVENTORY.md",
-    " M docs/maintenance/sw-changelog.md",
-    " M docs/ops/REGLAS-DE-FIRESTORE.md",
-    " M docs/product/AUSCULTA-MASTER-BOARD.md",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M docs/security/matriz-acceso-phi.md",
-    " M emulator/entorno.ts",
-    " M emulator/golden-flow.emu.test.ts",
-    " M emulator/gp9-transiciones-idempotentes.emu.test.ts",
-    " M emulator/privacidad-misma-clinica.emu.test.ts",
-    " M emulator/ws03-consultorio-grande.emu.test.ts",
-    " M firestore.rules",
-    " M src/__tests__/_harness/firestore-cliente-en-memoria.ts",
-    " M src/__tests__/agendar-no-es-haber-visto-al-paciente.test.ts",
-    " M src/__tests__/authz-rutas-declaradas.test.ts",
-    " M src/__tests__/cada-medico-ve-sus-pacientes.test.ts"
-  ],
-  "actualizado": "2026-09-11",
+  "trabajoLocalSinSubir": [],
+  "actualizado": "2026-09-12",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
     "regsCerradas": "REG-204 … REG-214",
@@ -76,13 +55,13 @@
     "STRIPE_WEBHOOK_SECRET en Vercel",
     "OPS_ALERTA_WEBHOOK para las alertas de operación"
   ],
-  "ramaActual": "codex/ausculta-visual-safety",
+  "ramaActual": "claude/faster-note-processing-ia2m69",
   "derivado": {
-    "regsEnElLedger": 469,
-    "ultimaREG": "REG-684",
-    "archivosDePrueba": 1123,
-    "casosDePrueba": 13315,
+    "regsEnElLedger": 475,
+    "ultimaREG": "REG-690",
+    "archivosDePrueba": 1126,
+    "casosDePrueba": 13375,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1197"
+  "versionEnElRepo": "nexusmed-v1198"
 }

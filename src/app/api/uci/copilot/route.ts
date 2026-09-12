@@ -30,7 +30,7 @@ import { llamarIA, type Contexto } from '@/lib/ia/gateway'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 
-const MODELOS_CLAUDE = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5']
+const MODELOS_CLAUDE = ['claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-5']   // D-059
 const MODELOS_OPENAI = ['gpt-5', 'gpt-4o']
 
 /**

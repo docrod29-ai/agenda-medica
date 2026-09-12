@@ -32,7 +32,7 @@ const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const ENV_OPENAI = process.env.OPENAI_API_KEY ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
 
-const MODELOS_OPUS = ['claude-opus-4-8', 'claude-sonnet-5']
+const MODELOS_OPUS = ['claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-5']   // D-059
 const MODELOS_SONNET = ['claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_HAIKU = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 

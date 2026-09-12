@@ -79,7 +79,7 @@ export const PROCEDENCIA_POR_MOTOR: Readonly<Record<ClaveMotor, ProcedenciaMotor
     proveedores: ['anthropic', 'openai', 'assemblyai'],
     segundaOpinion: true,
     diarizacion: true,
-    etiquetaAuditoria: 'Opus 4.8 + GPT-5 (2ª opinión)',
+    etiquetaAuditoria: 'Opus 5 + GPT-5 (2ª opinión)',
   },
 }
 

@@ -12,6 +12,7 @@ import { fetchIA as fetch } from '@/lib/ia/salida-privada'
  * Resp: { ok, resumenEjecutivo, secciones, diagnosticos, medicamentos, alergias, signosVitales } | { ok:false, error }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { thinkingPara, etiquetaDeModelo, type Thinking } from '@/lib/ia/parametros-de-nota'
 import { redactarString } from '@/lib/security/sanitize'
 import { anotarLlamada, type Contexto } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
@@ -28,13 +29,15 @@ import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
 const ENV_ANTHROPIC = process.env.ANTHROPIC_API_KEY ?? ''
 const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
 const ANTHROPIC_VERSION = '2023-06-01'
-// Mismo nivel de razonamiento que la generación de la nota: Opus 4.8 primero.
-const MODELOS = [MODEL_OVERRIDE, 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'].filter(Boolean)
+// Mismo nivel de razonamiento que la generación de la nota: Opus 5 primero (D-059).
+const MODELOS = [MODEL_OVERRIDE, 'claude-opus-5', 'claude-opus-4-8', 'claude-opus-4-6', 'claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5'].filter(Boolean)
 
-/** Modelos que soportan "extended thinking" (razonamiento previo). 3.5 no. */
-function soportaThinking(model: string): boolean {
-  return /opus-4|sonnet-5|sonnet-4|3-7-sonnet/.test(model)
-}
+/**
+ * REG-685 · la forma del razonamiento sale del modelo (`parametros-de-nota`),
+ * no de un literal: la forma vieja (`budget_tokens`) la rechazan Opus 4.7+ y
+ * Sonnet 5 con 400, y el modo seguro de abajo corregía SIN razonar.
+ */
+const BUDGET_CORRECCION = 4000
 
 function headers(key: string) {
   return { 'x-api-key': key, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
@@ -133,14 +136,14 @@ export async function POST(req: NextRequest) {
 
   // Un intento con un modelo, con o sin thinking. Extraído para poder reintentar
   // el MISMO modelo SIN thinking si el thinking (o max_tokens alto) da 400.
-  const intento = (model: string, conThinking: boolean) => {
+  const intento = (model: string, thinking: Thinking | null) => {
     const payload: Record<string, unknown> = {
       model,
-      max_tokens: conThinking ? 16000 : 8000,
+      max_tokens: thinking ? 16000 : 8000,
       system: [{ type: 'text', text: GUARDA_INYECCION + '\n\n' + SYSTEM, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMsg }],
     }
-    if (conThinking) payload.thinking = { type: 'enabled', budget_tokens: 4000 }
+    if (thinking) payload.thinking = thinking
     return fetch('https://api.anthropic.com/v1/messages', {
       signal: AbortSignal.timeout(60_000),   // REG-346
       method: 'POST', headers: headers(API_KEY), body: JSON.stringify(payload),
@@ -150,12 +153,13 @@ export async function POST(req: NextRequest) {
   let ultimoDebug = ''
   for (const model of MODELOS) {
     try {
-      const pienso = soportaThinking(model)
-      let res = await intento(model, pienso)
+      const forma = thinkingPara(model, BUDGET_CORRECCION)
+      const pienso = forma !== null
+      let res = await intento(model, forma)
       // MODO SEGURO: si el intento con thinking dio 400, reintenta el MISMO modelo
       // sin thinking y con tokens normales (evita que un límite de la cuenta tumbe
       // la corrección al parser). El razonamiento extendido es un plus, no un must.
-      if (res.status === 400 && pienso) res = await intento(model, false)
+      if (res.status === 400 && pienso) res = await intento(model, null)
       if (!res.ok) {
         // 400/404/422 → ese modelo no existe en la cuenta o no acepta el payload;
         // 429/5xx → sobrecarga transitoria. En TODOS los casos probamos el
@@ -171,7 +175,8 @@ export async function POST(req: NextRequest) {
       const texto = (bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? '') as string
       const nota = extraerJSON(texto)
       if (nota && typeof nota === 'object') {
-        const modelos: string[] = [/opus/.test(model) ? 'Claude Opus 4.8' : 'Claude']
+        // El nombre sale del modelo que contestó, no de una cadena fija (D-059).
+        const modelos: string[] = [etiquetaDeModelo(String(data?.model ?? model))]
         let notaFinal = nota as Record<string, unknown>
         // SEGUNDO CEREBRO (OpenAI): audita que se aplicó SOLO el cambio pedido.
         // Premium usa GPT-5, Pro GPT-4o. Si no hay llave o falla, se queda Claude.

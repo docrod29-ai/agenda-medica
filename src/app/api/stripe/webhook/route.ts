@@ -17,6 +17,7 @@ import { planDeSuscripcion, esClavePlan } from '@/lib/finanzas/plan-de-suscripci
 import { adminDb } from '@/lib/firebase-admin'
 import { agregarCreditosExtra, guardarNivelIA } from '@/lib/ai-keys'
 import { MODULOS_DE_PLAN } from '@/lib/modulos'
+import { planIncluyeIA } from '@/lib/planes-ia'
 import type { PlanKey } from '@/lib/stripe'
 import type { EstadoDisputa } from '@/lib/finanzas/movimientos'
 import { fechaISOLocal, TZ_DEFAULT } from '@/lib/timezone'
@@ -199,7 +200,8 @@ async function activarPlan(clinicId: string, plan: PlanKey, extra: Record<string
   // de plan se reescribe, así se agregan/quitan funciones según corresponda.
   const modulos = MODULOS_DE_PLAN[plan] ?? MODULOS_DE_PLAN.clinica
   await updateClinic(clinicId, { plan, status: 'active', modulos, ...extra })
-  if (plan !== 'agenda') {
+  // Sólo los planes con IA de voz fijan un nivel de IA (Agenda y Expediente no la tienen, D-061).
+  if (planIncluyeIA(plan)) {
     try { await guardarNivelIA(clinicId, nivelDePlan(plan)) } catch { /* no-bloqueante */ }
   }
 }

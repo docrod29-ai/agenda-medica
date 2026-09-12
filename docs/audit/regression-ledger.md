@@ -26239,3 +26239,57 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Arreglo:** PATCH de appointments ejecuta la misma decisión canónica y transacción atómica, con capacidad de agenda y compuerta de escritura del consultorio. No devuelve PHI. El rescate pide IDs autorizados al mismo directorio, conserva el techo y sondea sólo esos pacientes; no abre lecturas privadas para recuperar el funcionamiento.
 
 **Pruebas permanentes:** `emulator/gp9-transiciones-idempotentes.emu.test.ts` prueba recepción sin lectura clínica, concurrencia y suspensión; `src/__tests__/scale-342-lecturas-acotadas.test.ts` conserva rescate, ambigüedad y escala; `src/__tests__/el-directorio-no-entrega-el-expediente-ajeno.test.ts` comprueba los IDs y el recorte. Sólo datos sintéticos.
+
+## REG-685 — la nota Máxima pedía el razonamiento con una forma que el proveedor rechaza, y el ensamble esperaba en serie (11-sep-2026)
+
+**Reproducción:** el dueño preguntó por qué la nota tardaba tanto. La ruta `expediente/procesar` mandaba `thinking: { type: 'enabled', budget_tokens: 6000 }` a todo modelo con razonamiento. Opus 4.7+, Opus 5, Sonnet 5 y Fable rechazan esa forma con 400 y sólo aceptan `{ type: 'adaptive' }`; con Opus 4.8 arriba de la cascada, el «modo seguro» (repetir sin razonamiento) se disparaba en **todas** las notas 💎 Máxima: un viaje de más al proveedor y la nota redactada sin el razonamiento que el dueño decidió que «no escatima». Sólo lo decía un `safeLog.error`. La auditoría B-003 (panel sep-2026) había visto el camino y lo juzgó de «probabilidad baja». Hermana de REG-167: el código decía razonamiento, el proveedor no lo aceptaba. Además, el borrador de GPT del ensamble se pedía DESPUÉS de que Claude terminara y compartía 25 s con la síntesis: el ensamble gastaba sus 25 s y casi siempre se descartaba.
+
+**Arreglo:** la forma del razonamiento sale de `thinkingPara(model)` en `src/lib/ia/parametros-de-nota.ts` (puro): `adaptive` para 4.6+ y Fable, presupuesto legado para 3.7–4.5, nada para Haiku. Con razonamiento adaptativo el techo de salida es el del auto-reintento (32000), porque ya no hay 6000 que reservar. El borrador de GPT arranca antes de llamar a Claude y corre en paralelo; los 25 s quedan para la síntesis. Modo rápido del proveedor (mismo modelo, misma salida, hasta 2.5× más rápido, más caro) detrás de `NOTA_MODO_RAPIDO=1`, sólo Opus 4.8 / Opus 5, con retirada automática a velocidad normal ante 400/429. Apagado por omisión: doblar el gasto de la llamada más cara es decisión del dueño.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (17 casos; al revés: la forma antigua hacia cualquier modelo 4.6+ de la cascada cae), `src/__tests__/el-reloj-de-la-nota.test.ts` (actualizado: el razonamiento sigue encendido, por modelo). No llama al proveedor: no acredita que `adaptive` sea aceptado hoy — eso se mira con llave real (`scripts/verificar-invariantes-de-datos.md`) y en Vercel buscando «400 con thinking» antes y después. `expediente/corregir` y `expediente/evidencia` llevaban el mismo literal con sus propios presupuestos (4000 y 5000): se cubren con la misma función y la misma prueba. Que el modo seguro avise al médico es REG-686.
+
+## REG-686 — una nota Máxima sin razonamiento se entregaba como si lo tuviera (11-sep-2026)
+
+**Reproducción:** hallazgo B-003 del panel de sep-2026, agravado por REG-685. Cuando el proveedor rechazaba el razonamiento extendido (modo seguro) o el JSON se cortaba y el reintento iba sin razonar, la nota salía con `_plan: 'premium'`, `_motor: 'maxima'` y el mismo `_modelo`, se cobraban los 10 créditos y la procedencia sellada no distinguía esa nota de una razonada. Lo único que quedaba era un `safeLog.error` en el servidor. Ni el médico ni el expediente sabían que el caso difícil se redactó sin el paso que se pagó.
+
+**Arreglo:** la ruta lleva `razono` y lo pierde en los dos caminos que degradan. La respuesta trae `_razonamientoExtendido`, `_sinRazonamiento` y `_avisoRazonamiento` (texto en `parametros-de-nota.ts`, que dice qué revisar con más cuidado y no culpa a créditos ni saldo). La consulta lo pinta con el mismo panel ámbar que la degradación de modelo, y la procedencia inmutable guarda `razonamientoExtendido` (`false` también en el parser local; ausente en notas anteriores, porque ausencia de dato no es dato). No se bloquea firmar: degradar está bien, degradar callado no.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (bloque REG-686). No cubre que el médico lea el aviso ni cuántas veces se dispara en producción: eso se cuenta en Firestore por `iaAuditoria.provenance.razonamientoExtendido == false`, con recuentos y nunca contenido.
+
+## REG-687 — D-059: la nota Máxima corre en Opus 5, y el nombre del modelo sale del que contestó (11-sep-2026)
+
+**Decisión del dueño, no defecto.** Tras REG-685 el dueño pidió «mejora todo». Opus 5 cuesta lo mismo por token que Opus 4.8, es más capaz, usa el mismo tokenizador y también sirve el modo rápido. Sube a lo alto de las cascadas que tienen respaldo (`procesar`, `corregir`, `evidencia`, `antibiograma-razonar`, `uci/copilot`): si la cuenta no lo tiene, la cascada baja a 4.8 sola y la procedencia dice cuál contestó. `consultor-evidencia` se queda en 4.8 porque llama a un modelo fijo sin cascada; cambiarlo a ciegas sería un 404 sin red.
+
+**Lo que sí era defecto y se arregla de paso:** `corregir` y el Consultor pintaban «Claude Opus 4.8» a partir de `/opus/` o de una cadena fija, así que mentían en cuanto la cascada servía otro Opus. Ahora el nombre sale de `etiquetaDeModelo(modeloQueContesto)`. Las etiquetas del nivel Máxima (procedencia por motor, módulos, superadmin) describen la cabeza de la cascada.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (bloque D-059). No acredita que la cuenta tenga Opus 5: eso lo dice `/v1/models` del otro lado, y `_modelo` en cada nota.
+
+## REG-688 — D-060: el modo rápido de la nota va encendido (11-sep-2026)
+
+**Decisión del dueño, no defecto.** El modo rápido nació apagado en REG-685 porque doblar el costo por token de la llamada más cara no era decisión de código. El dueño lo encendió («has esto»). Como desde este contenedor no se puede tocar Vercel, la decisión vive en el código: `modoRapidoHabilitado()` es verdadero por omisión y sólo `NOTA_MODO_RAPIDO=0` lo apaga. Así no depende de recordar una variable en cada entorno. Costo estimado por nota Máxima con modo rápido: ver la sesión del 11-sep en `docs/maintenance/` y el libro de costos, que es el que manda.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-maxima-si-razona.test.ts` (caso D-060).
+
+## REG-689 — D-061: tres paquetes a la venta y el de en medio es escrito (12-sep-2026)
+
+**Decisión del dueño, no defecto.** Reorganización de la oferta tras el análisis de costo por nota y de mercado (Huli: expediente 590 + 200 notas IA 400, más IVA): **Agenda 399** (agenda, reservación en línea, recordatorios, portal, sin expediente completo), **Expediente 699** (expediente completo escrito: notas a mano con plantillas, recetas y órdenes con revisión determinista, farmacia, CRM, finanzas, cumplimiento; sin IA de voz) y **Consulta 1 190** (todo lo anterior más la nota por voz, 450 créditos = 150 notas Estándar, tope económico 20). Pro y Hospital dejan de venderse y quedan para quien ya los paga (`enVenta: false`). La clave `clinica` conserva su nombre interno porque hay suscripciones vivas con ese metadato; su nombre comercial pasa a «Consulta».
+
+**Cómo se apaga la IA en Expediente:** por plan (`iaVoz`), no por módulo. Las diecisiete rutas de IA pasan por `verificarModuloIA(req, 'expediente')`, el mismo módulo que abre las pantallas; partirlo obligaría a migrar `clinic.modulos` de todos los consultorios activos. `planIncluyeIA()` falla abierto (prueba, cortesía, legados, pase libre) y sólo un plan del catálogo con `iaVoz: false` cierra. La consulta esconde la grabadora y explica la salida; el menú esconde el Consultor. El webhook no fija nivel de IA a un plan sin IA.
+
+**Lo que sí era defecto y se cerró de paso:** `PRODUCTOS_DEL_PLAN`, `IMPORTE_MENSUAL`, `STRIPE_PRICES`, `PLAN_NAMES`, `MODULOS_DE_PLAN`, `MODULOS_POR_PLAN`, la paywall, /precios, la portada y la ayuda son siete mapas que cada uno tenía que conocer una clave nueva o caía a `clinica` en silencio. El golden ata cada uno y comprueba que el importe en centavos del deductor de Stripe sea el catálogo por cien, plan por plan.
+
+**Lo que queda en manos del dueño (Stripe, no código):** crear los precios 399 / 699 / 1 190 y sus anuales, pegar `STRIPE_PRICE_EXPEDIENTE`, `STRIPE_PRICE_EXPEDIENTE_ANUAL` y `STRIPE_PRICE_EXPEDIENTE_MEDICO` en Vercel, y actualizar los importes de `STRIPE_PRICE_AGENDA` y `STRIPE_PRICE_CLINICA`. Hasta entonces el checkout de Expediente responde 409 por precio faltante, que es lo correcto. El médico extra de Expediente se cobra al precio del nivel `pro` (499); bajarlo pide un precio de asiento propio.
+
+**Pruebas permanentes:** `src/__tests__/el-plan-expediente-es-escrito.test.ts` (19 casos; al revés: prueba, cortesía y legados conservan la IA). `planes-precios` y `creditos-transparencia` actualizados a los números nuevos. No recorre la pantalla en un navegador ni acredita nada en Stripe.
+
+## REG-690 — D-062: la nota cuesta lo que debe: borrador en vivo local, escalado por señales, fusión apagada (12-sep-2026)
+
+**Decisión del dueño, no defecto.** Tras medir el costo por consulta (borrador en vivo 15 MXN, nota 4 a 18, fusión 15, transcripción 2) el dueño pidió los recortes que no tocan la nota firmada:
+
+1. **El borrador en vivo lo arma el parser clínico local**, en el navegador, sin red ni costo. Antes cada pase (unos 40 por consulta de 20 minutos) pedía una nota Haiku con todo lo dictado y costaba casi lo mismo que la nota final que lo reemplaza. La nota final y la preliminar siguen yendo al servidor.
+2. **Escalado automático a Máxima por señales deterministas** (`complejidad.ts`): cinco o más medicamentos, primera vez con tres o más comorbilidades, infectología con antimicrobianos o patógenos nombrados. Sonnet ordena igual que Opus; sólo razona distinto, y el razonamiento se paga donde importa. El médico no elige (D-047); la respuesta dice por qué (`_escalado`). Regla de vocabulario, no de criterio: que ninguna señal se dispare significa «no se detectó», no «es simple». Si la cartera no alcanza, la reserva degrada como siempre.
+3. **La fusión GPT + síntesis queda detrás de `NOTA_ENSAMBLE_GPT=1`, apagada.** Cuesta una nota entera más, no hay evidencia de que mejore la nota y ya reescribió citas (REG-119).
+
+**Lo que sigue pendiente y declarado:** la caché del prompt a una hora (parámetro sin verificar contra el proveedor, ~1 MXN por nota) y guardar los hallazgos de la segunda opinión con la nota para medirla.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-cuesta-lo-que-debe.test.ts`. No mide el costo real: eso es el libro de costos en producción.

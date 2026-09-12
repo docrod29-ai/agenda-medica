@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useClinic } from '@/context/ClinicContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
+import { ocultaSinIA } from '@/lib/navegacion/rutas-con-ia'
 import { ETIQUETA_POR_RUTA } from '@/lib/navegacion/etiquetas'
 import { suscribirMensajes, suscribirLectura, contarNoLeidos, type ChatMessage } from '@/lib/chat'
 import { salirSeguro } from '@/lib/salir-seguro'
@@ -110,6 +111,8 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     (item.modos === 'ambos' || (mode === 'medico' ? item.modos === 'medico' : item.modos === 'secretaria'))
     && rutaPermitida(clinic, item.href)
     && !enPausa(item.href)
+    // D-061: un plan escrito no ve el Consultor, que sólo sabe hacer IA.
+    && !ocultaSinIA(clinic, item.href)
   )
 
   // Misma historia que en AutoLogout: se esperaba 1200 ms fijos y se purgaba

@@ -1,7 +1,7 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
   "generado": "2026-09-12",
-  "total": 135,
+  "total": 140,
   "variables": [
     {
       "nombre": "ANCHOS",
@@ -1248,6 +1248,29 @@
       ]
     },
     {
+      "nombre": "NOTA_ENSAMBLE_GPT",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/__tests__/la-nota-cuesta-lo-que-debe.test.ts",
+        "src/app/api/expediente/procesar/route.ts"
+      ]
+    },
+    {
+      "nombre": "NOTA_MODO_RAPIDO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/parametros-de-nota.ts"
+      ]
+    },
+    {
       "nombre": "OPENAI_API_KEY",
       "publica": false,
       "deLaPlataforma": false,
@@ -1582,6 +1605,40 @@
       "defectoLiteral": "",
       "defectoDe": "src/lib/stripe.ts",
       "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_EXPEDIENTE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_EXPEDIENTE_ANUAL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/lib/stripe.ts"
+      ]
+    },
+    {
+      "nombre": "STRIPE_PRICE_EXPEDIENTE_MEDICO",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": "",
+      "defectoDe": "src/lib/stripe.ts",
+      "archivos": [
+        "src/__tests__/el-plan-expediente-es-escrito.test.ts",
         "src/lib/stripe.ts"
       ]
     },

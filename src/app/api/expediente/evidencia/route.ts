@@ -9,13 +9,14 @@ import { fetchIA as fetch } from '@/lib/ia/salida-privada'
  * diagnóstico diferencial — CADA punto respaldado con las citas (PMID) reales que
  * lo sustentan. No inventa fuentes: solo usa los artículos que PubMed devolvió.
  *
- * Nivel Premium usa Opus 4.8 + razonamiento; Pro usa Sonnet 5.
+ * Nivel Premium usa Opus 5 (D-059); Pro usa Sonnet 5.
  *
  * Body: { diagnosticos:[{descripcion}], medicamentos:[{nombre}],
  *         contexto:{edad,sexo,alergias,embarazo,tfg:{valor,vigente},problemas,medicamentosActuales} }
  * Resp: { ok, articulos:[...], evaluacion:[...], alternativas:[...], diferencial:[...] }
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { thinkingPara } from '@/lib/ia/parametros-de-nota'
 import { safeLog } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { limitarOResponder } from '@/lib/rate-limit'
@@ -57,7 +58,7 @@ const PRESUPUESTO_MS = 300_000
 /** Lo que se reserva para armar y devolver la respuesta. */
 const RESERVA_RESPUESTA_MS = 15_000
 const ANTHROPIC_VERSION = '2023-06-01'
-const MODELOS_PREMIUM = ['claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
+const MODELOS_PREMIUM = ['claude-opus-5', 'claude-opus-4-8', 'claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 
@@ -343,7 +344,9 @@ export async function POST(req: NextRequest) {
         system: [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: 'user', content: usr }],
       }
-      if (conThinking && /opus-4|sonnet-5|sonnet-4/.test(model)) payload.thinking = { type: 'enabled', budget_tokens: 5000 }
+      // REG-685: la forma sale del modelo; la vieja (`budget_tokens`) da 400 en 4.7+.
+      const forma = conThinking ? thinkingPara(model, 5000) : null
+      if (forma) payload.thinking = forma
       return fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'x-api-key': key as string, 'anthropic-version': ANTHROPIC_VERSION, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(msParaElModelo()) })
     }
     try {

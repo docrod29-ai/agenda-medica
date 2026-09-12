@@ -3,7 +3,7 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
-## v1198 — candidato de inferencia propia
+## v1199 — candidato de inferencia propia
 
 Pendiente de publicación. Integra un proveedor autoalojado en la nota canónica,
 con identificación del modelo, formato estricto y devolución de créditos ante
@@ -16,6 +16,37 @@ No hay GPU conectada ni validación clínica del modelo. Pruebas de integración
 sintéticas, build y guardianes descritos en
 `docs/maintenance/INFERENCIA-PROPIA-2026-09-12.md`. Esta versión de caché prepara
 la actualización de los clientes; no confirma un despliegue.
+
+## v1198 — la nota cuesta lo que debe, tres paquetes y Expediente escrito
+
+**Autorizada por el dueño el 12-sep-2026 («fusiona, despliega»).** Siete commits
+de la rama `claude/faster-note-processing-ia2m69`:
+
+- **REG-685 / REG-686** — la nota Máxima pedía el razonamiento con una forma que
+  Opus 4.8 rechaza y se rehacía sin razonar, en silencio. Ahora la forma sale del
+  modelo (`parametros-de-nota.ts`), el borrador de GPT corre en paralelo, y si el
+  razonamiento no se hizo la respuesta, la pantalla y la procedencia lo dicen.
+- **D-059 / D-060** — Opus 5 a la cabeza de la cascada Máxima; modo rápido del
+  proveedor encendido (`NOTA_MODO_RAPIDO=0` lo apaga).
+- **D-061 (REG-689)** — tres paquetes a la venta: Agenda 399, Expediente 699
+  (escrito, sin IA de voz) y Consulta 1 190. Pro y Hospital quedan para quien ya
+  los paga. La IA se apaga por plan (`iaVoz`), nunca por módulo.
+- **D-062 (REG-690)** — el borrador en vivo lo arma el parser local sin modelo;
+  la nota Estándar escala sola a Máxima por señales deterministas; la fusión GPT
+  va apagada (`NOTA_ENSAMBLE_GPT=1` la enciende).
+
+`firestore.rules`, `firestore.indexes.json` y `storage.rules` **no cambian**.
+
+**Lo que esta versión NO hace y queda en manos del dueño:** los precios nuevos en
+Stripe (399 / 699 / 1 190 y `STRIPE_PRICE_EXPEDIENTE*`). Hasta que existan, la
+página de precios enseña los nuevos, Agenda y Consulta cobran lo que diga Stripe
+hoy, y comprar Expediente responde «precio no configurado» en vez de cobrar
+otra cosa.
+
+Validación local: suite completa (14 887 casos) en verde, lint 93/93, tipos
+limpios. No se acredita nada contra el proveedor de IA ni contra Stripe: eso se
+mira del otro lado tras publicar (logs sin «400 con thinking», `_modelo` en las
+notas nuevas, libro de costos).
 
 ## v1197 — rediseño y cierre de privacidad por paciente
 

@@ -130,6 +130,7 @@ export function porQueNoSeVende(clave: string): string | null {
  */
 export const PRODUCTOS_DEL_PLAN: Record<string, readonly string[]> = {
   agenda: ['agenda'],
+  expediente: ['agenda', 'consulta'],   // escrito: mismas pantallas, sin IA (D-061)
   clinica: ['agenda', 'consulta'],
   premium: ['agenda', 'consulta'],
   hospital: ['agenda', 'consulta', 'hospital', 'uci'],

@@ -1,8 +1,11 @@
 # Checkpoint: primera integración de inferencia propia
 
 Orden del dueño: ejecutar el plan de Ausculta con menor dependencia de IA externa.
-Base revisada: `34211eaaebe366dcb87e3a02634f78fe41abf12c`.
-Rama: `codex/ausculta-inferencia-privada`. Candidato de caché: v1198.
+Base original: `34211eaaebe366dcb87e3a02634f78fe41abf12c`.
+Se integra main `9fc66ad96512c2802b069ada2e2819089d84d844`, con las decisiones
+D-059–D-062, sin cambiar planes, precios ni el borrador local en vivo.
+Rama: `codex/ausculta-inferencia-privada`. Candidato de caché: v1199.
+PR: https://github.com/docrod29-ai/agenda-medica/pull/495.
 
 El trabajo se aisló de otro cambio activo en el clon original. No se alteran
 reglas desplegadas, accesos de producción, suscripciones ni pesos de modelos.
@@ -20,7 +23,7 @@ reglas desplegadas, accesos de producción, suscripciones ni pesos de modelos.
 - Plantilla de host GPU, comprobador sintético de servidor y guía de operación
   en `docs/ia/INFERENCIA-PROPIA.md`. Sin imagen ni pesos fingidos como evaluados.
 
-## Evidencia de software
+## Evidencia de software anterior a integrar main v1198
 
 | Comprobación | Resultado |
 | --- | --- |

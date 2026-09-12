@@ -34,9 +34,9 @@
  */
 
 /** Las claves de plan, tal como las usa el resto de la aplicación. */
-export type ClavePlan = 'agenda' | 'clinica' | 'premium' | 'hospital'
+export type ClavePlan = 'agenda' | 'expediente' | 'clinica' | 'premium' | 'hospital'
 
-export const CLAVES_PLAN: readonly ClavePlan[] = ['agenda', 'clinica', 'premium', 'hospital']
+export const CLAVES_PLAN: readonly ClavePlan[] = ['agenda', 'expediente', 'clinica', 'premium', 'hospital']
 
 export const esClavePlan = (p: unknown): p is ClavePlan =>
   typeof p === 'string' && (CLAVES_PLAN as readonly string[]).includes(p)
@@ -49,8 +49,9 @@ export const esClavePlan = (p: unknown): p is ClavePlan =>
  * el dueño configure en Stripe, y se reconoce por su price id, no por su cifra.
  */
 export const IMPORTE_MENSUAL: Record<ClavePlan, number> = {
-  agenda: 34_900,
-  clinica: 89_900,
+  agenda: 39_900,
+  expediente: 69_900,
+  clinica: 119_000,   // «Consulta» desde D-061
   premium: 159_000,
   hospital: 349_900,
 }

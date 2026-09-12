@@ -66,7 +66,16 @@ describe('EL RELOJ SALE DEL PRESUPUESTO, NO DE UN NÚMERO FIJO', () => {
 
 describe('NO SE BAJA LA CALIDAD — eso era la mitad del encargo', () => {
   it('el razonamiento extendido sigue encendido', () => {
-    expect(ruta).toContain("body.thinking = { type: 'enabled', budget_tokens: 6000 }")
+    /**
+     * REG-685: la forma del parámetro ya no es un literal en la ruta —el
+     * literal antiguo (`budget_tokens`) lo rechazaba el proveedor en Opus 4.8
+     * y la nota se rehacía SIN razonar—. Sale de `thinkingPara(model)`, que
+     * es puro y está probado en `la-nota-maxima-si-razona`.
+     */
+    expect(ruta).toContain('const thinking = conThinking ? thinkingPara(model) : null')
+    expect(ruta).toContain('...(thinking ? { thinking } : {})')
+    const codigo = ruta.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(codigo).not.toContain('budget_tokens')
   })
 
   it('y la cascada de modelos sigue intacta', () => {

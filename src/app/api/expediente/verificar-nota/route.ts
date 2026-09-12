@@ -2,7 +2,7 @@ import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/expediente/verificar-nota  —  SEGUNDA OPINIÓN (verificación cruzada)
  *
- * La nota la redacta Claude Opus 4.8 (razonamiento máximo). Aquí un SEGUNDO
+ * La nota la redacta Claude Opus 5 (razonamiento máximo). Aquí un SEGUNDO
  * modelo de primer nivel (OpenAI GPT-5) la REVISA por seguridad clínica: dosis
  * peligrosas, interacciones, alergias del paciente vs fármacos, contradicciones
  * con lo dicho en la consulta, diagnósticos sin sustento, datos críticos que

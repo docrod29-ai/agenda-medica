@@ -58,7 +58,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Check, ChevronDown } from 'lucide-react'
 import { MetaPixel } from '@/components/MetaPixel'
-import { PLANES } from '@/lib/planes-ia'
+import { PLANES, PLANES_EN_VENTA } from '@/lib/planes-ia'
 import { NavPublica } from '@/components/landing/NavPublica'
 import { HeroConsulta } from '@/components/landing/HeroConsulta'
 import { Revelar } from '@/components/landing/Revelar'
@@ -163,10 +163,11 @@ const NEGATIVAS = [
 
 const TAGLINE_PLAN: Record<string, string> = {
   agenda: 'Para empezar a organizar el consultorio',
+  expediente: 'Expediente completo, escrito a tu ritmo',
   clinica: 'Voz, nota con IA, recetas y evidencia',
   premium: 'Máxima inteligencia clínica',
 }
-const PLANES_PORTADA = (['agenda', 'clinica', 'premium'] as const).map(k => {
+const PLANES_PORTADA = PLANES_EN_VENTA.map(k => {
   const p = PLANES[k]
   return {
     nombre: p.nombre,
