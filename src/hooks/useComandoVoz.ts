@@ -1,3 +1,4 @@
+import { iniciarReconocimientoPermitido } from '@/lib/voz/permiso-de-procesamiento'
 /**
  * useComandoVoz — escucha manos libres de comandos de voz para la consulta.
  *
@@ -121,16 +122,21 @@ export function useComandoVoz({ activo, onIniciar, onCerrar, antirreboteMs = 400
       }
     }
 
-    rec.onend = () => {
-      setEscuchando(false)
-      // Chrome corta solo; reiniciamos mientras siga activo.
-      if (!cerrado) {
-        try { rec.start(); setEscuchando(true) } catch { /* ya arrancando */ }
+    const arrancar = async () => {
+      const permitido = await iniciarReconocimientoPermitido(() => {
+        rec.start(); setEscuchando(true); setError(null)
+      }, () => !cerrado)
+      if (!permitido && !cerrado) {
+        cerrado = true
+        setEscuchando(false)
+        setError('Los comandos de voz del navegador no están disponibles con la política de privacidad actual o sin conexión.')
       }
     }
-
-    try { rec.start(); setEscuchando(true); setError(null) }
-    catch { /* start dobles lanzan; se ignora */ }
+    rec.onend = () => {
+      setEscuchando(false)
+      if (!cerrado) void arrancar()
+    }
+    void arrancar()
 
     return () => {
       cerrado = true

@@ -1,3 +1,4 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/ayuda-bot  — Asistente de soporte de la app.
  *
@@ -21,6 +22,9 @@ export const maxDuration = 30
 const MODELOS = ['claude-haiku-4-5-20251001', 'claude-sonnet-5']
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarUsuario(req)
   if (!acceso.ok) return acceso.response
 

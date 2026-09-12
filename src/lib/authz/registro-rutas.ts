@@ -407,6 +407,7 @@ export const REGISTRO_RUTAS: Readonly<Record<string, ExigenciaRuta>> = {
   // ── tareas programadas ───────────────────────────────────────────────────
   'cron/reminders': { tipo: 'cron', motivo: 'Recordatorios nocturnos. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'health': { tipo: 'publica', motivo: 'Estado del sistema para un monitor externo. Sólo booleanos, latencias y la versión: ni una clave, ni un dato de paciente. Sin sesión a propósito — un endpoint de salud detrás de login no lo mira nadie a las 3am.' },
+  'ia/capacidades': { tipo: 'publica', motivo: 'Sólo tres booleanos de disponibilidad de voz. Sin datos de usuario, clínica, endpoint, modelo ni credenciales. Permite negar el procesamiento remoto antes de activar el micrófono.' },
   'cron/retencion': { tipo: 'cron', motivo: 'Barre las colecciones OPERATIVAS de plataforma que crecen sin techo. Nada clínico. Autenticado por `CRON_SECRET`; no hay usuario.' },
   'cron/asientos': {
     tipo: 'cron',

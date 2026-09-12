@@ -1,0 +1,44 @@
+# Plantilla para un host GPU administrado por Ausculta. No desplegada.
+# La imagen se precarga y se fija por digest; los pesos se montan sin descargas.
+name: ausculta-inferencia
+services:
+  motor:
+    image: ${AUSCULTA_VLLM_IMAGE:?Falta imagen vLLM fijada por digest}
+    pull_policy: never
+    entrypoint: ["/bin/sh", "/opt/ausculta/arrancar.sh"]
+    user: "2000:0"
+    environment:
+      AUSCULTA_VLLM_IMAGE: ${AUSCULTA_VLLM_IMAGE:?Falta imagen fijada por digest}
+      AUSCULTA_SERVED_MODEL: ${AUSCULTA_SERVED_MODEL:?Falta identificador del modelo evaluado}
+      AUSCULTA_MODEL_CONTEXT: ${AUSCULTA_MODEL_CONTEXT:-65536}
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+      VLLM_DEBUG_LOG_API_SERVER_RESPONSE: "false"
+      VLLM_LOGGING_LEVEL: "WARNING"
+    volumes:
+      - ${AUSCULTA_MODEL_DIR:?Falta directorio de pesos revisados}:/model:ro
+      - ./arrancar.sh:/opt/ausculta/arrancar.sh:ro
+    secrets: [inferencia_key]
+    ports: ["127.0.0.1:8000:8000"]
+    networks: [interna]
+    read_only: true
+    tmpfs: ["/tmp", "/home/vllm/.cache:uid=2000,gid=0,mode=0700"]
+    shm_size: 8gb
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+networks:
+  interna:
+    internal: true
+secrets:
+  inferencia_key:
+    file: ${AUSCULTA_API_KEY_FILE:?Falta archivo secreto fuera del repositorio}

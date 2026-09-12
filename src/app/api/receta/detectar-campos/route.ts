@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 import { anotarLlamada } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { NextRequest, NextResponse } from 'next/server'
@@ -50,6 +52,9 @@ NO expliques nada. Responde ÚNICAMENTE el JSON.`
 const CLAVES_VALIDAS = ['nombre', 'edad', 'sexo', 'fecha', 'folio']
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`detectar-campos:${acceso.uid}`, 20, 60)

@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * POST /api/expediente/evidencia  —  ANÁLISIS BASADO EN EVIDENCIA + citas reales
  *
@@ -60,6 +62,9 @@ const MODELOS_PRO = ['claude-sonnet-5', 'claude-sonnet-4-6']
 const MODELOS_HAIKU_ANALISIS = ['claude-haiku-4-5-20251001', 'claude-haiku-4-5']
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   /**
    * EL RELOJ DE ESTA PETICIÓN — local, no de módulo.
    *

@@ -1,3 +1,4 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/uci/copilot — ICU Copilot dual-model (Anthropic + OpenAI).
  *
@@ -76,6 +77,9 @@ async function llamarProveedor(
 }
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'uci')
   if (!acceso.ok) return acceso.response
 

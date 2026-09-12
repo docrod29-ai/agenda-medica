@@ -1,3 +1,4 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/expediente/verificar-nota  —  SEGUNDA OPINIÓN (verificación cruzada)
  *
@@ -42,6 +43,9 @@ interface NotaEntrada {
 }
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`verificar-nota:${acceso.uid}`, 20, 60)

@@ -7,7 +7,8 @@
  * mayoría con la práctica mexicana, pero SIEMPRE debe verificarse contra la GPC
  * local / el Cuadro Básico. Rate limit ~40 req/min sin llave.
  */
-import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { fetchIAConTimeout as fetchConTimeout } from '@/lib/ia/salida-privada'
+import { TIMEOUT } from '@/lib/fetch-con-timeout'
 import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
 import { exigeQueSeBaje } from '@/lib/evidence-integrations/de-donde-se-baja'
 import {

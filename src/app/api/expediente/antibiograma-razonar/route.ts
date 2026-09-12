@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * POST /api/expediente/antibiograma-razonar
  *
@@ -86,6 +88,9 @@ async function gpt(key: string, system: string, user: string, ctx?: Contexto): P
 }
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`antibiograma-razonar:${acceso.uid}`, 30, 60)

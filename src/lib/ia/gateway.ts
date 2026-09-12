@@ -1,3 +1,4 @@
+import { AVISO_IA_PRIVADA, configuracionPrivada, modoIA } from '@/lib/ia/configuracion-privada'
 /**
  * NEXUS AI GATEWAY — una sola puerta a los proveedores de IA.
  *
@@ -34,10 +35,11 @@ import { usoDe } from '@/lib/finanzas/medir-ia'
 import type { FuenteLlave } from '@/lib/finanzas/cost-ledger'
 import { safeLog } from '@/lib/security/sanitize'
 import { CABECERA_CORRELACION, esCorrelacionValida } from '@/lib/observabilidad/correlacion'
-import { fetchConTimeout, TiempoAgotado, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { fetchIAConTimeout as fetchConTimeout } from '@/lib/ia/salida-privada'
+import { TiempoAgotado, TIMEOUT } from '@/lib/fetch-con-timeout'
 import { reservarParaClinica, confirmarCreditos, devolverCreditos } from '@/lib/finanzas/cartera-server'
 import {
-  cuerpoAnthropic, cuerpoOpenAI, falloHttp, leerAnthropic, leerOpenAI,
+  cuerpoAnthropic, cuerpoOpenAI, cuerpoPropio, falloHttp, leerAnthropic, leerOpenAI, leerPropio,
   siguienteModelo, type Peticion, type Proveedor, type Resultado,
 } from '@/lib/ia/protocolo'
 import { claveCircuito, permiteLlamar } from '@/lib/red/interruptor'
@@ -60,6 +62,7 @@ const URL: Record<Proveedor, string> = {
   anthropic: 'https://api.anthropic.com/v1/messages',
   openai: 'https://api.openai.com/v1/chat/completions',
   assemblyai: '',
+  selfhosted: '', // El destino se valida desde la configuración del servidor.
 }
 
 /** Quién pide, para qué, y a cuenta de quién. Lo que el libro de costos necesita. */
@@ -109,14 +112,29 @@ export interface Opciones extends Omit<Peticion, 'modelo'> {
  * tamaño de problema.
  */
 export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
+  if (modoIA() === 'LOCAL_ONLY' && o.proveedor !== 'selfhosted') {
+    return { ok: false, clase: 'proveedor', motivo: AVISO_IA_PRIVADA }
+  }
+  const privada = o.proveedor === 'selfhosted' ? configuracionPrivada() : null
+  if (privada && !privada.ok) return { ok: false, clase: 'llave', motivo: privada.motivo }
+  if (privada?.ok && (!ctx.clinicId || !ctx.uid)) {
+    return { ok: false, clase: 'llave', motivo: 'No se pudo verificar el contexto del consultorio para la IA propia.' }
+  }
+  if (privada?.ok && (o.modelos.length !== 1 || o.modelos[0] !== privada.valor.modelo)) {
+    return { ok: false, clase: 'modelo', motivo: 'El modelo propio debe coincidir con el configurado en el servidor.' }
+  }
+  const destino = privada?.ok ? privada.valor.endpoint : URL[o.proveedor]
+  const clave = privada?.ok ? privada.valor.clave : o.clave
+  const nombreProveedor = o.proveedor === 'selfhosted' ? 'IA propia' : o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+
   // AssemblyAI no habla este protocolo: es una cola de trabajos, no una API de
   // mensajes. Se corta AQUÍ, con un motivo legible, en vez de dejar que salga un
   // `fetch('')` cuyo error no diría nada de lo que pasó de verdad.
-  if (!URL[o.proveedor]) {
+  if (!destino) {
     return { ok: false, clase: 'respuesta', motivo: `${o.proveedor} no se llama por esta puerta; anótalo con anotarLlamada.` }
   }
-  if (!o.clave) {
-    return { ok: false, clase: 'llave', motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: no hay llave configurada.` }
+  if (!clave) {
+    return { ok: false, clase: 'llave', motivo: `${nombreProveedor}: no hay llave configurada.` }
   }
   /**
    * Se APARTAN los créditos antes de llamar (§AA–AF).
@@ -149,7 +167,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
   const puerta = permiteLlamar(circuito)
   if (!puerta.pasa) {
     void devolverCreditos(reserva)
-    const nombre = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+    const nombre = nombreProveedor
     /**
      * Clase `proveedor`, no `red`: es exactamente lo que pasa —el proveedor no
      * está— y así el mensaje que ve el médico sale por el mismo camino que
@@ -184,7 +202,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
   const sitio = pedirSitio(claveCp)
   if (!sitio.pasa) {
     void devolverCreditos(reserva)
-    const nombre = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+    const nombre = nombreProveedor
     return {
       ok: false, clase: 'proveedor',
       motivo: `${nombre}: hay ${sitio.enVuelo} peticiones en curso y no puedo atender otra ahora mismo. Vuelve a intentarlo en unos segundos.`,
@@ -214,7 +232,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
       void devolverCreditos(reserva)
       return {
         ok: false, clase: 'red',
-        motivo: `${o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'}: se agotó el tiempo de esta operación probando modelos. Tu trabajo está guardado.`,
+        motivo: `${nombreProveedor}: se agotó el tiempo de esta operación probando modelos. Tu trabajo está guardado.`,
       }
     }
     const p: Peticion = { ...o, modelo }
@@ -229,7 +247,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
        * facturados por GB-segundo — y el único módulo que existía para
        * centralizar las llamadas era justo el que no tenía la protección.
        */
-      res = await fetchConTimeout(URL[o.proveedor], {
+      res = await fetchConTimeout(destino, {
         method: 'POST',
         /**
          * ── LA TRAZA TAMBIÉN VIAJA AL PROVEEDOR — REG-566 ──────────────────
@@ -249,20 +267,20 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
          */
         headers: {
           ...(o.proveedor === 'anthropic'
-            ? { 'x-api-key': o.clave, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
-            : { Authorization: `Bearer ${o.clave}`, 'Content-Type': 'application/json' }),
+            ? { 'x-api-key': clave, 'anthropic-version': ANTHROPIC_VERSION, 'content-type': 'application/json' }
+            : { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' }),
           ...(esCorrelacionValida(ctx.correlacion) ? { [CABECERA_CORRELACION]: ctx.correlacion } : {}),
         },
-        body: JSON.stringify(o.proveedor === 'anthropic' ? cuerpoAnthropic(p) : cuerpoOpenAI(p)),
+        body: JSON.stringify(o.proveedor === 'anthropic' ? cuerpoAnthropic(p) : o.proveedor === 'selfhosted' ? cuerpoPropio(p) : cuerpoOpenAI(p)),
       }, TIMEOUT.ia)
     } catch (e) {
-      safeLog.error(`[gateway] ${o.proveedor} red`, e)
+      safeLog.error(`[gateway] ${o.proveedor} red`, o.proveedor === 'selfhosted' ? 'fallo de transporte privado' : e)
       /**
        * «Se agotó el tiempo» y «no se pudo conectar» NO son lo mismo, y decir lo
        * segundo por lo primero manda al médico a revisar su internet cuando el
        * que no contesta es el proveedor.
        */
-      const proveedor = o.proveedor === 'anthropic' ? 'Anthropic' : 'OpenAI'
+      const proveedor = nombreProveedor
       ultimo = e instanceof TiempoAgotado
         ? { ok: false, clase: 'red', motivo: `${proveedor}: tardó más de ${Math.round(TIMEOUT.ia / 1000)} s y se cortó la espera.` }
         : { ok: false, clase: 'red', motivo: `${proveedor}: no se pudo conectar.` }
@@ -273,7 +291,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
 
     if (!res.ok) {
       const cuerpo = await res.text().catch(() => '')
-      safeLog.error(`[gateway] ${o.proveedor} ${ctx.feature}`, { status: res.status, cuerpo: cuerpo.slice(0, 300) })
+      safeLog.error(`[gateway] ${o.proveedor} ${ctx.feature}`, { status: res.status, ...(o.proveedor === 'selfhosted' ? {} : { cuerpo: cuerpo.slice(0, 300) }) })
       ultimo = falloHttp(o.proveedor, res.status)
       // Sólo un 5xx del proveedor cuenta para abrir el circuito. Una llave mala
       // o un 429 son de QUIEN llama, y apagarían a los demás: ver `interruptor.ts`.
@@ -285,7 +303,7 @@ export async function llamarIA(o: Opciones, ctx: Contexto): Promise<Resultado> {
     }
 
     const data = await res.json().catch(() => null)
-    const r = o.proveedor === 'anthropic' ? leerAnthropic(data, modelo) : leerOpenAI(data, modelo)
+    const r = o.proveedor === 'anthropic' ? leerAnthropic(data, modelo) : o.proveedor === 'selfhosted' ? leerPropio(data, modelo) : leerOpenAI(data, modelo)
     /**
      * Llegó una respuesta HTTP buena: el proveedor ESTÁ. Que su salida no se
      * pueda leer es otro problema —y no uno que se arregle dejando de llamar—,

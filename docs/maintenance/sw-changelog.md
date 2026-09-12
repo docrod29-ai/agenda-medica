@@ -3,6 +3,20 @@
 Aquí vivía TODO esto: dentro de `public/sw.js`, en la línea 8, como un comentario
 del `const CACHE`.
 
+## v1198 — candidato de inferencia propia
+
+Pendiente de publicación. Integra un proveedor autoalojado en la nota canónica,
+con identificación del modelo, formato estricto y devolución de créditos ante
+fallo. `LOCAL_ONLY` bloquea la inferencia y recuperación externas existentes;
+las funciones de voz incompatibles se niegan antes de iniciarse. La política se
+lee en el servidor y no habilita proveedores por una errata de configuración.
+Se conservan los proveedores actuales cuando la función no está activada.
+
+No hay GPU conectada ni validación clínica del modelo. Pruebas de integración
+sintéticas, build y guardianes descritos en
+`docs/maintenance/INFERENCIA-PROPIA-2026-09-12.md`. Esta versión de caché prepara
+la actualización de los clientes; no confirma un despliegue.
+
 ## v1197 — rediseño y cierre de privacidad por paciente
 
 **Preparada en #487; pendiente de publicar.** Integra main v1196, las operaciones

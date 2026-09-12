@@ -98,7 +98,10 @@ describe('el pipeline de dictado es carga diferida', () => {
     expect(arranque).toBeGreaterThan(-1)
     expect(espera).toBeLessThan(arranque)
     // Y si la carga falla, NO se arranca sin corrector.
-    expect(VOZ).toMatch(/try \{ \(\{ procesarTranscript \} = await cargarPipeline\(\)\) \} catch \{ return \}/)
+    const falloDeCarga = VOZ.slice(VOZ.indexOf('} catch {', espera), arranque)
+    expect(falloDeCarga).toMatch(/catch \{[\s\S]*?return\s*\}/)
+    // El intento obsoleto no cancela una captura nueva al fallar su import.
+    expect(falloDeCarga).toContain('intento.current === turno')
   })
 
   it('el pipeline sigue corriendo sobre lo transcrito (no se difirió el SI)', () => {

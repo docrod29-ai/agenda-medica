@@ -1,3 +1,6 @@
+import { configuracionPrivada, modoIA, notaConModeloPropio } from '@/lib/ia/configuracion-privada'
+import { validarNotaPropia } from '@/lib/ia/nota-propia'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * POST /api/expediente/procesar
  *
@@ -21,7 +24,7 @@ import { safeLog, redactarString } from '@/lib/security/sanitize'
 import { verificarModuloIA } from '@/lib/auth-server'
 import { TIMEOUT } from '@/lib/fetch-con-timeout'
 import { limitarOResponder } from '@/lib/rate-limit'
-import { anotarLlamada } from '@/lib/ia/gateway'
+import { anotarLlamada, llamarIA } from '@/lib/ia/gateway'
 import { esFundador } from '@/lib/authz/fundador'
 import { claseDeFallo, quienPaga, avisoAlMedico } from '@/lib/ia/fallo-proveedor'
 import { reportarFalloIA } from '@/lib/ia/incidentes-servidor'
@@ -356,7 +359,17 @@ export async function POST(req: NextRequest) {
   if (limite) return limite
 
   // Llave del consultorio (o la del dueño en modo prueba con tope).
-  const { key: API_KEY, fuente, clinicId } = await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
+  const propia = notaConModeloPropio()
+  const configuracion = propia ? configuracionPrivada() : null
+  if (propia && (!acceso.clinicId || !['medico', 'admin'].includes(acceso.role ?? ''))) {
+    return NextResponse.json({ ok: false, error: 'No se pudo verificar tu acceso clínico. El texto se conserva para edición manual.' }, { status: 403 })
+  }
+  if (configuracion && !configuracion.ok) {
+    return NextResponse.json({ ok: false, error: configuracion.motivo, _modoIA: modoIA() }, { status: 503 })
+  }
+  const { key: API_KEY, fuente, clinicId } = propia && configuracion?.ok
+    ? { key: configuracion.valor.clave, fuente: esFundador(acceso.email, process.env.SUPERADMIN_EMAILS) ? 'fundador' as const : 'prueba' as const, clinicId: acceso.clinicId! }
+    : await resolverClaveIA(acceso.uid, 'anthropic', ENV_ANTHROPIC)
   // TOPE DE CRÉDITOS (auditoría 26-jul): sin esto, un consultorio con los
   // créditos agotados seguía quemando la llave del dueño indefinidamente.
   // `gateCreditos` sólo corta cuando la llave es la del dueño (`prueba`):
@@ -470,7 +483,7 @@ export async function POST(req: NextRequest) {
   const perfil: Perfil = motor.perfil
   const conThinking = perfil === 'premium'
   // El cliente dispara la 2ª opinión GPT-5 automática solo si la nota fue Máxima (Opus).
-  const planDeRespuesta = perfil === 'premium' ? 'premium' : 'pro'
+  const planDeRespuesta = !propia && perfil === 'premium' ? 'premium' : 'pro'
 
   try {
     /**
@@ -483,8 +496,26 @@ export async function POST(req: NextRequest) {
     const system  = buildSystemPrompt(tipo, contexto.especialidad, contexto.instruccionesIA, { proponerHuecos: !rapido })
     const userMsg = buildUserPrompt(transcripcion, contexto)
 
-    let eleccion = await resolverModelo(API_KEY, perfil)
-    let model = eleccion.modelo ?? CANDIDATOS[perfil][0]
+    let eleccion: Eleccion
+    let model: string
+    let text: string
+    let stopReason: string
+    if (propia && configuracion?.ok) {
+      model = configuracion.valor.modelo
+      eleccion = { modelo: model, comoSeEligio: 'candidato', degradado: true,
+        aviso: `Nota generada con IA propia (${model}). Su equivalencia con el nivel solicitado todavía requiere evaluación clínica; revisa el borrador.` }
+      const resultado = await llamarIA({ proveedor: 'selfhosted', modelos: [model], clave: API_KEY,
+        system, user: userMsg, json: true, maxTokens: 16000 }, ctxCosto)
+      if (!resultado.ok || resultado.truncado) {
+        return fallbackVisible(transcripcion, tipo,
+          !resultado.ok ? resultado.motivo : 'La IA propia devolvió una respuesta incompleta. Se conserva el texto para revisión.',
+          'ia_propia_no_disponible')
+      }
+      text = resultado.texto
+      stopReason = 'end_turn'
+    } else {
+    eleccion = await resolverModelo(API_KEY, perfil)
+    model = eleccion.modelo ?? CANDIDATOS[perfil][0]
     let res = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, conThinking)
 
     // Si el modelo no existe (404), redescubre y reintenta una vez
@@ -543,8 +574,9 @@ export async function POST(req: NextRequest) {
     // {type:'text'}; tomamos el bloque de texto, no content[0] (que sería el
     // razonamiento). Sin thinking, content[0] ya es el texto.
     const bloques: { type?: string; text?: string }[] = Array.isArray(data.content) ? data.content : []
-    const text: string = bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? ''
-    const stopReason: string = data.stop_reason ?? ''
+    text = bloques.find(b => b?.type === 'text')?.text ?? bloques[0]?.text ?? ''
+    stopReason = data.stop_reason ?? ''
+    }
 
     // Si Claude devolvió string vacío, es signo de bloqueo/timeout
     if (!text.trim()) {
@@ -556,14 +588,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Parsear el JSON (robusto ante markdown accidental y comentarios)
-    let parsed = parseJSON(text)
+    // El proveedor propio debe cumplir el contrato sin reparación de texto clínico.
+    let parsed = propia ? validarNotaPropia(text) : parseJSON(text)
+    if (propia && !parsed) {
+      return fallbackVisible(transcripcion, tipo,
+        'La IA propia devolvió una nota que no cumple el formato clínico. Se conserva el texto para revisión.',
+        'ia_propia_formato_invalido')
+    }
 
     // AUTO-REPARACIÓN (bug 2026-07): si el JSON se cortó por límite de tokens,
     // reintenta UNA vez SIN thinking y con el máximo de salida (32000). Al no
     // gastar presupuesto en razonamiento, TODO va al JSON → cabe completo.
     // (Solo modelos grandes; Haiku ya topa en 8k y no se sube.)
-    if (!parsed && stopReason === 'max_tokens' && !/haiku/i.test(model)) {
+    if (!propia && !parsed && stopReason === 'max_tokens' && !/haiku/i.test(model)) {
       safeLog.error('[expediente/procesar] JSON truncado por max_tokens; reintento 32000 sin thinking')
       const res2 = await llamarClaudeConReintentos(API_KEY, model, system, userMsg, false, 32000)
       if (res2.ok) {
@@ -616,7 +653,7 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       safeLog.warn('[procesar] Validación parcial:', validation.error.issues.slice(0, 3))
       void registrarUso(clinicId, fuente)
-      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION })
+      return NextResponse.json({ ok: true, ...parsed, _schemaWarning: true, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: propia ? 'selfhosted-chat-v1' : ANTHROPIC_VERSION, _proveedorIA: propia ? 'selfhosted' : 'anthropic', _modoIA: modoIA() })
     }
 
     void registrarUso(clinicId, fuente)
@@ -629,7 +666,7 @@ export async function POST(req: NextRequest) {
     const modelosNota: string[] = [model]
     /** Qué pasó con las citas al fusionar. `null` cuando no hubo ensamble. */
     let citasFusion: { revisadas: number; restauradas: number; descartadas: number } | null = null
-    if (perfil === 'premium' && !modoEconomico && !rapido) {
+    if (!propia && perfil === 'premium' && !modoEconomico && !rapido) {
       // Presupuesto de tiempo: si el ensamble (GPT + síntesis) no termina en 25s,
       // se usa la nota de Claude — así NUNCA provoca un 504 en la generación.
       const ensamble = (async (): Promise<Record<string, unknown> | null> => {
@@ -710,7 +747,7 @@ export async function POST(req: NextRequest) {
      * su nota se redactó con el criterio de ninguna rama. Se dice.
      */
     const conGuia = tieneGuia(contexto.especialidad)
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _promptVersion: PROMPT_VERSION, _apiVersion: propia ? 'selfhosted-chat-v1' : ANTHROPIC_VERSION, _proveedorIA: propia ? 'selfhosted' : 'anthropic', _modoIA: modoIA(), _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

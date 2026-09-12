@@ -167,14 +167,15 @@ function paresConCapacidad(): { clave: string; metodo: Metodo; e: ExigenciaRuta 
 }
 
 describe('E0-07 · el escaneo encuentra rutas de verdad', () => {
-  it('hay 108 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
+  it('hay 109 rutas en disco (un guardián que no encuentra archivos pasa vacío y no protege nada)', () => {
     // Si este número cambia es porque se añadió o quitó una ruta: hay que declararla
     // en REGISTRO_RUTAS y ajustar el conteo, a propósito y a mano.
     //
     // 76 → 77 al añadir `superadmin/csp` (la observación de la política de
     // seguridad). Una ruta, un método, un `verificarSuperadmin`.
     // 81 → 82 al añadir `arco/cancelar` (la «C» de ARCO, que no tenía camino técnico).
-    expect(CLAVES_DISCO.length).toBe(108) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` — URL firmada para abrir el estudio subido por el paciente; nace ACTIVA con `clinico.escribir` sobre el paciente.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` — pone médico titular a los pacientes de antes de la decisión, desde su última cita. Nace ACTIVA con `administrar`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06 (Panel de Lujo): `pacientes/fundir` (ASE-009 — juntar dos expedientes repetidos no existía y el único camino era fingir una solicitud ARCO de cancelación) y `arco/ligar` (ASE-010 — atar una solicitud ARCO del portal a un expediente identificado); las dos nacen con `verificarCapacidad 'administrar'`.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`; +1 el 2026-08-27: `expediente/paquete-de-visita`; +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-04: `superadmin/incidentes`; +1 el 2026-08-03: `cron/asientos`; +1 `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +1 el 2026-08-03: `cron/limpiar-audio`
+    // +1: ia/capacidades sólo devuelve booleanos de voz, sin secretos ni PHI.
+    expect(CLAVES_DISCO.length).toBe(109) //   // +1 el 2026-09-10 (D-058): `expediente/estudio-aportado` — URL firmada para abrir el estudio subido por el paciente; nace ACTIVA con `clinico.escribir` sobre el paciente.   // +1 el 2026-09-10 (D-057): `pacientes/asignar-titulares` — pone médico titular a los pacientes de antes de la decisión, desde su última cita. Nace ACTIVA con `administrar`.   // +1 el 2026-09-07 (REG-652): `clinic/invitaciones` — emitir, listar y revocar invitaciones pasa al servidor; el `list` de la colección estaba cerrado y el navegador lo consultaba igual. Nace ACTIVA con `administrar` en sus TRES métodos.   // +1 el 2026-09-06 al fusionar main: la rama paralela trajo su propia ruta y las dos suman   // +2 el 2026-09-06 (Panel de Lujo): `pacientes/fundir` (ASE-009 — juntar dos expedientes repetidos no existía y el único camino era fingir una solicitud ARCO de cancelación) y `arco/ligar` (ASE-010 — atar una solicitud ARCO del portal a un expediente identificado); las dos nacen con `verificarCapacidad 'administrar'`.   // +1 el 2026-09-05 (REG-523): `expediente/pregunta-atendida`; +1 el 2026-08-27: `expediente/paquete-de-visita`; +1 el 2026-08-04: `arco/oponerse`; +1 el 2026-08-04: `superadmin/incidentes`; +1 el 2026-08-03: `cron/asientos`; +1 `clinic/exportar-excel`; +1 el 2026-08-02: `calendar/ocupado`; +1 `seguridad/csp-estado`; +1 el 2026-08-03: `cron/limpiar-audio`
   })
 })
 
@@ -538,6 +539,8 @@ describe('E0-07 · el registro no puede MENTIR sobre el código (por MÉTODO y p
        * nadie a las 3am— y sólo devuelve booleanos, latencias y la versión.
        */
       'health',
+      // Sólo booleanos de voz; su contrato sin datos ni secretos tiene prueba propia.
+      'ia/capacidades',
       'planes',
       'public/availability/[clinicId]',
       'public/booking',
