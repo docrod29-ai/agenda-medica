@@ -30,6 +30,7 @@ import { gateCreditos, resolverClaveIA, registrarUso, nivelIADe, registrarCredit
 import { planDeNivel, estadoUso, MOTORES, motorPorClave, motorPorDefecto, topeEconomicoDe } from '@/lib/planes-ia'
 import type { TipoNota, PacienteContexto } from '@/types/expediente'
 import { PROMPT_VERSION } from '@/lib/expediente/prompt-version'
+import { evaluarComplejidad } from '@/lib/expediente/complejidad'
 import { correlacionDe } from '@/lib/observabilidad/correlacion'
 import { elegirModelo, sePuedeRecordar, type Eleccion } from '@/lib/ia/que-modelo-se-eligio'
 import { iaNoDisponible } from '@/lib/ia/fallo-proveedor'
@@ -46,6 +47,13 @@ const MODEL_OVERRIDE = process.env.ANTHROPIC_MODEL ?? ''
  * (D-060); `NOTA_MODO_RAPIDO=0` lo apaga. Ver `parametros-de-nota.ts`.
  */
 const MODO_RAPIDO = modoRapidoHabilitado()
+/**
+ * ENSAMBLE GPT + SÍNTESIS (D-062): APAGADO por omisión. Cuesta una nota
+ * entera más (~15 MXN), no hay evidencia de que mejore la nota y ya reescribió
+ * citas (REG-119). Se enciende con `NOTA_ENSAMBLE_GPT=1` cuando el libro de
+ * costos y una prueba a ciegas digan que vale lo que cuesta.
+ */
+const ENSAMBLE_GPT = process.env.NOTA_ENSAMBLE_GPT === '1'
 const ANTHROPIC_VERSION = '2023-06-01'
 // Versión del prompt/pipeline de la nota. Súbela al cambiar el prompt maestro:
 // queda registrada en el provenance inmutable de cada nota (trazabilidad SaMD).
@@ -455,7 +463,22 @@ export async function POST(req: NextRequest) {
   // El cliente pide un MOTOR (⚡ Rápida / ⭐ Estándar / 💎 Máxima) que define el
   // modelo y cuántos créditos quema. Si no manda motor, se usa el default del
   // plan (Pro→Máxima, Clínica→Estándar). El borrador en vivo siempre es Rápida.
-  const motorPedido = rapido ? MOTORES.rapida : (body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel))
+  let motorPedido = rapido ? MOTORES.rapida : (body.motor ? motorPorClave(body.motor) : motorPorDefecto(nivel))
+  /**
+   * ESCALADO AUTOMÁTICO AL CASO DIFÍCIL (D-062).
+   *
+   * Sonnet ordena igual que Opus; sólo razona distinto. Con señales que el
+   * parser clínico ya extrae —muchos fármacos, primera vez con comorbilidades,
+   * infectología con antimicrobianos— la nota Estándar sube a Máxima. El
+   * médico no elige (D-047); se le dice por qué. Si la cartera no alcanza,
+   * la reserva de abajo degrada como siempre. Que ninguna señal se dispare
+   * significa «no se detectó», no «es simple»: ver `complejidad.ts`.
+   */
+  let escalado: string[] | null = null
+  if (!rapido && !body.motor && motorPedido.clave === 'estandar') {
+    const c = evaluarComplejidad(transcripcion, tipo, contexto.especialidad)
+    if (c.compleja) { motorPedido = MOTORES.maxima; escalado = c.motivos }
+  }
 
   // ── DEGRADACIÓN (nunca bloquea) ─────────────────────────────────────────
   // Con la llave del DUEÑO ('prueba'), si el consultorio ya agotó sus créditos del
@@ -538,7 +561,7 @@ export async function POST(req: NextRequest) {
      * diferencia entre tener segunda redacción y no tenerla. Si Claude falla,
      * el borrador se ignora (su `catch` ya lo deja en `null`).
      */
-    const quiereEnsamble = perfil === 'premium' && !modoEconomico && !rapido
+    const quiereEnsamble = ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido
     const borradorGPT: Promise<Record<string, unknown> | null> = quiereEnsamble
       ? (async () => {
           const oai = await resolverClaveIA(acceso.uid, 'openai', process.env.OPENAI_API_KEY ?? '').catch(() => ({ key: '' as string }))
@@ -786,7 +809,7 @@ export async function POST(req: NextRequest) {
      * su nota se redactó con el criterio de ninguna rama. Se dice.
      */
     const conGuia = tieneGuia(contexto.especialidad)
-    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono ? AVISO_SIN_RAZONAMIENTO : '', _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
+    return NextResponse.json({ ok: true, ...notaFinal, _plan: planDeRespuesta, _motor: motor.clave, _uso: uso, _modoEconomico: modoEconomico, _modelo: model, _modeloDegradado: eleccion.degradado, _avisoModelo: eleccion.aviso, _razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono ? AVISO_SIN_RAZONAMIENTO : '', _escalado: escalado, _promptVersion: PROMPT_VERSION, _apiVersion: ANTHROPIC_VERSION, _modelosNota: modelosNota, _citasFusion: citasFusion, _especialidadSinGuia: contexto.especialidad && !conGuia ? String(contexto.especialidad) : undefined })
   } catch (err) {
     safeLog.error('[expediente/procesar] Exception:', err)
     try {

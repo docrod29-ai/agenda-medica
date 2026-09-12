@@ -137,6 +137,10 @@ Stripe.
   créditos, tope económico 20). Pro y Hospital quedan para quien ya los paga
   (`enVenta: false`). La IA se apaga **por plan** (`iaVoz`), nunca por módulo.
   Los precios de Stripe los cambia el dueño; el código no los toca.
+- **La nota cuesta lo que debe** (D-062, 12-sep-2026): el borrador en vivo lo
+  arma el parser local sin modelo; la nota Estándar escala sola a Máxima por
+  señales deterministas (`complejidad.ts`); la fusión GPT va apagada
+  (`NOTA_ENSAMBLE_GPT=1` la enciende).
 - Hospital y UCI en ALPHA: se usan, **no se venden**. Desde el 4-sep-2026 están
   además **en pausa en la navegación** (D-030): no aparecen ni en el índice de
   Operaciones ni en el `Sidebar`, porque la prioridad es la consulta y su

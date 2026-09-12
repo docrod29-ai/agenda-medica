@@ -26281,3 +26281,15 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Lo que queda en manos del dueño (Stripe, no código):** crear los precios 399 / 699 / 1 190 y sus anuales, pegar `STRIPE_PRICE_EXPEDIENTE`, `STRIPE_PRICE_EXPEDIENTE_ANUAL` y `STRIPE_PRICE_EXPEDIENTE_MEDICO` en Vercel, y actualizar los importes de `STRIPE_PRICE_AGENDA` y `STRIPE_PRICE_CLINICA`. Hasta entonces el checkout de Expediente responde 409 por precio faltante, que es lo correcto. El médico extra de Expediente se cobra al precio del nivel `pro` (499); bajarlo pide un precio de asiento propio.
 
 **Pruebas permanentes:** `src/__tests__/el-plan-expediente-es-escrito.test.ts` (19 casos; al revés: prueba, cortesía y legados conservan la IA). `planes-precios` y `creditos-transparencia` actualizados a los números nuevos. No recorre la pantalla en un navegador ni acredita nada en Stripe.
+
+## REG-690 — D-062: la nota cuesta lo que debe: borrador en vivo local, escalado por señales, fusión apagada (12-sep-2026)
+
+**Decisión del dueño, no defecto.** Tras medir el costo por consulta (borrador en vivo 15 MXN, nota 4 a 18, fusión 15, transcripción 2) el dueño pidió los recortes que no tocan la nota firmada:
+
+1. **El borrador en vivo lo arma el parser clínico local**, en el navegador, sin red ni costo. Antes cada pase (unos 40 por consulta de 20 minutos) pedía una nota Haiku con todo lo dictado y costaba casi lo mismo que la nota final que lo reemplaza. La nota final y la preliminar siguen yendo al servidor.
+2. **Escalado automático a Máxima por señales deterministas** (`complejidad.ts`): cinco o más medicamentos, primera vez con tres o más comorbilidades, infectología con antimicrobianos o patógenos nombrados. Sonnet ordena igual que Opus; sólo razona distinto, y el razonamiento se paga donde importa. El médico no elige (D-047); la respuesta dice por qué (`_escalado`). Regla de vocabulario, no de criterio: que ninguna señal se dispare significa «no se detectó», no «es simple». Si la cartera no alcanza, la reserva degrada como siempre.
+3. **La fusión GPT + síntesis queda detrás de `NOTA_ENSAMBLE_GPT=1`, apagada.** Cuesta una nota entera más, no hay evidencia de que mejore la nota y ya reescribió citas (REG-119).
+
+**Lo que sigue pendiente y declarado:** la caché del prompt a una hora (parámetro sin verificar contra el proveedor, ~1 MXN por nota) y guardar los hallazgos de la segunda opinión con la nota para medirla.
+
+**Pruebas permanentes:** `src/__tests__/la-nota-cuesta-lo-que-debe.test.ts`. No mide el costo real: eso es el libro de costos en producción.

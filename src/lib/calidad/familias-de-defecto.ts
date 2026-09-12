@@ -1284,7 +1284,7 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * pareciendo elegido, y entonces ya nadie lo revisa. Contarlas aquí es lo
      * que impide que una omisión se disfrace de criterio.
      */
-    regs: [174, 175, 292, 357, 591, 592, 593, 594, 603, 687, 688, 689],
+    regs: [174, 175, 292, 357, 591, 592, 593, 594, 603, 687, 688, 689, 690],
   },
   {
     /**

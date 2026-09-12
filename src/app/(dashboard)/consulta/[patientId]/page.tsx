@@ -66,6 +66,7 @@ import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperator
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
 import { planIncluyeIA, type ClaveMotor } from '@/lib/planes-ia'
+import { borradorLocal } from '@/lib/expediente/borrador-local'
 import Link from 'next/link'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
@@ -2785,7 +2786,16 @@ export default function ConsultaActivaPage() {
     const transcripcionParaIA = textoParaLaIA(multiTramo)
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
     try {
-      const res = await fetchAutenticado('/api/expediente/procesar', {
+      /**
+       * EL PASE EN VIVO NO LLAMA A NINGÚN MODELO (D-062).
+       *
+       * Mientras se graba, el borrador lo arma el parser clínico local: al
+       * instante, sin red y sin costo. Antes cada pase pedía una nota Haiku
+       * con todo lo dictado hasta entonces, unos 40 pases por consulta, y
+       * costaba casi lo mismo que la nota final que lo reemplaza. La nota
+       * final y la preliminar siguen yendo al servidor.
+       */
+      const res = enVivo ? null : await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2809,7 +2819,7 @@ export default function ConsultaActivaPage() {
           },
         }),
       })
-      const data = await res.json().catch(() => null)
+      const data = enVivo ? borradorLocal(transcripcionParaIA, tipoActivo) : await res!.json().catch(() => null)
       // La respuesta puede llegar tras descartar o firmar mientras esperaba la red.
       if (descartadaRef.current || firmadaRef.current) {
         if (!enVivo && !descartadaRef.current) setTareaProc({ ejecutando: false })
@@ -3034,7 +3044,7 @@ export default function ConsultaActivaPage() {
         // REG-503 — `_detalleDebug` viene del proveedor y no está acotado: puede
         // arrastrar el eco del texto que se le mandó. La CAUSA basta para saber
         // por qué se cayó a parser local; el detalle se pasa por el redactor.
-        safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        if (!data._borradorLocal) safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
         // La nota la produjo el parser local: que la procedencia lo diga en vez
         // de arrastrar el modelo del procesamiento anterior.
         if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString(), razonamientoExtendido: false })

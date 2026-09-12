@@ -255,7 +255,8 @@ describe('REG-685 · el borrador de GPT arranca a la vez que Claude', () => {
   })
 
   it('sólo se pide cuando de verdad va a haber ensamble, y con su catch', () => {
-    expect(ruta).toContain("const quiereEnsamble = perfil === 'premium' && !modoEconomico && !rapido")
+    // D-062: el ensamble va detrás de una bandera apagada; la condición de fondo no cambia.
+    expect(ruta).toContain("const quiereEnsamble = ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido")
     expect(ruta).toMatch(/const borradorGPT[\s\S]*?\.catch\(\(\) => null\)\s*:\s*Promise\.resolve\(null\)/)
   })
 
