@@ -1,3 +1,4 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/inmuno/redactar
  *
@@ -44,6 +45,9 @@ Devuelve solo la nota, sin preámbulos.`
 export const maxDuration = 300  // redacción con IA; sin esto se cortaba a 60s en Vercel
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
 

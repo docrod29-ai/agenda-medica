@@ -1,3 +1,4 @@
+import { configuracionPrivada, modoIA, notaConModeloPropio } from '@/lib/ia/configuracion-privada'
 /**
  * GET /api/health
  *
@@ -32,7 +33,7 @@ import { NextResponse } from 'next/server'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { adminDb } from '@/lib/firebase-admin'
-import { fetchConTimeout } from '@/lib/fetch-con-timeout'
+import { fetchIAConTimeout as fetchConTimeout } from '@/lib/ia/salida-privada'
 import { leerLatidos, diagnosticar, PERIODO_MIN } from '@/lib/ops/latido'
 
 export const runtime = 'nodejs'
@@ -80,6 +81,7 @@ export async function GET() {
       return true
     }),
     sondear('anthropic', async () => {
+      if (modoIA() === 'LOCAL_ONLY') return null
       const k = process.env.ANTHROPIC_API_KEY
       if (!k) return null
       const r = await fetchConTimeout('https://api.anthropic.com/v1/models',
@@ -87,6 +89,7 @@ export async function GET() {
       return r.ok
     }),
     sondear('openai', async () => {
+      if (modoIA() === 'LOCAL_ONLY') return null
       const k = process.env.OPENAI_API_KEY
       if (!k) return null
       const r = await fetchConTimeout('https://api.openai.com/v1/models',
@@ -100,6 +103,12 @@ export async function GET() {
       return true
     }),
   ])
+
+  if (notaConModeloPropio()) {
+    const configurada = configuracionPrivada().ok
+    sondas.push({ nombre: 'selfhosted', ok: configurada ? null : false, ms: 0,
+      nota: configurada ? 'Configuración presente; inferencia no comprobada por esta sonda.' : 'Configuración de inferencia propia incompleta o inválida.' })
+  }
 
   // Los trabajos automáticos: un sistema con todo arriba y los crons parados no
   // está sano, y desde fuera se ve idéntico.

@@ -108,7 +108,7 @@ describe('D-062 · la ruta escala sola y lo dice, y la fusión va apagada', () =
   const codigo = sinComentarios(ruta)
 
   it('escala de Estándar a Máxima sólo cuando el servidor decide, nunca en el pase rápido ni con motor explícito', () => {
-    expect(codigo).toContain("if (!rapido && !body.motor && motorPedido.clave === 'estandar') {")
+    expect(codigo).toContain("if (!propia && !rapido && !body.motor && motorPedido.clave === 'estandar') {")
     expect(codigo).toContain('const c = evaluarComplejidad(transcripcion, tipo, contexto.especialidad)')
     expect(codigo).toContain('if (c.compleja) { motorPedido = MOTORES.maxima; escalado = c.motivos }')
     // El motor por omisión sigue siendo el del plan (D-047): la expresión no cambia.
@@ -121,7 +121,7 @@ describe('D-062 · la ruta escala sola y lo dice, y la fusión va apagada', () =
 
   it('la fusión GPT está detrás de una bandera y la bandera nace apagada', () => {
     expect(codigo).toContain("const ENSAMBLE_GPT = process.env.NOTA_ENSAMBLE_GPT === '1'")
-    expect(codigo).toContain("const quiereEnsamble = ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido")
+    expect(codigo).toContain("const quiereEnsamble = !propia && ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido")
   })
 })
 

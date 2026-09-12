@@ -10,8 +10,8 @@ inteligente" en "IA defendible con datos".
 - **alucinacionesPorCaso**: promedio de afirmaciones sin sustento (dato en la salida
   que no está ni en la entrada ni en el oro).
 
-## Cómo se corre un estudio (paso del Dr., con datos de-identificados)
-1. Arma un **conjunto ORO**: N consultas reales DE-IDENTIFICADAS, cada una con la
+## Cómo se corre un estudio (casos sintéticos o actuados autorizados, D-029)
+1. Arma un **conjunto ORO**: N consultas inventadas o actuadas autorizadas, cada una con la
    nota "correcta" validada por un médico. Formato `CasoOro[]`:
    `{ id, entrada, esperado: { diagnostico, motivo, plan, ... }, prohibidos? }`.
 2. Genera las salidas de la IA para esas mismas entradas (`SalidaGenerada[]`).
@@ -25,4 +25,6 @@ inteligente" en "IA defendible con datos".
 - **Comprador hospitalario**: un número validado separa el producto del 95% del mercado.
 - **Seguridad del paciente**: mide de verdad cuándo y cómo se equivoca la IA.
 
-El instrumento está listo; el **estudio** lo corre el Dr. con sus datos reales.
+La revisión clínica del estudio sigue pendiente. D-029 prohíbe reutilizar aquí
+conversaciones de producción, incluso desidentificadas. La integración de
+inferencia propia y sus límites se describen en [INFERENCIA-PROPIA.md](INFERENCIA-PROPIA.md).

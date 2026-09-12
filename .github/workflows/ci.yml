@@ -145,8 +145,12 @@ jobs:
         run: npm ci
       - name: Typecheck (tsc --noEmit)
         run: npx tsc --noEmit
-      - name: Pruebas (vitest)
-        run: npx vitest run
+      - name: Pruebas (vitest, sin conexiones de datos clínicos)
+        run: NODE_OPTIONS='--require=./scripts/testing/sin-red.cjs' npx vitest run --exclude src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts
+      # Única prueba con consulta real: npm audit envía nombres y versiones de
+      # paquetes al registro npm. No importa funciones clínicas ni casos médicos.
+      - name: Vigencia del inventario de vulnerabilidades (npm audit)
+        run: npx vitest run src/__tests__/la-cifra-de-seguridad-no-se-pudre.test.ts
       - name: Build de producción (next build)
         run: npm run build
         env:

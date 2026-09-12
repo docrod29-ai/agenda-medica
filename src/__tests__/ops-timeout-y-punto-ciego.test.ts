@@ -134,7 +134,8 @@ describe('el gateway de IA ya no se queda colgado', () => {
   const s = leer('src', 'lib', 'ia', 'gateway.ts')
 
   it('usa el helper, no `fetch` pelado', () => {
-    expect(s).toContain('fetchConTimeout(URL[o.proveedor]')
+    expect(s).toContain('fetchConTimeout(destino,')
+    expect(s).toContain("fetchIAConTimeout as fetchConTimeout")
     expect(s).toContain('TIMEOUT.ia)')
   })
 

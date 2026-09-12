@@ -26293,3 +26293,13 @@ Guardián: `src/__tests__/regenerar-no-conserva-listas-retiradas.test.ts`, bloqu
 **Lo que sigue pendiente y declarado:** la caché del prompt a una hora (parámetro sin verificar contra el proveedor, ~1 MXN por nota) y guardar los hallazgos de la segunda opinión con la nota para medirla.
 
 **Pruebas permanentes:** `src/__tests__/la-nota-cuesta-lo-que-debe.test.ts`. No mide el costo real: eso es el libro de costos en producción.
+
+## REG-691 — el directorio espera la identidad antes de filtrar pacientes (12-sep-2026)
+
+**Descubrimiento:** al investigar un fallo de navegación Safari del CI de inferencia propia se reprodujo un defecto preexistente: el rol podía resolverse antes que la instancia local de useAuth. Una lectura iniciada con user=null filtraba toda la lista y, si llegaba tras la lectura autenticada, sobrescribía sus pacientes con un vacío sin error.
+
+**Arreglo:** el load canónico exige consultorio, rol y uid antes de solicitar el directorio. Se conserva íntegra la política de alcance; no se conceden filas por falta de identidad.
+
+**Prueba permanente:** `src/__tests__/el-directorio-espera-la-identidad-del-medico.test.ts` ejecuta el callback real extraído por AST, con promesas en orden inverso y datos sintéticos. Retirar la guarda produce dos fallos; restituirla deja los cuatro casos en verde, incluidos los controles de alcance y directorio administrativo.
+
+**Límite:** demuestra esta carrera, no que fuera la causa exacta del trace de Safari. No cambia las reglas de acceso del servidor ni cubre cambios de consultorio durante una carga ya autenticada.

@@ -137,7 +137,8 @@ describe('la traza cruza al proveedor', () => {
      * Una traza que cambia al cruzar la frontera no correlaciona nada: el
      * proveedor tendría un identificador que no existe en nuestro libro.
      */
-    const iFetch = GATEWAY.indexOf('fetchConTimeout(URL[o.proveedor]')
+    const iFetch = GATEWAY.indexOf('fetchConTimeout(destino,')
+    expect(iFetch).toBeGreaterThan(-1)
     /* De la llamada hasta su cierre: la cabecera va DESPUÉS del `fetchConTimeout(`. */
     const bloque = GATEWAY.slice(iFetch, iFetch + 1600)
     expect(bloque).toMatch(/ctx\.correlacion/)

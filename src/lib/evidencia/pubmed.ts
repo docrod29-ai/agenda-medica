@@ -11,7 +11,8 @@
  * https://www.ncbi.nlm.nih.gov/account/) sube a ~10 req/s.
  */
 
-import { fetchConTimeout, TIMEOUT } from '@/lib/fetch-con-timeout'
+import { fetchIAConTimeout as fetchConTimeout } from '@/lib/ia/salida-privada'
+import { TIMEOUT } from '@/lib/fetch-con-timeout'
 import { permiteLlamar, anotarVeredicto } from '@/lib/red/interruptor'
 import {
   claveCircuitoEvidencia, veredictoDeRespuestaEvidencia, veredictoDeExcepcionEvidencia,

@@ -39,7 +39,7 @@
  * AssemblyAI no pasa por el gateway (no es una API de mensajes: es una cola de
  * trabajos con su propio ciclo), pero sí tiene que poder anotarse.
  */
-export type Proveedor = 'anthropic' | 'openai' | 'assemblyai'
+export type Proveedor = 'anthropic' | 'openai' | 'assemblyai' | 'selfhosted'
 
 /** Lo que salió mal, en términos de qué hacer al respecto. */
 export type ClaseFallo =
@@ -82,7 +82,7 @@ export type Resultado = Exito | Fallo
    Errores: de un número HTTP a algo que alguien pueda arreglar
    ════════════════════════════════════════════════════════════════════════ */
 
-const NOMBRE: Record<Proveedor, string> = { anthropic: 'Anthropic', openai: 'OpenAI', assemblyai: 'AssemblyAI' }
+const NOMBRE: Record<Proveedor, string> = { anthropic: 'Anthropic', openai: 'OpenAI', assemblyai: 'AssemblyAI', selfhosted: 'IA propia' }
 
 /** Clasifica un código HTTP. La clase es lo que decide qué se hace después. */
 export function claseDe(status: number): ClaseFallo {
@@ -220,3 +220,28 @@ export const POR_QUE_UN_SOLO_PROTOCOLO =
   'variaciones son las que costaron: el Copilot de UCI se quedó en 4 000 tokens ' +
   'de salida mientras la nota de consulta ya usaba 24 000, y el médico veía ' +
   '«no se pudo generar la síntesis» justo cuando había más datos que sintetizar.'
+
+/** Protocolo OpenAI-compatible del servidor propio; no es una llamada a OpenAI. */
+export function cuerpoPropio(p: Peticion): Json {
+  const { max_completion_tokens: _tope, ...cuerpo } = cuerpoOpenAI(p)
+  return { ...cuerpo, max_tokens: p.maxTokens, stream: false }
+}
+
+export function leerPropio(data: unknown, modeloPedido: string): Resultado {
+  const d = (data ?? {}) as Json
+  const opciones = Array.isArray(d.choices) ? d.choices as Json[] : []
+  const primera = opciones[0]
+  const mensaje = primera?.message as Json | undefined
+  const herramientas = mensaje?.tool_calls
+  // No convertir objetos, rechazos, razonamiento ni tool calls en texto clínico.
+  if (typeof mensaje?.content !== 'string' || !mensaje.content.trim()
+    || (herramientas != null && (!Array.isArray(herramientas) || herramientas.length > 0)) || mensaje.refusal
+    || !['stop', 'length'].includes(String(primera?.finish_reason))) {
+    return { ok: false, clase: 'respuesta', motivo: 'La IA propia no devolvió una respuesta de texto completa y reconocible.' }
+  }
+  if (d.model !== modeloPedido) {
+    return { ok: false, clase: 'modelo', motivo: 'El servidor propio respondió con un modelo distinto del configurado.' }
+  }
+  return { ok: true, texto: mensaje.content, modelo: modeloPedido,
+    truncado: primera.finish_reason === 'length', bruto: data }
+}

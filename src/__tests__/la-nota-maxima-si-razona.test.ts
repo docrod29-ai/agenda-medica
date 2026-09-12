@@ -164,15 +164,16 @@ describe('REG-686 · si la nota Máxima no razonó, se DICE (hallazgo B-003)', (
   const consulta = leer('src/app/(dashboard)/consulta/[patientId]/page.tsx')
 
   it('la ruta lleva la cuenta de si razonó, y la pierde en los dos caminos que degradan', () => {
-    expect(ruta).toContain('let razono = conThinking && thinkingPara(model) !== null')
+    expect(ruta).toContain('razono = conThinking && thinkingPara(model) !== null')
     // Modo seguro (400 con razonamiento) y reintento por JSON cortado.
-    expect([...ruta.matchAll(/razono = false/g)]).toHaveLength(2)
+    // La propia nace sin atribuirse razonamiento extendido no comprobado.
+    expect([...ruta.matchAll(/razono = false/g)]).toHaveLength(3)
     expect(ruta).toMatch(/res = await llamarClaudeConReintentos\(API_KEY, model, system, userMsg, false\)\s*\n\s*razono = false/)
     expect(ruta).toContain('if (p2) { parsed = p2; razono = false }')
   })
 
   it('la respuesta lo dice en las DOS salidas (válida y con aviso de esquema), y el parser local no presume razonamiento', () => {
-    expect([...ruta.matchAll(/_razonamientoExtendido: razono, _sinRazonamiento: conThinking && !razono, _avisoRazonamiento: conThinking && !razono \? AVISO_SIN_RAZONAMIENTO : ''/g)]).toHaveLength(2)
+    expect([...ruta.matchAll(/_razonamientoExtendido: razono, _sinRazonamiento: !propia && conThinking && !razono, _avisoRazonamiento: !propia && conThinking && !razono \? AVISO_SIN_RAZONAMIENTO : ''/g)]).toHaveLength(2)
     expect(ruta).toContain("_modelo: 'parser-local', _razonamientoExtendido: false")
   })
 
@@ -256,7 +257,7 @@ describe('REG-685 · el borrador de GPT arranca a la vez que Claude', () => {
 
   it('sólo se pide cuando de verdad va a haber ensamble, y con su catch', () => {
     // D-062: el ensamble va detrás de una bandera apagada; la condición de fondo no cambia.
-    expect(ruta).toContain("const quiereEnsamble = ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido")
+    expect(ruta).toContain("const quiereEnsamble = !propia && ENSAMBLE_GPT && perfil === 'premium' && !modoEconomico && !rapido")
     expect(ruta).toMatch(/const borradorGPT[\s\S]*?\.catch\(\(\) => null\)\s*:\s*Promise\.resolve\(null\)/)
   })
 

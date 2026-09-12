@@ -1,4 +1,5 @@
 'use client'
+import { capacidadVozPermitida, CapacidadVozLimitada, AVISO_VOZ_LIMITADA, verificarRespuestaDeVoz } from '@/lib/voz/permiso-de-procesamiento'
 import { type CambioTranscripcion } from '@/lib/expediente/medical-vocabulary'
 import { dudaEnZonaCritica } from '@/lib/expediente/confianza-audio'
 import { UNIDADES_CANONICAS } from '@/lib/asr/politica-critica'
@@ -541,6 +542,7 @@ async function intentarDiarizar(
     if (!res.ok) {
       // 503 con `sinClave` es «no hay llave»; cualquier otro código es el proveedor.
       const d = await res.json().catch(() => null)
+      verificarRespuestaDeVoz(d)
       return falla(d?.sinClave ? 'sin_llave' : 'error_proveedor')
     }
     const sub = await res.json()
@@ -550,7 +552,10 @@ async function intentarDiarizar(
     for (let i = 0; i < intentos; i++) {
       await sleepMs(pausaMs)
       const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
-      if (!p.ok) continue
+      if (!p.ok) {
+        verificarRespuestaDeVoz(await p.json().catch(() => null))
+        continue
+      }
       const d = await p.json()
       if (d.status === 'completed') {
         const text = String(d.text ?? '')
@@ -577,7 +582,8 @@ async function intentarDiarizar(
       if (d.status === 'error' || d.ok === false) return falla('error_proveedor')
     }
     return falla('tiempo_agotado')
-  } catch {
+  } catch (e) {
+    if (e instanceof CapacidadVozLimitada) throw e
     return falla('red')
   }
 }
@@ -640,6 +646,7 @@ async function intentarDiarizarLargo(
     })
     if (!res.ok) {
       const d = await res.json().catch(() => null)
+      verificarRespuestaDeVoz(d)
       return falla(d?.sinClave ? 'sin_llave' : 'error_proveedor')
     }
     const sub = await res.json()
@@ -650,7 +657,10 @@ async function intentarDiarizarLargo(
     for (let i = 0; i < intentos; i++) {
       await sleepMs(pausaMs)
       const p = await fetchAutenticado(`/api/expediente/transcribir-diarizado?id=${encodeURIComponent(sub.id)}`)
-      if (!p.ok) continue
+      if (!p.ok) {
+        verificarRespuestaDeVoz(await p.json().catch(() => null))
+        continue
+      }
       const d = await p.json()
       if (d.status === 'completed') {
         const text = String(d.text ?? '')
@@ -672,6 +682,7 @@ async function intentarDiarizarLargo(
      * Un motivo que miente cuesta doble: la avería, y las horas persiguiendo la
      * avería equivocada. Es una familia de defecto entera de este repositorio.
      */
+    if (e instanceof CapacidadVozLimitada) throw e
     const codigo = String((e as { code?: string })?.code ?? '')
     if (codigo.startsWith('storage/')) return falla('sin_permiso_de_lectura')
     if (!subido) return falla('no_se_pudo_subir')
@@ -809,7 +820,9 @@ async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDicta
       // inválida o expiró", "OpenAI no disponible temporalmente (HTTP 400)…").
       // Antes se ignoraba y solo salía "OpenAI HTTP 502" → causa invisible.
       let msgServidor = ''
-      try { msgServidor = String(JSON.parse(body)?.error || '') } catch { /* body no-JSON */ }
+      let datos: { error?: unknown; capacidadLimitada?: unknown } | null = null
+      try { datos = JSON.parse(body); msgServidor = String(datos?.error || '') } catch { /* body no-JSON */ }
+      verificarRespuestaDeVoz(datos)
       /**
        * EL MENSAJE DEL SERVIDOR VA PRIMERO, Y NO ES UN DETALLE DE ORDEN.
        *
@@ -836,6 +849,7 @@ async function transcribirBlobSimple(blob: Blob, ext: string, contexto: CtxDicta
     motivoFalloTranscripcion = data?.error ? String(data.error).slice(0, 100) : 'OpenAI devolvió respuesta vacía'
     return ''
   } catch (e) {
+    if (e instanceof CapacidadVozLimitada) throw e
     motivoFalloTranscripcion = 'sin conexión / timeout: ' + String(e).slice(0, 50)
     return ''
   }
@@ -1049,6 +1063,7 @@ export function extDe(mime: string): string {
 export function useGrabacionAudio(): UseGrabacionAudio {
   const [soportado] = useState(() => typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined')
   const [estado, setEstado] = useState<Estado>('inactivo')
+  const intentoCaptura = useRef(0)
   const [duracion, setDuracion] = useState(0)
   /**
    * Espejo de `duracion` en una referencia, para el libro de costos.
@@ -1212,6 +1227,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   const mimeRef = useRef<string>('')
 
   const liberarRecursos = useCallback(() => {
+    intentoCaptura.current += 1
     const rec = mediaRef.current
     if (rec && rec.state !== 'inactive') {
       /**
@@ -1424,6 +1440,11 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       anexarSesgoDelPaciente(fd, contextoRef.current)
       const res = await fetchAutenticado('/api/expediente/transcribir-chunk', { method: 'POST', body: fd })
       if (!res.ok) {
+        const datos = await res.json().catch(() => null)
+        if (datos?.capacidadLimitada === true) {
+          streamingActivoRef.current = false
+          setError(AVISO_VOZ_LIMITADA)
+        }
         // Un trozo perdido deja de ser invisible: el contador se ve en pantalla
         // y evita que un texto truncado se lea como la consulta completa.
         chunksFallidosRef.current++
@@ -1534,6 +1555,12 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
   const iniciar = useCallback(async (opts?: OpcionesGrabacion) => {
     if (!soportado) { setError('Tu navegador no soporta grabación de audio'); setEstado('error'); return }
+    const turno = ++intentoCaptura.current
+    if (!await capacidadVozPermitida('transcripcionAudio')) {
+      if (intentoCaptura.current === turno) { setError(AVISO_VOZ_LIMITADA); setEstado('error') }
+      return
+    }
+    if (intentoCaptura.current !== turno) return
     // Precalienta el pipeline de nueve etapas: se difiere hasta el dictado para
     // no pagarlo al abrir /consulta, y se pide AQUÍ para que al llegar el primer
     // texto ya esté en memoria. Sin await: no retrasa el permiso de micrófono.
@@ -1556,6 +1583,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     if (recoveryKeyRef.current) {
       try { recoveryBaseRef.current = (await leerChunks(recoveryKeyRef.current)).length } catch { recoveryBaseRef.current = 0 }
     }
+    if (intentoCaptura.current !== turno) return
     // El contador de persistencia arranca donde acaba lo que ya había: a partir
     // de aquí sólo sube, pase lo que pase con los arrays en memoria (REG-295).
     persistIdxRef.current = recoveryBaseRef.current
@@ -1607,6 +1635,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
        * Se lee y se guarda. No cambia nada del audio: cambia que dejemos de
        * afirmar lo que no sabemos.
        */
+      if (intentoCaptura.current !== turno) { stream.getTracks().forEach(t => t.stop()); return }
       streamRef.current = stream
       try {
         const pista = stream.getAudioTracks()[0]
@@ -1706,6 +1735,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       setEstado('grabando')
       setError('')
     } catch (e) {
+      if (intentoCaptura.current !== turno) return
       liberarRecursos()
       const err = e as Error
       if (err.name === 'NotAllowedError' || err.message.includes('denied')) {
@@ -1760,6 +1790,7 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   }, [flushChunks, arrancarMedidor])
 
   const detener = useCallback(async () => {
+    intentoCaptura.current += 1
     const rec = mediaRef.current
     if (!rec) return
     setEstado('subiendo')
@@ -1784,6 +1815,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
     analyserRef.current = null
     mediaRef.current = null
 
+    if (!await capacidadVozPermitida('transcripcionAudio')) {
+      setError(AVISO_VOZ_LIMITADA); setEstado('error'); return
+    }
+    try {
     // Flush final del último chunk pendiente (mejora la cobertura del streaming)
     if (streamingActivoRef.current && chunksRef.current.length > 0) {
       await flushChunks()
@@ -1949,6 +1984,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
 
     setError(`No se pudo transcribir${motivoFalloTranscripcion ? ` (${motivoFalloTranscripcion})` : ''}. El audio quedó GUARDADO en este dispositivo — reintenta con "Recuperar audio".`)
     setEstado('error')
+    } catch (e) {
+      if (!(e instanceof CapacidadVozLimitada)) throw e
+      setError(AVISO_VOZ_LIMITADA); setEstado('error')
+    }
   }, [flushChunks])
 
   // ─── Recovery API ──────────────────────────────────────────
@@ -1972,6 +2011,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
   }, [])
 
   const recuperarAudio = useCallback(async (recoveryKey: string, ctx: CtxDictado = {}) => {
+    if (!await capacidadVozPermitida('transcripcionAudio')) {
+      setError(AVISO_VOZ_LIMITADA); setEstado('error'); return
+    }
+    try {
     setEstado('subiendo')
     const chunks = await leerChunks(recoveryKey)
     if (chunks.length === 0) {
@@ -2048,6 +2091,10 @@ export function useGrabacionAudio(): UseGrabacionAudio {
       // No borramos el audio: sigue disponible para reintentar más tarde.
       setError(`No se pudo transcribir el audio recuperado${motivoFalloTranscripcion ? ` (${motivoFalloTranscripcion})` : ''}. Sigue guardado en este dispositivo; reintenta más tarde.`)
       setEstado('error')
+    }
+    } catch (e) {
+      if (!(e instanceof CapacidadVozLimitada)) throw e
+      setError(AVISO_VOZ_LIMITADA); setEstado('error')
     }
   }, [])
 

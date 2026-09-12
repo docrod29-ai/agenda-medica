@@ -1,4 +1,5 @@
 'use client'
+import { iniciarReconocimientoPermitido } from '@/lib/voz/permiso-de-procesamiento'
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 /**
  * El pipeline de corrección se carga al PULSAR grabar, no al abrir la pantalla
@@ -51,6 +52,7 @@ function getSR(): SRConstructor | null {
 
 export interface UseGrabacionVoz {
   soportado: boolean
+  error: string | null
   grabando: boolean
   transcripcion: string
   interim: string
@@ -63,6 +65,7 @@ export interface UseGrabacionVoz {
 
 export function useGrabacionVoz(): UseGrabacionVoz {
   const [soportado] = useState(() => getSR() !== null)
+  const [error, setError] = useState<string | null>(null)
   const [grabando, setGrabando] = useState(false)
   const [transcripcion, setTranscripcion] = useState('')
   const [interim, setInterim] = useState('')
@@ -72,14 +75,21 @@ export function useGrabacionVoz(): UseGrabacionVoz {
   const finalRef = useRef('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const deseaGrabar = useRef(false)
+  const intento = useRef(0)
 
   const iniciar = useCallback(async () => {
     const SR = getSR()
-    if (!SR) return
+    if (!SR || deseaGrabar.current) return
+    const turno = ++intento.current
+    deseaGrabar.current = true
 
     // El corrector llega antes que la primera palabra (ver nota del import).
     let procesarTranscript: typeof import('@/lib/asr/pipeline').procesarTranscript
-    try { ({ procesarTranscript } = await cargarPipeline()) } catch { return }
+    try { ({ procesarTranscript } = await cargarPipeline()) } catch {
+      if (intento.current === turno) deseaGrabar.current = false
+      return
+    }
+    if (!deseaGrabar.current || intento.current !== turno) return
 
     const rec = new SR()
     rec.lang = 'es-MX'
@@ -105,17 +115,24 @@ export function useGrabacionVoz(): UseGrabacionVoz {
 
     rec.onerror = () => { /* errores transitorios — el onend reintenta */ }
 
-    rec.onend = () => {
-      // El reconocimiento se corta solo cada cierto tiempo; reiniciar si seguimos grabando
-      if (deseaGrabar.current) {
-        try { rec.start() } catch { /* ya iniciado */ }
+    const arrancar = async () => {
+      const permitido = await iniciarReconocimientoPermitido(() => rec.start(),
+        () => deseaGrabar.current && intento.current === turno)
+      if (!permitido && intento.current === turno && deseaGrabar.current) {
+        deseaGrabar.current = false
+        setGrabando(false)
+        setError('El dictado del navegador no está disponible con la política de privacidad actual o sin conexión. Puedes escribir.')
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
       }
+      return permitido
+    }
+    rec.onend = () => {
+      if (deseaGrabar.current && intento.current === turno) void arrancar()
     }
 
     recRef.current = rec
-    deseaGrabar.current = true
-    try { rec.start() } catch { /* ignore */ }
-
+    if (!await arrancar() || !deseaGrabar.current || intento.current !== turno) return
+    setError(null)
     setGrabando(true)
     setDuracion(0)
     timerRef.current = setInterval(() => setDuracion(d => d + 1), 1000)
@@ -123,6 +140,7 @@ export function useGrabacionVoz(): UseGrabacionVoz {
 
   const detener = useCallback(() => {
     deseaGrabar.current = false
+    intento.current += 1
     recRef.current?.stop()
     setGrabando(false)
     setInterim('')
@@ -131,6 +149,7 @@ export function useGrabacionVoz(): UseGrabacionVoz {
 
   const reiniciar = useCallback(() => {
     deseaGrabar.current = false
+    intento.current += 1
     recRef.current?.abort()
     finalRef.current = ''
     setTranscripcion('')
@@ -148,6 +167,7 @@ export function useGrabacionVoz(): UseGrabacionVoz {
 
   useEffect(() => () => {
     deseaGrabar.current = false
+    intento.current += 1
     recRef.current?.abort()
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
@@ -171,7 +191,7 @@ export function useGrabacionVoz(): UseGrabacionVoz {
    * los cinco valores de estado y los cuatro callbacks, que ya son estables.
    */
   return useMemo(() => ({
-    soportado, grabando, transcripcion, interim, duracion,
+    soportado, error, grabando, transcripcion, interim, duracion,
     iniciar, detener, reiniciar, setTranscripcion: setTransc,
-  }), [soportado, grabando, transcripcion, interim, duracion, iniciar, detener, reiniciar, setTransc])
+  }), [soportado, error, grabando, transcripcion, interim, duracion, iniciar, detener, reiniciar, setTransc])
 }

@@ -1,5 +1,15 @@
 # Bitácora del trabajo autónomo
 
+## 2026-09-12 — inferencia propia, primera integración
+
+Por orden del dueño se ejecuta el plan de independencia de IA en una rama
+separada de los cambios concurrentes. Se integra la nota autoalojada y la
+política de salidas, con controles de voz y devolución de créditos ante fallo.
+La comprobación clínica real queda pendiente del servidor GPU y del estudio
+con casos sintéticos revisados. El checkpoint específico vive en
+`docs/maintenance/INFERENCIA-PROPIA-2026-09-12.md`; no modifica los cierres de
+otros carriles ni autoriza producción.
+
 ## 2026-09-11 — cierre de privacidad y preparación de v1197
 
 El dueño autorizó integrar y desplegar #487. Se recuperó el cierre pendiente de

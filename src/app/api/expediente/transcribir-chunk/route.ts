@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * POST /api/expediente/transcribir-chunk
  *
@@ -34,6 +36,9 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-chunk:${acceso.uid}`, 120, 60)

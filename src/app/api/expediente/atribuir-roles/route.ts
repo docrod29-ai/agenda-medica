@@ -1,3 +1,4 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
 /**
  * POST /api/expediente/atribuir-roles
  *
@@ -33,6 +34,9 @@ export const maxDuration = 30
 const MODELOS = ['claude-sonnet-5', 'claude-sonnet-4-6', 'claude-sonnet-4-5']
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`atribuir-roles:${acceso.uid}`, 40, 60)

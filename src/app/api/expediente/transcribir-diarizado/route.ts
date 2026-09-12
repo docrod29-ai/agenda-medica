@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * Transcripción CON DIARIZACIÓN (separación de voces) vía AssemblyAI.
  *
@@ -122,6 +124,9 @@ const AAI = 'https://api.assemblyai.com/v2'
 interface UtteranceAAI { speaker: string; text: string; palabras: PalabraOida[] }
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)
@@ -440,6 +445,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`transcribir-diarizado:${acceso.uid}`, 20, 60)

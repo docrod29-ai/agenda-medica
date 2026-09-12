@@ -1,4 +1,5 @@
 'use client'
+import { capacidadVozPermitida } from '@/lib/voz/permiso-de-procesamiento'
 import { puedeVerExpediente, TEXTO_SIN_ACCESO } from '@/lib/authz/alcance-del-paciente'
 import { useState, useEffect, useCallback, useMemo, useRef, type ComponentProps } from 'react'
 import { ConsultaWorkspace } from '@/components/consulta/ConsultaWorkspace'
@@ -4334,7 +4335,12 @@ export default function ConsultaActivaPage() {
   // ── Resumen hablado de cierre ──────────────────────────────────
   // La IA (voz del navegador, sin dependencias) lee Dx / Tratamiento / plan para
   // que el médico CONFIRME de un vistazo antes de firmar. No modifica la nota.
-  const leerResumen = useCallback(() => {
+  const lecturaActiva = useRef(true)
+  useEffect(() => {
+    lecturaActiva.current = true
+    return () => { lecturaActiva.current = false; window.speechSynthesis?.cancel() }
+  }, [])
+  const leerResumen = useCallback(async () => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
       toast('Tu navegador no soporta lectura por voz', 'error'); return
     }
@@ -4348,6 +4354,10 @@ export default function ConsultaActivaPage() {
       resumen.trim() && `Resumen: ${resumen.trim()}.`,
     ].filter(Boolean) as string[]
     if (!partes.length) { toast('Aún no hay contenido para leer', 'info'); return }
+    if (!await capacidadVozPermitida('lecturaNavegador')) {
+      toast('La lectura por voz no está disponible con la política de privacidad actual o sin conexión.', 'info'); return
+    }
+    if (!lecturaActiva.current) return
     window.speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(partes.join(' '))
     u.lang = 'es-MX'

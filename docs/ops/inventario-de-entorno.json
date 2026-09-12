@@ -1,7 +1,7 @@
 {
   "porQue": "Inventario DERIVADO del árbol por scripts/ops/inventario-de-entorno.mjs. NO se edita a mano: se regenera. El conocimiento humano (formato, qué pasa sin ella) vive en docs/ops/INVENTARIO-DE-ENTORNO.md.",
   "generado": "2026-09-12",
-  "total": 135,
+  "total": 140,
   "variables": [
     {
       "nombre": "ANCHOS",
@@ -158,6 +158,61 @@
         "scripts/medir-sesgo-vocabulario.ts",
         "src/app/api/expediente/transcribir-diarizado/route.ts",
         "src/lib/ai-keys.ts"
+      ]
+    },
+    {
+      "nombre": "AUSCULTA_AI_MODE",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/configuracion-privada.ts"
+      ]
+    },
+    {
+      "nombre": "AUSCULTA_NOTE_PROVIDER",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/configuracion-privada.ts"
+      ]
+    },
+    {
+      "nombre": "AUSCULTA_SELF_HOSTED_API_KEY",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/configuracion-privada.ts"
+      ]
+    },
+    {
+      "nombre": "AUSCULTA_SELF_HOSTED_BASE_URL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/configuracion-privada.ts"
+      ]
+    },
+    {
+      "nombre": "AUSCULTA_SELF_HOSTED_MODEL",
+      "publica": false,
+      "deLaPlataforma": false,
+      "ambito": "runtime",
+      "defectoLiteral": null,
+      "defectoDe": null,
+      "archivos": [
+        "src/lib/ia/configuracion-privada.ts"
       ]
     },
     {
@@ -1186,6 +1241,7 @@
         "src/app/api/cron/retencion/route.ts",
         "src/app/api/cron/vigilante/route.ts",
         "src/lib/firebase.ts",
+        "src/lib/ia/configuracion-privada.ts",
         "src/lib/patient-token.ts",
         "src/lib/receta-diseno-token.ts",
         "src/lib/receta-token.ts"

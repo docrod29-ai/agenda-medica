@@ -51,6 +51,9 @@ function fuentes(dir: string, out: string[] = []): string[] {
  * PubMed se le manda una consulta bibliográfica, no datos del paciente.
  */
 const PROPIAS = [
+  // Credencial y endpoint del backend administrado por Ausculta. Un futuro
+  // proveedor de hosting se declara por su identidad antes del despliegue.
+  'AUSCULTA_SELF_HOSTED_API_KEY', 'AUSCULTA_SELF_HOSTED_BASE_URL',
   'CRON_SECRET', 'PORTAL_PACIENTE_SECRET', 'RECETA_DISENO_SECRET', 'NEXT_PUBLIC_APP_URL',
   'NCBI_API_KEY', 'WHATSAPP_VERIFY_TOKEN', 'WHATSAPP_WEBHOOK_TOKEN', 'META_APP_SECRET', 'GOOGLE_CLIENT_SECRET',
   'NEXT_PUBLIC_FIREBASE_API_KEY', 'NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY',

@@ -1,3 +1,5 @@
+import { limitarCapacidadExterna } from '@/lib/ia/configuracion-privada'
+import { fetchIA as fetch } from '@/lib/ia/salida-privada'
 /**
  * POST /api/consultor-evidencia  —  "OpenEvidence" propio
  *
@@ -266,6 +268,9 @@ function responderStream(opts: { key: string; model: string; system: string; use
 }
 
 export async function POST(req: NextRequest) {
+  const capacidadLimitada = limitarCapacidadExterna()
+  if (capacidadLimitada) return capacidadLimitada
+
   const acceso = await verificarModuloIA(req, 'expediente')
   if (!acceso.ok) return acceso.response
   const _rl = await limitarOResponder(`consultor-evidencia:${acceso.uid}`, 30, 60)
