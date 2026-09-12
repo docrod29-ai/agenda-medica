@@ -32,6 +32,7 @@ import { EstadoDeOperaciones } from '@/components/operaciones/EstadoDeOperacione
 import { useMode } from '@/context/ModeContext'
 import { rutaPermitida } from '@/lib/modulos'
 import { enPausa } from '@/lib/navegacion/modulos-en-pausa'
+import { ocultaSinIA } from '@/lib/navegacion/rutas-con-ia'
 import { salirSeguro } from '@/lib/salir-seguro'
 import { useTema } from '@/hooks/useTema'
 import { useToast } from '@/context/ToastContext'
@@ -294,7 +295,8 @@ export default function OperacionesPage() {
         && rutaPermitida(clinic, it.href)
         // Módulos EN PAUSA: declarados arriba, no ofrecidos hoy. Un grupo que
         // se queda sin destinos desaparece entero por el `.filter` de abajo.
-        && !enPausa(it.href)),
+        && !enPausa(it.href)
+        && !ocultaSinIA(clinic, it.href)),
     }))
     .filter(g => g.items.length > 0)
 

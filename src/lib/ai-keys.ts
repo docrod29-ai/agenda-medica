@@ -30,7 +30,7 @@ export type NivelIA = 'pro' | 'premium'
 /**
  * NIVEL DE IA del consultorio (distinto del `plan` de suscripción trial/básico/
  * clínica que vive en el doc clinics/{id}): 'pro' (económico — Sonnet 5, 2ª
- * opinión a demanda) o 'premium' (Opus 4.8 + thinking + 2ª opinión GPT-5
+ * opinión a demanda) o 'premium' (Opus 5 + razonamiento + 2ª opinión GPT-5
  * automática). Default 'pro' para que el costo sea sostenible al precio base.
  * Se guarda en el doc de secretos (solo servidor).
  */

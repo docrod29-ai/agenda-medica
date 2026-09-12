@@ -29,7 +29,7 @@ const PANTALLAS_DE_DINERO = [
 describe('precioTexto', () => {
   it('pone el separador de miles y no inventa centavos', () => {
     expect(precioTexto(PLANES.premium)).toBe('$1,590')
-    expect(precioTexto(PLANES.agenda)).toBe('$349')
+    expect(precioTexto(PLANES.agenda)).toBe('$399')
   })
 
   it('cambia solo si cambia PLANES', () => {

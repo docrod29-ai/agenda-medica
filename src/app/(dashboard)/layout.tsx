@@ -307,13 +307,14 @@ function estadoAcceso(clinic: { status?: string; paseLibre?: boolean; plan?: str
  * en un botón no caben. `planes-precios.test.ts` vigila que no vuelva a
  * colarse un precio.
  */
-const CLAVES_GATE = ['agenda', 'clinica', 'premium'] as const
+const CLAVES_GATE = ['agenda', 'expediente', 'clinica'] as const   // lo que se vende (D-061); Pro queda para quien ya lo paga
 
 /** La nota de una línea es redacción comercial, no un dato: no se edita en la consola. */
 const NOTA_GATE = (creditosClinica: number, creditosPremium: number) => ({
-  agenda:  'Agenda + expediente · sin IA',
-  clinica: `${creditosClinica} créditos de IA/mes`,
-  premium: `${creditosPremium} créditos · IA máxima (Opus + GPT-5)`,
+  agenda:  'Agenda, citas y portal · sin expediente completo',
+  expediente: 'Agenda + expediente escrito · sin IA de voz',
+  clinica: `${creditosClinica} créditos de IA/mes · nota por voz`,
+  premium: `${creditosPremium} créditos · IA máxima`,
 })
 
 function planesGate(planes: Record<string, PlanCreditos>) {

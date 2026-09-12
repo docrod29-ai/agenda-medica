@@ -9,7 +9,7 @@ import { SeguridadTab } from './secciones-seguridad'
 import { cfgInput, cfgLabel } from './estilos'
 import { RecetasTab } from './secciones-recetas'
 import { LlavesIASection, FirmaUploadSection, MembreteNotaSection, MiembrosActivos } from './secciones-cuenta'
-import { PLANES, PLANES_ORDEN, precioTexto, precioAnual } from '@/lib/planes-ia'
+import { PLANES, PLANES_ORDEN, PLANES_EN_VENTA, precioTexto, precioAnual } from '@/lib/planes-ia'
 import { ESPECIALIDADES_CLINICAS, ESPECIALIDADES_QUIRURGICAS, ESPECIALIDADES_DIAGNOSTICAS, OTROS_PROFESIONALES } from '@/lib/especialidades'
 import { X as IconX } from 'lucide-react'
 import { fetchAutenticado } from '@/lib/auth-client'
@@ -1837,7 +1837,7 @@ function MedicosTab() {
  * de una subida de tarifa — y quien lo descubre es él, comparando con su recibo.
  */
 const COLOR_PLAN: Record<string, string> = {
-  trial: 'var(--amber)', agenda: '#60a5fa', clinica: 'var(--nexus)', premium: '#a78bfa', hospital: '#7c5cd6',
+  trial: 'var(--amber)', agenda: '#60a5fa', expediente: 'var(--green)', clinica: 'var(--nexus)', premium: '#a78bfa', hospital: '#7c5cd6',
 }
 const PLAN_DISPLAY: Record<string, { label: string; color: string; price: string }> = {
   trial: { label: 'Prueba gratuita', color: COLOR_PLAN.trial, price: '$0 MXN/mes' },
@@ -1885,12 +1885,14 @@ const PLAN_FEATURES: Record<string, string[]> = {
    * servidor: queda en `no-reparado-UI-CONFIG.md` con su motivo.
    */
   trial:    ['14 días gratuitos', 'Todo el producto, con la IA clínica limitada', 'Sin tarjeta de crédito'],
-  agenda:   ['Agenda y calendario', 'Recordatorios por WhatsApp', 'Expediente básico', 'Portal del paciente'],
+  agenda:   ['Agenda y calendario', 'Reservación en línea', 'Recordatorios por WhatsApp', 'Portal del paciente', 'Expediente básico'],
+  // D-061 · Expediente ESCRITO: consultorio completo sin IA de voz.
+  expediente: ['Expediente clínico completo', 'Nota escrita con plantillas', 'Recetas y órdenes con revisión de dosis', 'Farmacia, CRM, finanzas y cumplimiento', 'Sin IA de voz', 'Todo el plan Agenda'],
   // Los créditos también se leen de `PLANES`. Hospital decía «400 créditos/mes»
   // y son 500: el número se quedó de una versión anterior de la oferta y nadie
   // volvió a mirarlo. Prometer de menos en la pantalla donde se decide pagar es
   // tan malo como prometer de más.
-  clinica:  [`${PLANES.clinica.creditos} créditos de IA/mes`, 'Nota por voz + separación de voces', 'Menú de IA (⚡/⭐/💎)', 'Consultor de evidencia', 'Todo el plan Agenda'],
+  clinica:  [`${PLANES.clinica.creditos} créditos de IA/mes`, 'Nota por voz + separación de voces', 'Procedencia de cada frase', 'Consultor de evidencia', 'Todo el plan Expediente'],
   premium:  [`${PLANES.premium.creditos} créditos/mes`, 'IA de máximo razonamiento clínico por defecto', 'Revisión de seguridad clínica automática', 'Soporte prioritario', 'Todo el plan Clínica'],
   hospital: ['Módulo de Hospitalización', `${PLANES.hospital.creditos} créditos/mes`, 'Censo, camas, MAR, NEWS2', 'Notas de ingreso/evolución/egreso'],
 }
@@ -2034,7 +2036,7 @@ function SuscripcionTab({ clinicId }: { clinicId: string | null }) {
             {plan === 'trial' ? 'Activa tu plan antes de que termine la prueba:' : 'Opciones de actualización:'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(['agenda', 'clinica', 'premium'] as const)
+            {PLANES_EN_VENTA
               .filter(p => p !== plan)
               .map(p => {
                 const info = PLAN_DISPLAY[p]

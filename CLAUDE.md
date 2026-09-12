@@ -127,6 +127,20 @@ Stripe.
   velocidad sin avisar.
 - Auditar y reparar con **panel de especialistas en paralelo**; los agentes
   auditan, el orquestador verifica y escribe.
+- La nota Máxima corre en **Opus 5** a la cabeza de la cascada (D-059,
+  11-sep-2026); si la cuenta no lo tiene baja a 4.8 y la procedencia lo dice. El
+  modo rápido del proveedor va **encendido** (D-060, 11-sep-2026): dobla el costo
+  por token de la llamada más cara a cambio de hasta 2.5× de velocidad;
+  `NOTA_MODO_RAPIDO=0` lo apaga.
+- **Tres paquetes a la venta** (D-061, 12-sep-2026): Agenda 399 · Expediente 699
+  (escrito, sin IA de voz) · Consulta 1 190 (clave interna `clinica`, 450
+  créditos, tope económico 20). Pro y Hospital quedan para quien ya los paga
+  (`enVenta: false`). La IA se apaga **por plan** (`iaVoz`), nunca por módulo.
+  Los precios de Stripe los cambia el dueño; el código no los toca.
+- **La nota cuesta lo que debe** (D-062, 12-sep-2026): el borrador en vivo lo
+  arma el parser local sin modelo; la nota Estándar escala sola a Máxima por
+  señales deterministas (`complejidad.ts`); la fusión GPT va apagada
+  (`NOTA_ENSAMBLE_GPT=1` la enciende).
 - Hospital y UCI en ALPHA: se usan, **no se venden**. Desde el 4-sep-2026 están
   además **en pausa en la navegación** (D-030): no aparecen ni en el índice de
   Operaciones ni en el `Sidebar`, porque la prioridad es la consulta y su

@@ -65,7 +65,9 @@ import {
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
-import type { ClaveMotor } from '@/lib/planes-ia'
+import { planIncluyeIA, type ClaveMotor } from '@/lib/planes-ia'
+import { borradorLocal } from '@/lib/expediente/borrador-local'
+import Link from 'next/link'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -418,7 +420,17 @@ export default function ConsultaActivaPage() {
   const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
-  const { clinicId, role, sesionVigente } = useClinic()
+  const { clinicId, role, sesionVigente, clinic } = useClinic()
+  /**
+   * D-061 · PLAN ESCRITO: la consulta sin grabadora ni «Procesar con IA».
+   *
+   * El paquete Expediente abre esta pantalla pero no la IA de voz. Aquí se
+   * esconde la grabación; la puerta de verdad la cierra `verificarModuloIA`
+   * en el servidor. Falla abierto: sin consultorio cargado, prueba, cortesía
+   * o pase libre, la pantalla es la de siempre. Las secciones se escriben a
+   * mano igual que hoy; firmar nunca dependió de la transcripción.
+   */
+  const planEscrito = !!clinic && !clinic.paseLibre && !planIncluyeIA(clinic.plan)
   const respaldoKey = useMemo(() => claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoActivo), [uidDelMontaje, clinicId, patientId, internamientoActivo])
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
@@ -1417,7 +1429,7 @@ export default function ConsultaActivaPage() {
   // Rol auto-asignado a cada voz diarizada (Hablante A/B → Médico/Paciente/Acompañante).
   // Lo llena Claude al terminar la diarización; editable en el diálogo.
   const [rolesHablante, setRolesHablante] = useState<Record<string, string>>({})
-  // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 4.8.
+  // Segunda opinión: un 2º modelo top (GPT-5) revisa la nota de Opus 5.
   type Hallazgo = { severidad: string; tema: string; problema: string; sugerencia: string }
   /**
    * La segunda opinión, CON la huella de lo que revisó.
@@ -1433,7 +1445,7 @@ export default function ConsultaActivaPage() {
   // no lo elige (D-047): se persiste para procedencia, no para un menú.
   const [motorUsado, setMotorUsado] = useState<ClaveMotor | null>(null)
   // Provenance de IA para trazabilidad medicolegal (se persiste en la nota).
-  const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string } | null>(null)
+  const [provenanceIA, setProvenanceIA] = useState<{ modelo?: string; promptVersion?: string; apiVersion?: string; generadoEn?: string; razonamientoExtendido?: boolean } | null>(null)
   // Créditos agotados (tope duro): muestra aviso con comprar más / subir de plan.
   const [sinCreditos, setSinCreditos] = useState<{ usadas: number; limite: number } | null>(null)
   // Modo económico: se agotaron las consultas máximas del mes → esta nota corrió en
@@ -1448,6 +1460,8 @@ export default function ConsultaActivaPage() {
    * pantalla lo enseña, no lo juzga.
    */
   const [avisoModelo, setAvisoModelo] = useState('')
+  /** REG-686: se pidió la nota Máxima y el razonamiento extendido NO se hizo. Se dice, no se calla. */
+  const [avisoRazonamiento, setAvisoRazonamiento] = useState('')
   // Análisis basado en evidencia (PubMed: NEJM/JAMA/Cochrane…) + citas reales.
   /**
    * REG-581 · el DOI y la abreviatura ISO YA venían en la respuesta —
@@ -2772,7 +2786,16 @@ export default function ConsultaActivaPage() {
     const transcripcionParaIA = textoParaLaIA(multiTramo)
     if (enVivo) { vivoRef.current = true; setEstructurandoVivo(true) } else { setProcesando(true); setVerificacion(null); setTareaProc({ ejecutando: true }) }
     try {
-      const res = await fetchAutenticado('/api/expediente/procesar', {
+      /**
+       * EL PASE EN VIVO NO LLAMA A NINGÚN MODELO (D-062).
+       *
+       * Mientras se graba, el borrador lo arma el parser clínico local: al
+       * instante, sin red y sin costo. Antes cada pase pedía una nota Haiku
+       * con todo lo dictado hasta entonces, unos 40 pases por consulta, y
+       * costaba casi lo mismo que la nota final que lo reemplaza. La nota
+       * final y la preliminar siguen yendo al servidor.
+       */
+      const res = enVivo ? null : await fetchAutenticado('/api/expediente/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2796,7 +2819,7 @@ export default function ConsultaActivaPage() {
           },
         }),
       })
-      const data = await res.json().catch(() => null)
+      const data = enVivo ? borradorLocal(transcripcionParaIA, tipoActivo) : await res!.json().catch(() => null)
       // La respuesta puede llegar tras descartar o firmar mientras esperaba la red.
       if (descartadaRef.current || firmadaRef.current) {
         if (!enVivo && !descartadaRef.current) setTareaProc({ ejecutando: false })
@@ -2819,8 +2842,9 @@ export default function ConsultaActivaPage() {
       }
       if (!enVivo) {
         setSinCreditos(null); setModoEco(!!data._modoEconomico); if (data._motor) setMotorUsado(data._motor as ClaveMotor)
-        if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString() })
+        if (data._modelo) setProvenanceIA({ modelo: data._modelo as string, promptVersion: data._promptVersion as string, apiVersion: data._apiVersion as string, generadoEn: new Date().toISOString(), razonamientoExtendido: data._razonamientoExtendido === true })
         setAvisoModelo(data._modeloDegradado ? String(data._avisoModelo ?? '') : '')
+        setAvisoRazonamiento(data._sinRazonamiento ? String(data._avisoRazonamiento ?? '') : '')
       }  // éxito → limpia aviso; marca modo económico + motor usado + provenance
       const ts = Date.now()  // marca de este resultado (para la recuperación tras navegar)
       // Mapear respuesta a estado.
@@ -3020,10 +3044,10 @@ export default function ConsultaActivaPage() {
         // REG-503 — `_detalleDebug` viene del proveedor y no está acotado: puede
         // arrastrar el eco del texto que se le mandó. La CAUSA basta para saber
         // por qué se cayó a parser local; el detalle se pasa por el redactor.
-        safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
+        if (!data._borradorLocal) safeLog.warn('[procesar] Fallback local. Causa:', data._causaFallback, '·', data._detalleDebug)
         // La nota la produjo el parser local: que la procedencia lo diga en vez
         // de arrastrar el modelo del procesamiento anterior.
-        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString() })
+        if (!enVivo) setProvenanceIA({ modelo: 'parser-local', promptVersion: 'n/a', apiVersion: 'n/a', generadoEn: new Date().toISOString(), razonamientoExtendido: false })
         if (!enVivo) toast(data._aviso || 'La IA no estructuró la nota — se llenó lo básico, revisa todo', 'error')
       } else if (!enVivo) {
         toast('Nota estructurada por IA — revisa campo por campo', 'success')
@@ -3487,6 +3511,9 @@ export default function ConsultaActivaPage() {
           promptVersion: provenanceIA.promptVersion,
           apiVersion: provenanceIA.apiVersion,
           generadoEn: provenanceIA.generadoEn,
+          // REG-686: si el razonamiento extendido se hizo o no. Una nota Máxima
+          // sin razonar se firma igual, pero el expediente lo dice.
+          razonamientoExtendido: provenanceIA.razonamientoExtendido,
           // La verdad, no una tautología: firmar ya NO cuenta como revisar.
           // No se bloquea firmar sin revisar — a veces la nota está bien y no hay
           // nada que aceptar — pero el expediente registra lo que de verdad pasó.
@@ -5856,8 +5883,24 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/* ── Plan escrito (D-061): la nota se redacta en sus secciones; sin grabadora ── */}
+      {!firmada && planEscrito && (
+        <div data-plan-escrito style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--border)', background: 'var(--s1)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+            <FileText size={16} /> Nota escrita
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
+            Tu plan Expediente es escrito: redacta la nota en las secciones de abajo. Las recetas y órdenes se revisan igual.
+            Si quieres dictar y que la nota se arme sola, <Link href="/configuracion" style={{ color: 'var(--nexus)', fontWeight: 600 }}>sube a Consulta</Link>.
+          </div>
+        </div>
+      )}
+
       {/* ── Grabación ── */}
-      {!firmada && (
+      {!firmada && !planEscrito && (
         /* RTC-31: la caja sólo se pinta cuando tiene VARIOS controles que
            agrupar. Antes de pulsar sólo está `EmpezarAGrabar`, que ya es una
            superficie con su borde — y una tarjeta dentro de otra tarjeta es lo
@@ -6544,6 +6587,17 @@ export default function ConsultaActivaPage() {
             <AlertTriangle size={16} /> Esta nota no usó el nivel de IA que pediste
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoModelo}</div>
+        </div>
+      )}
+      {avisoRazonamiento && !avisoModelo && !sinCreditos && !grabandoAhora() && (
+        <div style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--amber)', background: 'color-mix(in srgb, var(--amber) 7%, transparent)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--amber)' }}>
+            <AlertTriangle size={16} /> Esta nota se redactó sin el razonamiento extendido
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>{avisoRazonamiento}</div>
         </div>
       )}
       {modoEco && !sinCreditos && !grabandoAhora() && (

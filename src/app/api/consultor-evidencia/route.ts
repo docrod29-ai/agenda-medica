@@ -17,6 +17,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
+import { etiquetaDeModelo } from '@/lib/ia/parametros-de-nota'
 import { errorAlCliente } from '@/lib/security/error-al-cliente'
 import { planVigentePorNivel } from '@/lib/finanzas/catalogo-servidor'
 import { safeLog } from '@/lib/security/sanitize'
@@ -425,7 +426,7 @@ export async function POST(req: NextRequest) {
         // `sinCitas` SÓLO cuando de verdad se preguntó y no había nada: es lo
         // que la pantalla usa para escribir «Sin resultados de PubMed», y esa
         // frase es falsa si PubMed no contestó.
-        meta: { articulos: [], sinCitas: !noSePudoConsultar, cenetecUrl, recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+        meta: { articulos: [], sinCitas: !noSePudoConsultar, cenetecUrl, recuperacion: metaDeRecuperacion(recuperacion), modelos: [etiquetaDeModelo(model)] },
         onDone: (txt) => {
           void registrarUso(clinicId, fuente)
           void registrarConsultor(clinicId, costo)
@@ -510,7 +511,7 @@ export async function POST(req: NextRequest) {
       key, model, system, user, maxTokens: 3200,
       fuente,
       asiento: { uid: acceso.uid, email: acceso.email ?? undefined, clinicId, creditos: costo },
-      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, ajusteRenalCalculado: renal.calculado, farmacosSinVigilanciaRenal: renal.noVigilados, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), recuperacion: metaDeRecuperacion(recuperacion), modelos: [nivel === 'premium' ? 'Claude Opus 4.8' : 'Claude Sonnet 5'] },
+      meta: { articulos: articulosMin, cenetecUrl, dosisFDA: dosis, ajusteRenalCalculado: renal.calculado, farmacosSinVigilanciaRenal: renal.noVigilados, sinCitas: false, fechaBusqueda: new Date().toISOString().slice(0, 10), recuperacion: metaDeRecuperacion(recuperacion), modelos: [etiquetaDeModelo(model)] },
       onDone: (txt) => {
         void registrarUso(clinicId, fuente)
         void registrarConsultor(clinicId, costo)
