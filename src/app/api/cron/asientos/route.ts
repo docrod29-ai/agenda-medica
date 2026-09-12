@@ -41,7 +41,7 @@ export const maxDuration = 300
 
 /** Tope de consultorios por corrida. Si se alcanza, se DECLARA. */
 const TOPE = 500
-const ES_PLAN_ASIENTOS = (p: string) => p === 'clinica' || p === 'premium'
+const ES_PLAN_ASIENTOS = (p: string): p is 'expediente' | 'clinica' | 'premium' => p === 'expediente' || p === 'clinica' || p === 'premium'
 
 export async function GET(req: NextRequest) {
   /* REG-566 — la traza de ESTA ejecución, acuñada al arrancar: un trabajo de

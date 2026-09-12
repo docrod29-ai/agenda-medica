@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import admin, { adminDb } from './firebase-admin'
 import { tieneModulo, MODULOS_OPT_IN } from './modulos'
+import { planIncluyeIA, AVISO_PLAN_ESCRITO } from './planes-ia'
 import { estadoPaywall } from './finanzas/paywall-prueba'
 
 export interface AccesoOk {
@@ -137,7 +138,18 @@ export async function verificarModuloIA(req: NextRequest, modulo: string): Promi
     const clinic = clinicSnap.data() as
       { plan?: string; modulos?: string[]; paseLibre?: boolean; status?: string; trialEndsAtMs?: number } | undefined
     if (!tieneModulo(clinic ?? null, modulo)) {
-      return err(403, 'Tu plan no incluye la IA de consulta. Mejora a Clínica o Pro para usar esta función.')
+      return err(403, 'Tu plan no incluye la IA de consulta. Sube a Consulta para usar esta función.')
+    }
+    /**
+     * D-061 · EL PLAN ESCRITO NO TIENE IA DE VOZ, AUNQUE TENGA EL MÓDULO.
+     *
+     * `expediente` abre las pantallas de consulta; la IA se apaga por PLAN.
+     * Esconder el botón de grabar no cierra una ruta HTTP: aquí es donde se
+     * cierra, en las diecisiete rutas que pasan por esta función. Falla
+     * abierto para prueba, cortesía y legados; el pase libre del dueño ve todo.
+     */
+    if (!clinic?.paseLibre && !planIncluyeIA(clinic?.plan)) {
+      return err(403, AVISO_PLAN_ESCRITO)
     }
     /**
      * PRUEBA VENCIDA → SE CORTA LA IA.

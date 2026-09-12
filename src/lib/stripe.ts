@@ -21,7 +21,8 @@ export const stripe = new Proxy({} as Stripe, {
 /* ── Price IDs de SUSCRIPCIÓN (crea el precio en Stripe y pega el id en Vercel) ── */
 export const STRIPE_PRICES = {
   agenda:   process.env.STRIPE_PRICE_AGENDA   ?? '',
-  clinica:  process.env.STRIPE_PRICE_CLINICA  ?? '',
+  expediente: process.env.STRIPE_PRICE_EXPEDIENTE ?? '',   // D-061: agenda + expediente escrito
+  clinica:  process.env.STRIPE_PRICE_CLINICA  ?? '',   // plan «Consulta» desde D-061 (la clave no cambia: hay suscripciones vivas)
   premium:  process.env.STRIPE_PRICE_PREMIUM  ?? '',  // plan "Pro" ($1,590 — ver PLANES en @/lib/planes-ia)
   hospital: process.env.STRIPE_PRICE_HOSPITAL ?? '',
 } as const
@@ -30,7 +31,8 @@ export type PlanKey = keyof typeof STRIPE_PRICES
 
 export const PLAN_NAMES: Record<PlanKey, string> = {
   agenda:   'Agenda',
-  clinica:  'Clínica',
+  expediente: 'Expediente',
+  clinica:  'Consulta',
   premium:  'Pro',
   hospital: 'Hospital',
 }
@@ -38,6 +40,7 @@ export const PLAN_NAMES: Record<PlanKey, string> = {
 /* ── Price IDs ANUALES (12 meses al precio de 10 = −17%). Opcionales. ── */
 export const STRIPE_PRICES_ANUAL = {
   agenda:   process.env.STRIPE_PRICE_AGENDA_ANUAL   ?? '',
+  expediente: process.env.STRIPE_PRICE_EXPEDIENTE_ANUAL ?? '',
   clinica:  process.env.STRIPE_PRICE_CLINICA_ANUAL  ?? '',
   premium:  process.env.STRIPE_PRICE_PREMIUM_ANUAL  ?? '',
   hospital: process.env.STRIPE_PRICE_HOSPITAL_ANUAL ?? '',
@@ -80,14 +83,16 @@ export function priceIdDe(plan: PlanKey, ciclo: Ciclo): string {
 export const STRIPE_PRICE_RECARGA = process.env.STRIPE_PRICE_RECARGA ?? ''
 
 /** Price IDs del MÉDICO ADICIONAL (por asiento) — precio recurrente por médico extra. */
-export const STRIPE_PRICES_MEDICO: Record<'clinica' | 'premium', string> = {
+export const STRIPE_PRICES_MEDICO: Record<'expediente' | 'clinica' | 'premium', string> = {
+  expediente: process.env.STRIPE_PRICE_EXPEDIENTE_MEDICO ?? '',
   clinica: process.env.STRIPE_PRICE_CLINICA_MEDICO ?? '',
   premium: process.env.STRIPE_PRICE_PREMIUM_MEDICO ?? '',
 }
-/** Price del médico extra según el plan (solo Clínica/Pro tienen asientos). */
+/** Price del médico extra según el plan (Expediente, Consulta y Pro tienen asientos). */
 export function priceMedicoDe(plan: PlanKey): string {
   if (plan === 'premium') return STRIPE_PRICES_MEDICO.premium
   if (plan === 'clinica') return STRIPE_PRICES_MEDICO.clinica
+  if (plan === 'expediente') return STRIPE_PRICES_MEDICO.expediente
   return ''
 }
 

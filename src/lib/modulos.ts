@@ -23,6 +23,10 @@ import type { ModeloPrecio } from './pricing'
 const CONSULTORIO = ['agenda', 'expediente', 'farmacia', 'crm', 'finanzas', 'cumplimiento']
 export const MODULOS_DE_PLAN: Record<string, string[]> = {
   agenda:   ['agenda'],
+  // D-061 · Expediente ESCRITO: las mismas pantallas de consultorio, sin IA de
+  // voz. La IA no se apaga por módulo (dejaría sin dictado a los consultorios
+  // ya activos): se apaga por plan, con `iaVoz` en `planes-ia`.
+  expediente: CONSULTORIO,
   clinica:  CONSULTORIO,
   premium:  CONSULTORIO,                         // "Pro": mismos módulos + IA Máxima/2ª opinión/soporte
   // Hospital = consultorio + hospitalización + el ICU OS (Panel UCI). El UCI OS
@@ -126,25 +130,27 @@ export interface PaqueteDef {
 // los precios de Stripe). Sus `id` coinciden con la clave del plan para que la
 // consola del dueño concuerde con lo que se cobra. Cobro fijo por médico.
 export const PAQUETES_SUGERIDOS: PaqueteDef[] = [
-  { id: 'agenda',   nombre: 'Agenda',   precio: 349,  orden: 0, modulos: MODULOS_DE_PLAN.agenda,
-    descripcion: 'Agenda, calendario, recordatorios y portal del paciente. Sin IA de consulta.' },
-  { id: 'clinica',  nombre: 'Clínica',  precio: 899,  orden: 1, modulos: MODULOS_DE_PLAN.clinica,
-    descripcion: 'Consultorio completo con IA Estándar (Sonnet 5): nota por voz, recetas, consultor, farmacia, CRM y finanzas. 200 créditos/mes.' },
-  { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 2, modulos: MODULOS_DE_PLAN.premium,
-    descripcion: 'Todo lo de Clínica con IA Máxima (Opus 5 + GPT-5) por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
-  { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 3, modulos: MODULOS_DE_PLAN.hospital,
+  { id: 'agenda',   nombre: 'Agenda',   precio: 399,  orden: 0, modulos: MODULOS_DE_PLAN.agenda,
+    descripcion: 'Agenda, reservación en línea, recordatorios y portal del paciente. Sin expediente completo ni IA.' },
+  { id: 'expediente', nombre: 'Expediente', precio: 699, orden: 1, modulos: MODULOS_DE_PLAN.expediente,
+    descripcion: 'Agenda + expediente completo ESCRITO: notas a mano, recetas y órdenes con revisión de dosis, farmacia, CRM, finanzas y cumplimiento. Sin IA de voz (D-061).' },
+  { id: 'clinica',  nombre: 'Consulta', precio: 1190, orden: 2, modulos: MODULOS_DE_PLAN.clinica,
+    descripcion: 'Todo lo de Expediente + nota por voz con separación médico-paciente, procedencia por frase, consultor de evidencia y laboratorios. 450 créditos/mes (~150 notas Estándar).' },
+  { id: 'premium',  nombre: 'Pro',      precio: 1590, orden: 3, modulos: MODULOS_DE_PLAN.premium,
+    descripcion: 'Ya no se vende (D-061); queda para quien lo paga. Todo lo de Consulta con IA Máxima por defecto, 2ª opinión automática y soporte prioritario. 450 créditos/mes.' },
+  { id: 'hospital', nombre: 'Hospital', precio: 3499, orden: 4, modulos: MODULOS_DE_PLAN.hospital,
     modeloPrecio: 'por_medico', precioBase: 3499, precioPorUnidad: 999,
     descripcion: 'Todo lo de Pro + Hospitalización: censo, camas de hospital y de UCI, internamiento (indicaciones/MAR, signos, interconsultas, laboratorio). Incluye el UCI OS. Incluye 1 médico · +$999/mes por médico adicional.' },
   // ADD-ON: UCI OS. La joya sin competencia, desacoplada para venderse sobre
   // Hospital (o a quien haga terapia intensiva). Se cobra POR MÉDICO, igual que el
   // resto de la plataforma (cada médico que la usa quema su propia IA).
-  { id: 'uci', nombre: 'UCI OS (add-on)', precio: 700, orden: 4, modulos: ['uci'],
+  { id: 'uci', nombre: 'UCI OS (add-on)', precio: 700, orden: 5, modulos: ['uci'],
     modeloPrecio: 'por_medico', precioBase: 700, precioPorUnidad: 700,
     descripcion: 'Add-on por médico: Panel UCI de cabecera con motores deterministas (ventilación, gasometría/ácido-base, SOFA/APACHE, POCUS/VExUS/PLR, neurocrítico PPC/PIC, CKRT/PRISMA, ECMO), Copilot IA de UCI (Claude + GPT) que aprende, y nota de evolución por los 7 sistemas dictada manos libres. $700/mes por médico.' },
 ]
 
 /** Versión del catálogo de paquetes. Al subirla, el seed reemplaza los viejos. */
-export const PAQUETES_VERSION = 7
+export const PAQUETES_VERSION = 8
 
 type ClinicMod = { modulos?: string[] | null; plan?: string | null; paseLibre?: boolean | null }
 

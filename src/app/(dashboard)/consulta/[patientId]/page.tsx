@@ -65,7 +65,8 @@ import {
 import { seccionesDelTipo, seccionesVacias, requiereSignosVitales, esPreoperatoria, esInmuno } from '@/lib/expediente/templates'
 import { sanitizarProsa } from '@/lib/expediente/sanitizar-prosa'
 import { limpiarMarkdown } from '@/lib/markdown'
-import type { ClaveMotor } from '@/lib/planes-ia'
+import { planIncluyeIA, type ClaveMotor } from '@/lib/planes-ia'
+import Link from 'next/link'
 import { AntesDeFirmar } from '@/components/AntesDeFirmar'
 import { construirAvisos } from '@/lib/expediente/avisos-consulta'
 import { frasesDeFamiliar } from '@/lib/expediente/experienciador'
@@ -418,7 +419,17 @@ export default function ConsultaActivaPage() {
   const volverAtras = useSmartBack(volverA)
   // Llave del respaldo local por paciente Y por episodio (declarada arriba para
   // que `descartar()` pueda listarla en sus deps sin caer en TDZ).
-  const { clinicId, role, sesionVigente } = useClinic()
+  const { clinicId, role, sesionVigente, clinic } = useClinic()
+  /**
+   * D-061 · PLAN ESCRITO: la consulta sin grabadora ni «Procesar con IA».
+   *
+   * El paquete Expediente abre esta pantalla pero no la IA de voz. Aquí se
+   * esconde la grabación; la puerta de verdad la cierra `verificarModuloIA`
+   * en el servidor. Falla abierto: sin consultorio cargado, prueba, cortesía
+   * o pase libre, la pantalla es la de siempre. Las secciones se escriben a
+   * mano igual que hoy; firmar nunca dependió de la transcripción.
+   */
+  const planEscrito = !!clinic && !clinic.paseLibre && !planIncluyeIA(clinic.plan)
   const respaldoKey = useMemo(() => claveDeRespaldo(uidDelMontaje, clinicId, patientId, internamientoActivo), [uidDelMontaje, clinicId, patientId, internamientoActivo])
   const borradorMem = useBorrador()  // almacén EN MEMORIA (sobrevive navegación, sin parpadeo)
   // Tarea de "procesar nota con IA" en el almacén reactivo (sobrevive navegación):
@@ -5862,8 +5873,24 @@ export default function ConsultaActivaPage() {
         </div>
       )}
 
+      {/* ── Plan escrito (D-061): la nota se redacta en sus secciones; sin grabadora ── */}
+      {!firmada && planEscrito && (
+        <div data-plan-escrito style={{
+          marginBottom: 14, padding: '13px 16px', borderRadius: 14,
+          border: '1px solid var(--border)', background: 'var(--s1)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>
+            <FileText size={16} /> Nota escrita
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 6, lineHeight: 1.5 }}>
+            Tu plan Expediente es escrito: redacta la nota en las secciones de abajo. Las recetas y órdenes se revisan igual.
+            Si quieres dictar y que la nota se arme sola, <Link href="/configuracion" style={{ color: 'var(--nexus)', fontWeight: 600 }}>sube a Consulta</Link>.
+          </div>
+        </div>
+      )}
+
       {/* ── Grabación ── */}
-      {!firmada && (
+      {!firmada && !planEscrito && (
         /* RTC-31: la caja sólo se pinta cuando tiene VARIOS controles que
            agrupar. Antes de pulsar sólo está `EmpezarAGrabar`, que ya es una
            superficie con su borde — y una tarjeta dentro de otra tarjeta es lo

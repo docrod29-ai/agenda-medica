@@ -19,7 +19,7 @@ import { MEDICO_EXTRA } from '@/lib/planes-ia'
 import { queHacer, itemsParaStripe, itemPrevio } from '@/lib/finanzas/asientos'
 
 type Any = Record<string, unknown>
-const ES_PLAN_ASIENTOS = (p: string): p is 'clinica' | 'premium' => p === 'clinica' || p === 'premium'
+const ES_PLAN_ASIENTOS = (p: string): p is 'expediente' | 'clinica' | 'premium' => p === 'expediente' || p === 'clinica' || p === 'premium'
 
 async function estado(clinicId: string) {
   const clinic = (await adminDb.collection('clinics').doc(clinicId).get()).data() as Any | undefined

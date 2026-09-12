@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PLANES, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, consultasIncluidasTexto, type PlanCreditos } from '@/lib/planes-ia'
+import { PLANES, PLANES_EN_VENTA, RECARGA, MOTORES, TOPE_ECONOMICO, precioAnual, consultasIncluidasTexto, type PlanCreditos } from '@/lib/planes-ia'
 import { adminDb } from '@/lib/firebase-admin'
 import { catalogoEfectivo, type CatalogoGuardado } from '@/lib/finanzas/catalogo-planes'
 import { TablaNivelesIA } from '@/components/TablaNivelesIA'
@@ -140,9 +140,8 @@ export default async function PreciosPage() {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'center', alignItems: 'stretch', marginTop: 44 }}>
-        <Card plan={planes.agenda} />
-        <Card plan={planes.clinica} />
-        <Card plan={planes.premium} />
+        {/* D-061: sólo lo que se vende. Pro y Hospital siguen existiendo para quien ya los paga. */}
+        {PLANES_EN_VENTA.map(k => <Card key={k} plan={planes[k]} />)}
       </div>
 
       {/* ── Los 3 niveles de IA, por INTENCIÓN CLÍNICA (no por modelo) ──
@@ -175,7 +174,7 @@ export default async function PreciosPage() {
 
       <div style={{ maxWidth: 560, margin: '22px auto 0', textAlign: 'center', fontSize: 13, color: 'var(--text2)', background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
         ¿Se te acaban los créditos del mes? Recarga <strong>{RECARGA.creditos} créditos</strong> por <strong>${RECARGA.precioMXN} MXN</strong> — o sigue con ⚡ Rápida sin costo
-        hasta un tope mensual (<strong>{TOPE_ECONOMICO.pro} notas</strong> en Clínica, <strong>{TOPE_ECONOMICO.premium}</strong> en Pro). Pasado ese punto la IA se pausa y recargas o subes de plan.
+        hasta un tope mensual (<strong>{TOPE_ECONOMICO.pro} notas</strong> en Consulta, <strong>{TOPE_ECONOMICO.premium}</strong> en Pro). Pasado ese punto la IA se pausa y recargas o subes de plan.
       </div>
 
       {/* Tabla funcional de IA: qué CAMBIA CLÍNICAMENTE en cada nivel (no solo el precio). */}

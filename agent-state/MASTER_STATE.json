@@ -23,14 +23,26 @@
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
   "trabajoLocalSinSubir": [
-    "M CLAUDE.md",
+    "M .env.example",
+    " M CLAUDE.md",
     " M docs/audit/regression-ledger.md",
     " M docs/data-room/INDICE.md",
+    " M docs/ops/inventario-de-entorno.json",
     " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/la-nota-maxima-si-razona.test.ts",
-    " M src/app/api/expediente/procesar/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/ia/parametros-de-nota.ts"
+    " M src/__tests__/creditos-transparencia.test.ts",
+    " M src/__tests__/planes-precios.test.ts",
+    " M src/app/(dashboard)/configuracion/page.tsx",
+    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
+    " M src/app/(dashboard)/layout.tsx",
+    " M src/app/(dashboard)/operaciones/page.tsx",
+    " M src/app/api/cron/asientos/route.ts",
+    " M src/app/api/stripe/asientos/route.ts",
+    " M src/app/api/stripe/webhook/route.ts",
+    " M src/app/page.tsx",
+    " M src/app/precios/page.tsx",
+    " M src/components/Sidebar.tsx",
+    " M src/lib/auth-server.ts",
+    " M src/lib/ayuda/conocimiento.ts"
   ],
   "actualizado": "2026-09-11",
   "resumenDesdeElUltimoEstado": {
@@ -66,10 +78,10 @@
   ],
   "ramaActual": "claude/faster-note-processing-ia2m69",
   "derivado": {
-    "regsEnElLedger": 473,
-    "ultimaREG": "REG-688",
-    "archivosDePrueba": 1124,
-    "casosDePrueba": 13342,
+    "regsEnElLedger": 474,
+    "ultimaREG": "REG-689",
+    "archivosDePrueba": 1125,
+    "casosDePrueba": 13361,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1197"

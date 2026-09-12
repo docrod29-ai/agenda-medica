@@ -24,7 +24,7 @@
  */
 import type { NivelIA } from './ai-keys'
 
-export type ClavePlan = 'agenda' | 'clinica' | 'premium' | 'hospital'
+export type ClavePlan = 'agenda' | 'expediente' | 'clinica' | 'premium' | 'hospital'
 
 export interface PlanCreditos {
   clave: ClavePlan
@@ -39,6 +39,16 @@ export interface PlanCreditos {
   /** Pacientes máximos (null = ilimitado). */
   pacientesMax: number | null
   destacado?: boolean
+  /**
+   * D-061 · ¿El plan incluye la IA de voz (dictado, nota por IA, consultor)?
+   * `false` en Agenda y en Expediente, que es escrito. Es una compuerta POR
+   * PLAN y no por módulo a propósito: el módulo `expediente` abre las pantallas
+   * de consulta; la IA se apaga aparte, y sólo para quien contrate un plan que
+   * no la incluye. Los consultorios ya activos no cambian.
+   */
+  iaVoz: boolean
+  /** ¿Se ofrece hoy en /precios, la portada y la paywall? Lo que no se vende sigue existiendo para quien ya lo paga. */
+  enVenta: boolean
 }
 
 /**
@@ -217,36 +227,67 @@ export const costoConsultor = (n: NivelIA): number =>
 
 export const PLANES: Record<ClavePlan, PlanCreditos> = {
   agenda: {
-    clave: 'agenda', nombre: 'Agenda', precioMXN: 349, creditos: 0, nivelIA: 'pro',
-    pacientesMax: null,
+    clave: 'agenda', nombre: 'Agenda', precioMXN: 399, creditos: 0, nivelIA: 'pro',
+    pacientesMax: null, iaVoz: false, enVenta: true,
     incluye: [
-      'Agenda y citas ilimitadas',
-      'Recordatorios por WhatsApp',
+      'Agenda, calendario y lista de espera',
+      'Reservación en línea desde tu página pública',
+      'Recordatorios por WhatsApp (150 al mes)',
+      'Portal del paciente: citas, resultados y documentos',
+      'Teleconsulta, reseñas y reactivación de pacientes',
+      'Corte de caja, ingresos y membresías',
       'Expediente básico de pacientes',
-      'Portal del paciente',
-      'Sin IA de voz/notas (se puede subir de plan)',
+      'Sin nota clínica ni IA de voz (se puede subir de plan)',
+    ],
+  },
+  /**
+   * D-061 (12-sep-2026) · EXPEDIENTE — agenda y expediente completo, ESCRITO.
+   *
+   * Es el escalón que faltaba: el médico que teclea, o tiene asistente, o no
+   * quiere grabar al paciente. Recetas, órdenes y la revisión determinista de
+   * dosis, alergias e interacciones NO necesitan IA. Lo que sí la necesita
+   * (dictado, nota por IA, consultor, laboratorios) queda fuera por `iaVoz`.
+   * Cuesta lo mismo que Agenda para el dueño: no consume ningún modelo.
+   */
+  expediente: {
+    clave: 'expediente', nombre: 'Expediente', precioMXN: 699, creditos: 0, nivelIA: 'pro',
+    pacientesMax: null, iaVoz: false, enVenta: true,
+    incluye: [
+      'Todo lo de Agenda',
+      'Recordatorios por WhatsApp (300 al mes)',
+      'Expediente clínico completo y longitudinal',
+      'Nota escrita a mano con plantillas por especialidad y tipo de consulta',
+      'Recetas y órdenes con revisión de dosis, alergias e interacciones',
+      'Referencias, farmacia, CRM, finanzas y cumplimiento NOM-024 / ARCO',
+      'Migración desde otro expediente u hoja de cálculo',
+      'Sin IA de voz ni nota por IA (se puede subir a Consulta)',
     ],
   },
   clinica: {
-    clave: 'clinica', nombre: 'Clínica', precioMXN: 899, creditos: 200, nivelIA: 'pro',
-    pacientesMax: null, destacado: true,
+    clave: 'clinica', nombre: 'Consulta', precioMXN: 1190, creditos: 450, nivelIA: 'pro',
+    pacientesMax: null, destacado: true, iaVoz: true, enVenta: true,
     incluye: [
-      'Todo lo de Agenda',
-      'Nota clínica con IA (voz → nota, orientada a los requisitos de la NOM-004)',
+      'Todo lo de Expediente',
+      'Recordatorios por WhatsApp ilimitados',
+      'Nota clínica por voz: dictas y la nota se arma sola, orientada a la NOM-004',
       'Separación médico-paciente automática',
-      'Recetas y órdenes',
-      'Consultor de evidencia (PubMed) con doble verificación de IA',
-      'Elige el nivel de IA por nota según el caso: ⚡ rutinario · ⭐ complejo · 💎 difícil',
-      '200 créditos/mes (~63 notas Estándar)',
-      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 120 notas más/mes; luego se pausa y recargas o subes de plan',
+      'Cada frase con su procedencia: tocas una línea y suena el dictado',
+      'Consultor de evidencia (PubMed) e interpretación de laboratorios',
+      '450 créditos/mes (~150 notas Estándar)',
+      'Al agotarlos sigue en ⚡ Rápida sin costo hasta 20 notas más/mes; luego se pausa y recargas o subes de plan',
       'Incluye 1 médico · +$499/mes por médico adicional',
     ],
   },
+  /**
+   * Pro y Hospital ya NO se venden (D-061): quedan para quien ya los paga y
+   * para el dueño. `enVenta: false` los saca de /precios, la portada y la
+   * paywall; el checkout sigue aceptando la clave para no romper renovaciones.
+   */
   premium: {
     clave: 'premium', nombre: 'Pro', precioMXN: 1590, creditos: 450, nivelIA: 'premium',
-    pacientesMax: null,
+    pacientesMax: null, iaVoz: true, enVenta: false,
     incluye: [
-      'Todo lo de Clínica',
+      'Todo lo de Consulta',
       'IA de máximo razonamiento clínico por defecto 💎',
       '2ª opinión automática (segundo verificador independiente) en cada nota',
       'Revisión farmacológica automática: dosis · interacciones · función renal',
@@ -260,10 +301,10 @@ export const PLANES: Record<ClavePlan, PlanCreditos> = {
     ],
   },
   // Plan APARTE: hospitalización. El producto estrella es el de consultorio
-  // (Clínica); Hospital es para quien maneja internamiento y se cobra por su lado.
+  // (Consulta); Hospital es para quien maneja internamiento y se cobra por su lado.
   hospital: {
     clave: 'hospital', nombre: 'Hospital + UCI', precioMXN: 3499, creditos: 500, nivelIA: 'premium',
-    pacientesMax: null,
+    pacientesMax: null, iaVoz: true, enVenta: false,
     incluye: [
       'Todo lo de Pro (consultorio con IA de máximo nivel)',
       'Módulo de Hospitalización completo',
@@ -313,11 +354,29 @@ export const precioTexto = (p: PlanCreditos): string =>
  *
  * Cambiar la oferta se hace AQUÍ, en un sitio.
  */
-export const PLANES_ORDEN: readonly ClavePlan[] = ['agenda', 'clinica', 'premium', 'hospital']
+export const PLANES_ORDEN: readonly ClavePlan[] = ['agenda', 'expediente', 'clinica', 'premium', 'hospital']
+
+/** Los que se ofrecen HOY, en orden comercial: Agenda · Expediente · Consulta (D-061). */
+export const PLANES_EN_VENTA: readonly ClavePlan[] = PLANES_ORDEN.filter(c => PLANES[c].enVenta)
+
+/**
+ * ¿Este plan incluye la IA de voz? FALLA ABIERTO: una clave desconocida
+ * (`trial`, `cortesia`, legados, sin plan) sigue teniendo IA como hasta hoy.
+ * Sólo un plan del catálogo con `iaVoz: false` la apaga. Así el paquete
+ * Expediente no puede, por accidente, dejar sin dictado a nadie que ya lo use.
+ */
+export const planIncluyeIA = (plan?: string | null): boolean =>
+  PLANES[(plan ?? '') as ClavePlan]?.iaVoz ?? true
+
+/** Lo que se le dice al médico de un plan escrito cuando pide la IA de voz. */
+export const AVISO_PLAN_ESCRITO =
+  'Tu plan Expediente es escrito: no incluye el dictado ni la nota por IA. ' +
+  'Redacta la nota en sus secciones, o sube a Consulta para dictar y que la nota se arme sola.'
 
 export const MODULOS_POR_PLAN: Readonly<Record<ClavePlan, string[]>> = {
   agenda: ['agenda'],
-  clinica: ['agenda', 'expediente'],
+  expediente: ['agenda', 'expediente'],
+  clinica: ['agenda', 'expediente', 'consultor'],
   premium: ['agenda', 'expediente', 'consultor'],
   hospital: ['agenda', 'expediente', 'consultor', 'hospitalizacion', 'uci'],
 }
@@ -329,7 +388,12 @@ export const MODULOS_POR_PLAN: Readonly<Record<ClavePlan, string[]>> = {
  * consultorio tenga varios médicos exprimiendo la IA, el costo del dueño queda
  * ACOTADO (nunca se dispara). Números fáciles de cambiar.
  */
-export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 120, premium: 150 }
+/**
+ * D-061: en Consulta el tope baja de 120 a 20. Cada nota económica le cuesta al
+ * dueño aunque el médico no la pague; 150 notas incluidas ya cubren al médico
+ * medio, y el que las agota recarga. Pro conserva su 150 porque no se vende.
+ */
+export const TOPE_ECONOMICO: Record<NivelIA, number> = { pro: 20, premium: 150 }
 export const topeEconomicoDe = (n: NivelIA): number => TOPE_ECONOMICO[n] ?? 120
 
 /**
