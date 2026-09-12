@@ -984,7 +984,8 @@ export const FAMILIAS: readonly FamiliaDeDefecto[] = [
      * hay edad» leído como «no es niño». El resultado se LEÍA bien: una receta
      * sin alertas.
      */
-    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 602, 606, 609, 616, 619, 622, 626, 627, 628, 649, 659, 661],
+    // REG-691: identidad todavía ausente interpretada como directorio sin pacientes.
+    regs: [165, 172, 176, 177, 228, 332, 333, 344, 347, 358, 378, 420, 432, 511, 524, 602, 606, 609, 616, 619, 622, 626, 627, 628, 649, 659, 661, 691],
   },
   {
     clave: 'aislamiento',

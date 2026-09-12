@@ -57,10 +57,10 @@
   ],
   "ramaActual": "codex/ausculta-inferencia-privada",
   "derivado": {
-    "regsEnElLedger": 475,
-    "ultimaREG": "REG-690",
-    "archivosDePrueba": 1130,
-    "casosDePrueba": 13410,
+    "regsEnElLedger": 476,
+    "ultimaREG": "REG-691",
+    "archivosDePrueba": 1131,
+    "casosDePrueba": 13414,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
   "versionEnElRepo": "nexusmed-v1199"

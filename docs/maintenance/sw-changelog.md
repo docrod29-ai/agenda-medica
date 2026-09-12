@@ -11,6 +11,8 @@ fallo. `LOCAL_ONLY` bloquea la inferencia y recuperación externas existentes;
 las funciones de voz incompatibles se niegan antes de iniciarse. La política se
 lee en el servidor y no habilita proveedores por una errata de configuración.
 Se conservan los proveedores actuales cuando la función no está activada.
+REG-691 cierra una carrera preexistente del directorio: la lectura espera la
+identidad del médico para que una respuesta sin uid no vacíe la lista válida.
 
 No hay GPU conectada ni validación clínica del modelo. Pruebas de integración
 sintéticas, build y guardianes descritos en

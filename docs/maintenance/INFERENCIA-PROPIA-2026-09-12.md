@@ -28,7 +28,7 @@ reglas desplegadas, accesos de producción, suscripciones ni pesos de modelos.
 
 | Comprobación | Resultado |
 | --- | --- |
-| Suite completa salvo el escáner npm, con TCP/DNS/UDP bloqueados | 14 938 casos pasan; 1 129 archivos; ninguno omitido. |
+| Suite completa salvo el escáner npm, con TCP/DNS/UDP bloqueados | 14 942 casos pasan; 1 130 archivos; ninguno omitido. |
 | Prueba separada que consulta vulnerabilidades de paquetes en npm | 16 casos pasan. No importa casos clínicos. |
 | Casos nuevos de privacidad/nota/voz/inventario | 63 casos incluidos en la suite final. |
 | Lint | 93 errores heredados; techo 93, sin deuda nueva. |
@@ -36,6 +36,7 @@ reglas desplegadas, accesos de producción, suscripciones ni pesos de modelos.
 | HTTP real del build local, `LOCAL_ONLY` | Capacidades 200; transcripción, sondeo y verificador 503 con capacidad limitada. |
 | Prueba inversa del bloqueo | Quitar deliberadamente el bloqueo hace fallar el guardián; código restaurado y casos vuelven a pasar. |
 | Prueba inversa del cobro privado | Retirar `!propia` del escalado cobra Máxima sin cambiar cómputo y hace fallar el caso; restaurado, pasa con reserva y cobro Estándar. |
+| Prueba inversa de identidad del directorio | La guarda retirada hace fallar dos casos; restaurada, pasan los cuatro. Incluidos en la suite final. |
 | Plantilla GPU | Sintaxis shell/YAML y declaración de red revisadas; sin ejecución Docker/GPU. |
 | Comprobador sin servidor configurado | Sale con error explícito; no informa inferencia exitosa. |
 
@@ -58,8 +59,19 @@ ejecuta la nota propia en modo híbrido con fusión habilitada y comprueba que
 no resuelve ninguna llave pública ni inicia el borrador GPT. Los tableros de
 versión y programa se regeneraron con sus scripts canónicos.
 
-El estado de CI del commit final se consulta en el PR #495. Los resultados
-locales anteriores no sustituyen sus comprobaciones remotas.
+CI de `a956071`: seis jobs correctos en la ejecución 34702283498, intento 2.
+El primero tuvo un timeout de `networkidle` en la página de privacidad y un
+directorio vacío intermitente en Safari emulado; se reintentaron sólo esos
+dos jobs. No se omitieron sus comprobaciones. El estado del commit final se
+consulta en el PR #495; una ejecución anterior no sustituye su CI.
+
+La investigación reprodujo además REG-691, preexistente en el directorio: rol
+resuelto con uid pendiente iniciaba una carga que podía filtrar todos los
+pacientes y sobrescribir la respuesta válida al llegar después. El load espera
+ahora consultorio, rol y uid. Cuatro pruebas ejecutan el callback y el alcance
+reales; quitar la guarda hace fallar dos. Esto demuestra el defecto, no atribuye
+sin traza la causa exacta del fallo de Safari. Su prueba queda sellada en los
+invariantes clínicos. No cambia permisos del servidor ni datos de pacientes.
 
 ## Lo que aún impide afirmar independencia operativa
 

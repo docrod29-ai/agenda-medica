@@ -73,7 +73,9 @@ export default function PacientesPage() {
   }
 
   const load = async () => {
-    if (!clinicId) return
+    // REG-691: el rol puede llegar antes que esta instancia de useAuth.
+    // Una carga sin uid descartaba toda la lista y podía llegar después de la válida.
+    if (!clinicId || !role || !user?.uid) return
     try {
       const lista = await listarPacientesCompat(clinicId)
       /**
@@ -97,7 +99,7 @@ export default function PacientesPage() {
     }
   }
 
-  // Se espera al rol: sin él no se sabe si filtrar, y filtrar «por si acaso» vacía la lista.
+  // load espera la identidad completa antes de leer y aplicar el alcance del médico.
   useEffect(() => { if (role) load() }, [clinicId, role, user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
