@@ -22,22 +22,7 @@
     "confirmadaPor": "https://github.com/docrod29-ai/agenda-medica/actions/runs/34054755373",
     "comoSeActualiza": "SOLO despues de una ejecucion del boton cerrada en PRODUCTION_RELEASE=SUCCESS, cuya Compuerta 3 comprobo la version contra el sitio vivo. NO se deriva de public/version.txt (eso es el repo). Ver REG-505."
   },
-  "trabajoLocalSinSubir": [
-    "M .env.example",
-    " M CLAUDE.md",
-    " M docs/audit/regression-ledger.md",
-    " M docs/data-room/INDICE.md",
-    " M docs/ops/inventario-de-entorno.json",
-    " M docs/quality/FAMILIAS-DE-DEFECTO.md",
-    " M src/__tests__/la-nota-maxima-si-razona.test.ts",
-    " M src/app/(dashboard)/consulta/[patientId]/page.tsx",
-    " M src/app/api/expediente/procesar/route.ts",
-    " M src/lib/calidad/familias-de-defecto.ts",
-    " M src/lib/clinical/invariantes-clinicos.json",
-    "?? src/__tests__/la-nota-cuesta-lo-que-debe.test.ts",
-    "?? src/lib/expediente/borrador-local.ts",
-    "?? src/lib/expediente/complejidad.ts"
-  ],
+  "trabajoLocalSinSubir": [],
   "actualizado": "2026-09-12",
   "resumenDesdeElUltimoEstado": {
     "versionesDesplegadas": "v1085 → v1096",
@@ -78,5 +63,5 @@
     "casosDePrueba": 13375,
     "lint": "ver scripts/lint-trinquete.mjs"
   },
-  "versionEnElRepo": "nexusmed-v1197"
+  "versionEnElRepo": "nexusmed-v1198"
 }
