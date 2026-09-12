@@ -1,7 +1,8 @@
 # Reglas de Firestore — qué está escrito y qué rige de verdad
 
 > **Estado**: lo escrito **es** lo que rige. `firestore.rules` se publicó con la
-> ejecución **#37** del botón de producción (11-sep-2026, v1197), y el sello lo
+> ejecución **#37** del botón de producción (11-sep-2026, v1197), y la **#38**
+> (12-sep-2026, v1198) lo reenvió sin cambios con el mismo sello, que lo
 > registra. Este archivo dice cómo se sabe eso sin fiarse de la memoria de nadie.
 
 ## El problema que este archivo cierra
@@ -54,11 +55,14 @@ Que ese paso no se pueda borrar en silencio lo vigila
 
 ## PENDIENTE DE DESPLIEGUE
 
-**Hoy está vacía** (11-sep-2026, 19:22 UTC). La ejecución **#37** del botón,
-sobre el árbol `d6c247cc` (v1197, idéntico en todo publicable a la cabeza
-`47039dab`, el merge de #487), publicó `firestore.rules`: el log dice «released
-rules firestore.rules to cloud.firestore» y el sello `3129fc5d…` coincide con el
-sha256 del árbol.
+**Hoy está vacía** (12-sep-2026, 15:11 UTC). La ejecución **#38** del botón,
+sobre el árbol `9fc66ad9` (v1198, el merge de #493; idéntico en todo publicable
+a la cabeza `91730a62`, el merge de #494, que sólo mueve el pin), reenvió
+`firestore.rules` **sin cambios**: v1198 no tocó las reglas, el log dice «already
+up to date, skipping upload» y luego «released rules firestore.rules to
+cloud.firestore», y el sello `3129fc5d…` es el mismo que emitió la **#37**
+(11-sep-2026, v1197, sobre el árbol `d6c247cc`), que fue la que publicó las
+reglas que rigen hoy.
 
 | Cambio | Qué NO rige hoy | Consecuencia hasta desplegar |
 |---|---|---|
@@ -83,8 +87,8 @@ leer el bucket de Storage.
 **Hoy está vacía** (11-sep-2026). La ejecución **#36** del botón, sobre el mismo
 árbol `15b2b91` (v1196), publicó `storage.rules`: el log dice «released rules
 storage.rules to firebase.storage». Desde ese momento la subida de estudios
-desde el portal (D-058) rige en producción. La #37 (v1197) lo re-liberó sin
-cambios («already up to date, skipping upload»).
+desde el portal (D-058) rige en producción. La #37 (v1197) y la #38 (v1198) lo
+re-liberaron sin cambios («already up to date, skipping upload»).
 
 | Qué NO rige en el bucket | Desde | Qué se rompe mientras tanto |
 |---|---|---|
