@@ -2,8 +2,9 @@
 
 Orden del dueño: ejecutar el plan de Ausculta con menor dependencia de IA externa.
 Base original: `34211eaaebe366dcb87e3a02634f78fe41abf12c`.
-Se integra main `9fc66ad96512c2802b069ada2e2819089d84d844`, con las decisiones
-D-059–D-062, sin cambiar planes, precios ni el borrador local en vivo.
+Se integra main `91730a62ac6c35933aa3f4e2608a3c6dde38fb3d`, que conserva
+v1198 y las decisiones D-059–D-062. Planes, precios y borrador local en vivo
+se conservan. El pin de publicación autorizado en main se conserva sin activarlo.
 Rama: `codex/ausculta-inferencia-privada`. Candidato de caché: v1199.
 PR: https://github.com/docrod29-ai/agenda-medica/pull/495.
 
@@ -23,17 +24,18 @@ reglas desplegadas, accesos de producción, suscripciones ni pesos de modelos.
 - Plantilla de host GPU, comprobador sintético de servidor y guía de operación
   en `docs/ia/INFERENCIA-PROPIA.md`. Sin imagen ni pesos fingidos como evaluados.
 
-## Evidencia de software anterior a integrar main v1198
+## Evidencia final de software, integrada con main v1198
 
 | Comprobación | Resultado |
 | --- | --- |
-| Suite completa salvo el escáner npm, con TCP/DNS/UDP bloqueados | 14 875 casos pasan; 1 126 archivos. |
+| Suite completa salvo el escáner npm, con TCP/DNS/UDP bloqueados | 14 938 casos pasan; 1 129 archivos; ninguno omitido. |
 | Prueba separada que consulta vulnerabilidades de paquetes en npm | 16 casos pasan. No importa casos clínicos. |
-| Cuatro archivos nuevos de privacidad/nota/voz/inventario, tras la última corrección | 61 casos pasan. |
+| Casos nuevos de privacidad/nota/voz/inventario | 63 casos incluidos en la suite final. |
 | Lint | 93 errores heredados; techo 93, sin deuda nueva. |
-| Build final | `npm run build` completo y correcto, candidato v1198. |
+| Build final | `npm run build` completo y correcto, candidato v1199. |
 | HTTP real del build local, `LOCAL_ONLY` | Capacidades 200; transcripción, sondeo y verificador 503 con capacidad limitada. |
 | Prueba inversa del bloqueo | Quitar deliberadamente el bloqueo hace fallar el guardián; código restaurado y casos vuelven a pasar. |
+| Prueba inversa del cobro privado | Retirar `!propia` del escalado cobra Máxima sin cambiar cómputo y hace fallar el caso; restaurado, pasa con reserva y cobro Estándar. |
 | Plantilla GPU | Sintaxis shell/YAML y declaración de red revisadas; sin ejecución Docker/GPU. |
 | Comprobador sin servidor configurado | Sale con error explícito; no informa inferencia exitosa. |
 
@@ -48,6 +50,16 @@ La revisión paralela de transporte y voz detectó y ayudó a cerrar: hostname c
 punto terminal, logs de salida privada, JSON vacío, timeout sólo de cabeceras,
 TTS sin permiso, sondeo prolongado y carreras de captura. Los datos utilizados
 son sintéticos. La revisión no certifica una instalación desplegada.
+
+La integración de main detectó un cruce adicional: el escalado por complejidad
+no aumenta cómputo cuando sólo hay un modelo privado. Se evita aumentar sus
+créditos automáticamente; los perfiles públicos mantienen D-062. Una prueba
+ejecuta la nota propia en modo híbrido con fusión habilitada y comprueba que
+no resuelve ninguna llave pública ni inicia el borrador GPT. Los tableros de
+versión y programa se regeneraron con sus scripts canónicos.
+
+El estado de CI del commit final se consulta en el PR #495. Los resultados
+locales anteriores no sustituyen sus comprobaciones remotas.
 
 ## Lo que aún impide afirmar independencia operativa
 

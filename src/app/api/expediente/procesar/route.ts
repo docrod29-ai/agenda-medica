@@ -488,7 +488,9 @@ export async function POST(req: NextRequest) {
    * significa «no se detectó», no «es simple»: ver `complejidad.ts`.
    */
   let escalado: string[] | null = null
-  if (!rapido && !body.motor && motorPedido.clave === 'estandar') {
+  // Un único modelo privado aún no tiene perfiles distintos evaluados: subir
+  // créditos sin cambiar su cómputo sería cobrar un escalado que no ocurrió.
+  if (!propia && !rapido && !body.motor && motorPedido.clave === 'estandar') {
     const c = evaluarComplejidad(transcripcion, tipo, contexto.especialidad)
     if (c.compleja) { motorPedido = MOTORES.maxima; escalado = c.motivos }
   }

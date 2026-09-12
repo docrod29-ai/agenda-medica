@@ -14,13 +14,14 @@ const doble = vi.hoisted(() => ({
   reservar: vi.fn(async (clinicId: string, _fuente: string, n: number) => ({ ok: true, clinicId, apartados: n, mes: '2026-09' })),
   confirmar: vi.fn(async (_reserva: unknown, _creditos: number) => {}), devolver: vi.fn(async (_reserva: unknown) => {}),
   registrarCosto: vi.fn(async () => null),
+  nivel: 'premium',
   logs: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }))
 vi.mock('@/lib/auth-server', () => ({ verificarModuloIA: async () => doble.acceso }))
 vi.mock('@/lib/rate-limit', () => ({ limitarOResponder: async () => null }))
 vi.mock('@/lib/ai-keys', () => ({
   resolverClaveIA: doble.resolverClaveIA, gateCreditos: async () => null,
-  nivelIADe: async () => 'premium', registrarUso: async () => {}, registrarCreditos: async () => {},
+  nivelIADe: async () => doble.nivel, registrarUso: async () => {}, registrarCreditos: async () => {},
   registrarConsultaEconomica: async () => {}, economicasDelMes: async () => 0,
   entitlementsDe: async () => ({ limiteCreditos: 100, topeEconomico: 100 }),
   creditosUsadosDelMes: async () => 0, creditosExtraDelMes: async () => 0,
@@ -54,6 +55,7 @@ const request = (extra: Record<string, unknown> = {}) => new NextRequest('https:
 beforeEach(() => {
   vi.clearAllMocks(); olvidarCircuitos(); reiniciarContrapresion()
   doble.acceso.clinicId = 'clinica-sintetica'; doble.acceso.role = 'medico'
+  doble.nivel = 'premium'
   vi.stubEnv('AUSCULTA_AI_MODE', 'LOCAL_ONLY')
   vi.stubEnv('AUSCULTA_NOTE_PROVIDER', undefined)
   vi.stubEnv('AUSCULTA_SELF_HOSTED_BASE_URL', 'https://inferencia.example.test/v1')
@@ -159,5 +161,14 @@ describe('una nota propia atraviesa la ruta que usa el médico', () => {
     expect(doble.resolverClaveIA).not.toHaveBeenCalled()
     expect(fetch).toHaveBeenCalledOnce()
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe(endpoint)
+  })
+  it('las señales de complejidad no cobran un escalado inexistente con un único modelo privado', async () => {
+    doble.nivel = 'pro'
+    const data = await (await POST(request({ motor: undefined,
+      transcripcion: 'Escenario inventado: se mencionan 1 mg, 2 mg, 3 mg, 4 mg y 5 mg, sin prescribir.' }))).json()
+    expect(data).toMatchObject({ ok: true, _motor: 'estandar', _escalado: null, _modelo: 'modelo-sintetico' })
+    expect(doble.reservar.mock.calls.filter(c => c[2] > 0).map(c => c[2])).toEqual([3])
+    expect(doble.confirmar.mock.calls.filter(c => Number(c[1]) > 0).map(c => c[1])).toEqual([3])
+    expect(fetch).toHaveBeenCalledOnce()
   })
 })

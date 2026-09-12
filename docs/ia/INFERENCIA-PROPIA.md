@@ -37,6 +37,10 @@ loopback fuera de producción. No cambiar variables de producción para probar.
   cobro; la reserva de la nota se devuelve si no se genera una nota válida.
   Los tokens se anotan como `selfhosted`. Coste sin tarifa conocida no significa
   coste cero: la GPU requiere contabilidad de infraestructura aparte.
+- Conserva D-061 (acceso por plan) y D-062 (borrador local en vivo). El escalado
+  automático de Estándar a Máxima se aplica a los perfiles externos existentes;
+  el único modelo privado no aumenta créditos por complejidad sin aumentar su
+  cómputo. Perfiles privados distintos requieren medición y evaluación propias.
 - El timeout privado cubre cabeceras y cuerpo, con límite de 2 MiB y sin seguir
   redirecciones. No registra texto clínico en errores propios.
 
